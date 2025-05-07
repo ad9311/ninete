@@ -1,0 +1,34 @@
+{
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1748099488520,
+			"tag": "0000_init",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1748102147912,
+			"tag": "0001_add_totals_to_ledger",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1748111643250,
+			"tag": "0002_transaction_income_category",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1748126516894,
+			"tag": "0003_add_is_estimated_to_transactions",
+			"breakpoints": true
+		}
+	]
+}

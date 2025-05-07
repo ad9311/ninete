@@ -1,0 +1,1 @@
+ALTER TABLE "transactions" ADD COLUMN "is_estimated" boolean DEFAULT false NOT NULL;
