@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { updateTransaction } from '$lib/server/models/transactions';
 import type { Actions } from './$types';
-import type { TRANSACTION_CATEGORIES } from '$lib';
+import type { TRANSACTION_CATEGORIES } from '$lib/shared';
 
 export const actions: Actions = {
 	default: async (event) => {

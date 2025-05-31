@@ -1,4 +1,4 @@
-import type { TRANSACTION_CATEGORIES, TRANSACTION_TYPES } from '$lib';
+import type { TRANSACTION_CATEGORIES, TRANSACTION_TYPES } from '$lib/shared';
 import { createTransaction } from '$lib/server/models/transactions';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';

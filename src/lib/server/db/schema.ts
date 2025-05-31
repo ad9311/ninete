@@ -3,7 +3,7 @@ import {
 	LEDGER_STATUS,
 	LEDGER_TYPES,
 	TRANSACTION_TYPES
-} from '../../index';
+} from '../../shared';
 import {
 	boolean,
 	integer,
