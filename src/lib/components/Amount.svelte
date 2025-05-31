@@ -1,7 +1,6 @@
-<!-- <script lang="ts">
+<script lang="ts">
 	export let type: 'credit' | 'debit' | 'balance';
 	export let value: number | string;
-	export let className: string = '';
 
 	const numericAmount = Number.isNaN(+value) ? 0 : +value;
 
@@ -12,18 +11,20 @@
 
 	const getColor = () => {
 		if (numericAmount === 0) {
-			return 'secondary';
+			return 'var(--color-muted-foreground)';
 		}
 
 		switch (type) {
 			case 'credit':
-				return 'positive';
+				return 'var(--color-positive)';
 			case 'debit':
-				return 'destructive';
+				return 'var(--color-negative)';
 			case 'balance':
-				return numericAmount > 0 ? 'positive' : 'destructive';
+				return numericAmount > 0 ? 'var(--color-positive)' : 'var(--color-negative)';
 			default:
-				return 'secondary';
+				return 'var(--color-muted-foreground)';
 		}
 	};
-</script> -->
+</script>
+
+<span style="color: {getColor()}">{formatedAmount}</span>

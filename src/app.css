@@ -21,6 +21,9 @@
 
 	--accent: oklch(86.9% 0.022 252.894);
 	--accent-foreground: oklch(20.8% 0.042 265.755);
+
+	--color-positive: oklch(62.7% 0.194 149.214);
+	--color-negative: oklch(57.7% 0.245 27.325);
 }
 
 .dark {
@@ -40,7 +43,7 @@
 	--accent-foreground: oklch(0.985 0 0);
 }
 
-@theme {
+@theme inline {
 	--radius-primary: var(--radius);
 
 	--color-background: var(--background); /* slate-900 */
