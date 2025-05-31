@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
+	const { currentBudget } = data;
 </script>
 
-<LedgerSummary ledger={data.currentBudget} />
+<LedgerSummary ledger={currentBudget} />
