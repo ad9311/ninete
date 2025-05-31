@@ -1,1 +1,0 @@
-ALTER TYPE "public"."transaction_category" ADD VALUE 'income' BEFORE 'payable';

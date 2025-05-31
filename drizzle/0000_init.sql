@@ -1,6 +1,6 @@
 CREATE TYPE "public"."ledger_status" AS ENUM('n/a', 'pending', 'paid', 'overdue', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."ledger_type" AS ENUM('budget', 'payable/receivable');--> statement-breakpoint
-CREATE TYPE "public"."transaction_category" AS ENUM('housing', 'utilities', 'groceries', 'restaurants', 'foodDelivery', 'transportation', 'healthcare&wellness', 'personalCare', 'shopping', 'entertainment', 'travel&vacations', 'education', 'children&dependents', 'pets', 'gifts&donations', 'financialServices', 'savings&investments', 'workExpenses', 'homeImprovement', 'taxes', 'miscellaneous', 'payable', 'receivable');--> statement-breakpoint
+CREATE TYPE "public"."transaction_category" AS ENUM('housing', 'utilities', 'groceries', 'restaurants', 'foodDelivery', 'transportation', 'healthcare&wellness', 'personalCare', 'shopping', 'entertainment', 'travel&vacations', 'education', 'children&dependents', 'pets', 'gifts&donations', 'financialServices', 'savings&investments', 'workExpenses', 'homeImprovement', 'taxes', 'miscellaneous', 'income', 'payable', 'receivable');--> statement-breakpoint
 CREATE TYPE "public"."transaction_type" AS ENUM('credit', 'debit');--> statement-breakpoint
 CREATE TABLE "ledgers" (
 	"id" serial PRIMARY KEY NOT NULL,
@@ -11,6 +11,8 @@ CREATE TABLE "ledgers" (
 	"month" integer NOT NULL,
 	"type" "ledger_type" NOT NULL,
 	"status" "ledger_status" DEFAULT 'n/a' NOT NULL,
+	"total_credits" numeric(10, 2) DEFAULT '0' NOT NULL,
+	"total_debits" numeric(10, 2) DEFAULT '0' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -31,6 +33,7 @@ CREATE TABLE "transactions" (
 	"date" timestamp with time zone NOT NULL,
 	"category" "transaction_category" NOT NULL,
 	"type" "transaction_type" NOT NULL,
+	"is_estimated" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

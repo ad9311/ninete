@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"start": "node build",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -27,6 +28,7 @@
 		"@eslint/eslintrc": "^3.3.1",
 		"@eslint/js": "^9.28.0",
 		"@faker-js/faker": "^9.8.0",
+		"@flydotio/dockerfile": "^0.7.10",
 		"@inlang/cli": "^3.0.11",
 		"@lucide/svelte": "^0.482.0",
 		"@sveltejs/adapter-auto": "^6.0.1",
