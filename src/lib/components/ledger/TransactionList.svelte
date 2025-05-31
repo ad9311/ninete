@@ -10,7 +10,7 @@
 </script>
 
 <div>
-	{#each transactions as transaction}
+	{#each transactions as transaction (transaction.id)}
 		<p>{transaction.description}</p>
 		<p><Amount value={transaction.amount} {type} /></p>
 		<a href={`/ledgers/${ledgerPath}/${transaction.ledgerId}/transactions/${transaction.id}`}
