@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
 	import type { Action } from '$lib/shared';
-	import Amount from '../Amount.svelte';
+	import Amount from './Amount.svelte';
 
 	export let transaction: Transaction;
 	export let ledgerType: 'budget' | 'payable/receivable';

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Ledger } from '$lib/server/db/schema';
 	import { getBalance } from '$lib/shared/ledger';
-	import Amount from '$lib/components/Amount.svelte';
+	import Amount from '$lib/components/ledger/Amount.svelte';
 	import type { Action } from '$lib/shared';
 
 	export let ledger: Ledger;

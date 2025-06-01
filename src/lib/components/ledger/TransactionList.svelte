@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
-	import Amount from '$lib/components/Amount.svelte';
+	import Amount from '$lib/components/ledger/Amount.svelte';
 
 	export let transactions: Transaction[];
 	export let type: 'credit' | 'debit';
