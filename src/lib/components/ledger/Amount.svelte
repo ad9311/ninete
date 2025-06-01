@@ -27,4 +27,4 @@
 	};
 </script>
 
-<span class={getColor()}>{formatedAmount}</span>
+<span class="{getColor()} font-number">{formatedAmount}</span>
