@@ -5,10 +5,12 @@
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import { enhance } from '$app/forms';
 
-	export let transaction: Transaction;
-	export let ledgerType: 'budget' | 'payable/receivable';
+	const {
+		transaction,
+		ledgerType
+	}: { transaction: Transaction; ledgerType: 'budget' | 'payable/receivable' } = $props();
 
-	const type = transaction.type === 'credit' ? 'credit' : 'debit';
+	const transactionDisplayType = transaction.type === 'credit' ? 'Credit' : 'Debit';
 	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';
 	const actions: Action[] = [
 		{
@@ -23,28 +25,60 @@
 			className: 'btn-primary'
 		}
 	];
+
+	// Format date for display (optional, but good for UI)
+	const formattedDate = new Date(transaction.date).toLocaleDateString('en-CA'); // YYYY-MM-DD, or choose a locale
 </script>
 
-<form method="POST" use:enhance id="delete-transaction-form"></form>
+<form method="POST" action="?/delete" use:enhance id="delete-transaction-form">
+	<input type="hidden" name="transactionId" value={transaction.id} />
+</form>
 
 <Card>
 	{#snippet header()}
-		<h2 class="card-title">{transaction.type}</h2>
+		<h2 class="card-title">Transaction Details</h2>
 	{/snippet}
-	<p class="text-muted text-sm italic">{transaction.category}</p>
-	<p>{transaction.description}</p>
-	<p><Amount value={transaction.amount} {type} /></p>
-	<p class="text-muted text-sm italic">{transaction.date}</p>
+	<div class="space-y-1.5 text-sm text-zinc-800">
+		<p>
+			<span class="font-semibold">Date:</span>
+			<span class="text-zinc-600">{formattedDate}</span>
+		</p>
+		<p>
+			<span class="font-semibold">Type:</span>
+			<span
+				class="font-semibold {transaction.type === 'credit' ? 'text-green-700' : 'text-red-700'}"
+				>{transactionDisplayType}</span
+			>
+		</p>
+		<p>
+			<span class="font-semibold">Category:</span>
+			<span class="text-zinc-600 italic">{transaction.category ?? 'N/A'}</span>
+		</p>
+		<div>
+			<span class="mb-0.5 block font-semibold">Description:</span>
+			<div
+				class="max-h-[96px] min-h-[48px] w-full overflow-y-auto border border-t-zinc-500 border-r-zinc-200 border-b-zinc-200 border-l-zinc-500 bg-white px-2 py-1 text-zinc-800"
+				style="line-height: 1.4;"
+			>
+				{transaction.description}
+			</div>
+		</div>
+		<hr class="my-1 border-t border-zinc-300" />
+		<p>
+			<span class="font-semibold">Amount:</span>
+			<Amount value={transaction.amount} type={transaction.type} />
+		</p>
+	</div>
 	{#snippet footer()}
-		<div class="flex justify-end gap-2">
+		<div class="flex w-full items-center justify-end gap-2">
 			{#each actions as action (action.label)}
 				{#if action.href}
-					<a href={action.href} class={action.className}>{action.label}</a>
+					<a href={action.href} class="{action.className} text-xs">{action.label}</a>
 				{:else}
 					<button
 						type={action.submit ? 'submit' : 'button'}
 						onclick={action.onClick}
-						class={action.className}
+						class="{action.className} text-xs"
 						form={action.form}>{action.label}</button
 					>
 				{/if}
