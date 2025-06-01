@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
 	import type { Action } from '$lib/shared';
-	import Amount from './Amount.svelte';
+	import Card from '$lib/components/ui/Card.svelte';
+	import Amount from '$lib/components/ledger/Amount.svelte';
 
 	export let transaction: Transaction;
 	export let ledgerType: 'budget' | 'payable/receivable';
@@ -22,20 +23,23 @@
 	];
 </script>
 
-<div>
-	<h2>{transaction.description}</h2>
+<Card>
+	{#snippet header()}
+		<h2>{transaction.description}</h2>
+	{/snippet}
 	<p>{transaction.type}</p>
 	<p>{transaction.category}</p>
 	<p>{transaction.date}</p>
 	<p>Amount: <Amount value={transaction.amount} {type} /></p>
-	<hr />
-	<div>
-		{#each actions as action (action.label)}
-			{#if action.href}
-				<a href={action.href}>{action.label}</a>
-			{:else}
-				<button onclick={action.onClick}>{action.label}</button>
-			{/if}
-		{/each}
-	</div>
-</div>
+	{#snippet footer()}
+		<div>
+			{#each actions as action (action.label)}
+				{#if action.href}
+					<a href={action.href}>{action.label}</a>
+				{:else}
+					<button onclick={action.onClick}>{action.label}</button>
+				{/if}
+			{/each}
+		</div>
+	{/snippet}
+</Card>

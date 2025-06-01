@@ -10,11 +10,11 @@
 </svelte:head>
 
 {#if data.isUserSignedIn}
-	<main>
+	<main class="p-2 md:p-4">
 		{@render children()}
 	</main>
 {:else}
-	<main>
+	<main class="p-2 md:p-4">
 		{@render children()}
 	</main>
 {/if}

@@ -1,19 +1,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import Card from '$lib/components/ui/Card.svelte';
 </script>
 
-<form method="POST" use:enhance>
-	<label for="username">Username</label>
-	<input type="text" name="username" id="username" />
+<Card>
+	{#snippet header()}
+		<h3 class="card-title">Create an account</h3>
+	{/snippet}
+	<form method="POST" use:enhance>
+		<label for="username">Username</label>
+		<input type="text" name="username" id="username" />
 
-	<label for="email">Email</label>
-	<input type="email" name="email" id="email" />
+		<label for="email">Email</label>
+		<input type="email" name="email" id="email" />
 
-	<label for="password">Password</label>
-	<input type="password" name="password" id="password" />
+		<label for="password">Password</label>
+		<input type="password" name="password" id="password" />
 
-	<label for="password-confirmation">Password Confirmation</label>
-	<input type="password" name="password-confirmation" id="password-confirmation" />
+		<label for="password-confirmation">Password Confirmation</label>
+		<input type="password" name="password-confirmation" id="password-confirmation" />
 
-	<button type="submit">Sign up</button>
-</form>
+		<button type="submit">Sign up</button>
+	</form>
+</Card>

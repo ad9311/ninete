@@ -15,6 +15,7 @@
 </script>
 
 <Ledger ledger={budget} {actions} />
+<br />
 <TransactionList transactions={credits} ledgerType="budget" type="credit" />
-<hr />
+<br />
 <TransactionList transactions={debits} ledgerType="budget" type="debit" />

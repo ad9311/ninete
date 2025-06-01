@@ -11,20 +11,20 @@
 
 	const getColor = () => {
 		if (numericAmount === 0) {
-			return 'var(--color-muted-foreground)';
+			return 'text-muted';
 		}
 
 		switch (type) {
 			case 'credit':
-				return 'var(--color-positive)';
+				return 'text-green-600';
 			case 'debit':
-				return 'var(--color-negative)';
+				return 'text-red-600';
 			case 'balance':
-				return numericAmount > 0 ? 'var(--color-positive)' : 'var(--color-negative)';
+				return numericAmount > 0 ? 'text-green-600' : 'text-red-600';
 			default:
-				return 'var(--color-muted-foreground)';
+				return 'text-muted';
 		}
 	};
 </script>
 
-<span style="color: {getColor()}">{formatedAmount}</span>
+<span class={getColor()}>{formatedAmount}</span>

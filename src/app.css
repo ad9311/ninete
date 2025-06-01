@@ -4,71 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-	--radius: 0.15rem;
-
-	--background: oklch(1 0 0); /* slate-50 */
-	--foreground: oklch(20.8% 0.042 265.755); /* slate-950 */
-
-	--primary: oklch(44.6% 0.043 257.281); /* slate-600 */
-	--primary-foreground: oklch(98.4% 0.003 247.858); /* slate-50 */
-
-	--border: oklch(92.9% 0.013 255.508); /* slate-200 */
-	--input: oklch(96.8% 0.007 247.896); /* slate-100 */
-
-	--muted: oklch(96.8% 0.007 247.896);
-	--muted-foreground: oklch(86.9% 0.022 252.894);
-
-	--accent: oklch(86.9% 0.022 252.894);
-	--accent-foreground: oklch(20.8% 0.042 265.755);
-
-	--color-positive: oklch(62.7% 0.194 149.214);
-	--color-negative: oklch(57.7% 0.245 27.325);
-}
-
-.dark {
-	--background: oklch(96.8% 0.007 247.896); /* slate-900 */
-	--foreground: oklch(0.985 0 0); /* slate-50 */
-
-	--primary: oklch(0.78 0.01 262); /* slate-300 */
-	--primary-foreground: oklch(20.8% 0.042 265.755);
-
-	--border: oklch(0.28 0.003 262); /* slate-700 */
-	--input: oklch(0.23 0.003 262); /* slate-800 */
-
-	--muted: oklch(0.25 0.003 262);
-	--muted-foreground: oklch(0.6 0.01 262);
-
-	--accent: oklch(0.55 0.01 262);
-	--accent-foreground: oklch(0.985 0 0);
-}
-
-@theme inline {
-	--radius-primary: var(--radius);
-
-	--color-background: var(--background); /* slate-900 */
-	--color-foreground: var(--foreground); /* slate-50 */
-
-	--color-primary: var(--primary); /* slate-300 */
-	--color-primary-foreground: var(--primary-foreground);
-
-	--color-border: var(--border); /* slate-700 */
-	--color-input: var(--input); /* slate-800 */
-
-	--color-muted: var(--muted);
-	--color-muted-foreground: var(--muted-foreground);
-
-	--color-accent: var(--accent);
-	--accent-foreground: var(--accent-foreground);
-}
-
 @layer base {
-	body {
-		@apply bg-background text-foreground;
-	}
-
 	/* disable chrome cancel button */
 	input[type='search']::-webkit-search-cancel-button {
 		display: none;
 	}
+}
+
+@theme {
+	--color-muted: oklch(55.2% 0.016 285.938);
+}
+
+.card-title {
+	@apply text-2xl font-bold;
 }
