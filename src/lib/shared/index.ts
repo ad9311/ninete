@@ -3,6 +3,9 @@
 export type Action = {
 	label: string;
 	href?: string;
+	form?: string;
+	submit?: boolean;
+	className?: string;
 	onClick?: () => void;
 };
 

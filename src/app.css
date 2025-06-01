@@ -32,12 +32,16 @@
 	@apply btn border-primary text-primary border bg-white hover:bg-zinc-100;
 }
 
+.btn-destructive {
+	@apply btn bg-red-600 text-white hover:bg-red-800;
+}
+
 .card-title {
 	@apply text-2xl font-bold;
 }
 
 .link {
-	@apply text-blue-600 hover:text-blue-800 hover:underline;
+	@apply text-sm text-blue-600 hover:text-blue-800 hover:underline;
 }
 
 .form {
