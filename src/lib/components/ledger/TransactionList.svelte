@@ -19,8 +19,9 @@
 		{#each transactions as transaction (transaction.id)}
 			<p>{transaction.description}</p>
 			<p><Amount value={transaction.amount} {type} /></p>
-			<a href={`/ledgers/${ledgerPath}/${transaction.ledgerId}/transactions/${transaction.id}`}
-				>View</a
+			<a
+				href={`/ledgers/${ledgerPath}/${transaction.ledgerId}/transactions/${transaction.id}`}
+				class="link">View</a
 			>
 		{/each}
 	{:else}

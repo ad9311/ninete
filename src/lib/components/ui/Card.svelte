@@ -12,10 +12,10 @@
 </script>
 
 <div class={className ?? ''}>
-	<section class="rounded-xs border p-4">
+	<section class="border-primary rounded-xs border p-4">
 		{#if header}
 			<header>{@render header()}</header>
-			<hr class="my-2" />
+			<hr class="border-primary my-4 border-t" />
 		{/if}
 		{#if children}
 			<div>{@render children()}</div>

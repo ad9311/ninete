@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
+	body {
+		@apply bg-neutral-100 text-zinc-800;
+	}
+
 	/* disable chrome cancel button */
 	input[type='search']::-webkit-search-cancel-button {
 		display: none;
@@ -12,9 +16,26 @@
 }
 
 @theme {
+	--color-primary: oklch(37% 0.013 285.805);
 	--color-muted: oklch(55.2% 0.016 285.938);
+}
+
+@utility btn {
+	@apply cursor-pointer rounded-xs px-4 py-2;
+}
+
+.btn-primary {
+	@apply btn bg-primary text-white hover:bg-zinc-800;
+}
+
+.btn-outline {
+	@apply btn border-primary text-primary border bg-white hover:bg-zinc-100;
 }
 
 .card-title {
 	@apply text-2xl font-bold;
+}
+
+.link {
+	@apply text-blue-600 hover:text-blue-800 hover:underline;
 }

@@ -35,7 +35,7 @@
 		<div>
 			{#each actions as action (action.label)}
 				{#if action.href}
-					<a href={action.href}>{action.label}</a>
+					<a href={action.href} class="link">{action.label}</a>
 				{:else}
 					<button onclick={action.onClick}>{action.label}</button>
 				{/if}

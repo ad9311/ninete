@@ -14,7 +14,7 @@
 	{#snippet header()}
 		<div class="flex items-center justify-between">
 			<h3 class="card-title">{title}</h3>
-			<a href={`${linkRoot}/${ledger.id}`}>View</a>
+			<a href={`${linkRoot}/${ledger.id}`} class="link">View</a>
 		</div>
 	{/snippet}
 	<p>Credits: <Amount value={ledger.totalCredits} type="credit" /></p>
