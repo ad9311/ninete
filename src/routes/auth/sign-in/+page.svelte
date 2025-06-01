@@ -7,13 +7,19 @@
 	{#snippet header()}
 		<h3 class="card-title">Welcome back!</h3>
 	{/snippet}
-	<form method="POST" use:enhance>
-		<label for="email">Email</label>
-		<input type="email" name="email" id="email" />
+	<form method="POST" use:enhance class="form">
+		<div class="form-group">
+			<label for="email">Email</label>
+			<input type="email" name="email" id="email" />
+		</div>
 
-		<label for="password">Password</label>
-		<input type="password" name="password" id="password" />
+		<div class="form-group">
+			<label for="password">Password</label>
+			<input type="password" name="password" id="password" />
+		</div>
 
-		<button type="submit">Sign in</button>
+		<div class="form-actions">
+			<button type="submit" class="btn-primary">Sign in</button>
+		</div>
 	</form>
 </Card>
