@@ -12,7 +12,7 @@
 </script>
 
 <div class={className ?? ''}>
-	<section class="border-primary rounded-xs border p-4">
+	<section class="border-primary rounded-xs border bg-white p-4">
 		{#if header}
 			<header>{@render header()}</header>
 			<hr class="border-primary my-4 border-t" />
