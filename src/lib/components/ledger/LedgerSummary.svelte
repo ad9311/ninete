@@ -4,7 +4,7 @@
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import Card from '../ui/Card.svelte';
 
-	export let ledger: Ledger;
+	const { ledger }: { ledger: Ledger } = $props();
 
 	const title = ledger.type === 'budget' ? `${ledger.month}/${ledger.year} Budget` : ledger.title;
 	const linkRoot = ledger.type === 'budget' ? '/ledgers/budgets' : '/ledgers/accounts';
@@ -12,12 +12,26 @@
 
 <Card>
 	{#snippet header()}
-		<div class="flex items-center justify-between">
+		<div class="flex w-full items-center justify-between">
 			<h3 class="card-title">{title}</h3>
-			<a href={`${linkRoot}/${ledger.id}`} class="link">View</a>
+			<a href={`${linkRoot}/${ledger.id}`} class="text-xs text-zinc-300 underline hover:text-white"
+				>View Details</a
+			>
 		</div>
 	{/snippet}
-	<p>Credits: <Amount value={ledger.totalCredits} type="credit" /></p>
-	<p>Debits: <Amount value={ledger.totalDebits} type="debit" /></p>
-	<p>Balance: <Amount value={getBalance(ledger)} type="balance" /></p>
+	<div class="space-y-1 text-sm text-zinc-800">
+		<p>
+			<span class="font-semibold">Credits:</span>
+			<Amount value={ledger.totalCredits} type="credit" />
+		</p>
+		<p>
+			<span class="font-semibold">Debits:</span>
+			<Amount value={ledger.totalDebits} type="debit" />
+		</p>
+		<hr class="my-1 border-t border-zinc-300" />
+		<p>
+			<span class="font-bold">Balance:</span>
+			<Amount value={getBalance(ledger)} type="balance" />
+		</p>
+	</div>
 </Card>

@@ -9,22 +9,25 @@
 		currency: 'COP'
 	}).format(numericAmount);
 
-	const getColor = () => {
+	const getTextColor = () => {
 		if (numericAmount === 0) {
-			return 'text-muted';
+			return 'text-black';
 		}
 
 		switch (type) {
 			case 'credit':
-				return 'text-green-600';
+				return 'text-green-700';
 			case 'debit':
-				return 'text-red-600';
+				return 'text-red-700';
 			case 'balance':
-				return numericAmount > 0 ? 'text-green-600' : 'text-red-600';
+				return numericAmount > 0 ? 'text-green-700' : 'text-red-700';
 			default:
-				return 'text-muted';
+				return 'text-black';
 		}
 	};
 </script>
 
-<span class="{getColor()} font-number">{formatedAmount}</span>
+<span
+	class="font-number inline-block rounded-none border border-t-zinc-50 border-r-zinc-400 border-b-zinc-400 border-l-zinc-50 bg-zinc-200 px-2 py-0.5 text-xs {getTextColor()}"
+	>{formatedAmount}</span
+>

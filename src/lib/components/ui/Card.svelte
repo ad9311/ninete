@@ -23,7 +23,6 @@
 				{@render header()}
 			{/if}
 		</header>
-
 		<section
 			class="border-t-primary border-l-primary m-1 min-h-[50px] border-2 border-r-zinc-300 border-b-zinc-300 bg-white p-3"
 		>
@@ -33,7 +32,6 @@
 				<div class="text-zinc-500 italic">No content provided.</div>
 			{/if}
 		</section>
-
 		{#if footer}
 			<footer
 				class="text-primary mt-1 border-t-2 border-t-zinc-400 bg-zinc-200 px-2 py-0.5 text-xs"
