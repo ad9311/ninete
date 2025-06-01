@@ -29,7 +29,7 @@
 						<p class="text-xs text-zinc-600 italic">{transaction.category}</p>
 						<a
 							href={`/ledgers/${ledgerPath}/${transaction.ledgerId}/transactions/${transaction.id}`}
-							class="link text-xs">View Details</a
+							class="link !text-xs">View Details</a
 						>
 					</div>
 					<p class="text-sm text-zinc-800">{transaction.description}</p>
