@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Card from '$lib/components/ui/Card.svelte';
+	import CardActions from '$lib/components/ui/CardActions.svelte';
 </script>
 
 <Card>
@@ -34,8 +35,6 @@
 		</div>
 	</form>
 	{#snippet footer()}
-		<div class="flex justify-between text-sm">
-			<a href="/auth/sign-in" class="link">Already have an account?</a>
-		</div>
+		<CardActions actions={[{ label: 'Already have an account?', href: '/auth/sign-in' }]} />
 	{/snippet}
 </Card>
