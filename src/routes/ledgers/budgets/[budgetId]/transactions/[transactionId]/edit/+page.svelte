@@ -1,13 +1,24 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import type { BreadcrumbItem } from '$lib/client';
+	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { TRANSACTION_CATEGORIES } from '$lib/shared';
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
-	const { transaction } = data;
+
+	const { transaction, budget } = data;
+	const breadcrumbItems: BreadcrumbItem[] = [
+		{ label: 'Home', href: '/' },
+		{ label: 'Budgets', href: '/ledgers/budgets' },
+		{ label: 'Budget', href: `/ledgers/budgets/${budget.id}` },
+		{ label: 'Transaction', href: `/ledgers/budgets/${budget.id}/transactions/${transaction.id}` },
+		{ label: 'Edit' }
+	];
 </script>
 
+<Breadcrumb items={breadcrumbItems} />
 <Card>
 	{#snippet header()}
 		<h3 class="card-title">Edit Transaction</h3>
