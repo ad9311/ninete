@@ -24,7 +24,7 @@
 	{#if transactions.length > 0}
 		<div class="flex flex-col gap-1">
 			{#each transactions as transaction (transaction.id)}
-				<div class="border-muted rounded-xs border bg-neutral-100 p-2 leading-normal">
+				<div class="border-muted rounded-xs border bg-neutral-50 p-2 leading-normal">
 					<div class="mb-1 flex items-center justify-between">
 						<p class="text-xs text-zinc-600 italic">{transaction.category}</p>
 						<a
