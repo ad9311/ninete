@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { BreadcrumbItem } from '$lib/client';
+	import FormErrors from '$lib/components/form/FormErrors.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import { TRANSACTION_CATEGORIES } from '$lib/shared';
-	import type { PageData } from './$types';
+	import type { PageProps } from './$types';
 
-	const { data }: { data: PageData } = $props();
+	const { data, form }: PageProps = $props();
 
 	const { transaction, budget } = data;
 	const breadcrumbItems: BreadcrumbItem[] = [
@@ -23,6 +24,7 @@
 	{#snippet header()}
 		<h3 class="card-title">Edit Transaction</h3>
 	{/snippet}
+	<FormErrors errors={form?.errors} />
 	<form method="post" use:enhance class="form">
 		<p>{transaction.type}</p>
 		<div class="form-group">

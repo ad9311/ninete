@@ -1,7 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { updateTransaction } from '$lib/server/models/transactions';
 import type { Actions } from './$types';
-import type { TRANSACTION_CATEGORIES } from '$lib/shared';
+import { formatFormErrors, type TRANSACTION_CATEGORIES } from '$lib/shared';
+import type { ZodError } from 'zod';
 
 export const actions: Actions = {
 	default: async (event) => {
@@ -26,8 +27,9 @@ export const actions: Actions = {
 
 		try {
 			await updateTransaction(Number(budgetId), Number(transactionId), params);
-		} catch (error) {
-			return fail(400, { message: error instanceof Error ? error.message : 'Unknown error' });
+		} catch (e) {
+			const errors = formatFormErrors(e as Error | ZodError);
+			return fail(400, { errors });
 		}
 
 		return redirect(302, `/ledgers/budgets/${budgetId}`);
