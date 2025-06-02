@@ -14,24 +14,21 @@
 	{#snippet header()}
 		<div class="flex w-full items-center justify-between">
 			<h3 class="card-title">{title}</h3>
-			<a href={`${linkRoot}/${ledger.id}`} class="text-xs text-zinc-300 underline hover:text-white"
-				>View Details</a
-			>
+			<a href={`${linkRoot}/${ledger.id}`} class="link">View Details</a>
 		</div>
 	{/snippet}
-	<div class="space-y-1 text-sm text-zinc-800">
-		<p>
-			<span class="font-semibold">Credits:</span>
+	<div class="space-y-4 text-sm">
+		<div class="flex items-center">
+			<p class="w-20 font-semibold">Credits:</p>
 			<Amount value={ledger.totalCredits} type="credit" />
-		</p>
-		<p>
-			<span class="font-semibold">Debits:</span>
+		</div>
+		<div class="flex items-center">
+			<p class="w-20 font-semibold">Debits:</p>
 			<Amount value={ledger.totalDebits} type="debit" />
-		</p>
-		<hr class="my-1 border-t border-zinc-300" />
-		<p>
-			<span class="font-bold">Balance:</span>
+		</div>
+		<div class="flex items-center">
+			<p class="w-20 font-bold">Balance:</p>
 			<Amount value={getBalance(ledger)} type="balance" />
-		</p>
+		</div>
 	</div>
 </Card>

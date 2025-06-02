@@ -14,20 +14,19 @@
 	{#snippet header()}
 		<h2 class="card-title">{title}</h2>
 	{/snippet}
-	<div class="space-y-1 text-sm text-zinc-800">
-		<p>
-			<span class="font-semibold">Credits:</span>
+	<div class="space-y-4 text-sm">
+		<div class="flex items-center">
+			<p class="w-20 font-semibold">Credits:</p>
 			<Amount value={ledger.totalCredits} type="credit" />
-		</p>
-		<p>
-			<span class="font-semibold">Debits:</span>
+		</div>
+		<div class="flex items-center">
+			<p class="w-20 font-semibold">Debits:</p>
 			<Amount value={ledger.totalDebits} type="debit" />
-		</p>
-		<hr class="my-1 border-t border-zinc-300" />
-		<p>
-			<span class="font-bold">Balance:</span>
+		</div>
+		<div class="flex items-center">
+			<p class="w-20 font-bold">Balance:</p>
 			<Amount value={getBalance(ledger)} type="balance" />
-		</p>
+		</div>
 	</div>
 	{#snippet footer()}
 		<CardActions {actions} />

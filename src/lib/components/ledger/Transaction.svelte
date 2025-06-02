@@ -57,14 +57,12 @@
 		<div>
 			<span class="mb-0.5 block font-semibold">Description:</span>
 			<div
-				class="max-h-[96px] min-h-[48px] w-full overflow-y-auto border border-t-zinc-500 border-r-zinc-200 border-b-zinc-200 border-l-zinc-500 bg-white px-2 py-1 text-zinc-800"
-				style="line-height: 1.4;"
+				class="border-muted max-h-[96px] min-h-[48px] w-full overflow-y-auto rounded-xs border bg-neutral-100 p-2 leading-normal"
 			>
 				{transaction.description}
 			</div>
 		</div>
-		<hr class="my-1 border-t border-zinc-300" />
-		<p>
+		<p class="mt-4">
 			<span class="font-semibold">Amount:</span>
 			<Amount value={transaction.amount} type={transaction.type} />
 		</p>

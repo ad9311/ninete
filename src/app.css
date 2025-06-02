@@ -50,56 +50,23 @@
 }
 
 @utility btn {
-	@apply cursor-pointer rounded-none px-3 py-1 text-black;
-	border-top: 1px solid var(--color-zinc-50);
-	border-left: 1px solid var(--color-zinc-50);
-	border-right: 1px solid var(--color-zinc-400);
-	border-bottom: 1px solid var(--color-zinc-400);
-	background-color: var(--color-zinc-200);
+	@apply cursor-pointer rounded-xs px-3 py-1;
 }
 
 .btn-primary {
-	@apply btn;
-	/* Default btn style is already good for primary */
-}
-
-.btn-primary:active {
-	border-top: 1px solid var(--color-zinc-400);
-	border-left: 1px solid var(--color-zinc-400);
-	border-right: 1px solid var(--color-zinc-50);
-	border-bottom: 1px solid var(--color-zinc-50);
-	background-color: var(--color-zinc-300);
+	@apply btn bg-primary text-white;
 }
 
 .btn-outline {
-	@apply btn;
-	/* Similar to primary for Win98, differentiation might be subtle or through context */
-}
-
-.btn-outline:active {
-	border-top: 1px solid var(--color-zinc-400);
-	border-left: 1px solid var(--color-zinc-400);
-	border-right: 1px solid var(--color-zinc-50);
-	border-bottom: 1px solid var(--color-zinc-50);
-	background-color: var(--color-zinc-300);
+	@apply btn text-primary border-primary border;
 }
 
 .btn-destructive {
-	@apply btn text-red-700;
-	/* Overrides default btn text-black with a distinct red for destructive actions */
-}
-.btn-destructive:active {
-	border-top: 1px solid var(--color-zinc-400);
-	border-left: 1px solid var(--color-zinc-400);
-	border-right: 1px solid var(--color-zinc-50);
-	border-bottom: 1px solid var(--color-zinc-50);
-	background-color: var(--color-zinc-300);
-	@apply text-red-700; /* Ensure text remains red on active */
+	@apply btn bg-red-500 text-white;
 }
 
 .card-title {
-	/* Assuming this is used within the Card's header slot which has a dark blue bg */
-	@apply text-sm font-semibold text-white;
+	@apply text-primary text-xl font-semibold md:text-2xl;
 }
 
 .link {
@@ -114,11 +81,7 @@
 	input[type='date'],
 	textarea,
 	select {
-		@apply w-full bg-white px-1 py-0.5 text-sm focus:outline-none;
-		border: 1px solid;
-		border-color: var(--color-zinc-700) var(--color-zinc-300) var(--color-zinc-300)
-			var(--color-zinc-700); /* Inset border */
-		box-shadow: inset 1px 1px 1px var(--color-zinc-400);
+		@apply w-full bg-neutral-100 px-2 py-1;
 	}
 
 	textarea {
@@ -126,7 +89,7 @@
 	}
 
 	label {
-		@apply mb-0.5 block text-sm text-zinc-800;
+		@apply mb-0.5 block text-sm text-zinc-600;
 	}
 
 	.form-group {

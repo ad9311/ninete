@@ -24,7 +24,7 @@
 	{#if transactions.length > 0}
 		<div class="flex flex-col gap-1">
 			{#each transactions as transaction (transaction.id)}
-				<div class="rounded-none border border-zinc-300 bg-zinc-100 p-2 leading-normal">
+				<div class="border-muted rounded-xs border bg-neutral-100 p-2 leading-normal">
 					<div class="mb-1 flex items-center justify-between">
 						<p class="text-xs text-zinc-600 italic">{transaction.category}</p>
 						<a
@@ -32,8 +32,10 @@
 							class="link !text-xs">View Details</a
 						>
 					</div>
-					<p class="text-sm text-zinc-800">{transaction.description}</p>
-					<p class="text-sm"><Amount value={transaction.amount} {type} /></p>
+					<div class="mt-4 flex items-center justify-between">
+						<p class="text-sm">{transaction.description}</p>
+						<p class="text-sm"><Amount value={transaction.amount} {type} /></p>
+					</div>
 				</div>
 			{/each}
 		</div>
