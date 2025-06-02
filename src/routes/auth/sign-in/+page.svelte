@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import FormErrors from '$lib/components/form/FormErrors.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import CardActions from '$lib/components/ui/CardActions.svelte';
+	import type { PageProps } from './$types';
+
+	const { form }: PageProps = $props();
 </script>
 
 <Card>
 	{#snippet header()}
 		<h3 class="card-title">Welcome back!</h3>
 	{/snippet}
+	<FormErrors errors={form?.errors} />
 	<form method="POST" use:enhance class="form">
 		<div class="form-group">
 			<label for="email">Email</label>

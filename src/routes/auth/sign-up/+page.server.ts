@@ -2,6 +2,8 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import { createUser } from '$lib/server/models/user';
 import * as auth from '$lib/server/auth';
+import type { ZodError } from 'zod';
+import { formatFormErrors } from '$lib/shared';
 
 export const actions: Actions = {
 	default: async (event) => {
@@ -13,7 +15,7 @@ export const actions: Actions = {
 		const passwordConfirmation = formData.get('password-confirmation') as string;
 
 		if (password !== passwordConfirmation) {
-			return fail(400, { message: 'Passwords do not match' });
+			throw new Error('Passwords do not match');
 		}
 
 		try {
@@ -23,9 +25,9 @@ export const actions: Actions = {
 			const sessionToken = auth.generateSessionToken();
 			const session = await auth.createSession(sessionToken, user.id);
 			auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
-		} catch (error) {
-			const msg = (error as Error).message;
-			return fail(400, { message: `Failed to create user: ${msg}` });
+		} catch (e) {
+			const errors = formatFormErrors(e as Error | ZodError);
+			return fail(400, { errors });
 		}
 
 		return redirect(302, '/home');
