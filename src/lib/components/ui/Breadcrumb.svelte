@@ -3,10 +3,9 @@
 
 	type Props = {
 		items: BreadcrumbItem[];
-		className?: string;
 	};
 
-	const { items, className = '' }: Props = $props();
+	const { items }: Props = $props();
 
 	const MAX_ITEMS_VISIBLE = 4;
 	let processedItems: BreadcrumbItem[] = $state([]);
@@ -24,7 +23,10 @@
 </script>
 
 {#if processedItems && processedItems.length > 0}
-	<nav aria-label="Breadcrumb" class="win98-breadcrumb-bar {className}">
+	<nav
+		aria-label="Breadcrumb"
+		class="breadcrumb-bar border-primary mb-4 rounded-xs border bg-white p-2 text-xs"
+	>
 		<ol class="flex items-center">
 			{#each processedItems as pItem, pIndex (pItem)}
 				<li>
@@ -45,14 +47,16 @@
 {/if}
 
 <style lang="postcss">
-	.win98-breadcrumb-bar {
+	.breadcrumb-bar {
 		user-select: none;
-		padding-left: 0.5rem;
+		/* padding-left: 0.5rem;
 		padding-right: 0.5rem;
 		padding-top: 0.25rem;
 		padding-bottom: 0.25rem;
 		margin-bottom: 1rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-xs); */
 	}
 </style>
