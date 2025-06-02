@@ -7,28 +7,42 @@
 	};
 
 	const { items, className = '' }: Props = $props();
+
+	const MAX_ITEMS_VISIBLE = 4;
+	let processedItems: BreadcrumbItem[] = $state([]);
+
+	$effect(() => {
+		if (items.length > MAX_ITEMS_VISIBLE) {
+			processedItems = [
+				{ label: '...', href: undefined },
+				...items.slice(items.length - (MAX_ITEMS_VISIBLE - 1))
+			];
+		} else {
+			processedItems = items;
+		}
+	});
 </script>
 
-{#if items && items.length > 0}
+{#if processedItems && processedItems.length > 0}
 	<nav aria-label="Breadcrumb" class="win98-breadcrumb-bar {className}">
 		<ol class="flex items-center">
-			{#each items as item, i (item.label)}
+			{#each processedItems as pItem, pIndex (pItem)}
 				<li>
-					{#if item.href && i < items.length - 1}
+					{#if pItem.href && pItem !== items[items.length - 1]}
 						<a
-							href={item.href}
+							href={pItem.href}
 							class="link rounded-sm px-1 py-0.5 text-xs hover:text-blue-600 hover:underline"
-							>{item.label}</a
+							>{pItem.label}</a
 						>
 					{:else}
 						<span
-							class="px-1 py-0.5 text-xs {i === items.length - 1
+							class="px-1 py-0.5 text-xs {pItem === items[items.length - 1]
 								? 'font-semibold text-black'
-								: 'text-zinc-700'}">{item.label}</span
+								: 'text-zinc-700'}">{pItem.label}</span
 						>
 					{/if}
 				</li>
-				{#if i < items.length - 1}
+				{#if pIndex < processedItems.length - 1}
 					<li aria-hidden="true">
 						<span class="mx-0.5 text-xs text-zinc-500">/</span>
 					</li>
