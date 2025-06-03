@@ -14,7 +14,7 @@
 	const linkRoot = ledger.type === 'budget' ? '/ledgers/budgets' : '/ledgers/accounts';
 </script>
 
-<Card className="w-xl">
+<Card className="max-w-xl">
 	{#snippet header()}
 		<div class="flex w-full items-center justify-between">
 			<h3 class="card-title">{title}</h3>

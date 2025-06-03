@@ -2,8 +2,14 @@
 	import { CircleUserRound } from 'lucide-svelte';
 	import type { NavLink } from '$lib/client';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 
 	const { navLinks = [] }: { navLinks: NavLink[] } = $props();
+
+	const currentPath = $derived(page.url.pathname);
+	const isActive = (path: string) => {
+		return path.startsWith(currentPath);
+	};
 </script>
 
 <form action="/auth/sign-out" method="POST" id="sign-out-form" use:enhance></form>
@@ -15,7 +21,11 @@
 <ul class="space-y-2">
 	{#each navLinks as link (link.path)}
 		<li
-			class="flex items-center-safe gap-2 rounded-xs border bg-zinc-50 px-2 py-1 transition-colors hover:bg-zinc-100"
+			class="flex items-center-safe gap-2 rounded-xs border px-2 py-1 transition-colors hover:bg-zinc-100 {isActive(
+				link.path
+			)
+				? 'bg-zinc-200'
+				: 'bg-zinc-50'}"
 		>
 			{#if link.icon}
 				<link.icon style="color: var(--color-primary);" />

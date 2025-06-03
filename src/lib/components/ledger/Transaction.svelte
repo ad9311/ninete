@@ -35,7 +35,7 @@
 	<input type="hidden" name="transactionId" value={transaction.id} />
 </form>
 
-<Card className="w-xl">
+<Card className="max-w-xl">
 	{#snippet header()}
 		<h2 class="card-title">Transaction Details</h2>
 	{/snippet}

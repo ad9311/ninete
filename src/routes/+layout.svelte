@@ -6,6 +6,7 @@
 	import { House, WalletCards } from 'lucide-svelte';
 
 	const { children, data } = $props();
+
 	const navLinks: NavLink[] = [
 		{
 			lable: 'Home',
