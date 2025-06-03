@@ -29,4 +29,4 @@
 	};
 </script>
 
-<span class="{getTextColor()} rounded-xs border px-2 py-1">{formatedAmount}</span>
+<span class="{getTextColor()} rounded-xs border px-2 py-1 font-mono">{formatedAmount}</span>

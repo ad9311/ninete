@@ -15,7 +15,7 @@
 
 <form action="/auth/sign-out" method="POST" id="sign-out-form" use:enhance></form>
 <div class="relative flex items-center justify-between">
-	<h1 class="text-2xl font-bold">NineTe</h1>
+	<h1 class="card-title">NineTe</h1>
 	<CircleUserRound size={30} strokeWidth={1} style="color: var(--color-primary);" />
 </div>
 <hr class="my-4 border-zinc-400" />
