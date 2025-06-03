@@ -30,6 +30,6 @@ export const actions: Actions = {
 			return fail(400, { errors });
 		}
 
-		return redirect(302, '/home');
+		redirect(303, '/home');
 	}
 };

@@ -8,7 +8,7 @@ export const load = async (event) => {
 	const { request } = event;
 
 	if (request.method !== 'POST') {
-		return redirect(303, '/home');
+		redirect(303, '/home');
 	}
 };
 

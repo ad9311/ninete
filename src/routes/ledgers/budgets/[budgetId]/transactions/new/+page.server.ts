@@ -1,6 +1,6 @@
 import { formatFormErrors, type TRANSACTION_CATEGORIES, type TRANSACTION_TYPES } from '$lib/shared';
 import { createTransaction } from '$lib/server/models/transactions';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 import type { ZodError } from 'zod';
 
@@ -32,6 +32,6 @@ export const actions: Actions = {
 			return fail(400, { errors });
 		}
 
-		return redirect(302, `/ledgers/budgets/${budgetId}/transactions/new`);
+		return { success: true };
 	}
 };

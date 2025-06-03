@@ -25,7 +25,7 @@
 		<h3 class="card-title">New Transaction</h3>
 	{/snippet}
 	<FormErrors errors={form?.errors} />
-	<form method="post" use:enhance class="form">
+	<form method="post" class="form" use:enhance>
 		<div class="form-group">
 			<label for="type">Type </label>
 			<select id="type" name="type">

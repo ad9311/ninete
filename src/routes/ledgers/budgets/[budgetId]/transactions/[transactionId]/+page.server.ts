@@ -11,6 +11,6 @@ export const actions: Actions = {
 			return fail(400, { message: error instanceof Error ? error.message : 'Unknown error' });
 		}
 
-		return redirect(302, `/ledgers/budgets/${budgetId}`);
+		redirect(303, `/ledgers/budgets/${budgetId}`);
 	}
 };

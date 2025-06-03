@@ -6,7 +6,7 @@ export const load: PageServerLoad = async (event) => {
 	const { user } = event.locals;
 
 	if (!user) {
-		return redirect(302, '/login');
+		redirect(303, '/login');
 	}
 
 	const currentBudget = await findOrCreateBudget(user.id);

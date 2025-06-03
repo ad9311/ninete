@@ -32,6 +32,6 @@ export const actions: Actions = {
 			return fail(400, { errors });
 		}
 
-		return redirect(302, `/ledgers/budgets/${budgetId}`);
+		redirect(303, `/ledgers/budgets/${budgetId}`);
 	}
 };
