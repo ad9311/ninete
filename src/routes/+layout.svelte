@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Sidebar from '$lib/components/ui/Sidebar.svelte';
 	import '../app.css';
 
 	const { children, data } = $props();
@@ -10,9 +11,12 @@
 </svelte:head>
 
 {#if data.isUserSignedIn}
-	<main class="p-2 md:p-4">
-		{@render children()}
-	</main>
+	<div class="flex">
+		<Sidebar>NineTe</Sidebar>
+		<main class="w-full p-2 pt-13 md:p-4">
+			{@render children()}
+		</main>
+	</div>
 {:else}
 	<main class="p-2 md:p-4">
 		{@render children()}
