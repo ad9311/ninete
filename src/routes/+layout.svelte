@@ -3,7 +3,7 @@
 	import SidebarContent from '$lib/components/nav/SidebarContent.svelte';
 	import type { NavLink } from '$lib/client';
 	import '../app.css';
-	import { House } from 'lucide-svelte';
+	import { House, WalletCards } from 'lucide-svelte';
 
 	const { children, data } = $props();
 	const navLinks: NavLink[] = [
@@ -14,7 +14,8 @@
 		},
 		{
 			lable: 'Budgets',
-			path: '/ledgers/budgets'
+			path: '/ledgers/budgets',
+			icon: WalletCards
 		}
 	];
 </script>

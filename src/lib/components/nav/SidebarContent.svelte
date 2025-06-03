@@ -13,15 +13,13 @@
 <hr class="my-4 border-zinc-400" />
 <ul class="space-y-2">
 	{#each navLinks as link (link.path)}
-		<li>
+		<li
+			class="flex items-center-safe gap-2 rounded-xs border bg-zinc-50 px-2 py-1 transition-colors hover:bg-zinc-100"
+		>
 			{#if link.icon}
-				<link.icon />
+				<link.icon style="color: var(--color-primary);" />
 			{/if}
-			<a
-				href={link.path}
-				class="border-primary text-primary block w-full rounded-xs border bg-zinc-50 px-2 py-1 transition-colors hover:bg-zinc-100"
-				>{link.lable}</a
-			>
+			<a href={link.path} class="border-primary text-primary block w-full">{link.lable}</a>
 		</li>
 	{/each}
 	<div class="absolute bottom-8 w-full text-center">
