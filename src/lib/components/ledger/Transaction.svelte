@@ -31,7 +31,7 @@
 	const formattedDate = formatDateToMonthYear(transaction.date, { includeDay: true });
 </script>
 
-<form method="POST" action="?/delete" use:enhance id="delete-transaction-form">
+<form method="POST" use:enhance id="delete-transaction-form">
 	<input type="hidden" name="transactionId" value={transaction.id} />
 </form>
 
