@@ -1,8 +1,20 @@
 <script lang="ts">
 	import Sidebar from '$lib/components/ui/Sidebar.svelte';
+	import SidebarContent from '$lib/components/nav/SidebarContent.svelte';
+	import type { NavLink } from '$lib/client';
 	import '../app.css';
 
 	const { children, data } = $props();
+	const navLinks: NavLink[] = [
+		{
+			lable: 'Home',
+			path: '/home'
+		},
+		{
+			lable: 'Budgets',
+			path: '/ledgers/budgets'
+		}
+	];
 </script>
 
 <svelte:head>
@@ -12,7 +24,9 @@
 
 {#if data.isUserSignedIn}
 	<div class="flex">
-		<Sidebar>NineTe</Sidebar>
+		<Sidebar>
+			<SidebarContent {navLinks} />
+		</Sidebar>
 		<main class="w-full p-2 pt-13 md:p-4">
 			{@render children()}
 		</main>

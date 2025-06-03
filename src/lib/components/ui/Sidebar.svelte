@@ -28,6 +28,6 @@
 			: '-right-10'} border-primary cursor-pointer rounded-xs border bg-white p-1 md:hidden"
 		onclick={handleToggle}
 	>
-		<Menu />
+		<Menu style="color: var(--color-primary);" />
 	</button>
 </div>
