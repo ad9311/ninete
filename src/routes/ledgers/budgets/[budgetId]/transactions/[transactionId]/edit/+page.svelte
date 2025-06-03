@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { BreadcrumbItem } from '$lib/client';
+	import { mapTransactionCategories, type BreadcrumbItem } from '$lib/client';
 	import FormErrors from '$lib/components/form/FormErrors.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
-	import { TRANSACTION_CATEGORIES } from '$lib/shared';
 	import type { PageProps } from './$types';
 
 	const { data, form }: PageProps = $props();
@@ -17,6 +16,7 @@
 		{ label: 'Transaction', href: `/ledgers/budgets/${budget.id}/transactions/${transaction.id}` },
 		{ label: 'Edit' }
 	];
+	const categories = mapTransactionCategories();
 </script>
 
 <Breadcrumb items={breadcrumbItems} />
@@ -40,8 +40,8 @@
 		<div class="form-group">
 			<label for="category">Category</label>
 			<select id="category" name="category" value={transaction.category}>
-				{#each TRANSACTION_CATEGORIES as category (category)}
-					<option value={category}>{category}</option>
+				{#each categories as category (category)}
+					<option value={category.value}>{category.label}</option>
 				{/each}
 			</select>
 		</div>

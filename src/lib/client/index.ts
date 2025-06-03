@@ -1,3 +1,6 @@
+import * as m from '$lib/paraglide/messages.js';
+import { TRANSACTION_CATEGORIES } from '$lib/shared';
+
 export type BreadcrumbItem = {
 	label: string;
 	href?: string;
@@ -10,3 +13,12 @@ export type NavLink = {
 	icon?: any;
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+export function mapTransactionCategories(): { label: string; value: string }[] {
+	return TRANSACTION_CATEGORIES.map((category) => {
+		return {
+			label: m[`transactions.categories.${category}`](),
+			value: category
+		};
+	});
+}
