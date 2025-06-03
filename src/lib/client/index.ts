@@ -1,12 +1,12 @@
-import type { Snippet } from 'svelte';
-
 export type BreadcrumbItem = {
 	label: string;
 	href?: string;
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type NavLink = {
 	lable: string;
 	path: string;
-	icon?: Snippet;
+	icon?: any;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
