@@ -19,7 +19,14 @@ export const transactionCreateSchema = createInsertSchema(transactionsTable, {
 		schema
 			.nonempty({ message: 'Description is required' })
 			.max(255, { message: 'Description must be less than 255 characters' }),
-	date: (schema) => schema,
+	date: (schema) =>
+		schema.refine(
+			(input) => {
+				const today = new Date();
+				return input <= today;
+			},
+			{ message: 'Date cannot be in the future' }
+		),
 	category: (schema) =>
 		schema.exclude(['payable', 'receivable'], { message: 'Category is required' }),
 	type: (schema) => schema
