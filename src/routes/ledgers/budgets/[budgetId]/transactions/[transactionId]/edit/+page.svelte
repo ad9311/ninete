@@ -20,7 +20,7 @@
 </script>
 
 <Breadcrumb items={breadcrumbItems} />
-<Card>
+<Card className="w-xl">
 	{#snippet header()}
 		<h3 class="card-title">Edit Transaction</h3>
 	{/snippet}

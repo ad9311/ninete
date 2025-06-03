@@ -13,7 +13,7 @@
 			: ledger.title;
 </script>
 
-<Card>
+<Card className="w-xl">
 	{#snippet header()}
 		<h2 class="card-title">{title}</h2>
 	{/snippet}
