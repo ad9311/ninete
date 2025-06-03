@@ -1,4 +1,31 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"hello_world": "Hello, {name} from en!"
+	"transactions": {
+		"categories": {
+			"housing": "Housing",
+			"utilities": "Utilities",
+			"groceries": "Groceries",
+			"restaurants": "Restaurants",
+			"foodDelivery": "Food Delivery",
+			"transportation": "Transportation",
+			"healthcare&wellness": "Healthcare & Wellness",
+			"personalCare": "Personal Care",
+			"shopping": "Shopping",
+			"entertainment": "Entertainment",
+			"travel&vacations": "Travel & Vacations",
+			"education": "Education",
+			"children&dependents": "Children & Dependents",
+			"pets": "Pets",
+			"gifts&donations": "Gifts & Donations",
+			"financialServices": "Financial Services",
+			"savings&investments": "Savings & Investments",
+			"workExpenses": "Work Expenses",
+			"homeImprovement": "Home Improvement",
+			"taxes": "Taxes",
+			"miscellaneous": "Miscellaneous",
+			"income": "Income",
+			"payable": "Payable",
+			"receivable": "Receivable"
+		}
+	}
 }
