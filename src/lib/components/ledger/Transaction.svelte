@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
-	import type { Action } from '$lib/shared';
+	import { formatDateToMonthYear, type Action } from '$lib/shared';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import { enhance } from '$app/forms';
@@ -27,7 +27,7 @@
 	];
 
 	// Format date for display (optional, but good for UI)
-	const formattedDate = new Date(transaction.date).toLocaleDateString('en-CA'); // YYYY-MM-DD, or choose a locale
+	const formattedDate = formatDateToMonthYear(transaction.date, { includeDay: true });
 </script>
 
 <form method="POST" action="?/delete" use:enhance id="delete-transaction-form">

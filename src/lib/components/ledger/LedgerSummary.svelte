@@ -3,10 +3,14 @@
 	import { getBalance } from '$lib/shared/ledger';
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import Card from '../ui/Card.svelte';
+	import { formatMonthYear } from '$lib/shared';
 
 	const { ledger }: { ledger: Ledger } = $props();
 
-	const title = ledger.type === 'budget' ? `${ledger.month}/${ledger.year} Budget` : ledger.title;
+	const title =
+		ledger.type === 'budget'
+			? `${formatMonthYear(ledger.month, ledger.year)} Budget`
+			: ledger.title;
 	const linkRoot = ledger.type === 'budget' ? '/ledgers/budgets' : '/ledgers/accounts';
 </script>
 

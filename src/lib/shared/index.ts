@@ -62,3 +62,19 @@ export function formatFormErrors(error: Error | ZodError | undefined): string[] 
 
 	return ['An unknown error occurred.'];
 }
+
+export function formatDateToMonthYear(
+	date: Date,
+	options: { includeDay: boolean } = { includeDay: false }
+): string {
+	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const year = date.getFullYear();
+
+	return options.includeDay ? `${day}/${month}/${year}` : `${month}/${year}`;
+}
+
+export function formatMonthYear(month: number, year: number): string {
+	const paddedMonth = String(month).padStart(2, '0');
+	return `${paddedMonth}/${year}`;
+}

@@ -3,7 +3,7 @@
 	import TransactionList from '$lib/components/ledger/TransactionList.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import type { BreadcrumbItem } from '$lib/client';
-	import type { Action } from '$lib/shared';
+	import { formatMonthYear, type Action } from '$lib/shared';
 	import type { PageData } from './$types';
 
 	const { data }: { data: PageData } = $props();
@@ -12,7 +12,7 @@
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Budgets', href: '/ledgers/budgets' },
-		{ label: 'TODO' }
+		{ label: formatMonthYear(budget.month, budget.year) }
 	];
 	const actions: Action[] = [
 		{

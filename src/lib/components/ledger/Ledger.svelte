@@ -2,12 +2,15 @@
 	import type { Ledger } from '$lib/server/db/schema';
 	import { getBalance } from '$lib/shared/ledger';
 	import Amount from '$lib/components/ledger/Amount.svelte';
-	import type { Action } from '$lib/shared';
+	import { formatMonthYear, type Action } from '$lib/shared';
 	import Card from '$lib/components/ui/Card.svelte';
 	import CardActions from '../ui/CardActions.svelte';
 
 	const { ledger, actions }: { ledger: Ledger; actions: Action[] } = $props();
-	const title = ledger.type === 'budget' ? `${ledger.month}/${ledger.year} Budget` : ledger.title;
+	const title =
+		ledger.type === 'budget'
+			? `${formatMonthYear(ledger.month, ledger.year)} Budget`
+			: ledger.title;
 </script>
 
 <Card>
