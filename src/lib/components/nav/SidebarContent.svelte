@@ -23,7 +23,7 @@
 			<a href={link.path} class="border-primary text-primary block w-full">{link.lable}</a>
 		</li>
 	{/each}
-	<div class="absolute bottom-8 text-center w-full">
+	<div class="absolute bottom-8 w-full text-center">
 		<button
 			type="submit"
 			form="sign-out-form"

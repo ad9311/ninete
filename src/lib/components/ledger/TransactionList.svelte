@@ -2,6 +2,7 @@
 	import type { Transaction } from '$lib/server/db/schema';
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import * as m from '$lib/paraglide/messages';
 
 	const {
 		transactions,
@@ -26,7 +27,9 @@
 			{#each transactions as transaction (transaction.id)}
 				<div class="border-muted rounded-xs border bg-neutral-50 p-2 leading-normal">
 					<div class="mb-1 flex items-center justify-between">
-						<p class="text-xs text-zinc-600 italic">{transaction.category}</p>
+						<p class="text-xs text-zinc-600 italic">
+							{m[`transactions.categories.${transaction.category}`]()}
+						</p>
 						<a
 							href={`/ledgers/${ledgerPath}/${transaction.ledgerId}/transactions/${transaction.id}`}
 							class="link !text-xs">View Details</a

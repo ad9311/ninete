@@ -3,6 +3,7 @@
 	import { formatDateToMonthYear, type Action } from '$lib/shared';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Amount from '$lib/components/ledger/Amount.svelte';
+	import * as m from '$lib/paraglide/messages';
 	import { enhance } from '$app/forms';
 
 	const {
@@ -52,7 +53,9 @@
 		</p>
 		<p>
 			<span class="font-semibold">Category:</span>
-			<span class="text-zinc-600 italic">{transaction.category ?? 'N/A'}</span>
+			<span class="text-zinc-600 italic"
+				>{m[`transactions.categories.${transaction.category}`]() ?? 'N/A'}</span
+			>
 		</p>
 		<div>
 			<span class="mb-0.5 block font-semibold">Description:</span>
