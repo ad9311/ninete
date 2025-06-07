@@ -23,3 +23,7 @@ export function mapTransactionCategories(): { label: string; value: string }[] {
 		};
 	});
 }
+
+export function formatDateForInput(date: Date): string {
+	return date.toISOString().split('T')[0];
+}
