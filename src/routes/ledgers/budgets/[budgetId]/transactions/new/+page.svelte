@@ -54,6 +54,10 @@
 			<label for="date">Date</label>
 			<input id="date" type="date" name="date" />
 		</div>
+		<div class="form-group flex items-center gap-2">
+			<label for="is_estimated">is_estimated</label>
+			<input id="is_estimated" type="checkbox" name="is_estimated" />
+		</div>
 		<div class="form-actions">
 			<button type="submit" class="btn-primary">Create</button>
 		</div>
