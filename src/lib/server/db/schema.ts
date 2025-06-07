@@ -86,6 +86,21 @@ export const transactionsTable = pgTable('transactions', {
 	...timestamps
 });
 
+export const recurrentTransactionsTable = pgTable('recurrent_transactions', {
+	id: serial('id').primaryKey(),
+	userId: integer('user_id')
+		.notNull()
+		.references(() => usersTable.id),
+	description: text('description').notNull(),
+	amount: numeric('amount', numericParams).notNull(),
+	date: timestamp('date', dateParams).notNull(),
+	category: transactionCategoryEnum('category').notNull(),
+	type: transactionTypeEnum('type').notNull(),
+	isEstimated: boolean('is_estimated').notNull().default(false),
+
+	...timestamps
+});
+
 export type User = typeof usersTable.$inferSelect;
 export type Session = typeof sessionsTable.$inferSelect;
 export type Ledger = typeof ledgersTable.$inferSelect;
