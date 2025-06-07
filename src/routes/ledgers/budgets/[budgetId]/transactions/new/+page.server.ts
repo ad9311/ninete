@@ -17,6 +17,7 @@ export const actions: Actions = {
 		>;
 		const date = new Date(formData.get('date') as string);
 		const type = formData.get('type') as (typeof TRANSACTION_TYPES)[number];
+		const isEstimated = formData.get('is_estimated');
 
 		try {
 			await createTransaction({
@@ -25,7 +26,8 @@ export const actions: Actions = {
 				description,
 				category,
 				date,
-				type
+				type,
+				isEstimated: isEstimated === 'on'
 			});
 		} catch (e) {
 			const errors = formatFormErrors(e as Error | ZodError);

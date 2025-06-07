@@ -55,7 +55,12 @@
 	</div>
 	<div class="form-group flex items-center gap-2">
 		<label for="is_estimated">Estimated?</label>
-		<input id="is_estimated" type="checkbox" name="is_estimated" value={transaction?.isEstimated} />
+		<input
+			id="is_estimated"
+			type="checkbox"
+			name="is_estimated"
+			checked={transaction?.isEstimated}
+		/>
 	</div>
 	<div class="form-actions">
 		<button type="submit" class="btn-primary">Create</button>

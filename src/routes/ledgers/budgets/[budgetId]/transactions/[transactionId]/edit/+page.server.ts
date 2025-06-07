@@ -17,12 +17,14 @@ export const actions: Actions = {
 			'payable' | 'receivable'
 		>;
 		const date = new Date(formData.get('date') as string);
+		const isEstimated = formData.get('is_estimated');
 
 		const params = {
 			description,
 			amount,
 			category,
-			date
+			date,
+			isEstimated: isEstimated === 'on'
 		};
 
 		try {

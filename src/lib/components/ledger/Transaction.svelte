@@ -27,7 +27,6 @@
 		}
 	];
 
-	// Format date for display (optional, but good for UI)
 	const formattedDate = formatDateToMonthYear(transaction.date, { includeDay: true });
 </script>
 
@@ -56,6 +55,10 @@
 			<span class="text-zinc-600 italic"
 				>{m[`transactions.categories.${transaction.category}`]() ?? 'N/A'}</span
 			>
+		</p>
+		<p class="flex items-center gap-2">
+			<span class="font-semibold">Estiamted?:</span>
+			<input type="checkbox" checked={transaction.isEstimated} readonly disabled />
 		</p>
 		<div>
 			<span class="mb-0.5 block font-semibold">Description:</span>

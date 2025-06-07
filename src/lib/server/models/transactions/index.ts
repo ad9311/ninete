@@ -29,7 +29,8 @@ export const transactionCreateSchema = createInsertSchema(transactionsTable, {
 		),
 	category: (schema) =>
 		schema.exclude(['payable', 'receivable'], { message: 'Category is required' }),
-	type: (schema) => schema
+	type: (schema) => schema,
+	isEstimated: (schema) => schema
 });
 
 export const transactionUpdateSchema = transactionCreateSchema
