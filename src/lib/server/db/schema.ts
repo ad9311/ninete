@@ -64,12 +64,12 @@ export const ledgersTable = pgTable(
 		totalCredits: numeric('total_credits', numericParams).notNull().default('0'),
 		totalDebits: numeric('total_debits', numericParams).notNull().default('0'),
 		...timestamps
-	},
-	(table) => [
-		uniqueIndex('user_budget_month_year_unique_idx')
-			.on(table.userId, table.year, table.month)
-			.where(sql`${table.type} = 'budget'`)
-	]
+	}
+	//	(table) => [
+	//		uniqueIndex('user_budget_month_year_unique_idx')
+	//			.on(table.userId, table.year, table.month)
+	//			.where(sql`${table.type} = 'budget'`)
+	//	]
 );
 
 export const transactionsTable = pgTable('transactions', {
