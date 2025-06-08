@@ -22,16 +22,16 @@
 <ul class="space-y-2">
 	{#each navLinks as link (link.path)}
 		<li
-			class="flex items-center-safe gap-2 rounded-xs border px-2 py-1 transition-colors hover:bg-zinc-100 {isActive(
-				link.path
-			)
+			class="rounded-xs border px-2 py-1 transition-colors hover:bg-zinc-100 {isActive(link.path)
 				? 'bg-zinc-200'
 				: 'bg-zinc-50'}"
 		>
-			{#if link.icon}
-				<link.icon style="color: var(--color-primary);" />
-			{/if}
-			<a href={link.path} class="border-primary text-primary block w-full">{link.lable}</a>
+			<a href={link.path} class="border-primary text-primary flex w-full items-center-safe gap-2">
+				{#if link.icon}
+					<link.icon style="color: var(--color-primary);" />
+				{/if}
+				{link.label}
+			</a>
 		</li>
 	{/each}
 	<div class="absolute bottom-8 w-full text-center">

@@ -3,7 +3,7 @@ import { ledgersTable, type Ledger } from '$lib/server/db/schema';
 import { z } from 'zod';
 import { db, type DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
-import { createLedger, findLedgerById } from '$lib/server/models/ledger';
+import { createLedger, findLedgerById, LEDGER_ERRORS } from '$lib/server/models/ledger';
 
 type TransactionCommitParams = {
 	previousAmount: number | string;
@@ -12,9 +12,9 @@ type TransactionCommitParams = {
 };
 
 export const budgetCreateSchema = createInsertSchema(ledgersTable, {
-	userId: (schema) => schema.int().positive({ message: 'User ID must be a positive integer' }),
-	year: (schema) => schema.int().positive({ message: 'Year must be a positive integer' }),
-	month: (schema) => schema.int().positive({ message: 'Month must be a positive integer' }),
+	userId: (schema) => schema.int().positive({ message: LEDGER_ERRORS.userId }),
+	year: (schema) => schema.int().positive({ message: LEDGER_ERRORS.year }),
+	month: (schema) => schema.int().positive({ message: LEDGER_ERRORS.month }),
 	type: (schema) =>
 		schema.exclude(['payable', 'receivable', 'savings'], {
 			message: 'Type must be of type budget'

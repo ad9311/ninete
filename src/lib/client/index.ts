@@ -8,7 +8,7 @@ export type BreadcrumbItem = {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type NavLink = {
-	lable: string;
+	label: string;
 	path: string;
 	active?: boolean;
 	icon?: any;

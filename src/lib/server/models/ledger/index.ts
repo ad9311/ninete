@@ -8,6 +8,16 @@ import {
 } from '$lib/server/db/schema';
 import type { NewBudgetParams } from '$lib/server/models/ledger/budget';
 import type { LEDGER_TYPES } from '$lib/shared';
+import type { NewPayableReceivableParams } from './payable-receivable';
+
+export const LEDGER_ERRORS = {
+	userId: 'User ID must be a positive integer',
+	titleNonEmpty: 'Title cannot be empty',
+	titleMax: 'Title must less than 50 characters',
+	description: 'Description must be less than 100 characters',
+	year: 'Year must be a positive integer',
+	month: 'Month must be a positive integer'
+} as const;
 
 export async function findLedgetCredtis(ledgerId: number): Promise<Transaction[]> {
 	const credits = await db.query.transactionsTable.findMany({
@@ -25,7 +35,9 @@ export async function findLedgetDebits(ledgerId: number): Promise<Transaction[]>
 	return debits;
 }
 
-export async function createLedger(params: NewBudgetParams): Promise<Ledger> {
+export async function createLedger(
+	params: NewBudgetParams | NewPayableReceivableParams
+): Promise<Ledger> {
 	const { date, ...rest } = params;
 
 	const year = date.getFullYear();
