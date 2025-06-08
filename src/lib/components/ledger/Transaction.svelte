@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
-	import { formatDateToMonthYear, type Action } from '$lib/shared';
+	import { formatDateToMonthYear, LEDGER_TYPES, type Action } from '$lib/shared';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import * as m from '$lib/paraglide/messages';
@@ -9,7 +9,7 @@
 	const {
 		transaction,
 		ledgerType
-	}: { transaction: Transaction; ledgerType: 'budget' | 'payable/receivable' } = $props();
+	}: { transaction: Transaction; ledgerType: (typeof LEDGER_TYPES)[number] } = $props();
 
 	const transactionDisplayType = transaction.type === 'credit' ? 'Credit' : 'Debit';
 	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';
