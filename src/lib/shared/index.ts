@@ -36,7 +36,7 @@ export const TRANSACTION_CATEGORIES = [
 	'receivable'
 ] as const;
 
-export const LEDGER_TYPES = ['budget', 'payable/receivable'] as const;
+export const LEDGER_TYPES = ['budget', 'payable', 'receivable'] as const;
 
 export const LEDGER_STATUS = ['n/a', 'pending', 'paid', 'overdue', 'cancelled'] as const;
 
