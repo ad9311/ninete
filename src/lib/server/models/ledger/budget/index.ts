@@ -15,7 +15,9 @@ export const budgetCreateSchema = createInsertSchema(ledgersTable, {
 	year: (schema) => schema.int().positive({ message: 'Year must be a positive integer' }),
 	month: (schema) => schema.int().positive({ message: 'Month must be a positive integer' }),
 	type: (schema) =>
-		schema.exclude(['payable', 'receivable'], { message: 'Type must be of type budget' }),
+		schema.exclude(['payable', 'receivable', 'savings'], {
+			message: 'Type must be of type budget'
+		}),
 	status: (schema) =>
 		schema.exclude(['pending', 'paid', 'overdue', 'cancelled'], {
 			message: 'Status must be of status n/a'
