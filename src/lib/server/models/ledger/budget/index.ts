@@ -3,6 +3,7 @@ import { ledgersTable, type Ledger } from '$lib/server/db/schema';
 import { z } from 'zod';
 import { db, type DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
+import { createLedger, findLedgerById } from '$lib/server/models/ledger';
 
 type TransactionCommitParams = {
 	previousAmount: number | string;
@@ -28,23 +29,11 @@ export const newBudgetSchema = budgetCreateSchema.omit({ year: true, month: true
 	date: z.date()
 });
 
-export type BudgetCreateData = z.infer<typeof budgetCreateSchema>;
-export type NewBudgetData = z.infer<typeof newBudgetSchema>;
+export type CreateBudgetParams = z.infer<typeof budgetCreateSchema>;
+export type NewBudgetParams = z.infer<typeof newBudgetSchema>;
 
-export async function createBudget(params: NewBudgetData): Promise<Ledger> {
-	const { date, ...rest } = params;
-
-	const year = date.getFullYear();
-	const month = date.getMonth() + 1;
-
-	const createParams = {
-		...rest,
-		year,
-		month
-	};
-
-	const result = await db.insert(ledgersTable).values(createParams).returning();
-	return result[0];
+export async function createBudget(params: NewBudgetParams): Promise<Ledger> {
+	return await createLedger(params);
 }
 
 export async function findCurrentBudget(userId: number): Promise<Ledger | undefined> {
@@ -72,7 +61,7 @@ export async function findOrCreateBudget(userId: number): Promise<Ledger> {
 
 	const currentDate = new Date();
 	const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-	const params: NewBudgetData = {
+	const params: NewBudgetParams = {
 		userId,
 		date,
 		type: 'budget',
@@ -82,31 +71,12 @@ export async function findOrCreateBudget(userId: number): Promise<Ledger> {
 	return createBudget(params);
 }
 
-export async function findUserBudget(
-	userId: number,
-	budgetId: number
-): Promise<Ledger | undefined> {
-	const budget = await db.query.ledgersTable.findFirst({
-		where: and(eq(ledgersTable.userId, userId), eq(ledgersTable.id, budgetId))
-	});
-
-	return budget;
-}
-
-async function findBudgetById(budgetId: number): Promise<Ledger | undefined> {
-	const budget = await db.query.ledgersTable.findFirst({
-		where: eq(ledgersTable.id, budgetId)
-	});
-
-	return budget;
-}
-
 export async function onTransactionCommit(
 	tx: DBTransaction,
 	budgetId: number,
 	params: TransactionCommitParams
 ): Promise<Ledger> {
-	const budget = await findBudgetById(budgetId);
+	const budget = await findLedgerById(budgetId, 'budget');
 
 	if (!budget) {
 		throw new Error('Budget not found');
@@ -122,10 +92,4 @@ export async function onTransactionCommit(
 		.returning();
 
 	return result[0];
-}
-
-export async function findBudgets(userId: number): Promise<Ledger[]> {
-	return await db.query.ledgersTable.findMany({
-		where: and(eq(ledgersTable.userId, userId), eq(ledgersTable.type, 'budget'))
-	});
 }

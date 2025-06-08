@@ -1,14 +1,13 @@
-import { findUserBudget } from '$lib/server/models/ledger/budget';
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { findLedgetCredtis } from '$lib/server/models/ledger';
+import { findLedger, findLedgetCredtis } from '$lib/server/models/ledger';
 import { findLedgetDebits } from '$lib/server/models/ledger';
 
 export const load: LayoutServerLoad = async (event) => {
 	const { user } = event.locals;
 	const { budgetId } = event.params;
 
-	const budget = await findUserBudget(Number(user?.id), Number(budgetId));
+	const budget = await findLedger(Number(user?.id), Number(budgetId), 'budget');
 
 	if (!budget) {
 		return error(404, 'Budget not found');
