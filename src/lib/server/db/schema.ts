@@ -27,7 +27,7 @@ const numericParams = { precision: 10, scale: 2 };
 const dateParams: PgTimestampConfig<'string' | 'date'> = { withTimezone: true, mode: 'date' };
 
 export const ledgerStatusEnum = pgEnum('ledger_status', LEDGER_STATUS);
-export const ledgerTypeEnum = pgEnum('ledger_type', LEDGER_TYPES);
+// export const ledgerTypeEnum = pgEnum('ledger_type', LEDGER_TYPES);
 export const transactionCategoryEnum = pgEnum('transaction_category', TRANSACTION_CATEGORIES);
 export const transactionTypeEnum = pgEnum('transaction_type', TRANSACTION_TYPES);
 
@@ -59,7 +59,7 @@ export const ledgersTable = pgTable(
 		description: text('description'),
 		year: integer('year').notNull(),
 		month: integer('month').notNull(),
-		type: ledgerTypeEnum('type').notNull(),
+		//		type: ledgerTypeEnum('type').notNull(),
 		status: ledgerStatusEnum('status').notNull().default('n/a'),
 		totalCredits: numeric('total_credits', numericParams).notNull().default('0'),
 		totalDebits: numeric('total_debits', numericParams).notNull().default('0'),
