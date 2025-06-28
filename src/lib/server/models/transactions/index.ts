@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { transactionsTable, type Transaction } from '$lib/server/db/schema';
 import { onTransactionCommit } from '$lib/server/models/ledger/budget';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { findLedgerById } from '$lib/server/models/ledger';
 import type { LEDGER_TYPE } from '$lib/shared';
 
@@ -52,6 +52,15 @@ export async function findTransaction(transactionId: number): Promise<Transactio
 	});
 }
 
+export async function findTransactionWithLedgerId(
+	ledgerId: number,
+	transactionId: number
+): Promise<Transaction | undefined> {
+	return await db.query.transactionsTable.findFirst({
+		where: and(eq(transactionsTable.id, transactionId), eq(transactionsTable.ledgerId, ledgerId))
+	});
+}
+
 export async function createTransaction(
 	ledgerType: LEDGER_TYPE,
 	params: TransactionCreateData
@@ -84,7 +93,7 @@ export async function updateTransaction(
 ): Promise<Transaction> {
 	const validated = transactionUpdateSchema.parse(params);
 
-	const transaction = await findTransaction(transactionId);
+	const transaction = await findTransactionWithLedgerId(ledgerId, transactionId);
 
 	if (params.type && params.type !== validated.type) {
 		throw new Error('Type cannot be updated');
@@ -121,7 +130,7 @@ export async function deleteTransaction(
 	ledgerType: LEDGER_TYPE,
 	transactionId: number
 ): Promise<Transaction> {
-	const transaction = await findTransaction(transactionId);
+	const transaction = await findTransactionWithLedgerId(ledgerId, transactionId);
 
 	if (!transaction) {
 		throw new Error('Transaction not found');
