@@ -35,6 +35,7 @@ export const TRANSACTION_CATEGORIES = [
 	'payable',
 	'receivable'
 ] as const;
+export type TRANSACTION_CATEGORY = (typeof TRANSACTION_CATEGORIES)[number];
 
 export const LEDGER_TYPES = ['budget', 'payable', 'receivable', 'savings'] as const;
 export type LEDGER_TYPE = (typeof LEDGER_TYPES)[number];

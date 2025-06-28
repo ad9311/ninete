@@ -1,4 +1,4 @@
-import { formatFormErrors, type TRANSACTION_CATEGORIES, type TRANSACTION_TYPES } from '$lib/shared';
+import { formatFormErrors, type TRANSACTION_CATEGORY, type TRANSACTION_TYPES } from '$lib/shared';
 import { createTransaction } from '$lib/server/models/transactions';
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
@@ -12,7 +12,7 @@ export const actions: Actions = {
 		const amount = formData.get('amount') as string;
 		const description = formData.get('description') as string;
 		const category = formData.get('category') as Exclude<
-			(typeof TRANSACTION_CATEGORIES)[number],
+			TRANSACTION_CATEGORY,
 			'payable' | 'receivable'
 		>;
 		const date = new Date(formData.get('date') as string);

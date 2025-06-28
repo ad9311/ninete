@@ -27,5 +27,5 @@
 		<h3 class="card-title">Edit Transaction</h3>
 	{/snippet}
 	<FormErrors errors={form?.errors} />
-	<Form {transaction} />
+	<Form ledgerType="payable" {transaction} />
 </Card>

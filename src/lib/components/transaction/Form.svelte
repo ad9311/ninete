@@ -2,11 +2,13 @@
 	import { enhance } from '$app/forms';
 	import { mapTransactionCategories, formatDateForInput } from '$lib/client';
 	import type { Transaction } from '$lib/server/db/schema';
-	import { TRANSACTION_TYPES } from '$lib/shared';
+	import { TRANSACTION_TYPES, type LEDGER_TYPE } from '$lib/shared';
 
-	const { transaction }: { transaction?: Transaction } = $props();
+	const { transaction, ledgerType }: { transaction?: Transaction; ledgerType: LEDGER_TYPE } =
+		$props();
 
-	const categories = mapTransactionCategories();
+	const isPayableReceivable = ledgerType === 'payable' || ledgerType === 'receivable';
+	const categories = mapTransactionCategories(isPayableReceivable);
 </script>
 
 <form method="post" class="form" use:enhance>
