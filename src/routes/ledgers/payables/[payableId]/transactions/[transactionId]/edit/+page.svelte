@@ -13,7 +13,10 @@
 		{ label: 'Home', href: '/' },
 		{ label: 'Payables', href: '/ledgers/payables' },
 		{ label: 'Payable', href: `/ledgers/payables/${payable.id}` },
-		{ label: 'Transaction', href: `/ledgers/payables/${payable.id}/transactions/${transaction.id}` },
+		{
+			label: 'Transaction',
+			href: `/ledgers/payables/${payable.id}/transactions/${transaction.id}`
+		},
 		{ label: 'Edit' }
 	];
 </script>
