@@ -8,7 +8,7 @@ export const load: LayoutServerLoad = async (event) => {
 	const transaction = await findTransaction(Number(transactionId));
 
 	if (!transaction) {
-		return error(404, 'Transaction not found');
+		error(404, 'Transaction not found');
 	}
 
 	return { transaction };

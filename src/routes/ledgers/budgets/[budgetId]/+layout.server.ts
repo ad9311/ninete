@@ -10,7 +10,7 @@ export const load: LayoutServerLoad = async (event) => {
 	const budget = await findLedger(Number(user?.id), Number(budgetId), 'budget');
 
 	if (!budget) {
-		return error(404, 'Budget not found');
+		error(404, 'Budget not found');
 	}
 
 	const credits = await findLedgetCredtis(Number(budgetId));
