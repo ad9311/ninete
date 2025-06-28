@@ -19,14 +19,14 @@ export const payableReceivableCreateSchema = createInsertSchema(ledgersTable, {
 	status: (schema) => schema
 });
 
-export const PayableReceivableNewSchema = payableReceivableCreateSchema
+export const payableReceivableNewSchema = payableReceivableCreateSchema
 	.omit({ year: true, month: true })
 	.extend({
 		date: z.date()
 	});
 
 export type CreatePayableReceivable = z.infer<typeof payableReceivableCreateSchema>;
-export type NewPayableReceivableParams = z.infer<typeof PayableReceivableNewSchema>;
+export type NewPayableReceivableParams = z.infer<typeof payableReceivableNewSchema>;
 
 export async function createPayableReceivable(params: NewPayableReceivableParams): Promise<Ledger> {
 	return await createLedger(params);
