@@ -15,7 +15,7 @@
 		ledgerType: LEDGER_TYPE;
 	} = $props();
 
-	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';
+	const ledgerPath = `${ledgerType}s`;
 	const title = type === 'credit' ? 'Credits' : 'Debits';
 </script>
 

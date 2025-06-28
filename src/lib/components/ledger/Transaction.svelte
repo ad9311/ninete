@@ -10,7 +10,7 @@
 		$props();
 
 	const transactionDisplayType = transaction.type === 'credit' ? 'Credit' : 'Debit';
-	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';
+	const ledgerPath = `${ledgerType}s`;
 	const actions: Action[] = [
 		{
 			label: 'Delete',

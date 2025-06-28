@@ -25,6 +25,6 @@
 <Breadcrumb items={breadcrumbItems} />
 <Ledger ledger={payable} {actions} />
 <br />
-<TransactionList transactions={credits} ledgerType="budget" type="credit" />
+<TransactionList transactions={credits} ledgerType="payable" type="credit" />
 <br />
-<TransactionList transactions={debits} ledgerType="budget" type="debit" />
+<TransactionList transactions={debits} ledgerType="payable" type="debit" />
