@@ -3,7 +3,7 @@
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import * as m from '$lib/paraglide/messages';
-	import type { LEDGER_TYPES } from '$lib/shared';
+	import type { LEDGER_TYPE } from '$lib/shared';
 
 	const {
 		transactions,
@@ -12,7 +12,7 @@
 	}: {
 		transactions: Transaction[];
 		type: 'credit' | 'debit';
-		ledgerType: (typeof LEDGER_TYPES)[number];
+		ledgerType: LEDGER_TYPE;
 	} = $props();
 
 	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';

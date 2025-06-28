@@ -1,15 +1,13 @@
 <script lang="ts">
 	import type { Transaction } from '$lib/server/db/schema';
-	import { formatDateToMonthYear, LEDGER_TYPES, type Action } from '$lib/shared';
+	import { formatDateToMonthYear, type Action, type LEDGER_TYPE } from '$lib/shared';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Amount from '$lib/components/ledger/Amount.svelte';
 	import * as m from '$lib/paraglide/messages';
 	import { enhance } from '$app/forms';
 
-	const {
-		transaction,
-		ledgerType
-	}: { transaction: Transaction; ledgerType: (typeof LEDGER_TYPES)[number] } = $props();
+	const { transaction, ledgerType }: { transaction: Transaction; ledgerType: LEDGER_TYPE } =
+		$props();
 
 	const transactionDisplayType = transaction.type === 'credit' ? 'Credit' : 'Debit';
 	const ledgerPath = ledgerType === 'budget' ? 'budgets' : 'accounts';

@@ -6,7 +6,7 @@ export const actions: Actions = {
 		const { transactionId, budgetId } = event.params;
 
 		try {
-			await deleteTransaction(Number(budgetId), Number(transactionId));
+			await deleteTransaction(Number(budgetId), 'budget', Number(transactionId));
 		} catch (error) {
 			return fail(400, { message: error instanceof Error ? error.message : 'Unknown error' });
 		}

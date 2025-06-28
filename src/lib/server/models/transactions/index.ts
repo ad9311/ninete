@@ -2,8 +2,10 @@ import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { db } from '$lib/server/db';
 import { transactionsTable, type Transaction } from '$lib/server/db/schema';
-import { onTransactionCommit } from '../ledger/budget';
+import { onTransactionCommit } from '$lib/server/models/ledger/budget';
 import { eq } from 'drizzle-orm';
+import { findLedgerById } from '$lib/server/models/ledger';
+import type { LEDGER_TYPE } from '$lib/shared';
 
 export const transactionCreateSchema = createInsertSchema(transactionsTable, {
 	ledgerId: (schema) => schema.int().positive({ message: 'Budget ID must be a positive integer' }),
@@ -50,12 +52,21 @@ export async function findTransaction(transactionId: number): Promise<Transactio
 	});
 }
 
-export async function createTransaction(params: TransactionCreateData): Promise<Transaction> {
+export async function createTransaction(
+	ledgerType: LEDGER_TYPE,
+	params: TransactionCreateData
+): Promise<Transaction> {
 	const validated = transactionCreateSchema.parse(params);
 
 	return db.transaction(async (tx) => {
+		const ledger = await findLedgerById(validated.ledgerId, ledgerType);
+		if (!ledger) {
+			throw new Error('Ledger not found');
+		}
+
 		const result = await tx.insert(transactionsTable).values(validated).returning();
-		await onTransactionCommit(tx, validated.ledgerId, {
+
+		await onTransactionCommit(tx, ledger, {
 			previousAmount: 0,
 			newAmount: validated.amount,
 			commitColumn: validated.type === 'credit' ? 'totalCredits' : 'totalDebits'
@@ -66,7 +77,8 @@ export async function createTransaction(params: TransactionCreateData): Promise<
 }
 
 export async function updateTransaction(
-	budgetId: number,
+	ledgerId: number,
+	ledgerType: LEDGER_TYPE,
 	transactionId: number,
 	params: TransactionUpdateData
 ): Promise<Transaction> {
@@ -83,13 +95,18 @@ export async function updateTransaction(
 	}
 
 	return db.transaction(async (tx) => {
+		const ledger = await findLedgerById(ledgerId, ledgerType);
+		if (!ledger) {
+			throw new Error('Ledger not found');
+		}
+
 		const result = await tx
 			.update(transactionsTable)
 			.set(validated)
 			.where(eq(transactionsTable.id, transactionId))
 			.returning();
 
-		await onTransactionCommit(tx, budgetId, {
+		await onTransactionCommit(tx, ledger, {
 			previousAmount: transaction.amount,
 			newAmount: validated.amount,
 			commitColumn: transaction.type === 'credit' ? 'totalCredits' : 'totalDebits'
@@ -100,7 +117,8 @@ export async function updateTransaction(
 }
 
 export async function deleteTransaction(
-	budgetId: number,
+	ledgerId: number,
+	ledgerType: LEDGER_TYPE,
 	transactionId: number
 ): Promise<Transaction> {
 	const transaction = await findTransaction(transactionId);
@@ -110,12 +128,17 @@ export async function deleteTransaction(
 	}
 
 	return db.transaction(async (tx) => {
+		const ledger = await findLedgerById(ledgerId, ledgerType);
+		if (!ledger) {
+			throw new Error('Ledger not found');
+		}
+
 		const result = await tx
 			.delete(transactionsTable)
 			.where(eq(transactionsTable.id, transactionId))
 			.returning();
 
-		await onTransactionCommit(tx, budgetId, {
+		await onTransactionCommit(tx, ledger, {
 			previousAmount: transaction.amount,
 			newAmount: 0,
 			commitColumn: transaction.type === 'credit' ? 'totalCredits' : 'totalDebits'

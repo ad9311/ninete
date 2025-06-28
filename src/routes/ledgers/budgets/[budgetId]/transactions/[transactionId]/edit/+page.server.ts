@@ -28,7 +28,7 @@ export const actions: Actions = {
 		};
 
 		try {
-			await updateTransaction(Number(budgetId), Number(transactionId), params);
+			await updateTransaction(Number(budgetId), 'budget', Number(transactionId), params);
 		} catch (e) {
 			const errors = formatFormErrors(e as Error | ZodError);
 			return fail(400, { errors });

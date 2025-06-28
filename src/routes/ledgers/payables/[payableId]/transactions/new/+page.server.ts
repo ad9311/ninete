@@ -20,7 +20,7 @@ export const actions: Actions = {
 		const isEstimated = formData.get('is_estimated');
 
 		try {
-			await createTransaction({
+			await createTransaction('payable', {
 				ledgerId: payableId,
 				amount,
 				description,

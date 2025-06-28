@@ -37,6 +37,7 @@ export const TRANSACTION_CATEGORIES = [
 ] as const;
 
 export const LEDGER_TYPES = ['budget', 'payable', 'receivable', 'savings'] as const;
+export type LEDGER_TYPE = (typeof LEDGER_TYPES)[number];
 
 export const LEDGER_STATUS = ['n/a', 'pending', 'paid', 'overdue', 'cancelled'] as const;
 

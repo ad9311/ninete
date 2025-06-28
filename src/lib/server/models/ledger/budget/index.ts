@@ -3,7 +3,7 @@ import { ledgersTable, type Ledger } from '$lib/server/db/schema';
 import { z } from 'zod';
 import { db, type DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
-import { createLedger, findLedgerById, LEDGER_ERRORS } from '$lib/server/models/ledger';
+import { createLedger, LEDGER_ERRORS } from '$lib/server/models/ledger';
 
 type TransactionCommitParams = {
 	previousAmount: number | string;
@@ -73,11 +73,9 @@ export async function findOrCreateBudget(userId: number): Promise<Ledger> {
 
 export async function onTransactionCommit(
 	tx: DBTransaction,
-	budgetId: number,
+	budget: Ledger,
 	params: TransactionCommitParams
 ): Promise<Ledger> {
-	const budget = await findLedgerById(budgetId, 'budget');
-
 	if (!budget) {
 		throw new Error('Budget not found');
 	}
@@ -88,7 +86,7 @@ export async function onTransactionCommit(
 	const result = await tx
 		.update(ledgersTable)
 		.set({ [params.commitColumn]: newTotal })
-		.where(eq(ledgersTable.id, budgetId))
+		.where(eq(ledgersTable.id, budget.id))
 		.returning();
 
 	return result[0];
