@@ -43,6 +43,7 @@ export type LEDGER_TYPE = (typeof LEDGER_TYPES)[number];
 export const LEDGER_STATUS = ['n/a', 'pending', 'paid', 'overdue', 'cancelled'] as const;
 
 export const TRANSACTION_TYPES = ['credit', 'debit'] as const;
+export type TRANSACTION_TYPE = (typeof TRANSACTION_TYPES)[number];
 
 export function formatFormErrors(error: Error | ZodError | undefined): string[] {
 	if (!error) {

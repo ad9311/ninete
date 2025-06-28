@@ -29,8 +29,7 @@ export const transactionCreateSchema = createInsertSchema(transactionsTable, {
 			},
 			{ message: 'Date cannot be in the future' }
 		),
-	category: (schema) =>
-		schema.exclude(['payable', 'receivable'], { message: 'Category is required' }),
+	category: (schema) => schema,
 	type: (schema) => schema,
 	isEstimated: (schema) => schema
 });

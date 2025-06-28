@@ -1,4 +1,4 @@
-import { formatFormErrors, type TRANSACTION_CATEGORY, type TRANSACTION_TYPES } from '$lib/shared';
+import { formatFormErrors, type TRANSACTION_CATEGORY, type TRANSACTION_TYPE } from '$lib/shared';
 import { createTransaction } from '$lib/server/models/transactions';
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
@@ -11,12 +11,9 @@ export const actions: Actions = {
 		const budgetId = Number(event.params.budgetId);
 		const amount = formData.get('amount') as string;
 		const description = formData.get('description') as string;
-		const category = formData.get('category') as Exclude<
-			TRANSACTION_CATEGORY,
-			'payable' | 'receivable'
-		>;
+		const category = formData.get('category') as TRANSACTION_CATEGORY;
 		const date = new Date(formData.get('date') as string);
-		const type = formData.get('type') as (typeof TRANSACTION_TYPES)[number];
+		const type = formData.get('type') as TRANSACTION_TYPE;
 		const isEstimated = formData.get('is_estimated');
 
 		try {
