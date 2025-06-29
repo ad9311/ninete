@@ -19,8 +19,8 @@
 			icon: WalletCards
 		},
 		{
-			label: 'Payables',
-			path: '/ledgers/payables',
+			label: 'Loans',
+			path: '/ledgers/loans',
 			icon: BanknoteArrowDown
 		}
 	];

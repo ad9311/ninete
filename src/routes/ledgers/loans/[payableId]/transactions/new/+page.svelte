@@ -1,25 +1,27 @@
 <script lang="ts">
-	import type { BreadcrumbItem } from '$lib/client';
 	import FormErrors from '$lib/components/form/FormErrors.svelte';
-	import Form from '$lib/components/ledger/payable/Form.svelte';
 	import Breadcrumb from '$lib/components/ui/Breadcrumb.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import Form from '$lib/components/transaction/Form.svelte';
 	import type { PageProps } from './$types';
+	import type { BreadcrumbItem } from '$lib/client';
 
-	const { form }: PageProps = $props();
+	const { data, form }: PageProps = $props();
+	const { payable } = data;
 
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
-		{ label: 'Payables', href: '/ledgers/payables' },
-		{ label: 'New' }
+		{ label: 'Loans', href: '/ledgers/payable' },
+		{ label: 'Loan', href: `/ledgers/loans/${payable.id}` },
+		{ label: 'New Transaction' }
 	];
 </script>
 
 <Breadcrumb items={breadcrumbItems} />
 <Card className="max-w-xl">
 	{#snippet header()}
-		<h3 class="card-title">New Payable</h3>
+		<h3 class="card-title">New Transaction</h3>
 	{/snippet}
 	<FormErrors errors={form?.errors} />
-	<Form />
+	<Form ledgerType="payable" />
 </Card>

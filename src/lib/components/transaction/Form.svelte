@@ -7,8 +7,8 @@
 	const { transaction, ledgerType }: { transaction?: Transaction; ledgerType: LEDGER_TYPE } =
 		$props();
 
-	const isPayableReceivable = ledgerType === 'payable' || ledgerType === 'receivable';
-	const categories = mapTransactionCategories(isPayableReceivable);
+	const isLoan = ledgerType === 'loan';
+	const categories = mapTransactionCategories(isLoan);
 </script>
 
 <form method="post" class="form" use:enhance>

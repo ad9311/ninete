@@ -15,11 +15,9 @@ export type NavLink = {
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export function mapTransactionCategories(
-	isPayableReceivable?: boolean
-): { label: string; value: string }[] {
+export function mapTransactionCategories(isLoan?: boolean): { label: string; value: string }[] {
 	const excludeCategories = ['payable', 'receivable'];
-	const categories = isPayableReceivable
+	const categories = isLoan
 		? ['payment', 'loan']
 		: TRANSACTION_CATEGORIES.filter((c) => !excludeCategories.includes(c));
 

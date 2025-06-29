@@ -11,13 +11,13 @@
 	const { payable, credits, debits } = data;
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
-		{ label: 'Payables', href: '/ledgers/payables' },
+		{ label: 'Loans', href: '/ledgers/loans' },
 		{ label: payable.title as string }
 	];
 	const actions: Action[] = [
 		{
 			label: 'New Transaction',
-			href: `/ledgers/payables/${payable.id}/transactions/new`
+			href: `/ledgers/loans/${payable.id}/transactions/new`
 		}
 	];
 </script>
