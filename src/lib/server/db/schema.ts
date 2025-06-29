@@ -97,7 +97,6 @@ export const recurrentTransactionsTable = pgTable('recurrent_transactions', {
 	category: transactionCategoryEnum('category').notNull(),
 	type: transactionTypeEnum('type').notNull(),
 	isEstimated: boolean('is_estimated').notNull().default(false),
-
 	...timestamps
 });
 

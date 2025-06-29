@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db, type DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
 import { createLedger, LEDGER_ERRORS } from '$lib/server/models/ledger';
+import { updateUpdatedAt } from '$lib/server/models';
 
 type TransactionCommitParams = {
 	previousAmount: number | string;
@@ -85,7 +86,7 @@ export async function onTransactionCommit(
 
 	const result = await tx
 		.update(ledgersTable)
-		.set({ [params.commitColumn]: newTotal })
+		.set({ [params.commitColumn]: newTotal, ...updateUpdatedAt() })
 		.where(eq(ledgersTable.id, budget.id))
 		.returning();
 

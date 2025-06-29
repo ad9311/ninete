@@ -4,6 +4,7 @@ import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
 import { db } from '$lib/server/db';
 import { sessionsTable, usersTable, type Session } from '$lib/server/db/schema';
+import { updateUpdatedAt } from '$lib/server/models';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
@@ -56,7 +57,7 @@ export async function validateSessionToken(token: string) {
 		session.expiresAt = new Date(Date.now() + DAY_IN_MS * 30);
 		await db
 			.update(sessionsTable)
-			.set({ expiresAt: session.expiresAt })
+			.set({ expiresAt: session.expiresAt, ...updateUpdatedAt() })
 			.where(eq(sessionsTable.id, session.id));
 	}
 

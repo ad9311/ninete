@@ -6,6 +6,7 @@ import { onTransactionCommit } from '$lib/server/models/ledger/budget';
 import { and, eq } from 'drizzle-orm';
 import { findLedgerById } from '$lib/server/models/ledger';
 import type { LEDGER_TYPE } from '$lib/shared';
+import { updateUpdatedAt } from '$lib/server/models';
 
 export const transactionCreateSchema = createInsertSchema(transactionsTable, {
 	ledgerId: (schema) => schema.int().positive({ message: 'Budget ID must be a positive integer' }),
@@ -110,7 +111,7 @@ export async function updateTransaction(
 
 		const result = await tx
 			.update(transactionsTable)
-			.set(validated)
+			.set({ ...validated, ...updateUpdatedAt() })
 			.where(eq(transactionsTable.id, transactionId))
 			.returning();
 
