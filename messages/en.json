@@ -24,8 +24,6 @@
 			"taxes": "Taxes",
 			"miscellaneous": "Miscellaneous",
 			"income": "Income",
-			"payable": "Loan",
-			"receivable": "Receivable",
 			"payment": "Payment",
 			"loan": "Loan"
 		}

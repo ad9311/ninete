@@ -13,7 +13,7 @@ export const loanCreateSchema = createInsertSchema(ledgersTable, {
 	year: (schema) => schema.int().positive({ message: LEDGER_ERRORS.year }),
 	month: (schema) => schema.int().positive({ message: LEDGER_ERRORS.month }),
 	type: (schema) =>
-		schema.exclude(['budget', 'savings', 'payable', 'receivable'], {
+		schema.exclude(['budget', 'savings'], {
 			message: 'Type must be of loan'
 		}),
 	status: (schema) => schema

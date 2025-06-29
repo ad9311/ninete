@@ -24,8 +24,6 @@
 			"taxes": "Impuestos",
 			"miscellaneous": "Misceláneos",
 			"income": "Ingresos",
-			"payable": "Por Pagar",
-			"receivable": "Por Cobrar",
 			"payment": "Pago",
 			"loan": "Préstamo"
 		}

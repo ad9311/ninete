@@ -12,10 +12,7 @@ export const actions: Actions = {
 
 		const description = formData.get('description') as string;
 		const amount = formData.get('amount') as string;
-		const category = formData.get('category') as Exclude<
-			TRANSACTION_CATEGORY,
-			'payable' | 'receivable'
-		>;
+		const category = formData.get('category') as TRANSACTION_CATEGORY;
 		const date = new Date(formData.get('date') as string);
 		const isEstimated = formData.get('is_estimated');
 
