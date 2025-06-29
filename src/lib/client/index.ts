@@ -18,9 +18,10 @@ export type NavLink = {
 export function mapTransactionCategories(
 	isPayableReceivable?: boolean
 ): { label: string; value: string }[] {
+	const excludeCategories = ['payable', 'receivable'];
 	const categories = isPayableReceivable
-		? ['payable', 'receivable', 'payment', 'loan']
-		: TRANSACTION_CATEGORIES;
+		? ['payment', 'loan']
+		: TRANSACTION_CATEGORIES.filter((c) => !excludeCategories.includes(c));
 
 	return categories.map((category) => {
 		return {
