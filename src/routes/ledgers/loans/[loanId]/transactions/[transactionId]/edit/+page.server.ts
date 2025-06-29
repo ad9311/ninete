@@ -8,7 +8,7 @@ export const actions: Actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
 
-		const { payableId, transactionId } = event.params;
+		const { loanId, transactionId } = event.params;
 
 		const description = formData.get('description') as string;
 		const amount = formData.get('amount') as string;
@@ -28,12 +28,12 @@ export const actions: Actions = {
 		};
 
 		try {
-			await updateTransaction(Number(payableId), 'payable', Number(transactionId), params);
+			await updateTransaction(Number(loanId), 'loan', Number(transactionId), params);
 		} catch (e) {
 			const errors = formatFormErrors(e as Error | ZodError);
 			return fail(400, { errors });
 		}
 
-		redirect(303, `/ledgers/loans/${payableId}`);
+		redirect(303, `/ledgers/loans/${loanId}`);
 	}
 };

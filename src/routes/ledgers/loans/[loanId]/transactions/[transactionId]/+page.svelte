@@ -6,14 +6,14 @@
 
 	const { data }: { data: PageData } = $props();
 
-	const { transaction, payable } = data;
+	const { transaction, loan } = data;
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Loans', href: '/ledgers/loans' },
-		{ label: 'Loan', href: `/ledgers/loans/${payable.id}` },
+		{ label: 'Loan', href: `/ledgers/loans/${loan.id}` },
 		{ label: 'Transaction' }
 	];
 </script>
 
 <Breadcrumb items={breadcrumbItems} />
-<Transaction {transaction} ledgerType="payable" />
+<Transaction {transaction} ledgerType="loan" />

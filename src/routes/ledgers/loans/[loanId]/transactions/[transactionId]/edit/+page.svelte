@@ -8,14 +8,14 @@
 
 	const { data, form }: PageProps = $props();
 
-	const { transaction, payable } = data;
+	const { transaction, loan } = data;
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
 		{ label: 'Loans', href: '/ledgers/loans' },
-		{ label: 'Loan', href: `/ledgers/loans/${payable.id}` },
+		{ label: 'Loan', href: `/ledgers/loans/${loan.id}` },
 		{
 			label: 'Transaction',
-			href: `/ledgers/loans/${payable.id}/transactions/${transaction.id}`
+			href: `/ledgers/loans/${loan.id}/transactions/${transaction.id}`
 		},
 		{ label: 'Edit' }
 	];
@@ -27,5 +27,5 @@
 		<h3 class="card-title">Edit Transaction</h3>
 	{/snippet}
 	<FormErrors errors={form?.errors} />
-	<Form ledgerType="payable" {transaction} />
+	<Form ledgerType="loan" {transaction} />
 </Card>

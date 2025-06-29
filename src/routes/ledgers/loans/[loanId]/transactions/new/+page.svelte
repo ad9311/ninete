@@ -7,12 +7,12 @@
 	import type { BreadcrumbItem } from '$lib/client';
 
 	const { data, form }: PageProps = $props();
-	const { payable } = data;
+	const { loan } = data;
 
 	const breadcrumbItems: BreadcrumbItem[] = [
 		{ label: 'Home', href: '/' },
-		{ label: 'Loans', href: '/ledgers/payable' },
-		{ label: 'Loan', href: `/ledgers/loans/${payable.id}` },
+		{ label: 'Loans', href: '/ledgers/loans' },
+		{ label: 'Loan', href: `/ledgers/loans/${loan.id}` },
 		{ label: 'New Transaction' }
 	];
 </script>
@@ -23,5 +23,5 @@
 		<h3 class="card-title">New Transaction</h3>
 	{/snippet}
 	<FormErrors errors={form?.errors} />
-	<Form ledgerType="payable" />
+	<Form ledgerType="loan" />
 </Card>

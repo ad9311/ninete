@@ -3,9 +3,9 @@ import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async (event) => {
-	const { transactionId, payableId } = event.params;
+	const { transactionId, loanId } = event.params;
 
-	const transaction = await findTransactionWithLedgerId(Number(payableId), Number(transactionId));
+	const transaction = await findTransactionWithLedgerId(Number(loanId), Number(transactionId));
 
 	if (!transaction) {
 		error(404, 'Transaction not found');

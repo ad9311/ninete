@@ -8,7 +8,7 @@ import {
 } from '$lib/server/db/schema';
 import type { NewBudgetParams } from '$lib/server/models/ledger/budget';
 import type { LEDGER_TYPE } from '$lib/shared';
-import type { NewPayableReceivableParams } from './payable-receivable';
+import type { NewLoanParams } from './loans';
 
 export const LEDGER_ERRORS = {
 	userId: 'User ID must be a positive integer',
@@ -35,9 +35,7 @@ export async function findLedgetDebits(ledgerId: number): Promise<Transaction[]>
 	return debits;
 }
 
-export async function createLedger(
-	params: NewBudgetParams | NewPayableReceivableParams
-): Promise<Ledger> {
+export async function createLedger(params: NewBudgetParams | NewLoanParams): Promise<Ledger> {
 	const { date, ...rest } = params;
 
 	const year = date.getFullYear();

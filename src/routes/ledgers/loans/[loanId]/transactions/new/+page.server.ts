@@ -8,7 +8,7 @@ export const actions: Actions = {
 	default: async (event) => {
 		const formData = await event.request.formData();
 
-		const payableId = Number(event.params.payableId);
+		const loanId = Number(event.params.loanId);
 		const amount = formData.get('amount') as string;
 		const description = formData.get('description') as string;
 		const category = formData.get('category') as TRANSACTION_CATEGORY;
@@ -17,8 +17,8 @@ export const actions: Actions = {
 		const isEstimated = formData.get('is_estimated');
 
 		try {
-			await createTransaction('payable', {
-				ledgerId: payableId,
+			await createTransaction('loan', {
+				ledgerId: loanId,
 				amount,
 				description,
 				category,

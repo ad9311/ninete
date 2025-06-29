@@ -2,11 +2,7 @@ import { formatFormErrors } from '$lib/shared';
 import type { ZodError } from 'zod';
 import type { Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
-import {
-	createPayableReceivable,
-	payableReceivableNewSchema,
-	type NewPayableReceivableParams
-} from '$lib/server/models/ledger/payable-receivable';
+import { createLoan, loanNewSchema, type NewLoanParams } from '$lib/server/models/ledger/loans';
 import type { Ledger } from '$lib/server/db/schema';
 
 export const actions: Actions = {
@@ -18,25 +14,25 @@ export const actions: Actions = {
 		const description = formData.get('description') as string;
 		const date = new Date(formData.get('date') as string);
 
-		let payable: Ledger;
+		let loan: Ledger;
 
 		try {
-			const params: NewPayableReceivableParams = {
+			const params: NewLoanParams = {
 				userId,
 				date,
 				title,
 				description,
-				type: 'payable',
+				type: 'loan',
 				status: 'pending'
 			};
-			const validated = payableReceivableNewSchema.parse(params);
-			payable = await createPayableReceivable(validated);
+			const validated = loanNewSchema.parse(params);
+			loan = await createLoan(validated);
 		} catch (e) {
 			const errors = formatFormErrors(e as Error | ZodError);
 
 			return fail(400, { errors });
 		}
 
-		redirect(303, `/ledgers/loans/${payable.id}`);
+		redirect(303, `/ledgers/loans/${loan.id}`);
 	}
 };

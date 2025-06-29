@@ -3,7 +3,7 @@ import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { createLedger, LEDGER_ERRORS } from '..';
 
-export const payableReceivableCreateSchema = createInsertSchema(ledgersTable, {
+export const loanCreateSchema = createInsertSchema(ledgersTable, {
 	userId: (schema) => schema.int().positive({ message: LEDGER_ERRORS.userId }),
 	title: (schema) =>
 		schema
@@ -13,21 +13,19 @@ export const payableReceivableCreateSchema = createInsertSchema(ledgersTable, {
 	year: (schema) => schema.int().positive({ message: LEDGER_ERRORS.year }),
 	month: (schema) => schema.int().positive({ message: LEDGER_ERRORS.month }),
 	type: (schema) =>
-		schema.exclude(['budget', 'savings'], {
-			message: 'Type must be of type payable or receivable'
+		schema.exclude(['budget', 'savings', 'payable', 'receivable'], {
+			message: 'Type must be of loan'
 		}),
 	status: (schema) => schema
 });
 
-export const payableReceivableNewSchema = payableReceivableCreateSchema
-	.omit({ year: true, month: true })
-	.extend({
-		date: z.date()
-	});
+export const loanNewSchema = loanCreateSchema.omit({ year: true, month: true }).extend({
+	date: z.date()
+});
 
-export type CreatePayableReceivable = z.infer<typeof payableReceivableCreateSchema>;
-export type NewPayableReceivableParams = z.infer<typeof payableReceivableNewSchema>;
+export type CreateLoan = z.infer<typeof loanCreateSchema>;
+export type NewLoanParams = z.infer<typeof loanNewSchema>;
 
-export async function createPayableReceivable(params: NewPayableReceivableParams): Promise<Ledger> {
+export async function createLoan(params: NewLoanParams): Promise<Ledger> {
 	return await createLedger(params);
 }
