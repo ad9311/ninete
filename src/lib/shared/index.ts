@@ -33,7 +33,9 @@ export const TRANSACTION_CATEGORIES = [
 	'miscellaneous',
 	'income',
 	'payable',
-	'receivable'
+	'receivable',
+	'payment',
+	'loan'
 ] as const;
 export type TRANSACTION_CATEGORY = (typeof TRANSACTION_CATEGORIES)[number];
 

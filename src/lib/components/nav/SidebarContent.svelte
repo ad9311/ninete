@@ -8,7 +8,6 @@
 
 	const currentPath = $derived(page.url.pathname);
 	const isActive = (path: string) => {
-		console.log(path, currentPath);
 		return currentPath.startsWith(path);
 	};
 </script>

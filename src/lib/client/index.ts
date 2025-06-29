@@ -1,5 +1,5 @@
 import * as m from '$lib/paraglide/messages.js';
-import { TRANSACTION_CATEGORIES } from '$lib/shared';
+import { TRANSACTION_CATEGORIES, type TRANSACTION_CATEGORY } from '$lib/shared';
 
 export type BreadcrumbItem = {
 	label: string;
@@ -18,22 +18,13 @@ export type NavLink = {
 export function mapTransactionCategories(
 	isPayableReceivable?: boolean
 ): { label: string; value: string }[] {
-	if (isPayableReceivable) {
-		return [
-			{
-				label: m['transactions.categories.payable'](),
-				value: 'payable'
-			},
-			{
-				label: m['transactions.categories.receivable'](),
-				value: 'receivable'
-			}
-		];
-	}
+	const categories = isPayableReceivable
+		? ['payable', 'receivable', 'payment', 'loan']
+		: TRANSACTION_CATEGORIES;
 
-	return TRANSACTION_CATEGORIES.map((category) => {
+	return categories.map((category) => {
 		return {
-			label: m[`transactions.categories.${category}`](),
+			label: m[`transactions.categories.${category as TRANSACTION_CATEGORY}`](),
 			value: category
 		};
 	});

@@ -25,7 +25,9 @@
 			"miscellaneous": "Miscellaneous",
 			"income": "Income",
 			"payable": "Payable",
-			"receivable": "Receivable"
+			"receivable": "Receivable",
+			"payment": "Payment",
+			"loan": "Loan"
 		}
 	}
 }
