@@ -24,9 +24,9 @@
 		<h3 class="card-title">{title}</h3>
 	{/snippet}
 	{#if transactions.length > 0}
-		<div class="flex flex-col gap-1">
+		<ul class="flex flex-col gap-1">
 			{#each transactions as transaction (transaction.id)}
-				<div class="border-muted rounded-xs border bg-neutral-50 p-2 leading-normal">
+				<li class="border-muted rounded-xs border bg-neutral-50 p-2 leading-normal">
 					<div class="mb-1 flex items-center justify-between">
 						<p class="text-xs text-zinc-600 italic">
 							{m[`transactions.categories.${transaction.category}`]()}
@@ -40,9 +40,9 @@
 						<p class="text-sm">{transaction.description}</p>
 						<p class="text-sm"><Amount value={transaction.amount} {type} /></p>
 					</div>
-				</div>
+				</li>
 			{/each}
-		</div>
+		</ul>
 	{:else}
 		<p class="text-center text-sm text-zinc-600">No transactions found.</p>
 	{/if}
