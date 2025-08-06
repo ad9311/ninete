@@ -1,0 +1,46 @@
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  image: golangci/golangci-lint:latest
+  variables:
+    GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+    GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.cache/golangci-lint"
+  cache:
+    paths:
+      - .cache/go-build
+      - .cache/golangci-lint
+  script:
+    - make lint
+# test:
+#   stage: test
+#   image: golang:1.24
+#   services:
+#     - name: postgres:17.5-bookworm
+#       alias: db
+#   variables:
+#     # Service bootstrap (MUST be literals; GitLab won't expand ${...:-...})
+#     POSTGRES_USER: test_user
+#     POSTGRES_PASSWORD: test_pass
+#     POSTGRES_DB: test_db
+#
+#     # Your app's expected TEST_* env (also literals)
+#     TEST_DB_USER: test_user
+#     TEST_DB_PASSWORD: test_pass
+#     TEST_DB_NAME: test_db
+#     TEST_DB_HOST: db
+#     TEST_DB_PORT: "5432"
+#
+#     # Optional: speed up builds
+#     GOCACHE: "$CI_PROJECT_DIR/.cache/go-build"
+#     CGO_ENABLED: "0"
+#   cache:
+#     paths:
+#       - .cache/go-build
+#   before_script:
+#     - apt-get update && apt-get install -y --no-install-recommends postgresql-client
+#     - go version
+#   script:
+#     - make ci-test
