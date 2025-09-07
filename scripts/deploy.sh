@@ -45,6 +45,7 @@ ssh "$HOST" "set -Eeuo pipefail; \
   sudo mv /home/ad9311/tmp/$BINARY_NAME $REMOTE_BINARY_PATH/$BINARY_NAME; \
   sudo rm -rf $REMOTE_MIGRATIONS_ROOT/migrations; \
   sudo mv /home/ad9311/tmp/migrations $REMOTE_MIGRATIONS_ROOT; \
+  sudo /etc/ad9311app/migrate.sh
   sudo systemctl restart $BINARY_NAME.service; \
 "
 

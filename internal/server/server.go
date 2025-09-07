@@ -47,7 +47,7 @@ func (s *Server) setupMiddleware() {
 
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.RequestID)
-	s.Router.Use(WithTimeout(app.DefaultTimeout))
+	s.Router.Use(WithTimeout(3 * time.Second)) // TODO
 	s.Router.Use(JSONMiddleware)
 	s.Router.Use(s.CORS)
 

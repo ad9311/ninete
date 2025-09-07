@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/ad9311/go-api-base/internal/app"
 	"github.com/ad9311/go-api-base/internal/db"
@@ -30,7 +31,7 @@ func RunTestsWithCleanUp(m *testing.M) int {
 	code := m.Run()
 
 	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, app.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second) // TODO
 	defer cancel()
 
 	_, err = pool.Exec(ctx, truncateQuery)
