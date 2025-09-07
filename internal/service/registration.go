@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/ad9311/go-api-base/internal/repo"
@@ -39,7 +38,7 @@ func (s *Store) RegisterUser(ctx context.Context, params RegistrationParams) (re
 			return user, errs.ErrPasswordTooLong
 		}
 
-		log.Printf("Failed to has password for %s, error: %s", params.Username, err.Error())
+		s.config.Logger.Error("Failed to hash password for %s: %v", params.Username, err)
 
 		return user, errs.ErrHashingPassword
 	}

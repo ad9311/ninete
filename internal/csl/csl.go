@@ -57,20 +57,23 @@ func (l *Logger) write(w io.Writer, s string) error {
 }
 
 // Log writes a formatted log message with a timestamp to the standard output.
-func (l *Logger) Log(msg string, args ...any) error {
+func (l *Logger) Log(msg string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	line := fmt.Sprintf("%s %s\n", l.ts(), fmt.Sprintf(msg, args...))
 
-	return l.write(l.out, line)
+	if err := l.write(l.out, line); err != nil {
+		panic(err)
+	}
 }
 
 // Debug writes a formatted debug message with a timestamp to the standard output if DebugOn is true.
 // The message is colored yellow if UseColor is enabled.
-func (l *Logger) Debug(msg string, args ...any) error {
+func (l *Logger) Debug(msg string, args ...any) {
 	if !l.DebugOn {
-		return nil
+		return
 	}
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -80,12 +83,14 @@ func (l *Logger) Debug(msg string, args ...any) error {
 	}
 	line := fmt.Sprintf("%s %s\n", l.ts(), body)
 
-	return l.write(l.out, line)
+	if err := l.write(l.out, line); err != nil {
+		panic(err)
+	}
 }
 
 // Error writes a formatted error message with a timestamp to the error output.
 // The message is colored red if UseColor is enabled.
-func (l *Logger) Error(msg string, args ...any) error {
+func (l *Logger) Error(msg string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -95,5 +100,7 @@ func (l *Logger) Error(msg string, args ...any) error {
 	}
 	line := fmt.Sprintf("%s %s\n", l.ts(), body)
 
-	return l.write(l.errOut, line)
+	if err := l.write(l.errOut, line); err != nil {
+		panic(err)
+	}
 }

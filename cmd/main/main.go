@@ -2,11 +2,11 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/ad9311/go-api-base/cmd"
 	"github.com/ad9311/go-api-base/internal/app"
+	"github.com/ad9311/go-api-base/internal/csl"
 	"github.com/ad9311/go-api-base/internal/db"
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/ad9311/go-api-base/internal/server"
@@ -16,6 +16,8 @@ import (
 
 // main initializes the command registry, registers available commands, and executes the selected command.
 func main() {
+	logger := csl.New(nil, nil, false)
+
 	r := cmd.NewRegistry().WithUsageName(os.Args[0])
 
 	commands := []func() *cmd.Command{
@@ -28,7 +30,7 @@ func main() {
 
 	for _, c := range commands {
 		if err := r.Register(c()); err != nil {
-			log.Println(err)
+			logger.Error("%v", err)
 
 			os.Exit(2)
 		}
@@ -36,7 +38,7 @@ func main() {
 
 	exitCode, err := r.Execute(os.Args[1:])
 	if err != nil {
-		log.Println(err)
+		logger.Error("%v", err)
 	}
 
 	os.Exit(exitCode)

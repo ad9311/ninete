@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -25,7 +26,7 @@ func (t *task) createAdminRoleTask() error {
 func (t *task) createNewRoleTask() error {
 	ctx := context.Background()
 
-	log.Print("Enter admin role name: ")
+	fmt.Print("Enter admin role name: ")
 	reader := bufio.NewReader(t.reader)
 	input, err := reader.ReadString('\n')
 	if err != nil {

@@ -2,13 +2,13 @@ package app
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/ad9311/go-api-base/internal/csl"
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/joho/godotenv"
 )
@@ -38,6 +38,7 @@ const (
 // Config holds the application's runtime configuration populated from
 // environment variables (and a .env file when applicable).
 type Config struct {
+	Logger          *csl.Logger   // logger is the application's logger instance (internal use only)
 	Env             string        // Env is the environment in which the app is running (production, development, test, maintenance)
 	Port            string        // Port is the port the server listens on
 	DBURL           string        // DBURL is the database connection URL
@@ -104,7 +105,10 @@ func LoadConfig() (*Config, error) {
 		return nil, errs.ErrAllowedOriginsNotSet
 	}
 
+	logger := csl.New(nil, nil, env != EnvProduction)
+
 	return &Config{
+		Logger:          logger,
 		Env:             env,
 		DBURL:           dbURL,
 		Port:            port,
@@ -153,8 +157,6 @@ func loadEnv() (string, error) {
 		err := godotenv.Load(path)
 
 		if !ok || err != nil {
-			log.Printf("%s, %s", errs.ErrEnvLoad, err)
-
 			return "", errs.ErrEnvLoad
 		}
 	}

@@ -141,7 +141,7 @@ func randomString() string {
 	for i := range length {
 		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
 		if err != nil {
-			log.Fatal(err) // stop immediately if crypto source fails
+			log.Fatal(err)
 		}
 		b[i] = letters[num.Int64()]
 	}

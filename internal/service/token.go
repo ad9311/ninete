@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"slices"
 	"time"
 
@@ -190,7 +189,7 @@ func (s *Store) generateJWTToken(userID int32, exp, iat int64) (string, error) {
 
 	signedToken, err := token.SignedString(s.config.JWTSecret)
 	if err != nil {
-		log.Printf("Could not generate access token to user %d, error: %s", userID, err.Error())
+		s.config.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
 
 		return "", errs.ErrGenerateJWTToken
 	}

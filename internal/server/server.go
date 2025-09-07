@@ -5,7 +5,6 @@ package server
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -76,24 +75,24 @@ func (s *Server) Start() error {
 	defer stop()
 
 	go func() {
-		log.Printf("Server starting on port %s\n", s.config.Port)
+		s.config.Logger.Log("Server starting on port %s\n", s.config.Port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("ListenAndServe error: %v", err)
+			s.config.Logger.Error("ListenAndServe error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down gracefully...")
+	s.config.Logger.Log("Shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Graceful shutdown failed: %v", err)
+		s.config.Logger.Error("Graceful shutdown failed: %v", err)
 
 		return err
 	}
-	log.Println("Server stopped cleanly.")
+	s.config.Logger.Log("Server stopped cleanly.")
 
 	return nil
 }
