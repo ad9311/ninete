@@ -19,6 +19,7 @@ func main() {
 	r := cmd.NewRegistry().WithUsageName(os.Args[0])
 
 	commands := []func() *cmd.Command{
+		testDevCommand,
 		serveCommand,
 		runUpCommand,
 		runDownCommand,
@@ -39,6 +40,19 @@ func main() {
 	}
 
 	os.Exit(exitCode)
+}
+
+// testDevCommand returns a CLI command intended for development and testing purposes only.
+// Use this command to quickly run or debug code snippets during development. Not for production use.
+func testDevCommand() *cmd.Command {
+	return &cmd.Command{
+		Name:        "dev_func",
+		Description: "Run a development/test function (for developer use only)",
+		Run: func(_ []string) error {
+			// Place any code here you want to test during development.
+			return nil
+		},
+	}
 }
 
 // serveCommand returns the CLI command for running the server.
