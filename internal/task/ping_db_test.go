@@ -7,7 +7,7 @@ import (
 )
 
 func TestPingDatabaseTask(t *testing.T) {
-	task := newTaskFactory(t)
+	task := newTaskFactory(t, nil, nil)
 
 	err := task.pingDatabaseTask()
 	require.Nil(t, err)

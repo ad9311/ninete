@@ -104,3 +104,9 @@ func (l *Logger) Error(msg string, args ...any) {
 		panic(err)
 	}
 }
+
+// NewError logs an error message to the console using the provided format string and arguments.
+// It creates a new console instance and outputs the error message.
+func NewError(msg string, args ...any) {
+	New(nil, nil, false).Error(msg, args...)
+}

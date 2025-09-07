@@ -2,10 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/ad9311/go-api-base/internal/app"
+	"github.com/ad9311/go-api-base/internal/console"
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/ad9311/go-api-base/internal/service"
 )
@@ -54,12 +54,13 @@ func setHeaderAndWrite(w http.ResponseWriter, status int, body any) {
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		log.Printf("Error encoding JSON response: %v", err)
+		logger := console.New(nil, nil, false)
+		logger.Error("failed to encode response: %v", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
-		_, err := w.Write([]byte(`{"code":"INTERNAL_ERROR","error":"error writing the response"}`))
+		_, err := w.Write([]byte(`{"code":"INTERNAL_ERROR","error":"error writing response"}`))
 		if err != nil {
-			log.Println(err)
+			logger.Error("failed to write response: %v", err)
 		}
 	}
 }

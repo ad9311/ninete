@@ -11,7 +11,8 @@ import (
 )
 
 func TestCreateAdminRoleTask(t *testing.T) {
-	task := newTaskFactory(t)
+	tbuff := newTestBuffer()
+	task := newTaskFactory(t, &tbuff.stdOut, &tbuff.stdOut)
 
 	cases := []struct {
 		name     string
@@ -29,24 +30,24 @@ func TestCreateAdminRoleTask(t *testing.T) {
 		{
 			"should_not_duplicate_admin_role",
 			func(t *testing.T) {
-				got := captureLogOutput(func() {
-					err := task.createAdminRoleTask()
-					require.Nil(t, err)
-				})
+				err := task.createAdminRoleTask()
+				require.Nil(t, err)
 
 				want := "admin role already exists!"
-				require.Contains(t, got, want)
+				require.Contains(t, tbuff.stdOut.String(), want)
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, tc.testFunc)
+		tbuff.clear()
 	}
 }
 
 func TestCreateNewRoleTask(t *testing.T) {
-	task := newTaskFactory(t)
+	tbuff := newTestBuffer()
+	task := newTaskFactory(t, &tbuff.stdOut, &tbuff.stdErr)
 
 	uniqueRoleName := service.FactoryUsername()
 
@@ -80,21 +81,19 @@ func TestCreateNewRoleTask(t *testing.T) {
 		{
 			"should_output_already_created",
 			func(t *testing.T) {
-				got := captureLogOutput(func() {
-					task.reader = strings.NewReader(uniqueRoleName + "\n")
-					err := task.createNewRoleTask()
-
-					require.Nil(t, err)
-				})
+				task.reader = strings.NewReader(uniqueRoleName + "\n")
+				err := task.createNewRoleTask()
+				require.Nil(t, err)
 
 				want := fmt.Sprintf("%s role already exists!", uniqueRoleName)
-				require.Contains(t, got, want)
+				require.Contains(t, tbuff.stdOut.String(), want)
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, tc.testFunc)
+		tbuff.clear()
 	}
 }
 

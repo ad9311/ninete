@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/ad9311/go-api-base/internal/errs"
@@ -48,14 +47,14 @@ func (t *task) createNewRole(ctx context.Context, roleName string) (repo.Role, e
 	role, err := t.serviceStore.CreateNewRole(ctx, roleName)
 	if err != nil {
 		if errors.Is(err, errs.ErrUniqueConstraintViolation) {
-			log.Printf("%s role already exists!", roleName)
+			t.logger.Log("%s role already exists!", roleName)
 
 			return role, nil
 		}
 
 		return role, err
 	}
-	log.Printf("created %s role successfully!", roleName)
+	t.logger.Log("created %s role successfully!", roleName)
 
 	return role, nil
 }

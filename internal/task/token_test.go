@@ -10,7 +10,8 @@ import (
 
 func TestDeleteExpiredTokensTask(t *testing.T) {
 	ctx := context.Background()
-	task := newTaskFactory(t)
+	tbuff := newTestBuffer()
+	task := newTaskFactory(t, &tbuff.stdOut, &tbuff.stdErr)
 
 	user := task.serviceStore.FactoryUser(ctx, t, service.RegistrationParams{})
 
@@ -18,11 +19,9 @@ func TestDeleteExpiredTokensTask(t *testing.T) {
 		task.serviceStore.FactoryExpiredToken(ctx, t, user.ID)
 	}
 
-	got := captureLogOutput(func() {
-		err := task.deleteExpiredTokensTask()
-		require.Nil(t, err)
-	})
+	err := task.deleteExpiredTokensTask()
+	require.Nil(t, err)
 
 	want := "deleted 5 expired refresh tokens"
-	require.Contains(t, got, want)
+	require.Contains(t, tbuff.stdOut.String(), want)
 }

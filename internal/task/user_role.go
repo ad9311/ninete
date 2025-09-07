@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -16,7 +16,7 @@ import (
 func (t *task) addRolesToUsersTask() error {
 	ctx := context.Background()
 
-	log.Print("Enter the CSV file path: ")
+	fmt.Print("Enter the CSV file path: ")
 	reader := bufio.NewReader(os.Stdin)
 	path, err := reader.ReadString('\n')
 	if err != nil {
@@ -61,17 +61,17 @@ func (t *task) addRoleToUser(ctx context.Context, row []string) error {
 	_, err = t.serviceStore.AddRoleToUser(ctx, int32(userID), roleName)
 	if err != nil {
 		if errors.Is(err, errs.ErrUserHasRole) {
-			log.Printf("user %d already has the %s role\n", userID, roleName)
+			t.logger.Log("user %d already has the %s role\n", userID, roleName)
 
 			return nil
 		}
 
-		log.Printf("could not add role %s to user with id %d\n", roleName, userID)
+		t.logger.Log("could not add role %s to user with id %d\n", roleName, userID)
 
 		return err
 	}
 
-	log.Printf("added role %s to user with id %d\n", roleName, userID)
+	t.logger.Log("added role %s to user with id %d\n", roleName, userID)
 
 	return nil
 }
