@@ -68,11 +68,11 @@ func RunMigrationsDown(_ []string) error {
 func createMigrator(config *app.Config) (*migrate.Migrate, error) {
 	var migrator *migrate.Migrate
 
-	if config.DBURL == "" {
+	if config.DBConfig.URL == "" {
 		return migrator, errs.ErrDatabaseVarsNotSet
 	}
 
-	migrator, err := migrate.New("file://"+config.MigrationsPath, config.DBURL)
+	migrator, err := migrate.New("file://"+config.DBConfig.MigrationsPath, config.DBConfig.URL)
 	if err != nil {
 		return migrator, errs.WrapErrorWithMessage("failed to create migrate instance", err)
 	}
