@@ -105,7 +105,7 @@ func (s *Store) GenerateAccessToken(userID int32) (Token, error) {
 func (s *Store) ParseAndValidateJWT(tokenString string) (jwt.MapClaims, error) {
 	var claims jwt.MapClaims
 
-	secret := s.config.JWTSecret
+	secret := s.config.AuthConfig.JWTSecret
 
 	token, err := parseJWT(secret, tokenString)
 	if err != nil {
@@ -173,21 +173,21 @@ func UUIDToString(u pgtype.UUID) (string, error) {
 
 // generateJWTToken creates and signs a JWT token for the given user ID, expiration, and issued-at times.
 func (s *Store) generateJWTToken(userID int32, exp, iat int64) (string, error) {
-	if string(s.config.JWTSecret) == "" {
+	if string(s.config.AuthConfig.JWTSecret) == "" {
 		return "", errs.ErrJWTSecretNotSet
 	}
 
 	claims := jwt.MapClaims{
 		"sub": userID,
-		"iss": s.config.JWTIssuer,
-		"aud": s.config.JWTAudience,
+		"iss": s.config.AuthConfig.JWTIssuer,
+		"aud": s.config.AuthConfig.JWTAudience,
 		"exp": exp,
 		"iat": iat,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	signedToken, err := token.SignedString(s.config.JWTSecret)
+	signedToken, err := token.SignedString(s.config.AuthConfig.JWTSecret)
 	if err != nil {
 		s.config.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
 
@@ -233,7 +233,7 @@ func validateJWT(token *jwt.Token, config *app.Config) (jwt.MapClaims, error) {
 	if err != nil {
 		return nil, errs.ErrInvalidClaimsType
 	}
-	if issuer != config.JWTIssuer {
+	if issuer != config.AuthConfig.JWTIssuer {
 		return nil, errs.ErrInvalidJWTIssuer
 	}
 
@@ -242,7 +242,7 @@ func validateJWT(token *jwt.Token, config *app.Config) (jwt.MapClaims, error) {
 		return nil, errs.ErrInvalidClaimsType
 	}
 	for _, aud := range audience {
-		if !slices.Contains(config.JWTAudience, aud) {
+		if !slices.Contains(config.AuthConfig.JWTAudience, aud) {
 			return nil, errs.ErrInvalidJWTAudience
 		}
 	}

@@ -29,14 +29,11 @@ const (
 // Config holds the application's runtime configuration populated from
 // environment variables (and a .env file when applicable).
 type Config struct {
-	Env            string   // Env is the environment in which the app is running (production, development, test, maintenance)
-	Port           string   // Port is the port the server listens on
-	JWTSecret      []byte   // JWTSecret is the secret used to sign JWT access tokens
-	JWTIssuer      string   // JWTIssuer is the issuer claim to set in JWT tokens
-	JWTAudience    []string // JWTAudience is the audience claim to set in JWT tokens
-	AllowedOrigins []string // AllowedOrigins is the list of allowed CORS origins for the server
-	DBConfig       DBConfig
-	Logger         *console.Logger // logger is the application's logger instance
+	Env        string // Env is the environment in which the app is running (production, development, test, maintenance)
+	Port       string // Port is the port the server listens on
+	DBConfig   DBConfig
+	AuthConfig AuthConfig
+	Logger     *console.Logger // logger is the application's logger instance
 }
 
 // LoadConfig loads the app configuration from environment variables. It will
@@ -53,50 +50,24 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	authConfig, err := setAuthConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		return nil, errs.ErrJWTSecretNotSet
-	}
-
-	jwtIssuer := os.Getenv("JWT_ISSUER")
-	if jwtIssuer == "" {
-		return nil, errs.ErrJWTIssuerNotSet
-	}
-
-	jwtAudienceValue := os.Getenv("JWT_AUDIENCE")
-	if jwtAudienceValue == "" {
-		return nil, errs.ErrJWTAudienceNotSet
-	}
-	jwtAudience := parseValueList(jwtAudienceValue)
-	if len(jwtAudience) == 0 {
-		return nil, errs.ErrJWTAudienceNotSet
-	}
-
-	allowedOrignsValue := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrignsValue == "" {
-		return nil, errs.ErrAllowedOriginsNotSet
-	}
-	allowedOrigns := parseValueList(allowedOrignsValue)
-	if len(allowedOrigns) == 0 {
-		return nil, errs.ErrAllowedOriginsNotSet
-	}
-
 	logger := console.New(nil, nil, env != EnvProduction)
 
 	return &Config{
-		Env:            env,
-		Port:           port,
-		JWTSecret:      []byte(jwtSecret),
-		JWTIssuer:      jwtIssuer,
-		JWTAudience:    jwtAudience,
-		AllowedOrigins: allowedOrigns,
-		DBConfig:       dbConfig,
-		Logger:         logger,
+		Env:        env,
+		Port:       port,
+		DBConfig:   dbConfig,
+		AuthConfig: authConfig,
+		Logger:     logger,
 	}, nil
 }
 
@@ -174,10 +145,4 @@ func fileExists(p string) bool {
 	_, err := os.Stat(p)
 
 	return err == nil
-}
-
-// parseValueList splits the input string by commas and returns a slice of substrings.
-// It is useful for parsing comma-separated lists from configuration values.
-func parseValueList(list string) []string {
-	return strings.Split(list, ",")
 }
