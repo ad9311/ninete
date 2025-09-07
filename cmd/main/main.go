@@ -6,7 +6,7 @@ import (
 
 	"github.com/ad9311/go-api-base/cmd"
 	"github.com/ad9311/go-api-base/internal/app"
-	"github.com/ad9311/go-api-base/internal/csl"
+	"github.com/ad9311/go-api-base/internal/console"
 	"github.com/ad9311/go-api-base/internal/db"
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/ad9311/go-api-base/internal/server"
@@ -16,7 +16,7 @@ import (
 
 // main initializes the command registry, registers available commands, and executes the selected command.
 func main() {
-	logger := csl.New(nil, nil, false)
+	logger := console.New(nil, nil, false)
 
 	r := cmd.NewRegistry().WithUsageName(os.Args[0])
 

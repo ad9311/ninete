@@ -1,5 +1,5 @@
-// Package csl provides a simple, thread-safe logger with color and timestamp support.
-package csl
+// Package console provides a simple, thread-safe logger with color and timestamp support.
+package console
 
 import (
 	"fmt"

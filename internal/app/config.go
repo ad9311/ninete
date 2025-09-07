@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ad9311/go-api-base/internal/csl"
+	"github.com/ad9311/go-api-base/internal/console"
 	"github.com/ad9311/go-api-base/internal/errs"
 	"github.com/joho/godotenv"
 )
@@ -38,19 +38,19 @@ const (
 // Config holds the application's runtime configuration populated from
 // environment variables (and a .env file when applicable).
 type Config struct {
-	Logger          *csl.Logger   // logger is the application's logger instance (internal use only)
-	Env             string        // Env is the environment in which the app is running (production, development, test, maintenance)
-	Port            string        // Port is the port the server listens on
-	DBURL           string        // DBURL is the database connection URL
-	MigrationsPath  string        // MigrationsPath is the path to the database migrations directory
-	MaxConns        int32         // MaxConns is the maximum number of open connections for the database pool
-	MinConns        int32         // MinConns is the minimum number of open connections for the database pool
-	MaxConnIdleTime time.Duration // MaxConnIdleTime is the maximum duration a connection may be idle before being closed
-	MaxConnLifetime time.Duration // MaxConnLifetime is the maximum total duration a connection may be reused before being closed
-	JWTSecret       []byte        // JWTSecret is the secret used to sign JWT access tokens
-	JWTIssuer       string        // JWTIssuer is the issuer claim to set in JWT tokens
-	JWTAudience     []string      // JWTAudience is the audience claim to set in JWT tokens
-	AllowedOrigins  []string      // AllowedOrigins is the list of allowed CORS origins for the server
+	Logger          *console.Logger // logger is the application's logger instance (internal use only)
+	Env             string          // Env is the environment in which the app is running (production, development, test, maintenance)
+	Port            string          // Port is the port the server listens on
+	DBURL           string          // DBURL is the database connection URL
+	MigrationsPath  string          // MigrationsPath is the path to the database migrations directory
+	MaxConns        int32           // MaxConns is the maximum number of open connections for the database pool
+	MinConns        int32           // MinConns is the minimum number of open connections for the database pool
+	MaxConnIdleTime time.Duration   // MaxConnIdleTime is the maximum duration a connection may be idle before being closed
+	MaxConnLifetime time.Duration   // MaxConnLifetime is the maximum total duration a connection may be reused before being closed
+	JWTSecret       []byte          // JWTSecret is the secret used to sign JWT access tokens
+	JWTIssuer       string          // JWTIssuer is the issuer claim to set in JWT tokens
+	JWTAudience     []string        // JWTAudience is the audience claim to set in JWT tokens
+	AllowedOrigins  []string        // AllowedOrigins is the list of allowed CORS origins for the server
 }
 
 // LoadConfig loads the app configuration from environment variables. It will
@@ -105,7 +105,7 @@ func LoadConfig() (*Config, error) {
 		return nil, errs.ErrAllowedOriginsNotSet
 	}
 
-	logger := csl.New(nil, nil, env != EnvProduction)
+	logger := console.New(nil, nil, env != EnvProduction)
 
 	return &Config{
 		Logger:          logger,
