@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/ad9311/go-api-base/internal/app"
+	"github.com/ad9311/go-api-base/internal/console"
 	"github.com/ad9311/go-api-base/internal/db"
 	"github.com/ad9311/go-api-base/internal/service"
 )
@@ -19,8 +20,9 @@ type funcTask func() error
 
 // task is used to run tasks with the provided configuration and service store.
 type task struct {
-	config       *app.Config    // Application configuration
-	serviceStore *service.Store // Service layer store
+	config       *app.Config
+	serviceStore *service.Store
+	logger       *console.Logger
 	reader       io.Reader
 }
 
@@ -139,9 +141,12 @@ func setUp() (*task, error) {
 		return nil, err
 	}
 
+	logger := console.New(nil, nil, true)
+
 	return &task{
 		config:       config,
 		serviceStore: store,
 		reader:       os.Stdin,
+		logger:       logger,
 	}, nil
 }

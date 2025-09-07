@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"crypto/rand"
-	"log"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/ad9311/go-api-base/internal/app"
+	"github.com/ad9311/go-api-base/internal/console"
 	"github.com/ad9311/go-api-base/internal/db"
 	"github.com/ad9311/go-api-base/internal/repo"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -141,7 +141,7 @@ func randomString() string {
 	for i := range length {
 		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
 		if err != nil {
-			log.Fatal(err)
+			console.NewError("failed to generate random string: %v", err)
 		}
 		b[i] = letters[num.Int64()]
 	}

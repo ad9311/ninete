@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"log"
 )
 
 // deleteExpiredTokensTask deletes all expired refresh tokens and logs the result.
@@ -13,7 +12,7 @@ func (t *task) deleteExpiredTokensTask() error {
 		return err
 	}
 
-	log.Printf("deleted %d expired refresh tokens", count)
+	t.logger.Log("deleted %d expired refresh tokens", count)
 
 	return nil
 }
