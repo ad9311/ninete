@@ -105,6 +105,9 @@ func buildDBURL(env string) (string, error) {
 	return url, nil
 }
 
+// parseRuntimeParams constructs the runtime parameters string for the database URL.
+// It reads the environment variable for additional parameters, replaces ":" with "="
+// and spaces with "&" to format them as URL query parameters.
 func parseRuntimeParams(prefix string) string {
 	sslMode := "?sslmode=disable"
 
@@ -120,6 +123,9 @@ func parseRuntimeParams(prefix string) string {
 	return sslMode + "&" + params
 }
 
+// setCount retrieves an integer value from the environment variable specified by envName.
+// If the variable is not set, it returns the provided default value (def).
+// Returns an error if the environment variable is set but cannot be parsed as an int32.
 func setCount(envName string, def int32) (int32, error) {
 	envValue := os.Getenv(envName)
 	if envValue == "" {
@@ -134,6 +140,13 @@ func setCount(envName string, def int32) (int32, error) {
 	return int32(value), nil
 }
 
+// setDuration retrieves the value of the environment variable specified by envName,
+// parses it as a time.Duration, and returns the result. If the environment variable
+// is not set, it returns the provided default duration def. If the value cannot be
+// parsed as a valid duration, an error is returned.
+//
+// Example environment variable value: "30s", "1m", "2h45m".
+// See time.ParseDuration for supported formats.
 func setDuration(envName string, def time.Duration) (time.Duration, error) {
 	envValue := os.Getenv(envName)
 	if envValue == "" {
