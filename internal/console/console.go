@@ -110,3 +110,9 @@ func (l *Logger) Error(msg string, args ...any) {
 func NewError(msg string, args ...any) {
 	New(nil, nil, false).Error(msg, args...)
 }
+
+// NewDebug logs a debug message to the console using the provided format string and arguments.
+// It creates a new console instance with debug mode enabled and outputs the debug message.
+func NewDebug(msg string, args ...any) {
+	New(nil, nil, true).Debug(msg, args...)
+}

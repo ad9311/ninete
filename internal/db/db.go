@@ -20,6 +20,11 @@ func Connect(config *app.Config) (*pgxpool.Pool, error) {
 		return nil, errs.WrapErrorWithMessage("failed to parse database url", err)
 	}
 
+	poolConfig.MaxConns = config.DBConfig.MaxConns
+	poolConfig.MinConns = config.DBConfig.MinConns
+	poolConfig.MaxConnIdleTime = config.DBConfig.MaxConnIdleTime
+	poolConfig.MaxConnLifetime = config.DBConfig.MaxConnLifetime
+
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, errs.WrapErrorWithMessage("failed to create database pool", err)
