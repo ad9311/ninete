@@ -86,7 +86,7 @@ test: test-db-start build ## Start test DB (if needed) and run tests
 	$(call wait_for_db,$(TEST_DB_SERVICE))
 	@status=0; \
   printf '\n'; \
-	ENV=test go test ./... || status=$$?; \
+	ENV=test go test -p 1 ./... || status=$$?; \
 	exit $$status
 
 test-force: ## Clean Go's test cache and then run all tests
