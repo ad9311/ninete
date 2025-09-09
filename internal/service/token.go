@@ -178,7 +178,7 @@ func (s *Store) generateJWTToken(userID int32, exp, iat int64) (string, error) {
 	}
 
 	claims := jwt.MapClaims{
-		"sub": userID,
+		"sub": fmt.Sprintf("%d", userID),
 		"iss": s.config.AuthConfig.JWTIssuer,
 		"aud": s.config.AuthConfig.JWTAudience,
 		"exp": exp,

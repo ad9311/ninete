@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -134,11 +135,15 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, ok := claims["sub"].(float64)
+		userIDStr, ok := claims["sub"].(string)
 		if !ok {
 			writeError(w, http.StatusUnauthorized, standardErrorCode, errs.ErrInvalidClaimsType)
 
 			return
+		}
+		userID, err := strconv.ParseInt(userIDStr, 10, 32)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, standardErrorCode, errs.ErrInvalidClaimsType)
 		}
 
 		user, err := s.serviceStore.FindUserByID(r.Context(), int32(userID))

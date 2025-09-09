@@ -2,6 +2,8 @@ package service_test
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/ad9311/go-api-base/internal/errs"
@@ -136,4 +138,28 @@ func TestDeleteExpiredRefreshTokens(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, tc.testFunc)
 	}
+}
+
+func TestGenerateAccessToken(t *testing.T) {
+	store := service.FactoryStore(t)
+	defer store.ClosePool()
+
+	var userID int32 = 1
+
+	token, err := store.GenerateAccessToken(userID)
+	require.Nil(t, err)
+	require.NotEmpty(t, token.Value)
+	require.NotEmpty(t, token.ExpiresAt)
+	require.NotEmpty(t, token.IssuedAt)
+
+	claims, err := store.ParseAndValidateJWT(token.Value)
+	require.Nil(t, err)
+
+	sub, err := claims.GetSubject()
+	require.Nil(t, err)
+	require.Equal(t, fmt.Sprintf("%d", userID), sub)
+
+	issuer, err := claims.GetIssuer()
+	require.Nil(t, err)
+	require.Equal(t, os.Getenv("JWT_ISSUER"), issuer)
 }
