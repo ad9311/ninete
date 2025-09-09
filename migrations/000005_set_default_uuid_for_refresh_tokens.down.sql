@@ -1,2 +1,0 @@
-ALTER TABLE refresh_tokens
-  ALTER COLUMN uuid DROP DEFAULT;

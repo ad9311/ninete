@@ -22,7 +22,6 @@ const (
 // DBConfig holds the configuration settings required to connect to the database,
 type DBConfig struct {
 	URL             string
-	MigrationsPath  string
 	MaxConns        int32
 	MinConns        int32
 	MaxConnIdleTime time.Duration
@@ -58,14 +57,8 @@ func setDBConfig(env string) (DBConfig, error) {
 		return dbConfig, err
 	}
 
-	migPath := os.Getenv("MIGRATIONS_PATH")
-	if migPath == "" {
-		return dbConfig, errs.ErrMigrationPath
-	}
-
 	dbConfig = DBConfig{
 		URL:             url,
-		MigrationsPath:  migPath,
 		MaxConns:        maxConns,
 		MinConns:        minConns,
 		MaxConnIdleTime: maxConnIdleTime,

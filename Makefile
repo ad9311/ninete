@@ -86,7 +86,7 @@ test: test-db-start build ## Start test DB (if needed) and run tests
 	$(call wait_for_db,$(TEST_DB_SERVICE))
 	@status=0; \
   printf '\n'; \
-	ENV=test go test ./... || status=$$?; \
+	ENV=test go test -p 1 ./... || status=$$?; \
 	exit $$status
 
 test-force: ## Clean Go's test cache and then run all tests
@@ -183,6 +183,11 @@ migrate-down: build ## Roll back one migration against development DB
 	$(call wait_for_db,$(DB_SERVICE))
 	ENV=development ./$(BUILD_PATH)/$(BUILD_APP_NAME) migrate-down
 
+status: build ## Show migration status for development DB
+	@echo "Migrations status..."
+	$(call wait_for_db,$(DB_SERVICE))
+	ENV=development ./$(BUILD_PATH)/$(BUILD_APP_NAME) status
+
 test-migrate: build ## Run all pending migrations against test DB
 	@echo "Running migrations..."
 	$(call wait_for_db,$(TEST_DB_SERVICE))
@@ -192,6 +197,11 @@ test-migrate-down: build ## Roll back one migration against test DB
 	@echo "Running one migration down..."
 	$(call wait_for_db,$(TEST_DB_SERVICE))
 	ENV=test ./$(BUILD_PATH)/$(BUILD_APP_NAME) migrate-down
+
+test-status: build ## Show migration status for test DB
+	@echo "Migrations status..."
+	$(call wait_for_db,$(DB_SERVICE))
+	ENV=test ./$(BUILD_PATH)/$(BUILD_APP_NAME) status
 
 # ========= Help =========
 
