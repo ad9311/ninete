@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE user_roles (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
@@ -5,3 +6,5 @@ CREATE TABLE user_roles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- +goose Down
+DROP TABLE IF EXISTS user_roles;
