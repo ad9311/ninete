@@ -4,7 +4,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// setupRoutes configures all HTTP routes for the server, including health checks, authentication, and protected user endpoints.
+// setupRoutes configures all HTTP routes for the server, including health checks,
+// authentication, and protected user endpoints.
 func (s *Server) setupRoutes() {
 	s.Router.Route("/", func(root chi.Router) {
 		// Health, readiness and metrics

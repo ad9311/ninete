@@ -8,7 +8,8 @@ import (
 	"github.com/ad9311/go-api-base/internal/repo"
 )
 
-// FindUserByID retrieves a user by their ID and returns a SafeUser struct. Returns an error if the user is not found or lookup fails.
+// FindUserByID retrieves a user by their ID and returns a SafeUser struct.
+// Returns an error if the user is not found or lookup fails.
 func (s *Store) FindUserByID(ctx context.Context, userID int32) (SafeUser, error) {
 	var safeUser SafeUser
 

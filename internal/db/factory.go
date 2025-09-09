@@ -7,7 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// FactoryDBPool creates a database connection pool for use in tests and fails the test immediately if pool creation fails.
+// FactoryDBPool creates a database connection pool for use in tests and fails
+// the test immediately if pool creation fails.
 func FactoryDBPool(t *testing.T, config *app.Config) *pgxpool.Pool {
 	t.Helper()
 

@@ -33,7 +33,7 @@ linters:
     - gocritic
     - gochecknoglobals
     - gosec
-    # - lll
+    - lll
 
   settings:
     lll:

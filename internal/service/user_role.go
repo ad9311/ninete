@@ -8,7 +8,8 @@ import (
 	"github.com/ad9311/go-api-base/internal/repo"
 )
 
-// AddRoleToUser links a user to a role by creating a user_role record. Returns an error if the user already has the role or if any step fails.
+// AddRoleToUser links a user to a role by creating a user_role record.
+// Returns an error if the user already has the role or if any step fails.
 func (s *Store) AddRoleToUser(
 	ctx context.Context,
 	userID int32,

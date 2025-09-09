@@ -56,7 +56,8 @@ func (s *Store) GetProgramStats() ProgramStat {
 	}
 }
 
-// GetSystemStats returns system virtual memory statistics in a readable format. Returns an error if stats cannot be retrieved.
+// GetSystemStats returns system virtual memory statistics in a readable format.
+// Returns an error if stats cannot be retrieved.
 func (s *Store) GetSystemStats() (SystemStat, error) {
 	var sysStats SystemStat
 

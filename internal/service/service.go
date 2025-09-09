@@ -11,7 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Store provides access to the database pool, SQLC-generated queries, application configuration, and request validation.
+// Store provides access to the database pool, SQLC-generated queries,
+// application configuration, and request validation.
 type Store struct {
 	db       *pgxpool.Pool       // Database connection pool
 	queries  *repo.Queries       // SQLC-generated query methods

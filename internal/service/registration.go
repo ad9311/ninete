@@ -11,10 +11,10 @@ import (
 
 // RegistrationParams contains the parameters required for signing up a new user.
 type RegistrationParams struct {
-	Username             string `validate:"required,username,min=3,max=20" json:"username"`    // Desired username
-	Email                string `validate:"required,email" json:"email"`                       // User's email address
-	Password             string `validate:"required,min=8,max=20" json:"password"`             // User's password
-	PasswordConfirmation string `validate:"required,min=8,max=20" json:"passwordConfirmation"` // Confirmation of user's password
+	Username             string `validate:"required,username,min=3,max=20" json:"username"`
+	Email                string `validate:"required,email" json:"email"`
+	Password             string `validate:"required,min=8,max=20" json:"password"`
+	PasswordConfirmation string `validate:"required,min=8,max=20" json:"passwordConfirmation"`
 }
 
 // RegisterUser validates registration parameters and saves the new user in the database.
