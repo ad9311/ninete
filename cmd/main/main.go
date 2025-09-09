@@ -25,6 +25,7 @@ func main() {
 		serveCommand,
 		runUpCommand,
 		runDownCommand,
+		runStatusCommand,
 		runTaskCommand,
 	}
 
@@ -81,6 +82,15 @@ func runDownCommand() *cmd.Command {
 		Name:        "migrate-down",
 		Description: "Apply one migration down",
 		Run:         db.RunMigrationsDown,
+	}
+}
+
+// runStatusCommand returns the CLI command for printing the migrations status.
+func runStatusCommand() *cmd.Command {
+	return &cmd.Command{
+		Name:        "status",
+		Description: "Print database status",
+		Run:         db.PrintStatus,
 	}
 }
 

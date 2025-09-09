@@ -1,88 +1,79 @@
 package db
 
 import (
-	"errors"
+	"database/sql"
+	"embed"
 
 	"github.com/ad9311/go-api-base/internal/app"
 	"github.com/ad9311/go-api-base/internal/errs"
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres" // For connection to postgres
-	_ "github.com/golang-migrate/migrate/v4/source/file"       // For reading migration files
+	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" with database/sql
+	"github.com/pressly/goose/v3"
 )
 
-// RunMigrationsUp loads configuration, creates a migration instance, and runs all pending migrations up.
+const migrationsPath = "migrations"
+
+//go:embed migrations/*.sql
+var embedMigrations embed.FS
+
+// RunMigrationsUp applies all available database migrations.
 func RunMigrationsUp(_ []string) error {
-	config, err := app.LoadConfig()
+	db, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-
-	migrator, err := createMigrator(config)
-	if err != nil {
+	if err := goose.Up(db, migrationsPath); err != nil {
 		return err
 	}
 
-	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		if err := closeMigrator(migrator); err != nil {
-			return err
-		}
-
-		return errs.WrapErrorWithMessage("failed to run migrations down", err)
-	}
-
-	if err := closeMigrator(migrator); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Close()
 }
 
-// RunMigrationsDown loads configuration, creates a migration instance, and runs one migration down.
+// RunMigrationsDown rolls back the most recent migration.
 func RunMigrationsDown(_ []string) error {
+	db, err := setUpMigrator()
+	if err != nil {
+		return err
+	}
+	if err := goose.Down(db, migrationsPath); err != nil {
+		return err
+	}
+
+	return db.Close()
+}
+
+// PrintStatus prints the current status of all database migrations.
+func PrintStatus(_ []string) error {
+	db, err := setUpMigrator()
+	if err != nil {
+		return err
+	}
+	if err := goose.Status(db, migrationsPath); err != nil {
+		return err
+	}
+
+	return db.Close()
+}
+
+// setUpMigrator initializes and returns a database connection for running migrations.
+// It loads the application configuration, opens a PostgreSQL database connection using the pgx driver,
+// sets up the embedded migration files for Goose, and configures Goose to use the PostgreSQL dialect.
+func setUpMigrator() (*sql.DB, error) {
+	var db *sql.DB
 	config, err := app.LoadConfig()
 	if err != nil {
-		return err
+		return db, err
 	}
 
-	migrator, err := createMigrator(config)
+	db, err = sql.Open("pgx", config.DBConfig.URL)
 	if err != nil {
-		return err
+		return db, errs.WrapErrorWithMessage("failed to open database", err)
 	}
 
-	if err := migrator.Steps(-1); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		if err := closeMigrator(migrator); err != nil {
-			return err
-		}
+	goose.SetBaseFS(embedMigrations)
 
-		return errs.WrapErrorWithMessage("failed to run migrations down", err)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return db, errs.WrapErrorWithMessage("failed to select database dialect", err)
 	}
 
-	if err := closeMigrator(migrator); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// createMigrator creates a new migrate.Migrate instance using the database URL and migrations path.
-func createMigrator(config *app.Config) (*migrate.Migrate, error) {
-	var migrator *migrate.Migrate
-
-	if config.DBConfig.URL == "" {
-		return migrator, errs.ErrDatabaseVarsNotSet
-	}
-
-	migrator, err := migrate.New("file://"+config.DBConfig.MigrationsPath, config.DBConfig.URL)
-	if err != nil {
-		return migrator, errs.WrapErrorWithMessage("failed to create migrate instance", err)
-	}
-
-	return migrator, nil
-}
-
-// closeMigrator closes the migration instance and joins any errors from source and database.
-func closeMigrator(m *migrate.Migrate) error {
-	sourceErr, dbErr := m.Close()
-
-	return errors.Join(sourceErr, dbErr)
+	return db, nil
 }
