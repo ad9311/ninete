@@ -24,6 +24,9 @@ go.work
 /build/
 /dist/
 
+# Databases
+/data/db/
+
 # IDE files
 .vscode/
 .idea/

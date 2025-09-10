@@ -5,9 +5,17 @@ import (
 	"fmt"
 
 	"github.com/ad9311/ninete/internal/conf"
+	"github.com/ad9311/ninete/internal/db"
 )
 
 func main() {
 	ac, _ := conf.Load()
-	fmt.Printf("%+v\n", ac)
+	sqlDB, err := db.Open(ac.DBConf)
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+
+	fmt.Println(sqlDB.Ping())
+
+	fmt.Println(sqlDB.Stats().MaxOpenConnections)
 }
