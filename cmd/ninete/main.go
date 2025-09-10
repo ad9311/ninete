@@ -1,8 +1,13 @@
 // Package main
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ad9311/ninete/internal/conf"
+)
 
 func main() {
-	fmt.Println("Hello world!")
+	ac, _ := conf.Load()
+	fmt.Printf("%+v\n", ac)
 }
