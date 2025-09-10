@@ -40,6 +40,3 @@ linters:
       line-length: 120
       tab-width: 2
 
-  exclusions:
-    paths:
-      - internal/repo
