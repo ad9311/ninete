@@ -2,12 +2,13 @@ package conf
 
 import "os"
 
-// Secrets
+// Secrets holds sensitive configuration values required by the application,
+// such as cryptographic keys and tokens.
 type Secrets struct {
 	JWTSecret string
 }
 
-// LoadSecrets
+// LoadSecrets loads secret configuration values from environment variables.
 func LoadSecrets() (Secrets, error) {
 	var scrt Secrets
 

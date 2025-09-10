@@ -5,19 +5,22 @@ import (
 	"strconv"
 )
 
+// Database connection pool configuration constants.
 const (
 	defaultMaxOpenConns = 1
 	defaultMaxIdleConns = 1
 )
 
-// DBConf
+// DBConf holds the configuration parameters for the database connection.
 type DBConf struct {
 	URL          string
 	MaxOpenConns int
 	MaxIdleConns int
 }
 
-// LoadDBConf
+// LoadDBConf loads the database configuration from environment variables.
+// Returns a DBConf struct populated with these values, or an error if any
+// configuration value is invalid or cannot be parsed.
 func LoadDBConf() (DBConf, error) {
 	var dbc DBConf
 
@@ -45,6 +48,8 @@ func LoadDBConf() (DBConf, error) {
 	return dbc, nil
 }
 
+// setInt retrieves an integer value from the environment variable specified by envName.
+// If the environment variable is not set, it returns the provided default value def.
 func setInt(envName string, def int) (int, error) {
 	maxConnsStr := os.Getenv(envName)
 	if maxConnsStr == "" {

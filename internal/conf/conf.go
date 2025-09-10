@@ -1,4 +1,4 @@
-// Package conf
+// Package conf provides functionality for loading and managing application configuration.
 package conf
 
 import (
@@ -8,14 +8,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// ENVs
+// Environment constants
 const (
 	ENVProduction  = "production"
 	ENVDevelopment = "development"
 	ENVTest        = "test"
 )
 
-// AppConf
+// AppConf holds the main application configuration, including environment settings,
+// database configuration, server configuration, and application secrets.
 type AppConf struct {
 	ENV        string
 	DBConf     DBConf
@@ -23,7 +24,9 @@ type AppConf struct {
 	Secrets    Secrets
 }
 
-// Load
+// Load initializes and returns the application configuration by loading environment variables,
+// database configuration, server configuration, and secrets. It returns an AppConf struct
+// populated with these values, or an error if any of the configuration loading steps fail.
 func Load() (AppConf, error) {
 	var ac AppConf
 
@@ -57,6 +60,8 @@ func Load() (AppConf, error) {
 	return ac, nil
 }
 
+// loadENV loads the application environment from the "NINETE_ENV" environment variable.
+// If the variable is not set, it returns the empty string and no error.
 func loadENV() (string, error) {
 	env, ok := os.LookupEnv("NINETE_ENV")
 	if !ok {
@@ -77,6 +82,8 @@ func loadENV() (string, error) {
 	return env, nil
 }
 
+// isValidENV checks if the provided environment string is valid according to the set of allowed environment values.
+// It returns an error if the environment is not valid, otherwise returns nil.
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
@@ -86,6 +93,9 @@ func isValidENV(env string) error {
 	return nil
 }
 
+// validENVs returns a map indicating the valid environment names for the application.
+// The keys are environment constants (e.g., ENVProduction, ENVDevelopment, ENVTest),
+// and the values are set to true to signify their validity.
 func validENVs() map[string]bool {
 	return map[string]bool{
 		ENVProduction:  true,
@@ -94,6 +104,10 @@ func validENVs() map[string]bool {
 	}
 }
 
+// findRelativeENVFile searches for a ".env" file starting from the current working directory
+// and traversing up the directory tree. It returns the path to the first ".env" file found and
+// a boolean indicating whether the file was found. If no ".env" file is found, it returns an
+// empty string and false.
 func findRelativeENVFile() (string, bool) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -112,6 +126,8 @@ func findRelativeENVFile() (string, bool) {
 	}
 }
 
+// fileExists checks whether the file at the given path exists.
+// It returns true if the file exists, and false otherwise.
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 
