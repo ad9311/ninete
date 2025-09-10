@@ -6,5 +6,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(RunTestsWithCleanUp(m))
+	os.Exit(RunWithIsolatedSchema(m, "service"))
 }

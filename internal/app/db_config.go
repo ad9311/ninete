@@ -70,6 +70,10 @@ func setDBConfig(env string) (DBConfig, error) {
 
 // buildDBURL constructs the database connection URL based on the environment and environment variables.
 func buildDBURL(env string) (string, error) {
+	if envURL, ok := os.LookupEnv("DATABASE_URL"); ok && envURL != "" {
+		return envURL, nil
+	}
+
 	var prefix string
 	if env == EnvTest {
 		prefix = "TEST_"

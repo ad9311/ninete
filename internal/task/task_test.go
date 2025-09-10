@@ -8,5 +8,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Exit(service.RunTestsWithCleanUp(m))
+	os.Exit(service.RunWithIsolatedSchema(m, "task"))
 }
