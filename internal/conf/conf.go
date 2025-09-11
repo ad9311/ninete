@@ -26,8 +26,7 @@ type AppConf struct {
 	Secrets    Secrets
 }
 
-// Load initializes and returns the application configuration by loading environment variables,
-// database configuration, server configuration, and secrets. It returns an AppConf struct
+// Load initializes and returns the application configuration. It returns an AppConf struct
 // populated with these values, or an error if any of the configuration loading steps fail.
 func Load() (AppConf, error) {
 	var ac AppConf
@@ -85,8 +84,7 @@ func loadENV() (string, error) {
 	return env, nil
 }
 
-// isValidENV checks if the provided environment string is valid according to the set of allowed environment values.
-// It returns an error if the environment is not valid, otherwise returns nil.
+// isValidENV checks if the provided environment string is valid.
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
@@ -97,8 +95,6 @@ func isValidENV(env string) error {
 }
 
 // validENVs returns a map indicating the valid environment names for the application.
-// The keys are environment constants (e.g., ENVProduction, ENVDevelopment, ENVTest),
-// and the values are set to true to signify their validity.
 func validENVs() map[string]bool {
 	return map[string]bool{
 		ENVProduction:  true,
@@ -108,9 +104,7 @@ func validENVs() map[string]bool {
 }
 
 // findRelativeENVFile searches for a ".env" file starting from the current working directory
-// and traversing up the directory tree. It returns the path to the first ".env" file found and
-// a boolean indicating whether the file was found. If no ".env" file is found, it returns an
-// empty string and false.
+// and traversing up the directory tree. If found it returns true, otherwise false.
 func findRelativeENVFile() (string, bool) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -130,7 +124,6 @@ func findRelativeENVFile() (string, bool) {
 }
 
 // fileExists checks whether the file at the given path exists.
-// It returns true if the file exists, and false otherwise.
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 

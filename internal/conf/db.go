@@ -22,8 +22,6 @@ type DBConf struct {
 }
 
 // LoadDBConf loads the database configuration from environment variables.
-// Returns a DBConf struct populated with these values, or an error if any
-// configuration value is invalid or cannot be parsed.
 func LoadDBConf() (DBConf, error) {
 	var dbc DBConf
 

@@ -7,8 +7,7 @@ import (
 	"github.com/ad9311/ninete/internal/errs"
 )
 
-// Secrets holds sensitive configuration values required by the application,
-// such as cryptographic keys and tokens.
+// Secrets holds sensitive configuration values required by the application.
 type Secrets struct {
 	JWTSecret string
 }

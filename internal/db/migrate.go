@@ -58,8 +58,6 @@ func PrintStatus() error {
 }
 
 // setUpMigrator initializes and returns a database connection for running migrations.
-// It loads the application configuration, opens a PostgreSQL database connection using the pgx driver,
-// sets up the embedded migration files for Goose, and configures Goose to use the PostgreSQL dialect.
 func setUpMigrator() (*Pool, error) {
 	var conn *Pool
 
