@@ -39,4 +39,3 @@ linters:
     lll:
       line-length: 120
       tab-width: 2
-

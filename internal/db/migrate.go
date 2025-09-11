@@ -1,9 +1,7 @@
 package db
 
 import (
-	"database/sql"
 	"embed"
-	"log"
 
 	"github.com/ad9311/ninete/internal/conf"
 	"github.com/pressly/goose/v3"
@@ -16,13 +14,13 @@ var embedMigrations embed.FS
 
 // RunMigrationsUp applies all available database migrations.
 func RunMigrationsUp() error {
-	sqlDB, err := setUpMigrator()
+	conn, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer closeDB(sqlDB)
+	defer conn.Close()
 
-	if err := goose.Up(sqlDB, migrationsPath); err != nil {
+	if err := goose.Up(conn.DB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -31,13 +29,13 @@ func RunMigrationsUp() error {
 
 // RunMigrationsDown rolls back the most recent migration.
 func RunMigrationsDown() error {
-	sqlDB, err := setUpMigrator()
+	conn, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer closeDB(sqlDB)
+	defer conn.Close()
 
-	if err := goose.Down(sqlDB, migrationsPath); err != nil {
+	if err := goose.Down(conn.DB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -46,13 +44,13 @@ func RunMigrationsDown() error {
 
 // PrintStatus prints the current status of all database migrations.
 func PrintStatus() error {
-	sqlDB, err := setUpMigrator()
+	conn, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer closeDB(sqlDB)
+	defer conn.Close()
 
-	if err := goose.Status(sqlDB, migrationsPath); err != nil {
+	if err := goose.Status(conn.DB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -62,33 +60,24 @@ func PrintStatus() error {
 // setUpMigrator initializes and returns a database connection for running migrations.
 // It loads the application configuration, opens a PostgreSQL database connection using the pgx driver,
 // sets up the embedded migration files for Goose, and configures Goose to use the PostgreSQL dialect.
-func setUpMigrator() (*sql.DB, error) {
-	var sqlDB *sql.DB
+func setUpMigrator() (*Pool, error) {
+	var conn *Pool
 
 	ac, err := conf.Load()
 	if err != nil {
-		return sqlDB, err
+		return conn, err
 	}
 
-	sqlDB, err = Open(ac.DBConf)
+	conn, err = Open(ac.DBConf)
 	if err != nil {
-		return sqlDB, err
+		return conn, err
 	}
 
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return sqlDB, err
+		return conn, err
 	}
 
-	return sqlDB, nil
-}
-
-// closeDB attempts to close the provided sql.DB connection.
-// If an error occurs during the close operation, it logs the error.
-// This function helps ensure that database resources are properly released.
-func closeDB(sqlDB *sql.DB) {
-	if err := sqlDB.Close(); err != nil {
-		log.Println(err)
-	}
+	return conn, nil
 }

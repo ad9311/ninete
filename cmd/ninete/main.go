@@ -2,22 +2,25 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/ad9311/ninete/internal/conf"
 	"github.com/ad9311/ninete/internal/db"
 )
 
 func main() {
-	ac, _ := conf.Load()
-	sqlDB, err := db.Open(ac.DBConf)
+	ac, err := conf.Load()
 	if err != nil {
-		fmt.Printf("%v", err)
+		log.Println(err)
 	}
 
-	fmt.Println(sqlDB.Ping())
+	conn, err := db.Open(ac.DBConf)
+	if err != nil {
+		log.Println(err)
+	}
+	defer conn.Close()
 
-	fmt.Println(sqlDB.Stats().MaxOpenConnections)
-
-	fmt.Println(sqlDB.Close())
+	if err := conn.DB.Ping(); err != nil {
+		log.Println(err)
+	}
 }
