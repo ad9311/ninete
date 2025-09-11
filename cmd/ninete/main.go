@@ -12,15 +12,15 @@ import (
 func main() {
 	l, err := csl.New(os.Stdout, os.Stderr)
 	if err != nil {
-		l.Error("%v", err)
+		os.Exit(1)
 	}
 
-	ac, err := conf.Load()
+	env, err := conf.Load()
 	if err != nil {
 		l.Error("%v", err)
 	}
 
-	conn, err := db.Open(ac.DBConf)
+	conn, err := db.Open(env)
 	if err != nil {
 		l.Error("%v", err)
 	}

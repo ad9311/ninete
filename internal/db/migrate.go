@@ -62,12 +62,12 @@ func PrintStatus() error {
 func setUpMigrator() (*Pool, error) {
 	var conn *Pool
 
-	ac, err := conf.Load()
+	env, err := conf.Load()
 	if err != nil {
 		return conn, err
 	}
 
-	conn, err = Open(ac.DBConf)
+	conn, err = Open(env)
 	if err != nil {
 		return conn, err
 	}

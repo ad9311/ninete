@@ -17,48 +17,15 @@ const (
 	ENVTest        = "test"
 )
 
-// AppConf holds the main application configuration, including environment settings,
-// database configuration, server configuration, and application secrets.
-type AppConf struct {
-	ENV        string
-	DBConf     DBConf
-	ServerConf ServerConf
-	Secrets    Secrets
-}
-
 // Load initializes and returns the application configuration. It returns an AppConf struct
 // populated with these values, or an error if any of the configuration loading steps fail.
-func Load() (AppConf, error) {
-	var ac AppConf
-
+func Load() (string, error) {
 	env, err := loadENV()
 	if err != nil {
-		return ac, err
+		return env, err
 	}
 
-	dbc, err := LoadDBConf()
-	if err != nil {
-		return ac, err
-	}
-
-	sc, err := LoadServerConf()
-	if err != nil {
-		return ac, err
-	}
-
-	scrt, err := LoadSecrets()
-	if err != nil {
-		return ac, err
-	}
-
-	ac = AppConf{
-		ENV:        env,
-		DBConf:     dbc,
-		ServerConf: sc,
-		Secrets:    scrt,
-	}
-
-	return ac, nil
+	return env, nil
 }
 
 // loadENV loads the application environment from the "ENV" environment variable.

@@ -30,13 +30,11 @@ type Logger struct {
 // New creates and returns a new Logger instance with the specified output and error output writers.
 // Both out and errOut must not be nil.
 func New(out, errOut io.Writer) (*Logger, error) {
-	var l *Logger
-
 	if out == nil || errOut == nil {
-		return l, fmt.Errorf("%w for writers", errs.ErrInterfaceNotSet)
+		return nil, fmt.Errorf("%w for writers", errs.ErrInterfaceNotSet)
 	}
 
-	l = &Logger{
+	l := &Logger{
 		out:     out,
 		errOut:  errOut,
 		QueryOn: true,
