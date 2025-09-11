@@ -5,10 +5,6 @@ ENV_FILES := .env
 export
 
 # ========= Variables =========
-MAIN_PATH         := cmd/ninete/main.go
-BUILD_PATH        := build
-BUILD_APP_NAME    := ninte
-
 GO_BUILDENV       := CGO_ENABLED=1 GOOS=linux GOARCH=amd64
 
 SHELL := /bin/bash
@@ -17,19 +13,23 @@ SHELL := /bin/bash
 .PHONY: help dev build build-final deps lint lint-fix
 
 # ========= App / Dev =========
-dev: build ## Run the app in development mode
-	@echo "Starting application..."
-	ENV=development ./$(BUILD_PATH)/$(BUILD_APP_NAME) server
-
 build: ## Build the application binary
 	@echo "Building binary..."
-	@mkdir -p $(BUILD_PATH)
-	$(GO_BUILDENV) go build -o $(BUILD_PATH)/$(BUILD_APP_NAME) $(MAIN_PATH)
+	@mkdir -p ./build
+	$(GO_BUILDENV) go build -o ./build/dev ./cmd/ninete/main.go
 
-build-final: ## Build the application binary optimized for production
-	@echo "Building optimized binary..."
-	@mkdir -p $(BUILD_PATH)
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -trimpath -tags timetzdata -ldflags="-s -w" -o $(BUILD_PATH)/$(PRODUCTION_NAME) $(MAIN_PATH)
+dev: build ## Run the app in development mode
+	@echo "Starting application..."
+	ENV=development ./build/dev
+
+build-migrate: ## Build the migrate binary
+	@echo "Building migrate binary..."
+	@mkdir -p ./build
+	$(GO_BUILDENV) go build -o ./build/dev_migrate ./cmd/migrate/main.go
+
+migrate: build-migrate ## Run all migrations up
+	@echo "Running migrations..."
+	ENV=development ./build/migrate up
 
 deps: ## Install and tidy dependencies
 	@echo "Installing dependencies..."
