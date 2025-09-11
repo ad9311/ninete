@@ -29,7 +29,14 @@ build-migrate: ## Build the migrate binary
 
 migrate: build-migrate ## Run all migrations up
 	@echo "Running migrations..."
-	ENV=development ./build/migrate up
+	ENV=development ./build/dev_migrate up
+
+migrate-down: build-migrate ## Run all migrations up
+	@echo "Running one migration down..."
+	ENV=development ./build/dev_migrate down
+
+migrate-status: build-migrate ## Run all migrations up
+	ENV=development ./build/dev_migrate status
 
 deps: ## Install and tidy dependencies
 	@echo "Installing dependencies..."
