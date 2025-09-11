@@ -12,4 +12,6 @@ var (
 
 	ErrCommandExists  = errors.New("command already exists")
 	ErrUnknownCommand = errors.New("unknown command")
+
+	ErrInterfaceNotSet = errors.New("interface not set")
 )
