@@ -4,7 +4,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/ad9311/ninete/internal/conf"
+	"github.com/ad9311/ninete/internal/app"
 	"github.com/pressly/goose/v3"
 )
 
@@ -62,7 +62,7 @@ func PrintStatus() error {
 func setUpMigrator() (*Pool, error) {
 	var conn *Pool
 
-	env, err := conf.Load()
+	env, err := app.Load()
 	if err != nil {
 		return conn, err
 	}

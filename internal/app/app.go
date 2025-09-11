@@ -1,5 +1,5 @@
-// Package conf provides functionality for loading and managing application configuration.
-package conf
+// Package app provides functionality for loading and validating the application environment,
+package app
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ const (
 	ENVTest        = "test"
 )
 
-// Load initializes and returns the application configuration. It returns an AppConf struct
-// populated with these values, or an error if any of the configuration loading steps fail.
+// Load loads the application environment by calling loadENV.
+// It returns the loaded environment as a string and any error encountered during loading.
 func Load() (string, error) {
 	env, err := loadENV()
 	if err != nil {
@@ -34,7 +34,7 @@ func loadENV() (string, error) {
 	envName := "ENV"
 	env, ok := os.LookupEnv(envName)
 	if !ok {
-		return env, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
+		return "", fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
 	}
 
 	if err := isValidENV(env); err != nil {
