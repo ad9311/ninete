@@ -2,9 +2,11 @@
 package conf
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/ad9311/ninete/internal/errs"
 	"github.com/joho/godotenv"
 )
 
@@ -60,12 +62,13 @@ func Load() (AppConf, error) {
 	return ac, nil
 }
 
-// loadENV loads the application environment from the "NINETE_ENV" environment variable.
+// loadENV loads the application environment from the "ENV" environment variable.
 // If the variable is not set, it returns the empty string and no error.
 func loadENV() (string, error) {
-	env, ok := os.LookupEnv("NINETE_ENV")
+	envName := "ENV"
+	env, ok := os.LookupEnv(envName)
 	if !ok {
-		return env, nil // ERROR
+		return env, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
 	}
 
 	if err := isValidENV(env); err != nil {
@@ -87,7 +90,7 @@ func loadENV() (string, error) {
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
-		return nil // Error
+		return fmt.Errorf("%w: %s", errs.ErrInvalidEnv, env)
 	}
 
 	return nil

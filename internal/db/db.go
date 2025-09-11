@@ -15,7 +15,7 @@ func Open(dbc conf.DBConf) (*sql.DB, error) {
 
 	sqlDB, err := sql.Open("sqlite3", "file:"+dbc.URL)
 	if err != nil {
-		return sqlDB, err // ERROR?
+		return sqlDB, err
 	}
 
 	sqlDB.SetMaxOpenConns(dbc.MaxOpenConns)

@@ -18,4 +18,6 @@ func main() {
 	fmt.Println(sqlDB.Ping())
 
 	fmt.Println(sqlDB.Stats().MaxOpenConnections)
+
+	fmt.Println(sqlDB.Close())
 }

@@ -1,8 +1,11 @@
 package conf
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/ad9311/ninete/internal/errs"
 )
 
 // Database connection pool configuration constants.
@@ -24,19 +27,20 @@ type DBConf struct {
 func LoadDBConf() (DBConf, error) {
 	var dbc DBConf
 
-	url := os.Getenv("DATABASE_URL")
+	envName := "DATABASE_URL"
+	url := os.Getenv(envName)
 	if url == "" {
-		return dbc, nil // ERROR
+		return dbc, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
 	}
 
 	maxOpenConns, err := setInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
 	if err != nil {
-		return dbc, err // ERROR
+		return dbc, err
 	}
 
 	maxIdleConns, err := setInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
 	if err != nil {
-		return dbc, err // ERROR
+		return dbc, err
 	}
 
 	dbc = DBConf{
@@ -57,7 +61,7 @@ func setInt(envName string, def int) (int, error) {
 	}
 	v, err := strconv.ParseInt(maxConnsStr, 10, 64)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to parse %s: %w", maxConnsStr, err)
 	}
 
 	return int(v), nil
