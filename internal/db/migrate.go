@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"embed"
 	"fmt"
 
@@ -15,13 +16,12 @@ var embedMigrations embed.FS
 
 // RunMigrationsUp applies all available database migrations.
 func RunMigrationsUp() error {
-	conn, err := setUpMigrator()
+	sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
-	if err := goose.Up(conn.DB, migrationsPath); err != nil {
+	if err := goose.Up(sqlDB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -30,13 +30,12 @@ func RunMigrationsUp() error {
 
 // RunMigrationsDown rolls back the most recent migration.
 func RunMigrationsDown() error {
-	conn, err := setUpMigrator()
+	sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
-	if err := goose.Down(conn.DB, migrationsPath); err != nil {
+	if err := goose.Down(sqlDB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -45,13 +44,12 @@ func RunMigrationsDown() error {
 
 // PrintStatus prints the current status of all database migrations.
 func PrintStatus() error {
-	conn, err := setUpMigrator()
+	sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
-	if err := goose.Status(conn.DB, migrationsPath); err != nil {
+	if err := goose.Status(sqlDB, migrationsPath); err != nil {
 		return err
 	}
 
@@ -59,24 +57,24 @@ func PrintStatus() error {
 }
 
 // setUpMigrator initializes and returns a database connection for running migrations.
-func setUpMigrator() (*Pool, error) {
-	var conn *Pool
+func setUpMigrator() (*sql.DB, error) {
+	var sqlDB *sql.DB
 
 	env, err := app.Load()
 	if err != nil {
-		return conn, err
+		return sqlDB, err
 	}
 
-	conn, err = Open(env)
+	sqlDB, err = Open(env)
 	if err != nil {
-		return conn, err
+		return sqlDB, err
 	}
 
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return conn, fmt.Errorf("failed to set dialect: %w", err)
+		return sqlDB, fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	return conn, nil
+	return sqlDB, nil
 }

@@ -4,7 +4,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
@@ -18,12 +17,6 @@ const (
 	defaultMaxIdleConns = 1
 )
 
-// Pool wraps a standard sql.DB connection pool, providing a convenient way to manage and share
-// database connections throughout the application.
-type Pool struct {
-	DB *sql.DB
-}
-
 // dbConf holds the configuration parameters for the database connection.
 type dbConf struct {
 	URL          string
@@ -33,39 +26,27 @@ type dbConf struct {
 
 // Open initializes and returns a new database connection using the provided configuration.
 // It connects to a SQLite3 database specified by the URL in the conf.dbConf struct.
-func Open(_ string) (*Pool, error) {
-	var conn *Pool
+func Open(_ string) (*sql.DB, error) {
+	var sqlDB *sql.DB
 
 	dc, err := loadConf()
 	if err != nil {
-		return conn, err
+		return sqlDB, err
 	}
 
-	sqlDB, err := sql.Open("sqlite3", "file:"+dc.URL)
+	sqlDB, err = sql.Open("sqlite3", "file:"+dc.URL)
 	if err != nil {
-		return conn, fmt.Errorf("failed to open database: %w", err)
+		return sqlDB, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if err := sqlDB.Ping(); err != nil {
-		return conn, fmt.Errorf("failed to ping database: %w", err)
+		return sqlDB, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	sqlDB.SetMaxOpenConns(dc.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(dc.MaxIdleConns)
 
-	conn = &Pool{
-		DB: sqlDB,
-	}
-
-	return conn, nil
-}
-
-// Close gracefully closes the database connection pool associated with the Pool instance.
-// If an error occurs during the closing process, it is logged using the standard logger.
-func (p *Pool) Close() {
-	if err := p.DB.Close(); err != nil {
-		log.Println(err)
-	}
+	return sqlDB, nil
 }
 
 // loadDBConf loads the database configuration from environment variables.
