@@ -3,6 +3,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/ad9311/ninete/internal/conf"
@@ -22,11 +23,11 @@ func Open(dbc conf.DBConf) (*Pool, error) {
 
 	sqlDB, err := sql.Open("sqlite3", "file:"+dbc.URL)
 	if err != nil {
-		return conn, err
+		return conn, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	if err := sqlDB.Ping(); err != nil {
-		return conn, err
+		return conn, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	sqlDB.SetMaxOpenConns(dbc.MaxOpenConns)

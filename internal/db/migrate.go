@@ -2,6 +2,7 @@ package db
 
 import (
 	"embed"
+	"fmt"
 
 	"github.com/ad9311/ninete/internal/conf"
 	"github.com/pressly/goose/v3"
@@ -74,7 +75,7 @@ func setUpMigrator() (*Pool, error) {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return conn, err
+		return conn, fmt.Errorf("failed to set dialect: %w", err)
 	}
 
 	return conn, nil

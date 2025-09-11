@@ -77,7 +77,7 @@ func loadENV() (string, error) {
 	if env != ENVProduction {
 		path, ok := findRelativeENVFile()
 		if err := godotenv.Load(path); !ok || err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to load .env, file %w", err)
 		}
 	}
 
