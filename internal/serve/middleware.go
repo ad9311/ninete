@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ad9311/ninete/internal/errs"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -43,8 +42,8 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 				s.respondError(
 					w,
 					http.StatusUnsupportedMediaType,
-					"Error",
-					errs.ErrCommandExists, // TODO
+					CodeGeneric,
+					ErrContentNotSupported,
 				)
 
 				return
@@ -74,7 +73,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Access-Control-Request-Headers")
 
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, "Forbidden", errs.ErrEnvNoTSet)
+				s.respondError(w, http.StatusForbidden, CodeForbidden, ErrOriginNotAllowed)
 
 				return
 			}
@@ -97,7 +96,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, "Forbidden", errs.ErrCommandExists)
+				s.respondError(w, http.StatusForbidden, CodeForbidden, ErrOriginNotAllowed)
 
 				return
 			}
@@ -113,12 +112,12 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 // NotFoundHandler returns a JSON error response for unknown routes.
 func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
 	// writeError(w, http.StatusNotFound, routeNotFound, errs.ErrNotFound)
-	s.respondError(w, http.StatusNotFound, "Path Not Found", errs.ErrCommandExists)
+	s.respondError(w, http.StatusNotFound, CodeGeneric, ErrNotPathFound)
 }
 
 // MethodNotAllowedHandler returns a JSON error response when the HTTP method is not allowed.
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusMethodNotAllowed, "Not Allowed", errs.ErrCommandExists)
+	s.respondError(w, http.StatusMethodNotAllowed, CodeForbidden, ErrMethodNotAllowed)
 }
 
 func (s *Server) setUpMiddlewares() {
