@@ -26,17 +26,17 @@ func (s *Server) respond(w http.ResponseWriter, status int, res any) {
 // respondError sends a standardized JSON error response to the client with the specified HTTP status code,
 // error code, and error message.
 // It is used for error responses.
-// func (s *Server) respondError(w http.ResponseWriter, status int, code string, err error) {
-// 	body := map[string]any{
-// 		"error": map[string]string{
-// 			"code":    code,
-// 			"message": err.Error(),
-// 		},
-// 		"data": nil,
-// 	}
+func (s *Server) respondError(w http.ResponseWriter, status int, code string, err error) {
+	body := map[string]any{
+		"error": map[string]string{
+			"code":    code,
+			"message": err.Error(),
+		},
+		"data": nil,
+	}
 
-// 	s.setHeaderAndWrite(w, status, body)
-// }
+	s.setHeaderAndWrite(w, status, body)
+}
 
 // setHeaderAndWrite encodes the provided body as JSON, sets the HTTP status code,
 // and writes the response to the provided http.ResponseWriter. If JSON encoding fails,

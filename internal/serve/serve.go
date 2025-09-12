@@ -45,6 +45,7 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 		allowedOrigins: allowedOrigins,
 	}
 
+	s.setUpMiddlewares()
 	s.setUpRoutes()
 
 	return s, nil
