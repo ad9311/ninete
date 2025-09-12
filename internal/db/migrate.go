@@ -25,6 +25,10 @@ func RunMigrationsUp() error {
 		return err
 	}
 
+	if err := sqlDB.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -39,6 +43,10 @@ func RunMigrationsDown() error {
 		return err
 	}
 
+	if err := sqlDB.Close(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -50,6 +58,10 @@ func PrintStatus() error {
 	}
 
 	if err := goose.Status(sqlDB, migrationsPath); err != nil {
+		return err
+	}
+
+	if err := sqlDB.Close(); err != nil {
 		return err
 	}
 

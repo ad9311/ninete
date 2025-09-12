@@ -12,12 +12,14 @@ import (
 
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/srv"
+	"github.com/go-chi/chi/v5"
 )
 
 // Server represents the main HTTP server for the application.
 type Server struct {
 	app            *prog.App
 	store          *srv.Store
+	router         chi.Router
 	port           string
 	allowedOrigins []string
 }
@@ -34,19 +36,21 @@ func New(app *prog.App, store *srv.Store) (*Server, error) {
 		port = "8080"
 	}
 
-	return &Server{
+	s := &Server{
 		app:            app,
 		store:          store,
 		port:           port,
 		allowedOrigins: allowedOrigins,
-	}, nil
+	}
+
+	return s, nil
 }
 
 // Start launches the HTTP server and handles graceful shutdown on interrupt signals.
 func (s *Server) Start() error {
 	server := &http.Server{
-		Addr: ":" + s.port,
-		// Handler:           s.Router,
+		Addr:              ":" + s.port,
+		Handler:           s.router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

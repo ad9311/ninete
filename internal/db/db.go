@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/ad9311/ninete/internal/errs"
+	"github.com/ad9311/ninete/internal/prog"
 	_ "github.com/mattn/go-sqlite3" // Database driver
 )
 
@@ -25,12 +25,12 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("%w: DATABASE_URL", errs.ErrEnvNoTSet)
 	}
 
-	maxOpenConns, err := setInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
+	maxOpenConns, err := prog.SetInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
 	if err != nil {
 		return nil, err
 	}
 
-	maxIdleConns, err := setInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
+	maxIdleConns, err := prog.SetInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
 	if err != nil {
 		return nil, err
 	}
@@ -48,19 +48,4 @@ func Open() (*sql.DB, error) {
 	sqlDB.SetMaxIdleConns(maxIdleConns)
 
 	return sqlDB, nil
-}
-
-// setInt retrieves an integer value from the environment variable specified by envName.
-// If the environment variable is not set, it returns the provided default value def.
-func setInt(envName string, def int) (int, error) {
-	maxConnsStr := os.Getenv(envName)
-	if maxConnsStr == "" {
-		return def, nil
-	}
-	v, err := strconv.ParseInt(maxConnsStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse %s: %w", maxConnsStr, err)
-	}
-
-	return int(v), nil
 }
