@@ -18,21 +18,21 @@ const (
 	ENVTest        = "test"
 )
 
-// ENV holds the current application environment.
+// env holds the current application environment.
 // It is initialized to the development environment by default.
-var ENV = ENVDevelopment
+var env = ENVDevelopment
 
 // Load initializes the application environment by validating and loading environment variables.
 func Load() error {
-	if ENV == "" {
-		return fmt.Errorf("%w: ENV", errs.ErrEnvNoTSet)
+	if env == "" {
+		return fmt.Errorf("%w: application environment", errs.ErrEnvNoTSet)
 	}
 
-	if err := isValidENV(ENV); err != nil {
+	if err := isValidENV(env); err != nil {
 		return err
 	}
 
-	if ENV != ENVProduction {
+	if env != ENVProduction {
 		path, ok := findRelativeENVFile()
 		if err := godotenv.Load(path); !ok || err != nil {
 			return fmt.Errorf("failed to load .env, file %w", err)
@@ -40,6 +40,11 @@ func Load() error {
 	}
 
 	return nil
+}
+
+// ENV returns the current environment as a string.
+func ENV() string {
+	return env
 }
 
 // LoadList retrieves the value of the environment variable specified by envName,

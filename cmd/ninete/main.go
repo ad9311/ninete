@@ -2,10 +2,10 @@
 package main
 
 import (
+	"database/sql"
 	"os"
 
 	"github.com/ad9311/ninete/internal/app"
-	"github.com/ad9311/ninete/internal/csl"
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
@@ -15,9 +15,11 @@ import (
 func main() {
 	var exitCode int
 
+	app.Log("Booting up application...")
+
 	exitCode, err := load()
 	if err != nil {
-		csl.NewError("falied to boot application, %v", err)
+		app.LogError("%v", err)
 	}
 
 	os.Exit(exitCode)
@@ -32,7 +34,7 @@ func load() (int, error) {
 	if err != nil {
 		return 1, err
 	}
-	defer sqlDB.Close()
+	defer closeDB(sqlDB)
 
 	queries := repo.New(sqlDB)
 
@@ -52,4 +54,10 @@ func load() (int, error) {
 	}
 
 	return 0, nil
+}
+
+func closeDB(sqlDB *sql.DB) {
+	if err := sqlDB.Close(); err != nil {
+		app.Log("failed to close database: %v", err)
+	}
 }

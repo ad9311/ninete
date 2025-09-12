@@ -56,24 +56,24 @@ func (s *Server) Start() error {
 	defer stop()
 
 	go func() {
-		// s.config.Logger.Log("Server starting on port %s\n", s.config.Port)
+		app.Log("Server starting on port %s\n", s.port)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			// s.config.Logger.Error("ListenAndServe error: %v", err)
+			app.LogError("ListenAndServe error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	// s.config.Logger.Log("Shutting down gracefully...")
+	app.Log("Shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		// s.config.Logger.Error("Graceful shutdown failed: %v", err)
+		app.LogError("Graceful shutdown failed: %v", err)
 
 		return err
 	}
-	// s.config.Logger.Log("Server stopped cleanly.")
+	app.Log("Server stopped cleanly.")
 
 	return nil
 }
