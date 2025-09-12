@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-
-	"github.com/ad9311/ninete/internal/errs"
 )
 
 // Command represents a CLI command's metadata and execution logic.
@@ -58,7 +56,7 @@ func NewRegistry() *Registry {
 // Register adds a new command to the registry.
 func (r *Registry) Register(cmd *Command) error {
 	if command, exists := r.cmds[cmd.Name]; exists {
-		return fmt.Errorf("%w: %s", errs.ErrCommandExists, command.Name)
+		return fmt.Errorf("%w: %s", ErrCommandExists, command.Name)
 	}
 	r.cmds[cmd.Name] = cmd
 
@@ -79,7 +77,7 @@ func (r *Registry) Execute(args []string) (int, error) {
 	if !ok {
 		r.printUsage()
 
-		return 1, fmt.Errorf("%w: %s", errs.ErrUnknownCommand, name)
+		return 1, fmt.Errorf("%w: %s", ErrUnknownCommand, name)
 	}
 
 	if err := cmd.Run(args[1:]); err != nil {

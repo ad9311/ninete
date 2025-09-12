@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ad9311/ninete/internal/errs"
 	"github.com/joho/godotenv"
 )
 
@@ -29,7 +28,7 @@ type App struct {
 func Load() (*App, error) {
 	env, ok := os.LookupEnv("ENV")
 	if !ok {
-		return nil, fmt.Errorf("%w: application environment", errs.ErrEnvNoTSet)
+		return nil, fmt.Errorf("%w: application environment", ErrEnvNoTSet)
 	}
 
 	if err := isValidENV(env); err != nil {
@@ -53,7 +52,7 @@ func Load() (*App, error) {
 func LoadList(envName string) ([]string, error) {
 	str := os.Getenv(envName)
 	if str == "" {
-		return []string{}, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
+		return []string{}, fmt.Errorf("%w: %s", ErrEnvNoTSet, envName)
 	}
 
 	return strings.Split(str, ","), nil
@@ -78,7 +77,7 @@ func SetInt(envName string, def int) (int, error) {
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
-		return fmt.Errorf("%w: %s", errs.ErrInvalidEnv, env)
+		return fmt.Errorf("%w: %s", ErrInvalidEnv, env)
 	}
 
 	return nil

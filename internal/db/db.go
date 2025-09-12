@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ad9311/ninete/internal/errs"
 	"github.com/ad9311/ninete/internal/prog"
 	_ "github.com/mattn/go-sqlite3" // Database driver
 )
@@ -22,7 +21,7 @@ const (
 func Open() (*sql.DB, error) {
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
-		return nil, fmt.Errorf("%w: DATABASE_URL", errs.ErrEnvNoTSet)
+		return nil, fmt.Errorf("%w: DATABASE_URL", prog.ErrEnvNoTSet)
 	}
 
 	maxOpenConns, err := prog.SetInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
