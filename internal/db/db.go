@@ -17,64 +17,37 @@ const (
 	defaultMaxIdleConns = 1
 )
 
-// conf holds the configuration parameters for the database connection.
-type conf struct {
-	URL          string
-	MaxOpenConns int
-	MaxIdleConns int
-}
-
 // Open initializes and returns a new database connection using the provided configuration.
-// It connects to a SQLite3 database specified by the URL in the conf.conf struct.
+// It connects to a SQLite3 database specified by the url in the conf.conf struct.
 func Open() (*sql.DB, error) {
-	var sqlDB *sql.DB
-
-	dc, err := loadConf()
-	if err != nil {
-		return sqlDB, err
-	}
-
-	sqlDB, err = sql.Open("sqlite3", "file:"+dc.URL)
-	if err != nil {
-		return sqlDB, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	if err := sqlDB.Ping(); err != nil {
-		return sqlDB, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	sqlDB.SetMaxOpenConns(dc.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(dc.MaxIdleConns)
-
-	return sqlDB, nil
-}
-
-// loadConf loads the database configuration from environment variables.
-func loadConf() (conf, error) {
-	var c conf
-
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
-		return c, fmt.Errorf("%w: DATABASE_URL", errs.ErrEnvNoTSet)
+		return nil, fmt.Errorf("%w: DATABASE_URL", errs.ErrEnvNoTSet)
 	}
 
 	maxOpenConns, err := setInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
 	maxIdleConns, err := setInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	c = conf{
-		URL:          url,
-		MaxOpenConns: maxOpenConns,
-		MaxIdleConns: maxIdleConns,
+	sqlDB, err := sql.Open("sqlite3", "file:"+url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	return c, nil
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	sqlDB.SetMaxOpenConns(maxOpenConns)
+	sqlDB.SetMaxIdleConns(maxIdleConns)
+
+	return sqlDB, nil
 }
 
 // setInt retrieves an integer value from the environment variable specified by envName.

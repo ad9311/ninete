@@ -1,76 +1,45 @@
-// Package srv is for service
+// Package srv provides core service logic and dependencies for the application.
 package srv
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/ad9311/ninete/internal/app"
 	"github.com/ad9311/ninete/internal/errs"
+	"github.com/ad9311/ninete/internal/repo"
 )
 
+// Store holds the core dependencies and configuration for the service layer.
 type Store struct {
-	conf conf
-}
-
-type conf struct {
+	queries     repo.Queries
 	jwtSecret   string
 	jwtIssuer   string
 	jwtAudience []string
 }
 
-func New(db *sql.DB) (*Store, error) {
-	var store *Store
-
-	c, err := loadConf()
-	if err != nil {
-		return store, err
-	}
-
-	store = &Store{
-		conf: c,
-	}
-
-	return store, nil
-}
-
-func loadConf() (conf, error) {
-	var c conf
-
+// New initializes a new Store with required dependencies and configuration loaded from environment variables.
+// It returns an error if any required environment variable is missing or invalid.
+func New(queries repo.Queries) (*Store, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		return c, fmt.Errorf("%w: JWT_SECRET", errs.ErrEnvNoTSet)
+		return nil, fmt.Errorf("%w: JWT_SECRET", errs.ErrEnvNoTSet)
 	}
 
 	jwtIssuer := os.Getenv("JWT_ISSUER")
 	if jwtIssuer == "" {
-		return c, fmt.Errorf("%w: JWT_ISSUER", errs.ErrEnvNoTSet)
+		return nil, fmt.Errorf("%w: JWT_ISSUER", errs.ErrEnvNoTSet)
 	}
 
-	jwtAudience, err := loadList("JWT_AUDIENCE")
+	jwtAudience, err := app.LoadList("JWT_AUDIENCE")
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	c = conf{
+	return &Store{
+		queries:     queries,
 		jwtSecret:   jwtSecret,
 		jwtIssuer:   jwtIssuer,
 		jwtAudience: jwtAudience,
-	}
-
-	return c, nil
-}
-
-func loadList(envName string) ([]string, error) {
-	var list []string
-
-	str := os.Getenv(envName)
-	if str == "" {
-		return list, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
-	}
-
-	list = strings.Split(str, ",")
-
-	return list, nil
+	}, nil
 }

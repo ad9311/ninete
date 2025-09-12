@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ad9311/ninete/internal/errs"
 	"github.com/joho/godotenv"
@@ -17,24 +18,40 @@ const (
 	ENVTest        = "test"
 )
 
+// Conf holds configuration settings for the application.
+type Conf struct {
+	ENV string
+}
+
 // Load loads the application environment by calling loadENV.
 // It returns the loaded environment as a string and any error encountered during loading.
-func Load() (string, error) {
+func Load() (*Conf, error) {
 	env, err := loadENV()
 	if err != nil {
-		return env, err
+		return nil, err
 	}
 
-	return env, nil
+	return &Conf{
+		ENV: env,
+	}, nil
+}
+
+// LoadList retrieves the value of the environment variable specified by envName,
+func LoadList(envName string) ([]string, error) {
+	str := os.Getenv(envName)
+	if str == "" {
+		return []string{}, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
+	}
+
+	return strings.Split(str, ","), nil
 }
 
 // loadENV loads the application environment from the "ENV" environment variable.
 // If the variable is not set, it returns the empty string and no error.
 func loadENV() (string, error) {
-	envName := "ENV"
-	env, ok := os.LookupEnv(envName)
+	env, ok := os.LookupEnv("ENV")
 	if !ok {
-		return "", fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
+		return "", fmt.Errorf("%w: ENV", errs.ErrEnvNoTSet)
 	}
 
 	if err := isValidENV(env); err != nil {
@@ -77,6 +94,7 @@ func findRelativeENVFile() (string, bool) {
 	if err != nil {
 		return "", false
 	}
+
 	for {
 		p := filepath.Join(dir, ".env")
 		if fileExists(p) {
