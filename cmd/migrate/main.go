@@ -2,9 +2,9 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"github.com/ad9311/ninete/internal/app"
 	"github.com/ad9311/ninete/internal/cmd"
 	"github.com/ad9311/ninete/internal/db"
 )
@@ -34,7 +34,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		log.Printf("%v\n", err)
+		app.LogError("%v", err)
 	}
 
 	os.Exit(code)

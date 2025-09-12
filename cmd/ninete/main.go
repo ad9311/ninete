@@ -17,7 +17,7 @@ func main() {
 
 	app.Log("Booting up application...")
 
-	exitCode, err := load()
+	exitCode, err := start()
 	if err != nil {
 		app.LogError("%v", err)
 	}
@@ -25,7 +25,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func load() (int, error) {
+func start() (int, error) {
 	if err := app.Load(); err != nil {
 		return 1, err
 	}

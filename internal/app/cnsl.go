@@ -22,6 +22,7 @@ var (
 	outErr io.Writer = os.Stderr
 )
 
+// Log formats and writes a log message to the output stream in a thread-safe manner.
 func Log(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -33,6 +34,7 @@ func Log(msg string, args ...any) {
 	}
 }
 
+// LogError logs an error message to the standard error output in a thread-safe manner.
 func LogError(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -44,7 +46,8 @@ func LogError(msg string, args ...any) {
 	}
 }
 
-func LogDebug(msg string, args ...any) {
+// Debug logs a formatted debug message to the output stream in a thread-safe manner.
+func Debug(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -55,6 +58,8 @@ func LogDebug(msg string, args ...any) {
 	}
 }
 
+// writeLine writes a formatted log message to the provided io.Writer.
+// Returns an error if writing to the writer fails.
 func writeLine(w io.Writer, kind, msg string) error {
 	var body string
 
@@ -75,6 +80,7 @@ func writeLine(w io.Writer, kind, msg string) error {
 	return err
 }
 
+// timestamp returns the current UTC time formatted as [DD/MM/YY-HH:MM].
 func timestamp() string {
 	return time.Now().UTC().Format("[02/01/06-15:04]")
 }
