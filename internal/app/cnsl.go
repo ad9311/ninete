@@ -15,6 +15,15 @@ const (
 	reset  = "\x1b[0m"
 )
 
+type semantic int
+
+const (
+	infoLevel semantic = iota
+	errorLevel
+	debugLevel
+)
+
+//nolint:gochecknoglobals
 var (
 	mutex sync.Mutex
 
@@ -22,14 +31,14 @@ var (
 	outErr io.Writer = os.Stderr
 )
 
+//nolint:gochecknoglobals
+
 // Log formats and writes a log message to the output stream in a thread-safe manner.
 func Log(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	msg = fmt.Sprintf(msg, args...)
-
-	if err := writeLine(out, "log", msg); err != nil {
+	if err := writeLine(out, infoLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }
@@ -39,9 +48,7 @@ func LogError(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	msg = fmt.Sprintf(msg, args...)
-
-	if err := writeLine(outErr, "error", msg); err != nil {
+	if err := writeLine(outErr, errorLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }
@@ -51,31 +58,27 @@ func Debug(msg string, args ...any) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	msg = fmt.Sprintf(msg, args...)
-
-	if err := writeLine(out, "debug", msg); err != nil {
+	if err := writeLine(out, debugLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }
 
 // writeLine writes a formatted log message to the provided io.Writer.
 // Returns an error if writing to the writer fails.
-func writeLine(w io.Writer, kind, msg string) error {
+func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 	var body string
 
-	switch kind {
-	case "log":
-		body = msg
-	case "error":
+	switch level {
+	case errorLevel:
 		body = red + msg + reset
-	case "debug":
+	case debugLevel:
 		body = yellow + msg + reset
 	default:
 		body = msg
 	}
 
 	line := timestamp() + " " + body + "\n"
-	_, err := io.WriteString(w, line)
+	_, err := fmt.Fprintf(w, line, args...)
 
 	return err
 }

@@ -20,7 +20,7 @@ const (
 
 // env holds the current application environment.
 // It is initialized to the development environment by default.
-var env = ENVDevelopment
+var env = ENVDevelopment //nolint:gochecknoglobals
 
 // Load initializes the application environment by validating and loading environment variables.
 func Load() error {
