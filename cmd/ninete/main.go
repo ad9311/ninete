@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
-	"github.com/ad9311/ninete/internal/srv"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func start() (int, error) {
 
 	queries := repo.New(sqlDB)
 
-	store, err := srv.New(app, queries)
+	store, err := logic.New(app, queries)
 	if err != nil {
 		return 1, err
 	}

@@ -10,22 +10,22 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
-	"github.com/ad9311/ninete/internal/srv"
 	"github.com/go-chi/chi/v5"
 )
 
 // Server represents the main HTTP server for the application.
 type Server struct {
 	app            *prog.App
-	store          *srv.Store
+	store          *logic.Store
 	router         chi.Router
 	port           string
 	allowedOrigins []string
 }
 
 // New creates and returns a new Server instance using the provided store.
-func New(app *prog.App, store *srv.Store) (*Server, error) {
+func New(app *prog.App, store *logic.Store) (*Server, error) {
 	allowedOrigins, err := prog.LoadList("ALLOWED_ORIGINS")
 	if err != nil {
 		return nil, err

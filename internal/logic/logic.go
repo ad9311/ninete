@@ -1,5 +1,5 @@
-// Package srv provides core service logic and dependencies for the application.
-package srv
+// Package logic provides core service logic and dependencies for the application.
+package logic
 
 import (
 	"fmt"
