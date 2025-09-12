@@ -58,14 +58,11 @@ func PrintStatus() error {
 
 // setUpMigrator initializes and returns a database connection for running migrations.
 func setUpMigrator() (*sql.DB, error) {
-	var sqlDB *sql.DB
-
-	_, err := app.Load()
-	if err != nil {
-		return sqlDB, err
+	if err := app.Load(); err != nil {
+		return nil, err
 	}
 
-	sqlDB, err = Open()
+	sqlDB, err := Open()
 	if err != nil {
 		return sqlDB, err
 	}

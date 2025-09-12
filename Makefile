@@ -6,8 +6,8 @@ export
 
 # ========= Variables =========
 GO_BUILDENV       := CGO_ENABLED=1 GOOS=linux GOARCH=amd64
-
-SHELL := /bin/bash
+INTERNAL_PATH     := github.com/ad9311/ninete/internal
+SHELL             := /bin/bash
 
 # ========= Phony =========
 .PHONY: help dev build build-final deps lint lint-fix

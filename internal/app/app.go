@@ -18,22 +18,28 @@ const (
 	ENVTest        = "test"
 )
 
-// Conf holds configuration settings for the application.
-type Conf struct {
-	ENV string
-}
+// ENV holds the current application environment.
+// It is initialized to the development environment by default.
+var ENV = ENVDevelopment
 
-// Load loads the application environment by calling loadENV.
-// It returns the loaded environment as a string and any error encountered during loading.
-func Load() (*Conf, error) {
-	env, err := loadENV()
-	if err != nil {
-		return nil, err
+// Load initializes the application environment by validating and loading environment variables.
+func Load() error {
+	if ENV == "" {
+		return fmt.Errorf("%w: ENV", errs.ErrEnvNoTSet)
 	}
 
-	return &Conf{
-		ENV: env,
-	}, nil
+	if err := isValidENV(ENV); err != nil {
+		return err
+	}
+
+	if ENV != ENVProduction {
+		path, ok := findRelativeENVFile()
+		if err := godotenv.Load(path); !ok || err != nil {
+			return fmt.Errorf("failed to load .env, file %w", err)
+		}
+	}
+
+	return nil
 }
 
 // LoadList retrieves the value of the environment variable specified by envName,
@@ -44,28 +50,6 @@ func LoadList(envName string) ([]string, error) {
 	}
 
 	return strings.Split(str, ","), nil
-}
-
-// loadENV loads the application environment from the "ENV" environment variable.
-// If the variable is not set, it returns the empty string and no error.
-func loadENV() (string, error) {
-	env, ok := os.LookupEnv("ENV")
-	if !ok {
-		return "", fmt.Errorf("%w: ENV", errs.ErrEnvNoTSet)
-	}
-
-	if err := isValidENV(env); err != nil {
-		return "", err
-	}
-
-	if env != ENVProduction {
-		path, ok := findRelativeENVFile()
-		if err := godotenv.Load(path); !ok || err != nil {
-			return "", fmt.Errorf("failed to load .env, file %w", err)
-		}
-	}
-
-	return env, nil
 }
 
 // isValidENV checks if the provided environment string is valid.

@@ -24,8 +24,7 @@ func main() {
 }
 
 func load() (int, error) {
-	_, err := app.Load()
-	if err != nil {
+	if err := app.Load(); err != nil {
 		return 1, err
 	}
 

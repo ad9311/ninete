@@ -1,3 +1,4 @@
+// Package serve provides the HTTP server setup and graceful shutdown logic for the application.
 package serve
 
 import (
@@ -13,12 +14,14 @@ import (
 	"github.com/ad9311/ninete/internal/srv"
 )
 
+// Server represents the main HTTP server for the application.
 type Server struct {
 	store          *srv.Store
 	port           string
 	allowedOrigins []string
 }
 
+// New creates and returns a new Server instance using the provided store.
 func New(store *srv.Store) (*Server, error) {
 	allowedOrigins, err := app.LoadList("ALLOWED_ORIGINS")
 	if err != nil {
@@ -37,6 +40,7 @@ func New(store *srv.Store) (*Server, error) {
 	}, nil
 }
 
+// Start launches the HTTP server and handles graceful shutdown on interrupt signals.
 func (s *Server) Start() error {
 	server := &http.Server{
 		Addr: ":" + s.port,
