@@ -17,9 +17,10 @@ import (
 
 // Server represents the main HTTP server for the application.
 type Server struct {
+	Router chi.Router
+
 	app            *prog.App
 	store          *logic.Store
-	router         chi.Router
 	port           string
 	allowedOrigins []string
 }
@@ -37,11 +38,14 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 	}
 
 	s := &Server{
+		Router:         chi.NewRouter(),
 		app:            app,
 		store:          store,
 		port:           port,
 		allowedOrigins: allowedOrigins,
 	}
+
+	s.setUpRoutes()
 
 	return s, nil
 }
@@ -50,7 +54,7 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 func (s *Server) Start() error {
 	server := &http.Server{
 		Addr:              ":" + s.port,
-		Handler:           s.router,
+		Handler:           s.Router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
