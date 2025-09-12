@@ -1,4 +1,4 @@
-package app
+package prog
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// Colors for the logger
 const (
 	yellow = "\x1b[33m"
 	red    = "\x1b[31m"
@@ -23,42 +22,48 @@ const (
 	debugLevel
 )
 
-//nolint:gochecknoglobals
-var (
-	mutex sync.Mutex
+// Logger provides a thread-safe logging mechanism with separate output streams
+// for standard and error messages.
+type Logger struct {
+	mutex  sync.Mutex
+	out    io.Writer
+	outErr io.Writer
+}
 
-	out    io.Writer = os.Stdout
-	outErr io.Writer = os.Stderr
-)
-
-//nolint:gochecknoglobals
+// NewLogger creates and returns a new Logger instance with standard output and error streams.
+func NewLogger() *Logger {
+	return &Logger{
+		out:    os.Stdout,
+		outErr: os.Stderr,
+	}
+}
 
 // Log formats and writes a log message to the output stream in a thread-safe manner.
-func Log(msg string, args ...any) {
-	mutex.Lock()
-	defer mutex.Unlock()
+func (l *Logger) Log(msg string, args ...any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
-	if err := writeLine(out, infoLevel, msg, args...); err != nil {
+	if err := writeLine(l.out, infoLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }
 
-// LogError logs an error message to the standard error output in a thread-safe manner.
-func LogError(msg string, args ...any) {
-	mutex.Lock()
-	defer mutex.Unlock()
+// Error logs an error message to the standard error output in a thread-safe manner.
+func (l *Logger) Error(msg string, args ...any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
-	if err := writeLine(outErr, errorLevel, msg, args...); err != nil {
+	if err := writeLine(l.outErr, errorLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }
 
 // Debug logs a formatted debug message to the output stream in a thread-safe manner.
-func Debug(msg string, args ...any) {
-	mutex.Lock()
-	defer mutex.Unlock()
+func (l *Logger) Debug(msg string, args ...any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
-	if err := writeLine(out, debugLevel, msg, args...); err != nil {
+	if err := writeLine(l.out, debugLevel, msg, args...); err != nil {
 		panic(err)
 	}
 }

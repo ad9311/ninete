@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ad9311/ninete/internal/app"
 	"github.com/ad9311/ninete/internal/errs"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 )
 
 // Store holds the core dependencies and configuration for the service layer.
 type Store struct {
+	app         *prog.App
 	queries     repo.Queries
 	jwtSecret   string
 	jwtIssuer   string
@@ -20,7 +21,7 @@ type Store struct {
 
 // New initializes a new Store with required dependencies and configuration loaded from environment variables.
 // It returns an error if any required environment variable is missing or invalid.
-func New(queries repo.Queries) (*Store, error) {
+func New(app *prog.App, queries repo.Queries) (*Store, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		return nil, fmt.Errorf("%w: JWT_SECRET", errs.ErrEnvNoTSet)
@@ -31,12 +32,13 @@ func New(queries repo.Queries) (*Store, error) {
 		return nil, fmt.Errorf("%w: JWT_ISSUER", errs.ErrEnvNoTSet)
 	}
 
-	jwtAudience, err := app.LoadList("JWT_AUDIENCE")
+	jwtAudience, err := prog.LoadList("JWT_AUDIENCE")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Store{
+		app:         app,
 		queries:     queries,
 		jwtSecret:   jwtSecret,
 		jwtIssuer:   jwtIssuer,

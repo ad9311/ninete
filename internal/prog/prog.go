@@ -1,5 +1,5 @@
-// Package app provides functionality for loading and validating the application environment,
-package app
+// Package prog provides functionality for loading and validating the application environment,
+package prog
 
 import (
 	"fmt"
@@ -18,33 +18,34 @@ const (
 	ENVTest        = "test"
 )
 
-// env holds the current application environment.
-// It is initialized to the development environment by default.
-var env = ENVDevelopment //nolint:gochecknoglobals
+// App represents the main application configuration and dependencies.
+type App struct {
+	ENV    string
+	Logger *Logger
+}
 
 // Load initializes the application environment by validating and loading environment variables.
-func Load() error {
-	if env == "" {
-		return fmt.Errorf("%w: application environment", errs.ErrEnvNoTSet)
+func Load() (*App, error) {
+	env, ok := os.LookupEnv("ENV")
+	if !ok {
+		return nil, fmt.Errorf("%w: application environment", errs.ErrEnvNoTSet)
 	}
 
 	if err := isValidENV(env); err != nil {
-		return err
+		return nil, err
 	}
 
 	if env != ENVProduction {
 		path, ok := findRelativeENVFile()
 		if err := godotenv.Load(path); !ok || err != nil {
-			return fmt.Errorf("failed to load .env, file %w", err)
+			return nil, fmt.Errorf("failed to load .env, file %w", err)
 		}
 	}
 
-	return nil
-}
-
-// ENV returns the current environment as a string.
-func ENV() string {
-	return env
+	return &App{
+		ENV:    env,
+		Logger: NewLogger(),
+	}, nil
 }
 
 // LoadList retrieves the value of the environment variable specified by envName,

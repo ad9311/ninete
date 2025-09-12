@@ -4,9 +4,9 @@ package main
 import (
 	"os"
 
-	"github.com/ad9311/ninete/internal/app"
 	"github.com/ad9311/ninete/internal/cmd"
 	"github.com/ad9311/ninete/internal/db"
+	"github.com/ad9311/ninete/internal/prog"
 )
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		app.LogError("%v", err)
+		prog.NewLogger().Error("%v", err)
 	}
 
 	os.Exit(code)

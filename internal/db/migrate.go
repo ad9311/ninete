@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/ad9311/ninete/internal/app"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/pressly/goose/v3"
 )
 
@@ -58,7 +58,8 @@ func PrintStatus() error {
 
 // setUpMigrator initializes and returns a database connection for running migrations.
 func setUpMigrator() (*sql.DB, error) {
-	if err := app.Load(); err != nil {
+	_, err := prog.Load()
+	if err != nil {
 		return nil, err
 	}
 

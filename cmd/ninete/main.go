@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"os"
 
-	"github.com/ad9311/ninete/internal/app"
 	"github.com/ad9311/ninete/internal/db"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
 	"github.com/ad9311/ninete/internal/srv"
@@ -15,20 +15,21 @@ import (
 func main() {
 	var exitCode int
 
-	app.Log("Booting up application...")
-
 	exitCode, err := start()
 	if err != nil {
-		app.LogError("%v", err)
+		prog.NewLogger().Error("%v", err)
 	}
 
 	os.Exit(exitCode)
 }
 
 func start() (int, error) {
-	if err := app.Load(); err != nil {
+	app, err := prog.Load()
+	if err != nil {
 		return 1, err
 	}
+
+	app.Logger.Log("Booting up application...")
 
 	sqlDB, err := db.Open()
 	if err != nil {
@@ -38,12 +39,12 @@ func start() (int, error) {
 
 	queries := repo.New(sqlDB)
 
-	store, err := srv.New(queries)
+	store, err := srv.New(app, queries)
 	if err != nil {
 		return 1, err
 	}
 
-	server, err := serve.New(store)
+	server, err := serve.New(app, store)
 	if err != nil {
 		return 1, err
 	}
@@ -58,6 +59,6 @@ func start() (int, error) {
 
 func closeDB(sqlDB *sql.DB) {
 	if err := sqlDB.Close(); err != nil {
-		app.Log("failed to close database: %v", err)
+		prog.NewLogger().Log("failed to close database: %v", err)
 	}
 }

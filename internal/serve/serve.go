@@ -10,20 +10,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ad9311/ninete/internal/app"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/srv"
 )
 
 // Server represents the main HTTP server for the application.
 type Server struct {
+	app            *prog.App
 	store          *srv.Store
 	port           string
 	allowedOrigins []string
 }
 
 // New creates and returns a new Server instance using the provided store.
-func New(store *srv.Store) (*Server, error) {
-	allowedOrigins, err := app.LoadList("ALLOWED_ORIGINS")
+func New(app *prog.App, store *srv.Store) (*Server, error) {
+	allowedOrigins, err := prog.LoadList("ALLOWED_ORIGINS")
 	if err != nil {
 		return nil, err
 	}
@@ -34,6 +35,7 @@ func New(store *srv.Store) (*Server, error) {
 	}
 
 	return &Server{
+		app:            app,
 		store:          store,
 		port:           port,
 		allowedOrigins: allowedOrigins,
@@ -56,24 +58,24 @@ func (s *Server) Start() error {
 	defer stop()
 
 	go func() {
-		app.Log("Server starting on port %s\n", s.port)
+		s.app.Logger.Log("Server starting on port %s\n", s.port)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			app.LogError("ListenAndServe error: %v", err)
+			s.app.Logger.Error("ListenAndServe error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
-	app.Log("Shutting down gracefully...")
+	s.app.Logger.Log("Shutting down gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		app.LogError("Graceful shutdown failed: %v", err)
+		s.app.Logger.Error("Graceful shutdown failed: %v", err)
 
 		return err
 	}
-	app.Log("Server stopped cleanly.")
+	s.app.Logger.Log("Server stopped cleanly.")
 
 	return nil
 }
