@@ -60,12 +60,12 @@ func PrintStatus() error {
 func setUpMigrator() (*sql.DB, error) {
 	var sqlDB *sql.DB
 
-	env, err := app.Load()
+	_, err := app.Load()
 	if err != nil {
 		return sqlDB, err
 	}
 
-	sqlDB, err = Open(env)
+	sqlDB, err = Open()
 	if err != nil {
 		return sqlDB, err
 	}

@@ -17,16 +17,16 @@ const (
 	defaultMaxIdleConns = 1
 )
 
-// dbConf holds the configuration parameters for the database connection.
-type dbConf struct {
+// conf holds the configuration parameters for the database connection.
+type conf struct {
 	URL          string
 	MaxOpenConns int
 	MaxIdleConns int
 }
 
 // Open initializes and returns a new database connection using the provided configuration.
-// It connects to a SQLite3 database specified by the URL in the conf.dbConf struct.
-func Open(_ string) (*sql.DB, error) {
+// It connects to a SQLite3 database specified by the URL in the conf.conf struct.
+func Open() (*sql.DB, error) {
 	var sqlDB *sql.DB
 
 	dc, err := loadConf()
@@ -49,33 +49,32 @@ func Open(_ string) (*sql.DB, error) {
 	return sqlDB, nil
 }
 
-// loadDBConf loads the database configuration from environment variables.
-func loadConf() (dbConf, error) {
-	var dbc dbConf
+// loadConf loads the database configuration from environment variables.
+func loadConf() (conf, error) {
+	var c conf
 
-	envName := "DATABASE_URL"
-	url := os.Getenv(envName)
+	url := os.Getenv("DATABASE_URL")
 	if url == "" {
-		return dbc, fmt.Errorf("%w: %s", errs.ErrEnvNoTSet, envName)
+		return c, fmt.Errorf("%w: DATABASE_URL", errs.ErrEnvNoTSet)
 	}
 
 	maxOpenConns, err := setInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
 	if err != nil {
-		return dbc, err
+		return c, err
 	}
 
 	maxIdleConns, err := setInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
 	if err != nil {
-		return dbc, err
+		return c, err
 	}
 
-	dbc = dbConf{
+	c = conf{
 		URL:          url,
 		MaxOpenConns: maxOpenConns,
 		MaxIdleConns: maxIdleConns,
 	}
 
-	return dbc, nil
+	return c, nil
 }
 
 // setInt retrieves an integer value from the environment variable specified by envName.
