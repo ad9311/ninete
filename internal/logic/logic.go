@@ -6,11 +6,13 @@ import (
 
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
+	"github.com/go-playground/validator/v10"
 )
 
 type Store struct {
 	app         *prog.App
 	queries     repo.Queries
+	validte     *validator.Validate
 	jwtSecret   string
 	jwtIssuer   string
 	jwtAudience []string
@@ -32,9 +34,12 @@ func New(app *prog.App, queries repo.Queries) (*Store, error) {
 		return nil, err
 	}
 
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	return &Store{
 		app:         app,
 		queries:     queries,
+		validte:     validate,
 		jwtSecret:   jwtSecret,
 		jwtIssuer:   jwtIssuer,
 		jwtAudience: jwtAudience,

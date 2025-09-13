@@ -2,7 +2,6 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/ad9311/ninete/internal/repo"
@@ -10,25 +9,22 @@ import (
 )
 
 type SignUpParams struct {
-	Username             string `json:"username"`
-	Email                string `json:"email"`
-	Password             string `json:"password"`
-	PasswordConfirmation string `json:"passwordConfirmation"`
+	Username             string `json:"username" validate:"required,min=3,max=20"` // TODO validate format
+	Email                string `json:"email" validate:"email"`
+	Password             string `json:"password" validate:"min=8,max=20"` // TODO validate format
+	PasswordConfirmation string `json:"passwordConfirmation" validate:"min=8,max=20"`
 }
 
 func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeUser, error) {
 	var user repo.User
 
-	user, err := s.queries.SelectUserWhereEmail(ctx, params.Email)
-	if !errors.Is(err, sql.ErrNoRows) || user.ID > 0 {
-		return user.ToSafe(), ErrUserAlreadyExists
-	}
-
 	if params.Password != params.PasswordConfirmation {
 		return user.ToSafe(), ErrUnmatchedPasswords
 	}
 
-	// TODO Validate params
+	if err := s.ValidateStruct(params); err != nil {
+		return user.ToSafe(), err
+	}
 
 	passwordHash, err := hashPassword(params.Password)
 	if err != nil {
@@ -41,7 +37,7 @@ func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeU
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		return user.ToSafe(), err // TODO Wrap or replace db errors
+		return user.ToSafe(), err
 	}
 
 	return user.ToSafe(), nil
