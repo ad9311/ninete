@@ -39,3 +39,8 @@ linters:
     lll:
       line-length: 120
       tab-width: 2
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+

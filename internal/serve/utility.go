@@ -60,3 +60,11 @@ func (s *Server) setHeaderAndWrite(w http.ResponseWriter, status int, body any) 
 		s.app.Logger.Error("failed to write response: %v", err)
 	}
 }
+
+func decodeJSONBody(r *http.Request, params any) error {
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		return ErrFormParsing
+	}
+
+	return nil
+}

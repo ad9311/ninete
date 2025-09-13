@@ -4,7 +4,15 @@ import "github.com/go-chi/chi/v5"
 
 func (s *Server) setUpRoutes() {
 	s.Router.Route("/", func(root chi.Router) {
-		root.Get("/healthz", s.getHealthz)
-		root.Get("/readyz", s.getReadyz)
+		root.Group(func(status chi.Router) {
+			status.Get("/healthz", s.getHealthz)
+			status.Get("/readyz", s.getReadyz)
+		})
+
+		root.Group(func(auth chi.Router) {
+			auth.Route("/auth", func(auth chi.Router) {
+				auth.Post("/sign-up", s.postSignUp)
+			})
+		})
 	})
 }
