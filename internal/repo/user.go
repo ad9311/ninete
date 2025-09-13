@@ -2,7 +2,6 @@ package repo
 
 import (
 	"context"
-	"database/sql"
 )
 
 type User struct {
@@ -12,7 +11,6 @@ type User struct {
 	PasswordHash string
 	CreatedAt    string
 	UpdatedAt    string
-	D            sql.NullBool
 }
 
 type SafeUser struct {
@@ -61,4 +59,21 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 	)
 
 	return u, err
+}
+
+const selectUserByEmail = `SELECT * FROM users WHERE email = $1 LIMIT 1`
+
+func (q *Queries) SelectUserWhereEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+
+	return i, err
 }

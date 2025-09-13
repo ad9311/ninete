@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/ad9311/ninete/internal/repo"
@@ -17,6 +18,11 @@ type SignUpParams struct {
 
 func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeUser, error) {
 	var user repo.User
+
+	user, err := s.queries.SelectUserWhereEmail(ctx, params.Email)
+	if !errors.Is(err, sql.ErrNoRows) || user.ID > 0 {
+		return user.ToSafe(), ErrUserAlreadyExists
+	}
 
 	if params.Password != params.PasswordConfirmation {
 		return user.ToSafe(), ErrUnmatchedPasswords
@@ -41,8 +47,6 @@ func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeU
 	return user.ToSafe(), nil
 }
 
-// hashPassword hashes the provided raw password using bcrypt.
-// Returns the hashed password or an error if hashing fails.
 func hashPassword(rawPassword string) ([]byte, error) {
 	var passHash []byte
 
