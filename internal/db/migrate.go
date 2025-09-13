@@ -14,7 +14,6 @@ const migrationsPath = "migrations"
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-// RunMigrationsUp applies all available database migrations.
 func RunMigrationsUp() error {
 	sqlDB, err := setUpMigrator()
 	if err != nil {
@@ -32,7 +31,6 @@ func RunMigrationsUp() error {
 	return nil
 }
 
-// RunMigrationsDown rolls back the most recent migration.
 func RunMigrationsDown() error {
 	sqlDB, err := setUpMigrator()
 	if err != nil {
@@ -50,7 +48,6 @@ func RunMigrationsDown() error {
 	return nil
 }
 
-// PrintStatus prints the current status of all database migrations.
 func PrintStatus() error {
 	sqlDB, err := setUpMigrator()
 	if err != nil {
@@ -68,7 +65,6 @@ func PrintStatus() error {
 	return nil
 }
 
-// setUpMigrator initializes and returns a database connection for running migrations.
 func setUpMigrator() (*sql.DB, error) {
 	_, err := prog.Load()
 	if err != nil {

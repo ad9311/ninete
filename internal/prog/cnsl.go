@@ -22,15 +22,12 @@ const (
 	debugLevel
 )
 
-// Logger provides a thread-safe logging mechanism with separate output streams
-// for standard and error messages.
 type Logger struct {
 	mutex  sync.Mutex
 	out    io.Writer
 	outErr io.Writer
 }
 
-// NewLogger creates and returns a new Logger instance with standard output and error streams.
 func NewLogger() *Logger {
 	return &Logger{
 		out:    os.Stdout,
@@ -38,7 +35,6 @@ func NewLogger() *Logger {
 	}
 }
 
-// Log formats and writes a log message to the output stream in a thread-safe manner.
 func (l *Logger) Log(msg string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -48,7 +44,6 @@ func (l *Logger) Log(msg string, args ...any) {
 	}
 }
 
-// Error logs an error message to the standard error output in a thread-safe manner.
 func (l *Logger) Error(msg string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -58,7 +53,6 @@ func (l *Logger) Error(msg string, args ...any) {
 	}
 }
 
-// Debug logs a formatted debug message to the output stream in a thread-safe manner.
 func (l *Logger) Debug(msg string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -68,8 +62,6 @@ func (l *Logger) Debug(msg string, args ...any) {
 	}
 }
 
-// writeLine writes a formatted log message to the provided io.Writer.
-// Returns an error if writing to the writer fails.
 func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 	var body string
 
@@ -88,7 +80,6 @@ func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 	return err
 }
 
-// timestamp returns the current UTC time formatted as [DD/MM/YY-HH:MM].
 func timestamp() string {
 	return time.Now().UTC().Format("[02/01/06-15:04]")
 }

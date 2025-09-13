@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// WithTimeout sets a timeout for each request using the provided duration.
 func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -29,8 +28,6 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 	}
 }
 
-// JSONMiddleware enforces that requests with a body must send Content-Type: application/json
-// and ensures all responses declare Content-Type: application/json.
 func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -54,7 +51,6 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// CORS sets the CORS headers and handles preflight requests.
 func (s *Server) CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
@@ -109,13 +105,10 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 	})
 }
 
-// NotFoundHandler returns a JSON error response for unknown routes.
 func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
-	// writeError(w, http.StatusNotFound, routeNotFound, errs.ErrNotFound)
 	s.respondError(w, http.StatusNotFound, CodeGeneric, ErrNotPathFound)
 }
 
-// MethodNotAllowedHandler returns a JSON error response when the HTTP method is not allowed.
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
 	s.respondError(w, http.StatusMethodNotAllowed, CodeForbidden, ErrMethodNotAllowed)
 }

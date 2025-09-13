@@ -1,4 +1,3 @@
-// Package logic provides core service logic and dependencies for the application.
 package logic
 
 import (
@@ -9,7 +8,6 @@ import (
 	"github.com/ad9311/ninete/internal/repo"
 )
 
-// Store holds the core dependencies and configuration for the service layer.
 type Store struct {
 	app         *prog.App
 	queries     repo.Queries
@@ -18,8 +16,6 @@ type Store struct {
 	jwtAudience []string
 }
 
-// New initializes a new Store with required dependencies and configuration loaded from environment variables.
-// It returns an error if any required environment variable is missing or invalid.
 func New(app *prog.App, queries repo.Queries) (*Store, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {

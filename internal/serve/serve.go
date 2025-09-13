@@ -1,4 +1,3 @@
-// Package serve provides the HTTP server setup and graceful shutdown logic for the application.
 package serve
 
 import (
@@ -15,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Server represents the main HTTP server for the application.
 type Server struct {
 	Router chi.Router
 
@@ -25,7 +23,6 @@ type Server struct {
 	allowedOrigins []string
 }
 
-// New creates and returns a new Server instance using the provided store.
 func New(app *prog.App, store *logic.Store) (*Server, error) {
 	allowedOrigins, err := prog.LoadList("ALLOWED_ORIGINS")
 	if err != nil {
@@ -51,7 +48,6 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 	return s, nil
 }
 
-// Start launches the HTTP server and handles graceful shutdown on interrupt signals.
 func (s *Server) Start() error {
 	server := &http.Server{
 		Addr:              ":" + s.port,

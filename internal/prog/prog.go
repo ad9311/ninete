@@ -1,4 +1,3 @@
-// Package prog provides functionality for loading and validating the application environment,
 package prog
 
 import (
@@ -11,20 +10,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Environment constants
 const (
 	ENVProduction  = "production"
 	ENVDevelopment = "development"
 	ENVTest        = "test"
 )
 
-// App represents the main application configuration and dependencies.
 type App struct {
 	ENV    string
 	Logger *Logger
 }
 
-// Load initializes the application environment by validating and loading environment variables.
 func Load() (*App, error) {
 	env, ok := os.LookupEnv("ENV")
 	if !ok {
@@ -48,7 +44,6 @@ func Load() (*App, error) {
 	}, nil
 }
 
-// LoadList retrieves the value of the environment variable specified by envName,
 func LoadList(envName string) ([]string, error) {
 	str := os.Getenv(envName)
 	if str == "" {
@@ -58,8 +53,6 @@ func LoadList(envName string) ([]string, error) {
 	return strings.Split(str, ","), nil
 }
 
-// SetInt retrieves an integer value from the environment variable specified by envName.
-// If the environment variable is not set, it returns the provided default value def.
 func SetInt(envName string, def int) (int, error) {
 	maxConnsStr := os.Getenv(envName)
 	if maxConnsStr == "" {
@@ -73,7 +66,6 @@ func SetInt(envName string, def int) (int, error) {
 	return int(v), nil
 }
 
-// isValidENV checks if the provided environment string is valid.
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
@@ -83,7 +75,6 @@ func isValidENV(env string) error {
 	return nil
 }
 
-// validENVs returns a map indicating the valid environment names for the application.
 func validENVs() map[string]bool {
 	return map[string]bool{
 		ENVProduction:  true,
@@ -92,8 +83,6 @@ func validENVs() map[string]bool {
 	}
 }
 
-// findRelativeENVFile searches for a ".env" file starting from the current working directory
-// and traversing up the directory tree. If found it returns true, otherwise false.
 func findRelativeENVFile() (string, bool) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -113,7 +102,6 @@ func findRelativeENVFile() (string, bool) {
 	}
 }
 
-// fileExists checks whether the file at the given path exists.
 func fileExists(p string) bool {
 	_, err := os.Stat(p)
 
