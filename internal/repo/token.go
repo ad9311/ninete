@@ -5,8 +5,8 @@ import (
 )
 
 type RefreshToken struct {
-	ID        int32  `json:"id"`
-	UserID    int32  `json:"userId"`
+	ID        int    `json:"id"`
+	UserID    int    `json:"userId"`
 	UUID      []byte `json:"uuid"`
 	IssuedAt  int64  `json:"issuedAt"`
 	ExpiresAt int64  `json:"expiresAt"`
@@ -15,8 +15,8 @@ type RefreshToken struct {
 
 type InsertRefreshTokenParams struct {
 	UserID    int
-	IssuedAt  string
-	ExpiresAt string
+	IssuedAt  int64
+	ExpiresAt int64
 }
 
 const insertRefreshToken = `
