@@ -3,6 +3,7 @@ package db
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"os"
 
@@ -10,14 +11,16 @@ import (
 	_ "github.com/mattn/go-sqlite3" // Database driver
 )
 
-// Database connection pool configuration constants.
 const (
+	initFile = "init/init.sql"
+
 	defaultMaxOpenConns = 1
 	defaultMaxIdleConns = 1
 )
 
-// Open initializes and returns a new database connection using the provided configuration.
-// It connects to a SQLite3 database specified by the url in the conf.conf struct.
+//go:embed init/*.sql
+var initPragmas embed.FS
+
 func Open() (*sql.DB, error) {
 	url := os.Getenv("DATABASE_URL")
 	if url == "" {
@@ -43,8 +46,26 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
+	initQuery, err := readInitSQL(initFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run %s script: %w", initFile, err)
+	}
+
+	if _, err := sqlDB.Exec(initQuery); err != nil {
+		return nil, fmt.Errorf("failed to run init PRAGMA commands: %w", err)
+	}
+
 	sqlDB.SetMaxOpenConns(maxOpenConns)
 	sqlDB.SetMaxIdleConns(maxIdleConns)
 
 	return sqlDB, nil
+}
+
+func readInitSQL(name string) (string, error) {
+	b, err := initPragmas.ReadFile(name)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }

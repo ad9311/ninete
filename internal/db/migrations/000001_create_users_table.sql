@@ -8,5 +8,9 @@ CREATE TABLE users (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+PRAGMA user_version = 1;
+
 -- +goose Down
 DROP TABLE IF EXISTS users;
+
+PRAGMA user_version = 0;

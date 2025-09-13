@@ -16,15 +16,16 @@ SHELL             := /bin/bash
 build: ## Build the application binary
 	@echo "Building binary..."
 	@mkdir -p ./build
-	$(GO_BUILDENV) go build -o ./build/dev ./cmd/ninete/main.go
+	@$(GO_BUILDENV) go build -o ./build/dev ./cmd/ninete/main.go
 
 dev: build ## Run the app in development mode
 	@echo "Starting application..."
-	ENV=development ./build/dev
+	@mkdir -p ./data/db/dev
+	@ENV=development ./build/dev
 
 build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
-	@mkdir -p ./build
+	mkdir -p ./build
 	$(GO_BUILDENV) go build -o ./build/dev_migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up
@@ -37,6 +38,14 @@ migrate-down: build-migrate ## Run all migrations up
 
 migrate-status: build-migrate ## Run all migrations up
 	ENV=development ./build/dev_migrate status
+
+clean: ## Removes compiled binaries
+	@echo "Removing binaries..."
+	@rm -rf ./build/*
+
+clean-full: clean ## Runs `clean` and deletes all databases
+	@echo "Removing databases..."
+	@rm -rf ./data/db/*
 
 deps: ## Install and tidy dependencies
 	@echo "Installing dependencies..."
