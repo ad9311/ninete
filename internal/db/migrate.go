@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"strings"
 
+	"github.com/ad9311/ninete/internal/cmd"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/pressly/goose/v3"
 )
@@ -38,6 +40,33 @@ func RunMigrationsDown() error {
 	}
 
 	if err := goose.Down(sqlDB, migrationsPath); err != nil {
+		return err
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateMigration(args []string) error {
+	sqlDB, err := setUpMigrator()
+	if err != nil {
+		return err
+	}
+
+	length := len(args)
+	if length == 0 {
+		return fmt.Errorf("%w, expected 1, got: %d", cmd.ErrMissingArg, length)
+	}
+
+	name := strings.TrimSpace(args[0])
+	if name == "" {
+		return fmt.Errorf("%w, expected name for migration", cmd.ErrEmptyArgValue)
+	}
+
+	if err := goose.Create(sqlDB, "internal/db/"+migrationsPath, name, "sql"); err != nil {
 		return err
 	}
 

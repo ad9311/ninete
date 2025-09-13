@@ -20,12 +20,13 @@ build: ## Build the application binary
 
 dev: build ## Run the app in development mode
 	@echo "Starting application..."
-	@mkdir -p ./data/db/dev
 	@ENV=development ./build/dev
 
 build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
-	mkdir -p ./build
+	@mkdir -p ./build
+	@mkdir -p ./data/db/dev
+	@mkdir -p ./data/db/test
 	$(GO_BUILDENV) go build -o ./build/dev_migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up
@@ -35,6 +36,10 @@ migrate: build-migrate ## Run all migrations up
 migrate-down: build-migrate ## Run all migrations up
 	@echo "Running one migration down..."
 	ENV=development ./build/dev_migrate down
+
+migrate-create: build-migrate ## Run all migrations up
+	@echo "Creating migration file..."
+	ENV=development ./build/dev_migrate create $(name)
 
 migrate-status: build-migrate ## Run all migrations up
 	ENV=development ./build/dev_migrate status

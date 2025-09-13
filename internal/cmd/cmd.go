@@ -66,7 +66,7 @@ func (r *Registry) Execute(args []string) (int, error) {
 	}
 
 	if err := cmd.Run(args[1:]); err != nil {
-		msg := "command " + name + " failed with: "
+		msg := "command " + name + " failed with:"
 
 		return 2, fmt.Errorf("%s %w", msg, err)
 	}

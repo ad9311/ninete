@@ -26,6 +26,11 @@ func main() {
 			},
 		},
 		{
+			Name:        "create",
+			Description: "Create a new migration file",
+			Run:         db.CreateMigration,
+		},
+		{
 			Name:        "status",
 			Description: "Print migrations status",
 			Run: func(_ []string) error {
