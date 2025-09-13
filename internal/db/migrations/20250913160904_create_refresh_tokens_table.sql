@@ -3,8 +3,8 @@ CREATE TABLE refresh_tokens (
   id INTEGER PRIMARY KEY NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   uuid BLOB NOT NULL,
-  issued_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
+  issued_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
   revoked INTEGER NOT NULL DEFAULT 0
 );
 

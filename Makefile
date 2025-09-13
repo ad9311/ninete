@@ -16,6 +16,7 @@ SHELL             := /bin/bash
 build: ## Build the application binary
 	@echo "Building binary..."
 	@mkdir -p ./build
+	@mkdir -p ./data/db/dev
 	@$(GO_BUILDENV) go build -o ./build/dev ./cmd/ninete/main.go
 
 dev: build ## Run the app in development mode
@@ -26,7 +27,6 @@ build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	@mkdir -p ./data/db/test
 	$(GO_BUILDENV) go build -o ./build/dev_migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up

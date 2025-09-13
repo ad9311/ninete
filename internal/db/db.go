@@ -36,7 +36,7 @@ func Open() (*sql.DB, error) {
 		return nil, err
 	}
 
-	sqlDB, err := sql.Open("sqlite3", "file:"+url)
+	sqlDB, err := sql.Open("sqlite3", "file:"+url+"?_loc=UTC")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
