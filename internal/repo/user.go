@@ -40,22 +40,26 @@ RETURNING *`
 
 func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
 	var u User
-	row := q.db.QueryRowContext(
-		ctx,
-		insertUser,
-		params.Username,
-		params.Email,
-		params.PasswordHash,
-	)
+	var err error = nil
 
-	err := row.Scan(
-		&u.ID,
-		&u.Username,
-		&u.Email,
-		&u.PasswordHash,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
+	q.wrapQuery(insertUser, func() {
+		row := q.db.QueryRowContext(
+			ctx,
+			insertUser,
+			params.Username,
+			params.Email,
+			params.PasswordHash,
+		)
+
+		err = row.Scan(
+			&u.ID,
+			&u.Username,
+			&u.Email,
+			&u.PasswordHash,
+			&u.CreatedAt,
+			&u.UpdatedAt,
+		)
+	})
 
 	return u, err
 }
@@ -63,18 +67,20 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 const selectUserByEmail = `SELECT * FROM users WHERE email = $1 LIMIT 1`
 
 func (q *Queries) SelectUserWhereEmail(ctx context.Context, email string) (User, error) {
-	q.app.Logger.Query(insertUser)
-
-	row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
 	var u User
-	err := row.Scan(
-		&u.ID,
-		&u.Username,
-		&u.Email,
-		&u.PasswordHash,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
+	var err error = nil
+
+	q.wrapQuery(selectUserByEmail, func() {
+		row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
+		err = row.Scan(
+			&u.ID,
+			&u.Username,
+			&u.Email,
+			&u.PasswordHash,
+			&u.CreatedAt,
+			&u.UpdatedAt,
+		)
+	})
 
 	return u, err
 }

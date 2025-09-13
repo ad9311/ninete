@@ -66,13 +66,15 @@ func (l *Logger) Debug(msg string, args ...any) {
 	}
 }
 
-func (l *Logger) Query(query string) {
+func (l *Logger) Query(query string, dur time.Duration) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
 	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
 
-	if err := writeLine(l.out, queryLevel, query); err != nil {
+	msg := blue + query + red + " [" + dur.String() + "]"
+
+	if err := writeLine(l.out, queryLevel, msg); err != nil {
 		panic(err)
 	}
 }
@@ -82,16 +84,16 @@ func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 
 	switch level {
 	case errorLevel:
-		body = red + msg + reset
+		body = red + msg
 	case debugLevel:
-		body = yellow + msg + reset
+		body = yellow + msg
 	case queryLevel:
-		body = bold + blue + msg + reset
+		body = bold + msg
 	default:
 		body = msg
 	}
 
-	line := timestamp() + " " + body + "\n"
+	line := timestamp() + " " + body + reset + "\n"
 	_, err := fmt.Fprintf(w, line, args...)
 
 	return err
