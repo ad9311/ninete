@@ -9,8 +9,8 @@ type User struct {
 	Username     string
 	Email        string
 	PasswordHash string
-	CreatedAt    string
-	UpdatedAt    string
+	CreatedAt    int64
+	UpdatedAt    int64
 }
 
 type SafeUser struct {
