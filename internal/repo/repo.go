@@ -1,13 +1,19 @@
 package repo
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/ad9311/ninete/internal/prog"
+)
 
 type Queries struct {
-	db *sql.DB
+	app *prog.App
+	db  *sql.DB
 }
 
-func New(db *sql.DB) Queries {
+func New(app *prog.App, db *sql.DB) Queries {
 	return Queries{
-		db: db,
+		app: app,
+		db:  db,
 	}
 }

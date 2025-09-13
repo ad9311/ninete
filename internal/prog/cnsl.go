@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
 
 const (
-	yellow = "\x1b[33m"
-	red    = "\x1b[31m"
 	reset  = "\x1b[0m"
+	red    = "\x1b[31m"
+	yellow = "\x1b[33m"
+	blue   = "\x1b[34m"
+	bold   = "\x1b[1m"
 )
 
 type semantic int
@@ -20,6 +23,7 @@ const (
 	infoLevel semantic = iota
 	errorLevel
 	debugLevel
+	queryLevel
 )
 
 type Logger struct {
@@ -62,6 +66,17 @@ func (l *Logger) Debug(msg string, args ...any) {
 	}
 }
 
+func (l *Logger) Query(query string) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
+
+	if err := writeLine(l.out, queryLevel, query); err != nil {
+		panic(err)
+	}
+}
+
 func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 	var body string
 
@@ -70,6 +85,8 @@ func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
 		body = red + msg + reset
 	case debugLevel:
 		body = yellow + msg + reset
+	case queryLevel:
+		body = bold + blue + msg + reset
 	default:
 		body = msg
 	}

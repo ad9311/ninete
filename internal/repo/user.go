@@ -36,8 +36,7 @@ func (u *User) ToSafe() SafeUser {
 const insertUser = `
 INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING *
-`
+RETURNING *`
 
 func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
 	var u User
@@ -64,16 +63,18 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 const selectUserByEmail = `SELECT * FROM users WHERE email = $1 LIMIT 1`
 
 func (q *Queries) SelectUserWhereEmail(ctx context.Context, email string) (User, error) {
+	q.app.Logger.Query(insertUser)
+
 	row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
-	var i User
+	var u User
 	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.Email,
-		&i.PasswordHash,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&u.ID,
+		&u.Username,
+		&u.Email,
+		&u.PasswordHash,
+		&u.CreatedAt,
+		&u.UpdatedAt,
 	)
 
-	return i, err
+	return u, err
 }

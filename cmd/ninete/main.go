@@ -37,7 +37,7 @@ func start() (int, error) {
 	}
 	defer closeDB(sqlDB)
 
-	queries := repo.New(sqlDB)
+	queries := repo.New(app, sqlDB)
 
 	store, err := logic.New(app, queries)
 	if err != nil {
