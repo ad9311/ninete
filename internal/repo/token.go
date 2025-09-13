@@ -15,6 +15,7 @@ type RefreshToken struct {
 
 type InsertRefreshTokenParams struct {
 	UserID    int
+	UUID      []byte
 	IssuedAt  int64
 	ExpiresAt int64
 }
@@ -29,7 +30,15 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 	var err error
 
 	q.wrapQuery(insertRefreshToken, func() {
-		row := q.db.QueryRowContext(ctx, insertRefreshToken, arg.UserID, arg.IssuedAt, arg.ExpiresAt)
+		row := q.db.QueryRowContext(
+			ctx,
+			insertRefreshToken,
+			arg.UserID,
+			arg.UUID,
+			arg.IssuedAt,
+			arg.ExpiresAt,
+		)
+
 		err = row.Scan(
 			&rf.ID,
 			&rf.UserID,
