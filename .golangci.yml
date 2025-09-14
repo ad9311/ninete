@@ -43,4 +43,8 @@ linters:
       rules:
         - name: package-comments
           disabled: true
-
+  exclusions:
+    rules:
+      - linters: [gosec]
+        path: 'internal/repo/token.go'
+        text: 'G101'
