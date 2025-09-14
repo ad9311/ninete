@@ -20,8 +20,8 @@ const (
 
 type Token struct {
 	Value     string `json:"value"`
-	IssuedAt  int64  `json:"issued_at"`
-	ExpiresAt int64  `json:"expires_at"`
+	IssuedAt  int64  `json:"issuedAt"`
+	ExpiresAt int64  `json:"expiresAt"`
 }
 
 func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) {
@@ -67,7 +67,7 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 	var token Token
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	value, err := jwtToken.SignedString(s.tokenVars.jwtSecret)
+	value, err := jwtToken.SignedString([]byte(s.tokenVars.jwtSecret))
 	if err != nil {
 		s.app.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
 

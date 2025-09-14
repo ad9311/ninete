@@ -12,6 +12,7 @@ func (s *Server) setUpRoutes() {
 		root.Group(func(auth chi.Router) {
 			auth.Route("/auth", func(auth chi.Router) {
 				auth.Post("/sign-up", s.postSignUp)
+				auth.Post("/sign-in", s.postSignIn)
 			})
 		})
 	})

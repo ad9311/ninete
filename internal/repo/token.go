@@ -21,9 +21,9 @@ type InsertRefreshTokenParams struct {
 }
 
 const insertRefreshToken = `
-INSERT INTO refresh_tokens (user_id, uuid, issued_at, expires_at)
+INSERT INTO refresh_tokens (user_id, token_hash, issued_at, expires_at)
 VALUES ($1, $2, $3, $4)
-RETURNING *;`
+RETURNING *`
 
 func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (RefreshToken, error) {
 	var rf RefreshToken
