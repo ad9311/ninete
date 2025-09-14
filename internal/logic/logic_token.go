@@ -6,9 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ad9311/ninete/internal/repo"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
@@ -40,6 +42,36 @@ func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) 
 	})
 	if err != nil {
 		return token, err
+	}
+
+	token = Token{
+		Value:     value,
+		IssuedAt:  iat,
+		ExpiresAt: exp,
+	}
+
+	return token, nil
+}
+
+func (s *Store) NewAccessToken(userID int) (Token, error) {
+	iat, exp := generateDateClaims(ExpAccessToken)
+
+	claims := jwt.MapClaims{
+		"sub": strconv.Itoa(userID),
+		"iss": s.jwtIssuer,
+		"aud": s.jwtAudience,
+		"exp": exp,
+		"iat": iat,
+	}
+
+	var token Token
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	value, err := jwtToken.SignedString(s.jwtSecret)
+	if err != nil {
+		s.app.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
+
+		return token, nil
 	}
 
 	token = Token{
