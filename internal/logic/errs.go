@@ -21,7 +21,7 @@ var (
 )
 
 func (s *Store) ValidateStruct(st any) error {
-	if err := s.validte.Struct(st); err != nil {
+	if err := s.validate.Struct(st); err != nil {
 		return fmtValidationErrors(err)
 	}
 
