@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	ErrUnmatchedPasswords   = errors.New("password do not match")
+	ErrUnmatchedPasswords   = errors.New("passwords do not match")
 	ErrPasswordTooLong      = errors.New("password too long")
-	ErrUserAlreadyExists    = errors.New("user already exist")
+	ErrUserAlreadyExists    = errors.New("user already exists")
 	ErrWrongEmailOrPassword = errors.New("wrong email or password")
 
 	ErrValidationAssertion = errors.New("failed to assert error type")
