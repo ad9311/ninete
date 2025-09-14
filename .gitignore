@@ -19,10 +19,8 @@
 *.out
 go.work
 
-# Compiled binaries
-main
-
 # Build artifacts
+main
 /bin/
 /build/
 /dist/
