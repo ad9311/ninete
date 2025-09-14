@@ -41,7 +41,7 @@ func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) 
 		ExpiresAt: exp,
 	})
 	if err != nil {
-		return token, err
+		return token, HandleDBError(err)
 	}
 
 	token = Token{

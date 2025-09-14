@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -44,4 +45,12 @@ func fmtValidationErrors(err error) error {
 	wrappedErr := fmt.Errorf("%w: %s", ErrValidationFailed, errStr)
 
 	return wrappedErr
+}
+
+func HandleDBError(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+
+	return err
 }

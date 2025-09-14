@@ -37,7 +37,7 @@ func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeU
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		return user.ToSafe(), err
+		return user.ToSafe(), HandleDBError(err)
 	}
 
 	return user.ToSafe(), nil
