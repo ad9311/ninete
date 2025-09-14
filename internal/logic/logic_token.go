@@ -71,7 +71,7 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 	if err != nil {
 		s.app.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
 
-		return token, nil
+		return token, fmt.Errorf("failed to generate access token: %w", err)
 	}
 
 	token = Token{
