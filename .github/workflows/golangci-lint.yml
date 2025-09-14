@@ -6,17 +6,23 @@ on:
   pull_request:
     branches: [ main, master ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
     
-    - uses: actions/setup-go@v5
+    - name: Set up Go
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.25.1'
-        cache: false
+        go-version-file: 'go.mod'
+        cache: true
         
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v6
