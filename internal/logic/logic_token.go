@@ -58,8 +58,8 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 
 	claims := jwt.MapClaims{
 		"sub": strconv.Itoa(userID),
-		"iss": s.jwtIssuer,
-		"aud": s.jwtAudience,
+		"iss": s.tokenVars.jwtIssuer,
+		"aud": s.tokenVars.jwtAudience,
 		"exp": exp,
 		"iat": iat,
 	}
@@ -67,7 +67,7 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 	var token Token
 	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	value, err := jwtToken.SignedString(s.jwtSecret)
+	value, err := jwtToken.SignedString(s.tokenVars.jwtSecret)
 	if err != nil {
 		s.app.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
 
