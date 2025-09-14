@@ -2,7 +2,7 @@
 CREATE TABLE refresh_tokens (
   id INTEGER PRIMARY KEY NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  uuid BLOB NOT NULL,
+  token_hash BLOB NOT NULL UNIQUE CHECK (length(token_hash) = 32),
   issued_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
   revoked INTEGER NOT NULL DEFAULT 0

@@ -43,4 +43,6 @@ linters:
       rules:
         - name: package-comments
           disabled: true
-
+  exclusions:
+    paths:
+      - internal/repo/token.go

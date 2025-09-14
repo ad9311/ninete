@@ -7,7 +7,7 @@ import (
 type RefreshToken struct {
 	ID        int    `json:"id"`
 	UserID    int    `json:"userId"`
-	UUID      []byte `json:"uuid"`
+	TokenHash []byte `json:"token_hash"`
 	IssuedAt  int64  `json:"issuedAt"`
 	ExpiresAt int64  `json:"expiresAt"`
 	Revoked   bool   `json:"revoked"`
@@ -15,7 +15,7 @@ type RefreshToken struct {
 
 type InsertRefreshTokenParams struct {
 	UserID    int
-	UUID      []byte
+	TokenHash []byte
 	IssuedAt  int64
 	ExpiresAt int64
 }
@@ -34,7 +34,7 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 			ctx,
 			insertRefreshToken,
 			arg.UserID,
-			arg.UUID,
+			arg.TokenHash,
 			arg.IssuedAt,
 			arg.ExpiresAt,
 		)
@@ -42,7 +42,7 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 		err = row.Scan(
 			&rf.ID,
 			&rf.UserID,
-			&rf.UUID,
+			&rf.TokenHash,
 			&rf.IssuedAt,
 			&rf.ExpiresAt,
 			&rf.Revoked,
