@@ -33,7 +33,7 @@ func fmtValidationErrors(err error) error {
 
 	var chained []string
 	for _, e := range valErr {
-		msg := fmt.Sprintf("[%s:%s]", e.Field(), e.ActualTag())
+		msg := "[" + e.Field() + ":" + e.ActualTag() + "]"
 		chained = append(chained, msg)
 	}
 
