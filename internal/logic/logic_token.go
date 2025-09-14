@@ -27,7 +27,7 @@ type Token struct {
 func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) {
 	var token Token
 
-	value, err := RandomRefreshToken()
+	value, err := randomRefreshToken()
 	if err != nil {
 		return token, err
 	}
@@ -36,7 +36,7 @@ func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) 
 
 	_, err = s.queries.InsertRefreshToken(ctx, repo.InsertRefreshTokenParams{
 		UserID:    userID,
-		TokenHash: HashToken(value),
+		TokenHash: hashToken(value),
 		IssuedAt:  iat,
 		ExpiresAt: exp,
 	})
@@ -90,7 +90,7 @@ func generateDateClaims(dur time.Duration) (int64, int64) {
 	return iat.Unix(), exp.Unix()
 }
 
-func RandomRefreshToken() (string, error) {
+func randomRefreshToken() (string, error) {
 	var b [32]byte
 	if _, err := rand.Read(b[:]); err != nil {
 		return "", fmt.Errorf("failed to generate random refresh token: %w", err)
@@ -99,7 +99,7 @@ func RandomRefreshToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b[:]), nil
 }
 
-func HashToken(token string) []byte {
+func hashToken(token string) []byte {
 	sum := sha256.Sum256([]byte(token))
 
 	return sum[:]

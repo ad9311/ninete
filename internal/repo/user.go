@@ -66,7 +66,7 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 
 const selectUserByEmail = `SELECT * FROM users WHERE email = $1 LIMIT 1`
 
-func (q *Queries) SelectUserWhereEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	var err error
 

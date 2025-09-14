@@ -9,16 +9,19 @@ import (
 )
 
 var (
-	ErrUnmatchedPasswords = errors.New("password do not match")
-	ErrPasswordTooLong    = errors.New("password too long")
-	ErrUserAlreadyExists  = errors.New("user already exist")
+	ErrUnmatchedPasswords   = errors.New("passwords do not match")
+	ErrPasswordTooLong      = errors.New("password too long")
+	ErrUserAlreadyExists    = errors.New("user already exists")
+	ErrWrongEmailOrPassword = errors.New("wrong email or password")
 
 	ErrValidationAssertion = errors.New("failed to assert error type")
 	ErrValidationFailed    = errors.New("validation failed")
+
+	ErrNotFound = errors.New("resource not found")
 )
 
 func (s *Store) ValidateStruct(st any) error {
-	if err := s.validte.Struct(st); err != nil {
+	if err := s.validate.Struct(st); err != nil {
 		return fmtValidationErrors(err)
 	}
 

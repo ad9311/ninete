@@ -12,7 +12,7 @@ import (
 type Store struct {
 	app       *prog.App
 	queries   repo.Queries
-	validte   *validator.Validate
+	validate  *validator.Validate
 	tokenVars tokenVars
 }
 
@@ -41,9 +41,9 @@ func New(app *prog.App, queries repo.Queries) (*Store, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	return &Store{
-		app:     app,
-		queries: queries,
-		validte: validate,
+		app:      app,
+		queries:  queries,
+		validate: validate,
 		tokenVars: tokenVars{
 			jwtSecret:   jwtSecret,
 			jwtIssuer:   jwtIssuer,
