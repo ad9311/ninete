@@ -15,5 +15,11 @@ func (s *Server) setUpRoutes() {
 				auth.Post("/sign-in", s.postSignIn)
 			})
 		})
+
+		root.Group(func(secure chi.Router) {
+			secure.Use(s.AuthMiddleware)
+
+			secure.Get("/users/me", s.getMe)
+		})
 	})
 }

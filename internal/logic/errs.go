@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,6 +19,8 @@ var (
 	ErrValidationFailed    = errors.New("validation failed")
 
 	ErrNotFound = errors.New("resource not found")
+
+	ErrInvalidJWTToken = errors.New("invalid jwt token")
 )
 
 func (s *Store) ValidateStruct(st any) error {
@@ -44,4 +47,12 @@ func fmtValidationErrors(err error) error {
 	wrappedErr := fmt.Errorf("%w: %s", ErrValidationFailed, errStr)
 
 	return wrappedErr
+}
+
+func HandleDBError(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+
+	return err
 }
