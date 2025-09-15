@@ -24,14 +24,14 @@ func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
 
 	var params logic.SessionParams
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, CodeGeneric, err)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
 
 	session, err := s.store.SignInUser(ctx, params)
 	if err != nil {
-		s.respondError(w, http.StatusBadRequest, CodeGeneric, err)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}

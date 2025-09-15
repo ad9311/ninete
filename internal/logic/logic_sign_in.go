@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"errors"
 
 	"github.com/ad9311/ninete/internal/repo"
 	"golang.org/x/crypto/bcrypt"
@@ -27,7 +28,11 @@ func (s *Store) SignInUser(ctx context.Context, params SessionParams) (NewSessio
 
 	user, err := s.FindUserByEmail(ctx, params.Email)
 	if err != nil {
-		return session, err
+		if !errors.Is(err, ErrNotFound) {
+			s.app.Logger.Error("failed to find user by email: %v", err)
+		}
+
+		return session, ErrWrongEmailOrPassword
 	}
 
 	if err = comparePasswords(params.Password, user.PasswordHash); err != nil {

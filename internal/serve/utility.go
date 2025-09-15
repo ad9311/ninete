@@ -20,13 +20,10 @@ func (s *Server) respond(w http.ResponseWriter, status int, res any) {
 	s.setHeaderAndWrite(w, status, body)
 }
 
-func (s *Server) respondError(w http.ResponseWriter, status int, code string, err error) {
+func (s *Server) respondError(w http.ResponseWriter, status int, err error) {
 	body := map[string]any{
-		"error": map[string]string{
-			"code":    code,
-			"message": err.Error(),
-		},
-		"data": nil,
+		"error": err.Error(),
+		"data":  nil,
 	}
 
 	s.setHeaderAndWrite(w, status, body)

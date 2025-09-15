@@ -9,14 +9,14 @@ import (
 func (s *Server) postSignUp(w http.ResponseWriter, r *http.Request) {
 	var params logic.SignUpParams
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, CodeBadFormat, ErrFormParsing)
+		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
 
 		return
 	}
 
 	user, err := s.store.SignUpUser(r.Context(), params)
 	if err != nil {
-		s.respondError(w, http.StatusBadRequest, CodeGeneric, err)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
