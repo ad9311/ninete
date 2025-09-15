@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -81,6 +82,72 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 	}
 
 	return token, nil
+}
+
+func (s *Store) ParseAndValidateJWT(tokenString string) (jwt.MapClaims, error) {
+	var claims jwt.MapClaims
+
+	token, err := s.parseJWT(tokenString)
+	if err != nil {
+		return jwt.MapClaims{}, err
+	}
+
+	claims, err = s.validateJWT(token)
+	if err != nil {
+		return claims, err
+	}
+
+	return claims, nil
+}
+
+func (s *Store) parseJWT(tokenString string) (*jwt.Token, error) {
+	keyFunc := func(_ *jwt.Token) (any, error) {
+		return s.tokenVars.jwtSecret, nil
+	}
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		jwt.MapClaims{},
+		keyFunc,
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithLeeway(30*time.Second),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (s *Store) validateJWT(token *jwt.Token) (jwt.MapClaims, error) {
+	if !token.Valid {
+		return nil, ErrInvalidJWTToken
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("%w, invalid claims", ErrInvalidJWTToken)
+	}
+
+	issuer, err := claims.GetIssuer()
+	if err != nil {
+		return nil, fmt.Errorf("%w, invalid issuer", ErrInvalidJWTToken)
+	}
+	if issuer != s.tokenVars.jwtIssuer {
+		return nil, fmt.Errorf("%w, invalid issuer", ErrInvalidJWTToken)
+	}
+
+	audience, err := claims.GetAudience()
+	if err != nil {
+		return nil, fmt.Errorf("%w, invalid audience", ErrInvalidJWTToken)
+	}
+	for _, aud := range audience {
+		if !slices.Contains(s.tokenVars.jwtAudience, aud) {
+			return nil, fmt.Errorf("%w, invalid audience", ErrInvalidJWTToken)
+		}
+	}
+
+	return claims, nil
 }
 
 func generateDateClaims(dur time.Duration) (int64, int64) {

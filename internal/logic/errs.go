@@ -19,6 +19,8 @@ var (
 	ErrValidationFailed    = errors.New("validation failed")
 
 	ErrNotFound = errors.New("resource not found")
+
+	ErrInvalidJWTToken = errors.New("invalid jwt token")
 )
 
 func (s *Store) ValidateStruct(st any) error {

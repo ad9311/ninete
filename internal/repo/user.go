@@ -84,3 +84,24 @@ func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, er
 
 	return u, err
 }
+
+const selectUserByID = `SELECT * FROM users WHERE id = $1 LIMIT 1`
+
+func (q *Queries) SelectUserByID(ctx context.Context, id int) (User, error) {
+	var u User
+	var err error
+
+	q.wrapQuery(selectUserByID, func() {
+		row := q.db.QueryRowContext(ctx, selectUserByID, id)
+		err = row.Scan(
+			&u.ID,
+			&u.Username,
+			&u.Email,
+			&u.PasswordHash,
+			&u.CreatedAt,
+			&u.UpdatedAt,
+		)
+	})
+
+	return u, err
+}

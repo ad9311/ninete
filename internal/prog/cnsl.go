@@ -72,7 +72,7 @@ func (l *Logger) Query(query string, dur time.Duration) {
 
 	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
 
-	msg := blue + query + red + " [" + dur.String() + "]"
+	msg := blue + query + red + ";" + " [" + dur.String() + "]"
 
 	if err := writeLine(l.out, queryLevel, msg); err != nil {
 		panic(err)

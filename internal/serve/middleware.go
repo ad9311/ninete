@@ -2,11 +2,14 @@ package serve
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -111,6 +114,50 @@ func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
 	s.respondError(w, http.StatusMethodNotAllowed, CodeForbidden, ErrMethodNotAllowed)
+}
+
+func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			s.respondError(w, http.StatusUnauthorized, CodeGeneric, ErrInvalidAccessToken)
+
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+		claims, err := s.store.ParseAndValidateJWT(tokenString)
+		if err != nil {
+			s.respondError(w, http.StatusUnauthorized, CodeGeneric, err)
+
+			return
+		}
+
+		userIDStr, ok := claims["sub"].(string)
+		if !ok {
+			err := fmt.Errorf("%w, invalid claims sub type", logic.ErrInvalidJWTToken)
+			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
+
+			return
+		}
+		userID, err := strconv.ParseInt(userIDStr, 10, 32)
+		if err != nil {
+			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
+			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
+		}
+
+		user, err := s.store.FindUserByID(r.Context(), int(userID))
+		if err != nil {
+			s.respondError(w, http.StatusUnauthorized, CodeGeneric, err)
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), prog.KeyCurrentUser, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func (s *Server) setUpMiddlewares() {
