@@ -142,7 +142,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 			return
 		}
-		userID, err := strconv.ParseInt(userIDStr, 10, 32)
+		userID, err := strconv.Atoi(userIDStr)
 		if err != nil {
 			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
 			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
@@ -150,7 +150,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := s.store.FindUserByID(r.Context(), int(userID))
+		user, err := s.store.FindUserByID(r.Context(), userID)
 		if err != nil {
 			s.respondError(w, http.StatusUnauthorized, CodeGeneric, err)
 

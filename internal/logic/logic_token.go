@@ -141,10 +141,16 @@ func (s *Store) validateJWT(token *jwt.Token) (jwt.MapClaims, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w, invalid audience", ErrInvalidJWTToken)
 	}
+	hasAudience := false
 	for _, aud := range audience {
-		if !slices.Contains(s.tokenVars.jwtAudience, aud) {
-			return nil, fmt.Errorf("%w, invalid audience", ErrInvalidJWTToken)
+		if slices.Contains(s.tokenVars.jwtAudience, aud) {
+			hasAudience = true
+
+			break
 		}
+	}
+	if !hasAudience {
+		return nil, fmt.Errorf("%w, invalid audience", ErrInvalidJWTToken)
 	}
 
 	return claims, nil
