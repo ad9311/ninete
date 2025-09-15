@@ -156,8 +156,9 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 			return
 		}
+		safeUser := user.ToSafe()
 
-		ctx := context.WithValue(r.Context(), prog.KeyCurrentUser, user)
+		ctx := context.WithValue(r.Context(), prog.KeyCurrentUser, &safeUser)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

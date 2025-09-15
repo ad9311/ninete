@@ -19,8 +19,8 @@ func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, http.StatusOK, user)
 }
 
-func getUserContext(r *http.Request) (repo.SafeUser, bool) {
-	user, ok := r.Context().Value(prog.KeyCurrentUser).(repo.SafeUser)
+func getUserContext(r *http.Request) (*repo.SafeUser, bool) {
+	user, ok := r.Context().Value(prog.KeyCurrentUser).(*repo.SafeUser)
 
-	return user, ok
+	return user, ok && user != nil
 }
