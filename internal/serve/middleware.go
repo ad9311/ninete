@@ -146,6 +146,8 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
 			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
+
+			return
 		}
 
 		user, err := s.store.FindUserByID(r.Context(), int(userID))

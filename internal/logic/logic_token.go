@@ -102,7 +102,7 @@ func (s *Store) ParseAndValidateJWT(tokenString string) (jwt.MapClaims, error) {
 
 func (s *Store) parseJWT(tokenString string) (*jwt.Token, error) {
 	keyFunc := func(_ *jwt.Token) (any, error) {
-		return s.tokenVars.jwtSecret, nil
+		return []byte(s.tokenVars.jwtSecret), nil
 	}
 
 	token, err := jwt.ParseWithClaims(
