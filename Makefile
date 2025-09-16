@@ -5,6 +5,7 @@ ENV_FILES := .env
 export
 
 # ========= Variables =========
+GO_BUILD_ENVS     ?= CGO_ENABLED=1
 INTERNAL_PATH     := github.com/ad9311/ninete/internal
 SHELL             := /bin/bash
 
