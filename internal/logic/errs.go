@@ -10,9 +10,7 @@ import (
 )
 
 var (
-	ErrUnmatchedPasswords   = errors.New("passwords do not match")
-	ErrPasswordTooLong      = errors.New("password too long")
-	ErrUserAlreadyExists    = errors.New("user already exists")
+	ErrWithPasswords        = errors.New("failed to save passwords")
 	ErrWrongEmailOrPassword = errors.New("wrong email or password")
 
 	ErrValidationAssertion = errors.New("failed to assert error type")
@@ -31,6 +29,14 @@ func (s *Store) ValidateStruct(st any) error {
 	return nil
 }
 
+func HandleDBError(err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+
+	return err
+}
+
 func fmtValidationErrors(err error) error {
 	valErr, ok := err.(validator.ValidationErrors)
 	if !ok {
@@ -47,12 +53,4 @@ func fmtValidationErrors(err error) error {
 	wrappedErr := fmt.Errorf("%w: %s", ErrValidationFailed, errStr)
 
 	return wrappedErr
-}
-
-func HandleDBError(err error) error {
-	if errors.Is(err, sql.ErrNoRows) {
-		return ErrNotFound
-	}
-
-	return err
 }

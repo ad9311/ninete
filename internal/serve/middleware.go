@@ -42,7 +42,6 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 				s.respondError(
 					w,
 					http.StatusUnsupportedMediaType,
-					CodeGeneric,
 					ErrContentNotSupported,
 				)
 
@@ -72,7 +71,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Access-Control-Request-Headers")
 
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, CodeForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
 
 				return
 			}
@@ -95,7 +94,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, CodeForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
 
 				return
 			}
@@ -109,11 +108,11 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 }
 
 func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusNotFound, CodeGeneric, ErrNotPathFound)
+	s.respondError(w, http.StatusNotFound, ErrNotPathFound)
 }
 
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusMethodNotAllowed, CodeForbidden, ErrMethodNotAllowed)
+	s.respondError(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
@@ -121,7 +120,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			s.respondError(w, http.StatusUnauthorized, CodeGeneric, ErrInvalidAccessToken)
+			s.respondError(w, http.StatusUnauthorized, ErrInvalidAccessToken)
 
 			return
 		}
@@ -130,7 +129,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 		claims, err := s.store.ParseAndValidateJWT(tokenString)
 		if err != nil {
-			s.respondError(w, http.StatusUnauthorized, CodeGeneric, err)
+			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}
@@ -138,21 +137,21 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		userIDStr, ok := claims["sub"].(string)
 		if !ok {
 			err := fmt.Errorf("%w, invalid claims sub type", logic.ErrInvalidJWTToken)
-			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
+			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}
 		userID, err := strconv.Atoi(userIDStr)
 		if err != nil {
 			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
-			s.respondError(w, http.StatusUnauthorized, CodeBadFormat, err)
+			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}
 
 		user, err := s.store.FindUserByID(r.Context(), userID)
 		if err != nil {
-			s.respondError(w, http.StatusUnauthorized, CodeGeneric, err)
+			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}

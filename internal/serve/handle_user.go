@@ -11,7 +11,7 @@ import (
 func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := getUserContext(r)
 	if !ok {
-		s.respondError(w, http.StatusInternalServerError, CodeGeneric, logic.ErrNotFound)
+		s.respondError(w, http.StatusInternalServerError, logic.ErrNotFound)
 
 		return
 	}

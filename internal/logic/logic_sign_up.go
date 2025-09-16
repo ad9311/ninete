@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/ad9311/ninete/internal/repo"
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +20,7 @@ func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeU
 	var user repo.User
 
 	if params.Password != params.PasswordConfirmation {
-		return user.ToSafe(), ErrUnmatchedPasswords
+		return user.ToSafe(), fmt.Errorf("%w, they do not match", ErrWithPasswords)
 	}
 
 	if err := s.ValidateStruct(params); err != nil {
@@ -49,7 +50,7 @@ func hashPassword(rawPassword string) ([]byte, error) {
 	passHash, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
-			return passHash, ErrPasswordTooLong
+			return passHash, fmt.Errorf("%w, too long", ErrWithPasswords)
 		}
 
 		return passHash, err
