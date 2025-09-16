@@ -5,7 +5,7 @@ ENV_FILES := .env
 export
 
 # ========= Variables =========
-GO_BUILDENV       := CGO_ENABLED=1 GOOS=linux GOARCH=amd64
+GO_BUILD_ENVS     ?= CGO_ENABLED=1
 INTERNAL_PATH     := github.com/ad9311/ninete/internal
 SHELL             := /bin/bash
 
@@ -17,7 +17,7 @@ build: ## Build the application binary
 	@echo "Building binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	@$(GO_BUILDENV) go build -o ./build/dev ./cmd/ninete/main.go
+	@$(GO_BUILD_ENVS) go build -o ./build/dev ./cmd/ninete/main.go
 
 dev: build ## Run the app in development mode
 	@echo "Starting application..."
@@ -27,7 +27,7 @@ build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	$(GO_BUILDENV) go build -o ./build/dev_migrate ./cmd/migrate/main.go
+	$(GO_BUILD_ENVS) go build -o ./build/dev_migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up
 	@echo "Running migrations..."
@@ -70,4 +70,3 @@ lint-fix: ## Run golangci-lint with automatic fixes
 help: ## Show this help message
 	@echo "Available commands:"
 	@awk 'BEGIN { FS = ":.*##" } /^[a-zA-Z0-9_.-]+:.*##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
-
