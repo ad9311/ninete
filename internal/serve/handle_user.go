@@ -1,9 +1,9 @@
 package serve
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 )
@@ -11,7 +11,11 @@ import (
 func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := getUserContext(r)
 	if !ok {
-		s.respondError(w, http.StatusInternalServerError, logic.ErrNotFound)
+		s.respondError(
+			w,
+			http.StatusInternalServerError,
+			fmt.Errorf("%w: current user", ErrMissingContext),
+		)
 
 		return
 	}

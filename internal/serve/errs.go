@@ -10,4 +10,5 @@ var (
 	ErrFormParsing         = errors.New("failed to parse form")
 	ErrInvalidAccessToken  = errors.New("invalid access token")
 	ErrInvalidAuthCreds    = errors.New("invalid auth credentials")
+	ErrMissingContext      = errors.New("missing context")
 )
