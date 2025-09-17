@@ -51,3 +51,18 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 
 	return rf, err
 }
+
+const deleteRefreshTokens = `
+DELETE FROM refresh_tokens WHERE token_hash = $1 RETURNING id`
+
+func (q *Queries) DeleteRefreshToken(ctx context.Context, tokenHash []byte) (int, error) {
+	var id int
+	var err error
+
+	q.wrapQuery(deleteRefreshTokens, func() {
+		row := q.db.QueryRowContext(ctx, deleteRefreshTokens, tokenHash)
+		err = row.Scan(&id)
+	})
+
+	return id, err
+}
