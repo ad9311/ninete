@@ -23,7 +23,7 @@ func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
 
 	var params logic.SessionParams
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, err)
+		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
 
 		return
 	}

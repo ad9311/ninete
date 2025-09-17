@@ -42,7 +42,7 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 				s.respondError(
 					w,
 					http.StatusUnsupportedMediaType,
-					ErrContentNotSupported,
+					fmt.Errorf("%w: request content not suported", ErrNotAllowed),
 				)
 
 				return
@@ -71,7 +71,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Access-Control-Request-Headers")
 
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, fmt.Errorf("%w: origin not allowed", ErrNotAllowed))
 
 				return
 			}
@@ -94,7 +94,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, fmt.Errorf("%w: origin not allowed", ErrNotAllowed))
 
 				return
 			}
@@ -108,11 +108,11 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 }
 
 func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusNotFound, ErrNotPathFound)
+	s.respondError(w, http.StatusNotFound, fmt.Errorf("%w: path not found", ErrNotAllowed))
 }
 
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
+	s.respondError(w, http.StatusMethodNotAllowed, fmt.Errorf("%w: method not allowed", ErrNotAllowed))
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
@@ -120,7 +120,11 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			s.respondError(w, http.StatusUnauthorized, ErrInvalidAccessToken)
+			s.respondError(
+				w,
+				http.StatusUnauthorized,
+				fmt.Errorf("%w missing Bearer for Authotization header", ErrInvalidAuthCreds),
+			)
 
 			return
 		}
