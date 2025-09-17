@@ -70,7 +70,7 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 
 	value, err := jwtToken.SignedString([]byte(s.tokenVars.jwtSecret))
 	if err != nil {
-		s.app.Logger.Error("Failed to generate access token for user %d: %v", userID, err)
+		s.app.Logger.Errorf("Failed to generate access token for user %d: %v", userID, err)
 
 		return token, fmt.Errorf("failed to generate access token: %w", err)
 	}

@@ -17,7 +17,7 @@ const (
 )
 
 type App struct {
-	ENV    string
+	env    string
 	Logger *Logger
 }
 
@@ -39,9 +39,28 @@ func Load() (*App, error) {
 	}
 
 	return &App{
-		ENV:    env,
-		Logger: NewLogger(),
+		env: env,
+		Logger: NewLogger(LoggerOptions{
+			EnableColor: env != ENVProduction,
+			EnableQuery: true,
+		}),
 	}, nil
+}
+
+func (a *App) ENV() string {
+	return a.env
+}
+
+func (a *App) IsProduction() bool {
+	return a.env == ENVProduction
+}
+
+func (a *App) IsDevelopment() bool {
+	return a.env == ENVDevelopment
+}
+
+func (a *App) IsTest() bool {
+	return a.env == ENVTest
 }
 
 func LoadList(envName string) ([]string, error) {

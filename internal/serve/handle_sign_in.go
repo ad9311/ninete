@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 )
 
@@ -36,7 +35,7 @@ func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.setRefreshTokenCookie(w, session)
+	s.setRefreshTokenCookie(w, session.RefreshToken)
 
 	res := SessionResponse{
 		User:        session.User,
@@ -46,21 +45,15 @@ func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, http.StatusCreated, res)
 }
 
-func (s *Server) setRefreshTokenCookie(w http.ResponseWriter, session logic.NewSession) {
-	secure := s.app.ENV == prog.ENVProduction
-
-	http.SetCookie(w, newRefreshCookie(session.RefreshToken, secure))
-}
-
-func newRefreshCookie(token logic.Token, secure bool) *http.Cookie {
-	return &http.Cookie{
+func (s *Server) setRefreshTokenCookie(w http.ResponseWriter, token logic.Token) {
+	http.SetCookie(w, &http.Cookie{
 		Name:     cookieName,
 		Value:    token.Value,
 		Path:     cookiePath,
 		HttpOnly: true,
-		Secure:   secure,
+		Secure:   s.app.IsProduction(),
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Unix(token.ExpiresAt, 0),
 		MaxAge:   int(time.Until(time.Unix(token.ExpiresAt, 0)).Seconds()),
-	}
+	})
 }

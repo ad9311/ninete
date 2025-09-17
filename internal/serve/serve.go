@@ -63,9 +63,9 @@ func (s *Server) Start() error {
 	defer stop()
 
 	go func() {
-		s.app.Logger.Log("Server starting on port %s\n", s.port)
+		s.app.Logger.Logf("Server starting on port %s\n", s.port)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			s.app.Logger.Error("ListenAndServe error: %v", err)
+			s.app.Logger.Errorf("ListenAndServe error: %v", err)
 		}
 	}()
 
@@ -76,7 +76,7 @@ func (s *Server) Start() error {
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		s.app.Logger.Error("Graceful shutdown failed: %v", err)
+		s.app.Logger.Errorf("Graceful shutdown failed: %v", err)
 
 		return err
 	}
