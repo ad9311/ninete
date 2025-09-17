@@ -132,7 +132,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 		claims, err := s.store.ParseAndValidateJWT(tokenString)
 		if err != nil {
-			s.respondError(w, http.StatusUnauthorized, err)
+			s.respondError(w, http.StatusUnauthorized, fmt.Errorf("%w, %w", ErrInvalidAuthCreds, err))
 
 			return
 		}
