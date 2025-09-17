@@ -20,6 +20,12 @@ func New(app *prog.App, db *sql.DB) Queries {
 }
 
 func (q *Queries) wrapQuery(query string, queryFunc func()) {
+	if !q.app.Logger.EnableQuery {
+		queryFunc()
+
+		return
+	}
+
 	start := time.Now()
 	defer func() {
 		q.app.Logger.Query(query, time.Since(start))

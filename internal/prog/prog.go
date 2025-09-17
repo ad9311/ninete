@@ -40,7 +40,7 @@ func Load() (*App, error) {
 
 	return &App{
 		env: env,
-		Logger: NewLogger(LoggerOptions{
+		Logger: NewLogger(LogOptions{
 			EnableColor: env != ENVProduction,
 			EnableQuery: true,
 		}),

@@ -39,7 +39,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		prog.NewLogger(prog.LoggerOptions{
+		prog.NewLogger(prog.LogOptions{
 			EnableColor: true,
 		}).Errorf("%v", err)
 	}

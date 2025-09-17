@@ -18,34 +18,35 @@ const (
 )
 
 type Logger struct {
-	mutex       sync.Mutex
-	out         io.Writer
-	outErr      io.Writer
-	enableColor bool
-	enableQuery bool
+	Out         io.Writer
+	OutErr      io.Writer
+	EnableColor bool
+	EnableQuery bool
+
+	mutex sync.Mutex
 }
 
-type LoggerOptions struct {
+type LogOptions struct {
 	Out         io.Writer
 	OutErr      io.Writer
 	EnableColor bool
 	EnableQuery bool
 }
 
-func NewLogger(ops LoggerOptions) *Logger {
-	if ops.Out == nil {
-		ops.Out = os.Stdout
+func NewLogger(opt LogOptions) *Logger {
+	if opt.Out == nil {
+		opt.Out = os.Stdout
 	}
 
-	if ops.OutErr == nil {
-		ops.OutErr = os.Stderr
+	if opt.OutErr == nil {
+		opt.OutErr = os.Stderr
 	}
 
 	return &Logger{
-		out:         ops.Out,
-		outErr:      ops.OutErr,
-		enableColor: ops.EnableColor,
-		enableQuery: ops.EnableQuery,
+		Out:         opt.Out,
+		OutErr:      opt.OutErr,
+		EnableColor: opt.EnableColor,
+		EnableQuery: opt.EnableQuery,
 	}
 }
 
@@ -53,7 +54,7 @@ func (l *Logger) Log(a any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if err := output(l.out, "%v", a); err != nil {
+	if err := output(l.Out, "%v", a); err != nil {
 		panic(err)
 	}
 }
@@ -62,7 +63,7 @@ func (l *Logger) Logf(format string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if err := output(l.out, format, args...); err != nil {
+	if err := output(l.Out, format, args...); err != nil {
 		panic(err)
 	}
 }
@@ -73,7 +74,7 @@ func (l *Logger) Error(a any) {
 
 	format := l.handleColor(red+"%v", "%v")
 
-	if err := output(l.outErr, format, a); err != nil {
+	if err := output(l.OutErr, format, a); err != nil {
 		panic(err)
 	}
 }
@@ -84,7 +85,7 @@ func (l *Logger) Errorf(format string, args ...any) {
 
 	format = l.handleColor(red+format, format)
 
-	if err := output(l.outErr, format, args...); err != nil {
+	if err := output(l.OutErr, format, args...); err != nil {
 		panic(err)
 	}
 }
@@ -95,7 +96,7 @@ func (l *Logger) Debug(a any) {
 
 	format := l.handleColor(yellow+"%v", "%v")
 
-	if err := output(l.out, format, a); err != nil {
+	if err := output(l.Out, format, a); err != nil {
 		panic(err)
 	}
 }
@@ -106,13 +107,13 @@ func (l *Logger) Debugf(format string, args ...any) {
 
 	format = l.handleColor(yellow+format, format)
 
-	if err := output(l.out, format, args...); err != nil {
+	if err := output(l.Out, format, args...); err != nil {
 		panic(err)
 	}
 }
 
 func (l *Logger) Query(query string, dur time.Duration) {
-	if !l.enableQuery {
+	if !l.EnableQuery {
 		return
 	}
 
@@ -125,13 +126,13 @@ func (l *Logger) Query(query string, dur time.Duration) {
 	format := bold + blue + query + ";" + red + durStr
 	format = l.handleColor(format, query+";"+durStr)
 
-	if err := output(l.out, format); err != nil {
+	if err := output(l.Out, format); err != nil {
 		panic(err)
 	}
 }
 
 func (l *Logger) handleColor(withColor, noColor string) string {
-	if l.enableColor {
+	if l.EnableColor {
 		return withColor + reset
 	}
 
