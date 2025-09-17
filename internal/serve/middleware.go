@@ -41,7 +41,7 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 				s.respondError(
 					w,
 					http.StatusUnsupportedMediaType,
-					fmt.Errorf("%w: request content not suported", ErrNotAllowed),
+					fmt.Errorf("%w: request content not supported", ErrNotAllowed),
 				)
 
 				return
@@ -122,7 +122,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			s.respondError(
 				w,
 				http.StatusUnauthorized,
-				fmt.Errorf("%w missing Bearer for Authotization header", ErrInvalidAuthCreds),
+				fmt.Errorf("%w missing Bearer for Authorization header", ErrInvalidAuthCreds),
 			)
 
 			return
