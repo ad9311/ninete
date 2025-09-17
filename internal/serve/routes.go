@@ -13,6 +13,7 @@ func (s *Server) setUpRoutes() {
 			auth.Route("/auth", func(auth chi.Router) {
 				auth.Post("/sign-up", s.postSignUp)
 				auth.Post("/sign-in", s.postSignIn)
+				auth.Delete("/sign-out", s.deleteSignOut)
 			})
 		})
 
@@ -20,7 +21,6 @@ func (s *Server) setUpRoutes() {
 			secure.Use(s.AuthMiddleware)
 
 			secure.Get("/users/me", s.getMe)
-			secure.Delete("/auth/sign-out", s.deleteSignOut)
 		})
 	})
 }
