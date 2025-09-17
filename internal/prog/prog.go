@@ -39,9 +39,24 @@ func Load() (*App, error) {
 	}
 
 	return &App{
-		ENV:    env,
-		Logger: NewLogger(),
+		ENV: env,
+		Logger: NewLogger(LogOptions{
+			EnableColor: env != ENVProduction,
+			EnableQuery: true,
+		}),
 	}, nil
+}
+
+func (a *App) IsProduction() bool {
+	return a.ENV == ENVProduction
+}
+
+func (a *App) IsDevelopment() bool {
+	return a.ENV == ENVDevelopment
+}
+
+func (a *App) IsTest() bool {
+	return a.ENV == ENVTest
 }
 
 func LoadList(envName string) ([]string, error) {

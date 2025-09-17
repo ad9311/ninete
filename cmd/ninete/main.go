@@ -2,7 +2,7 @@
 package main
 
 import (
-	"database/sql"
+	"log"
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -15,27 +15,31 @@ import (
 func main() {
 	var exitCode int
 
-	exitCode, err := start()
+	app, err := prog.Load()
 	if err != nil {
-		prog.NewLogger().Error("%v", err)
+		log.Fatalf("failed to load app configuration: %v", err)
+	}
+
+	exitCode, err = start(app)
+	if err != nil {
+		app.Logger.Errorf("%v", err)
 	}
 
 	os.Exit(exitCode)
 }
 
-func start() (int, error) {
-	app, err := prog.Load()
-	if err != nil {
-		return 1, err
-	}
-
+func start(app *prog.App) (int, error) {
 	app.Logger.Log("Booting up application...")
 
 	sqlDB, err := db.Open()
 	if err != nil {
 		return 1, err
 	}
-	defer closeDB(sqlDB)
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			app.Logger.Errorf("failed to close database: %v", err)
+		}
+	}()
 
 	queries := repo.New(app, sqlDB)
 
@@ -55,10 +59,4 @@ func start() (int, error) {
 	}
 
 	return 0, nil
-}
-
-func closeDB(sqlDB *sql.DB) {
-	if err := sqlDB.Close(); err != nil {
-		prog.NewLogger().Log("failed to close database: %v", err)
-	}
 }

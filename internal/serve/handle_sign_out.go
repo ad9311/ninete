@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 )
 
 func (s *Server) deleteSignOut(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +20,7 @@ func (s *Server) deleteSignOut(w http.ResponseWriter, r *http.Request) {
 	err = s.store.SignOutUser(r.Context(), cookie.Value)
 	if err != nil {
 		if !errors.Is(err, logic.ErrNotFound) {
-			s.app.Logger.Error("failed to delete refresh token, %v", err)
+			s.app.Logger.Errorf("failed to delete refresh token, %v", err)
 		}
 		s.deleteRefreshCookie(w)
 		s.respondNoContent(w)
@@ -39,7 +38,7 @@ func (s *Server) deleteRefreshCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     cookiePath,
 		HttpOnly: true,
-		Secure:   s.app.ENV == prog.ENVProduction,
+		Secure:   s.app.IsProduction(),
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Unix(0, 0),
 	}

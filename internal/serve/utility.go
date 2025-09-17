@@ -32,7 +32,7 @@ func (s *Server) respondError(w http.ResponseWriter, status int, err error) {
 func (s *Server) setHeaderAndWrite(w http.ResponseWriter, status int, body any) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(body); err != nil {
-		s.app.Logger.Error("failed to encode to JSON: %v", err)
+		s.app.Logger.Errorf("failed to encode to JSON: %v", err)
 		http.Error(
 			w,
 			`{"error":{"code":"INTERNAL_ERROR","message":"failed to encode response"},"data":null}`,
@@ -44,7 +44,7 @@ func (s *Server) setHeaderAndWrite(w http.ResponseWriter, status int, body any) 
 
 	w.WriteHeader(status)
 	if _, err := io.Copy(w, &buf); err != nil {
-		s.app.Logger.Error("failed to write response: %v", err)
+		s.app.Logger.Errorf("failed to write response: %v", err)
 	}
 }
 

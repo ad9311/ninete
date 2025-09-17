@@ -29,7 +29,7 @@ func (s *Store) SignInUser(ctx context.Context, params SessionParams) (NewSessio
 	user, err := s.FindUserByEmail(ctx, params.Email)
 	if err != nil {
 		if !errors.Is(err, ErrNotFound) {
-			s.app.Logger.Error("failed to find user by email: %v", err)
+			s.app.Logger.Errorf("failed to find user by email: %v", err)
 		}
 
 		return session, ErrWrongEmailOrPassword

@@ -163,7 +163,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 }
 
 func (s *Server) setUpMiddlewares() {
-	if s.app.ENV != prog.ENVTest {
+	if !s.app.IsTest() {
 		s.Router.Use(middleware.Logger)
 	}
 

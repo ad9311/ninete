@@ -17,88 +17,135 @@ const (
 	bold   = "\x1b[1m"
 )
 
-type semantic int
-
-const (
-	infoLevel semantic = iota
-	errorLevel
-	debugLevel
-	queryLevel
-)
-
 type Logger struct {
-	mutex  sync.Mutex
-	out    io.Writer
-	outErr io.Writer
+	Out         io.Writer
+	OutErr      io.Writer
+	EnableColor bool
+	EnableQuery bool
+
+	mutex sync.Mutex
 }
 
-func NewLogger() *Logger {
+type LogOptions struct {
+	Out         io.Writer
+	OutErr      io.Writer
+	EnableColor bool
+	EnableQuery bool
+}
+
+func NewLogger(opt LogOptions) *Logger {
+	if opt.Out == nil {
+		opt.Out = os.Stdout
+	}
+
+	if opt.OutErr == nil {
+		opt.OutErr = os.Stderr
+	}
+
 	return &Logger{
-		out:    os.Stdout,
-		outErr: os.Stderr,
+		Out:         opt.Out,
+		OutErr:      opt.OutErr,
+		EnableColor: opt.EnableColor,
+		EnableQuery: opt.EnableQuery,
 	}
 }
 
-func (l *Logger) Log(msg string, args ...any) {
+func (l *Logger) Log(a any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if err := writeLine(l.out, infoLevel, msg, args...); err != nil {
+	if err := output(l.Out, "%v", a); err != nil {
 		panic(err)
 	}
 }
 
-func (l *Logger) Error(msg string, args ...any) {
+func (l *Logger) Logf(format string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if err := writeLine(l.outErr, errorLevel, msg, args...); err != nil {
+	if err := output(l.Out, format, args...); err != nil {
 		panic(err)
 	}
 }
 
-func (l *Logger) Debug(msg string, args ...any) {
+func (l *Logger) Error(a any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if err := writeLine(l.out, debugLevel, msg, args...); err != nil {
+	format := l.handleColor(red+"%v", "%v")
+
+	if err := output(l.OutErr, format, a); err != nil {
+		panic(err)
+	}
+}
+
+func (l *Logger) Errorf(format string, args ...any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	colorFormat := l.handleColor(red+format, format)
+
+	if err := output(l.OutErr, colorFormat, args...); err != nil {
+		panic(err)
+	}
+}
+
+func (l *Logger) Debug(a any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	format := l.handleColor(yellow+"%v", "%v")
+
+	if err := output(l.Out, format, a); err != nil {
+		panic(err)
+	}
+}
+
+func (l *Logger) Debugf(format string, args ...any) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	colorFormat := l.handleColor(yellow+format, format)
+
+	if err := output(l.Out, colorFormat, args...); err != nil {
 		panic(err)
 	}
 }
 
 func (l *Logger) Query(query string, dur time.Duration) {
+	if !l.EnableQuery {
+		return
+	}
+
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
 	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
 
-	msg := blue + query + red + ";" + " [" + dur.String() + "]"
+	durStr := " [" + dur.String() + "]"
+	format := bold + blue + query + ";" + red + durStr
+	format = l.handleColor(format, query+";"+durStr)
 
-	if err := writeLine(l.out, queryLevel, msg); err != nil {
+	if err := output(l.Out, format); err != nil {
 		panic(err)
 	}
 }
 
-func writeLine(w io.Writer, level semantic, msg string, args ...any) error {
-	var body string
-
-	switch level {
-	case errorLevel:
-		body = red + msg
-	case debugLevel:
-		body = yellow + msg
-	case queryLevel:
-		body = bold + msg
-	default:
-		body = msg
+func (l *Logger) handleColor(withColor, noColor string) string {
+	if l.EnableColor {
+		return withColor + reset
 	}
 
-	line := timestamp() + " " + body + reset + "\n"
-	_, err := fmt.Fprintf(w, line, args...)
+	return noColor
+}
+
+func output(w io.Writer, format string, args ...any) error {
+	finalFormat := timestamp() + " " + format + "\n"
+	_, err := fmt.Fprintf(w, finalFormat, args...)
 
 	return err
 }
 
 func timestamp() string {
-	return time.Now().UTC().Format("[02/01/06-15:04]")
+	return time.Now().UTC().Format("[02/01/06 15:04]")
 }
