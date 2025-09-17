@@ -20,6 +20,7 @@ func (s *Server) setUpRoutes() {
 			secure.Use(s.AuthMiddleware)
 
 			secure.Get("/users/me", s.getMe)
+			secure.Delete("/auth/sign-out", s.deleteSignOut)
 		})
 	})
 }
