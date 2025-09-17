@@ -25,12 +25,12 @@ type tokenVars struct {
 func New(app *prog.App, queries repo.Queries) (*Store, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		return nil, fmt.Errorf("%w: JWT_SECRET", prog.ErrEnvNoTSet)
+		return nil, fmt.Errorf("'JWT_SECRET' %w", prog.ErrEnvNoTSet)
 	}
 
 	jwtIssuer := os.Getenv("JWT_ISSUER")
 	if jwtIssuer == "" {
-		return nil, fmt.Errorf("%w: JWT_ISSUER", prog.ErrEnvNoTSet)
+		return nil, fmt.Errorf("JWT_ISSUER' %w", prog.ErrEnvNoTSet)
 	}
 
 	jwtAudience, err := prog.LoadList("JWT_AUDIENCE")

@@ -43,7 +43,7 @@ func NewRegistry() *Registry {
 
 func (r *Registry) Register(cmd *Command) error {
 	if command, exists := r.cmds[cmd.Name]; exists {
-		return fmt.Errorf("%w: %s", ErrCommandExists, command.Name)
+		return fmt.Errorf("%w, '%s'", ErrCommandExists, command.Name)
 	}
 	r.cmds[cmd.Name] = cmd
 
@@ -62,11 +62,11 @@ func (r *Registry) Execute(args []string) (int, error) {
 	if !ok {
 		r.printUsage()
 
-		return 1, fmt.Errorf("%w: %s", ErrUnknownCommand, name)
+		return 1, fmt.Errorf("%w, '%s'", ErrUnknownCommand, name)
 	}
 
 	if err := cmd.Run(args[1:]); err != nil {
-		msg := "command " + name + " failed with:"
+		msg := "command " + "'" + name + "'" + " failed,"
 
 		return 2, fmt.Errorf("%s %w", msg, err)
 	}

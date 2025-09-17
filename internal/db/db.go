@@ -21,9 +21,9 @@ const (
 var initPragmas embed.FS
 
 func Open() (*sql.DB, error) {
-	url := os.Getenv("DATABASE_URL")
+	url := os.Getenv("DATABASE_URLx")
 	if url == "" {
-		return nil, fmt.Errorf("%w: DATABASE_URL", prog.ErrEnvNoTSet)
+		return nil, fmt.Errorf("'DATABASE_URL' %w", prog.ErrEnvNoTSet)
 	}
 
 	maxOpenConns, err := prog.SetInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
