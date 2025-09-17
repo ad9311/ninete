@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -140,14 +139,14 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 		userIDStr, ok := claims["sub"].(string)
 		if !ok {
-			err := fmt.Errorf("%w, invalid claims sub type", logic.ErrInvalidJWTToken)
+			err := fmt.Errorf("%w, invalid type for jwt claim 'sub'", ErrInvalidAuthCreds)
 			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}
 		userID, err := strconv.Atoi(userIDStr)
 		if err != nil {
-			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
+			err := fmt.Errorf("%w, invalid value for jwt claim 'sub'", ErrInvalidAuthCreds)
 			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
