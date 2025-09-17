@@ -83,9 +83,9 @@ func (l *Logger) Errorf(format string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	format = l.handleColor(red+format, format)
+	colorFormat := l.handleColor(red+format, format)
 
-	if err := output(l.OutErr, format, args...); err != nil {
+	if err := output(l.OutErr, colorFormat, args...); err != nil {
 		panic(err)
 	}
 }
@@ -105,9 +105,9 @@ func (l *Logger) Debugf(format string, args ...any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	format = l.handleColor(yellow+format, format)
+	colorFormat := l.handleColor(yellow+format, format)
 
-	if err := output(l.Out, format, args...); err != nil {
+	if err := output(l.Out, colorFormat, args...); err != nil {
 		panic(err)
 	}
 }
@@ -140,8 +140,8 @@ func (l *Logger) handleColor(withColor, noColor string) string {
 }
 
 func output(w io.Writer, format string, args ...any) error {
-	format = timestamp() + " " + format + "\n"
-	_, err := fmt.Fprintf(w, format, args...)
+	finalFormat := timestamp() + " " + format + "\n"
+	_, err := fmt.Fprintf(w, finalFormat, args...)
 
 	return err
 }
