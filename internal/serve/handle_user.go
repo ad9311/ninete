@@ -14,7 +14,7 @@ func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
 		s.respondError(
 			w,
 			http.StatusInternalServerError,
-			fmt.Errorf("%w: current user", ErrMissingContext),
+			fmt.Errorf("%w for current user", ErrMissingContext),
 		)
 
 		return

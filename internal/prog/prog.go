@@ -34,7 +34,7 @@ func Load() (*App, error) {
 	if env != ENVProduction {
 		path, ok := findRelativeENVFile()
 		if err := godotenv.Load(path); !ok || err != nil {
-			return nil, fmt.Errorf("failed to load .env, file %w", err)
+			return nil, fmt.Errorf("failed to load '.env', file %w", err)
 		}
 	}
 
@@ -69,13 +69,13 @@ func LoadList(envName string) ([]string, error) {
 }
 
 func SetInt(envName string, def int) (int, error) {
-	maxConnsStr := os.Getenv(envName)
-	if maxConnsStr == "" {
+	envStr := os.Getenv(envName)
+	if envStr == "" {
 		return def, nil
 	}
-	v, err := strconv.ParseInt(maxConnsStr, 10, 64)
+	v, err := strconv.ParseInt(envStr, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("failed to parse %s: %w", maxConnsStr, err)
+		return 0, fmt.Errorf("failed to parse %s: %w", envStr, err)
 	}
 
 	return int(v), nil
@@ -84,7 +84,7 @@ func SetInt(envName string, def int) (int, error) {
 func isValidENV(env string) error {
 	ok := validENVs()[env]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrInvalidEnv, env)
+		return fmt.Errorf("%w '%s'", ErrInvalidEnv, env)
 	}
 
 	return nil

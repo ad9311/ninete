@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -42,7 +41,7 @@ func (s *Server) JSONMiddleware(next http.Handler) http.Handler {
 				s.respondError(
 					w,
 					http.StatusUnsupportedMediaType,
-					ErrContentNotSupported,
+					fmt.Errorf("%w: request content not supported", ErrNotAllowed),
 				)
 
 				return
@@ -71,7 +70,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 			w.Header().Add("Vary", "Access-Control-Request-Headers")
 
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, fmt.Errorf("%w: origin not allowed", ErrNotAllowed))
 
 				return
 			}
@@ -94,7 +93,7 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 
 		if r.Method == http.MethodOptions {
 			if !isOrigin {
-				s.respondError(w, http.StatusForbidden, ErrOriginNotAllowed)
+				s.respondError(w, http.StatusForbidden, fmt.Errorf("%w: origin not allowed", ErrNotAllowed))
 
 				return
 			}
@@ -108,11 +107,11 @@ func (s *Server) CORS(next http.Handler) http.Handler {
 }
 
 func (s *Server) NotFoundHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusNotFound, ErrNotPathFound)
+	s.respondError(w, http.StatusNotFound, fmt.Errorf("%w: path not found", ErrNotAllowed))
 }
 
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, _ *http.Request) {
-	s.respondError(w, http.StatusMethodNotAllowed, ErrMethodNotAllowed)
+	s.respondError(w, http.StatusMethodNotAllowed, fmt.Errorf("%w: method not allowed", ErrNotAllowed))
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
@@ -120,7 +119,11 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			s.respondError(w, http.StatusUnauthorized, ErrInvalidAccessToken)
+			s.respondError(
+				w,
+				http.StatusUnauthorized,
+				fmt.Errorf("%w missing Bearer for Authorization header", ErrInvalidAuthCreds),
+			)
 
 			return
 		}
@@ -129,21 +132,21 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 		claims, err := s.store.ParseAndValidateJWT(tokenString)
 		if err != nil {
-			s.respondError(w, http.StatusUnauthorized, err)
+			s.respondError(w, http.StatusUnauthorized, fmt.Errorf("%w, %w", ErrInvalidAuthCreds, err))
 
 			return
 		}
 
 		userIDStr, ok := claims["sub"].(string)
 		if !ok {
-			err := fmt.Errorf("%w, invalid claims sub type", logic.ErrInvalidJWTToken)
+			err := fmt.Errorf("%w, invalid type for jwt claim 'sub'", ErrInvalidAuthCreds)
 			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
 		}
 		userID, err := strconv.Atoi(userIDStr)
 		if err != nil {
-			err := fmt.Errorf("%w, invalid claims sub value", logic.ErrInvalidJWTToken)
+			err := fmt.Errorf("%w, invalid value for jwt claim 'sub'", ErrInvalidAuthCreds)
 			s.respondError(w, http.StatusUnauthorized, err)
 
 			return
