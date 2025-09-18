@@ -21,7 +21,7 @@ const (
 var initPragmas embed.FS
 
 func Open() (*sql.DB, error) {
-	url := os.Getenv("DATABASE_URLx")
+	url := os.Getenv("DATABASE_URL")
 	if url == "" {
 		return nil, fmt.Errorf("'DATABASE_URL' %w", prog.ErrEnvNoTSet)
 	}

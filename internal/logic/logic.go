@@ -30,7 +30,7 @@ func New(app *prog.App, queries repo.Queries) (*Store, error) {
 
 	jwtIssuer := os.Getenv("JWT_ISSUER")
 	if jwtIssuer == "" {
-		return nil, fmt.Errorf("JWT_ISSUER' %w", prog.ErrEnvNoTSet)
+		return nil, fmt.Errorf("'JWT_ISSUER' %w", prog.ErrEnvNoTSet)
 	}
 
 	jwtAudience, err := prog.LoadList("JWT_AUDIENCE")
