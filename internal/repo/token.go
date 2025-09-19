@@ -21,7 +21,7 @@ type InsertRefreshTokenParams struct {
 }
 
 const insertRefreshToken = `
-INSERT INTO refresh_tokens (user_id, token_hash, issued_at, expires_at)
+INSERT INTO "refresh_tokens" ("user_id", "token_hash", "issued_at", "expires_at")
 VALUES ($1, $2, $3, $4)
 RETURNING *`
 
@@ -53,7 +53,7 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 }
 
 const deleteRefreshToken = `
-DELETE FROM refresh_tokens WHERE token_hash = $1 RETURNING id`
+DELETE FROM "refresh_tokens" WHERE "token_hash" = $1 RETURNING id`
 
 func (q *Queries) DeleteRefreshToken(ctx context.Context, tokenHash []byte) (int, error) {
 	var id int
@@ -68,7 +68,7 @@ func (q *Queries) DeleteRefreshToken(ctx context.Context, tokenHash []byte) (int
 }
 
 const selectRefreshToken = `
-SELECT * FROM refresh_tokens WHERE token_hash = $1 LIMIT 1`
+SELECT * FROM "refresh_tokens" WHERE "token_hash" = $1 LIMIT 1`
 
 func (q *Queries) SelectRefreshToken(ctx context.Context, tokenHash []byte) (RefreshToken, error) {
 	var rt RefreshToken
