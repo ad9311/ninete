@@ -10,7 +10,6 @@ type RefreshToken struct {
 	TokenHash []byte `json:"token_hash"`
 	IssuedAt  int64  `json:"issuedAt"`
 	ExpiresAt int64  `json:"expiresAt"`
-	Revoked   bool   `json:"revoked"`
 }
 
 type InsertRefreshTokenParams struct {
@@ -45,7 +44,6 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 			&rt.TokenHash,
 			&rt.IssuedAt,
 			&rt.ExpiresAt,
-			&rt.Revoked,
 		)
 	})
 
@@ -83,7 +81,6 @@ func (q *Queries) SelectRefreshToken(ctx context.Context, tokenHash []byte) (Ref
 			&rt.TokenHash,
 			&rt.IssuedAt,
 			&rt.ExpiresAt,
-			&rt.Revoked,
 		)
 	})
 
