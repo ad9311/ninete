@@ -15,8 +15,8 @@ type AppStats struct {
 }
 
 type MemStats struct {
-	Allocated string
-	System    string
+	Allocated string `json:"allocated"`
+	System    string `json:"system"`
 }
 
 func (s *Store) AppStatus() (AppStats, error) {
