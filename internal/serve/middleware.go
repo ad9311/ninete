@@ -152,7 +152,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		user, err := s.store.FindUserByID(r.Context(), userID)
+		user, err := s.store.FindUser(r.Context(), userID)
 		if err != nil {
 			s.respondError(w, http.StatusUnauthorized, err)
 
