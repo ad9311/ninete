@@ -7,5 +7,12 @@ func (s *Server) getHealthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) getReadyz(w http.ResponseWriter, _ *http.Request) {
-	s.respond(w, http.StatusOK, "OK")
+	stats, err := s.store.AppStatus()
+	if err != nil {
+		s.respondError(w, http.StatusInternalServerError, err)
+
+		return
+	}
+
+	s.respond(w, http.StatusOK, stats)
 }
