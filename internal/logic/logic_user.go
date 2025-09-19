@@ -17,7 +17,7 @@ func (s *Store) FindUserByEmail(ctx context.Context, email string) (repo.User, e
 	return user, nil
 }
 
-func (s *Store) FindUserByID(ctx context.Context, id int) (repo.User, error) {
+func (s *Store) FindUser(ctx context.Context, id int) (repo.User, error) {
 	var user repo.User
 
 	user, err := s.queries.SelectUserByID(ctx, id)
