@@ -14,6 +14,7 @@ func (s *Server) setUpRoutes() {
 				auth.Post("/sign-up", s.postSignUp)
 				auth.Post("/sign-in", s.postSignIn)
 				auth.Delete("/sign-out", s.deleteSignOut)
+				auth.Post("/refresh", s.postRefresh)
 			})
 		})
 
