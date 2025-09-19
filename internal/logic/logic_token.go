@@ -25,6 +25,17 @@ type Token struct {
 	ExpiresAt int64  `json:"expiresAt"`
 }
 
+func (s *Store) FindRefreshToken(ctx context.Context, tokenStr string) (repo.RefreshToken, error) {
+	tokenHash := hashToken(tokenStr)
+
+	refreshToken, err := s.queries.SelectRefreshToken(ctx, tokenHash)
+	if err != nil {
+		return refreshToken, HandleDBError(err)
+	}
+
+	return refreshToken, nil
+}
+
 func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) {
 	var token Token
 
