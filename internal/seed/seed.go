@@ -13,16 +13,16 @@ import (
 func Run() error {
 	app, err := prog.Load()
 	if err != nil {
-		return fmt.Errorf("failed to load program configuratio: %w", err)
+		return fmt.Errorf("failed to load program configuration: %w", err)
 	}
 
 	sqlDB, err := db.Open()
 	if err != nil {
-		return fmt.Errorf("failed to connect to the database: %w", err)
+		return fmt.Errorf("failed to open the database: %w", err)
 	}
 	defer func() {
 		if err := sqlDB.Close(); err != nil {
-			app.Logger.Errorf("failed to close database connection, %v", err)
+			app.Logger.Errorf("failed to close database, %v", err)
 		}
 	}()
 
