@@ -44,6 +44,9 @@ migrate-create: build-migrate ## Run all migrations up
 migrate-status: build-migrate ## Run all migrations up
 	ENV=development ./build/dev_migrate status
 
+seed: build-migrate ## Seed the database
+	ENV=development ./build/dev_migrate seed
+
 clean: ## Removes compiled binaries
 	@echo "Removing binaries..."
 	@rm -rf ./build/*

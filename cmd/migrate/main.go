@@ -7,6 +7,7 @@ import (
 	"github.com/ad9311/ninete/internal/cmd"
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/prog"
+	"github.com/ad9311/ninete/internal/seed"
 )
 
 func main() {
@@ -35,6 +36,13 @@ func main() {
 			Description: "Print migrations status",
 			Run: func(_ []string) error {
 				return db.PrintStatus()
+			},
+		},
+		{
+			Name:        "seed",
+			Description: "Seed the database",
+			Run: func(_ []string) error {
+				return seed.Run()
 			},
 		},
 	})
