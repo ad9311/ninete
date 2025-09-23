@@ -60,6 +60,15 @@ deps: ## Install and tidy dependencies
 	go mod download
 	go mod tidy
 
+# ========= Tests ===========
+test: build
+	@echo "Running tests..."
+	ENV=test go test ./...
+
+test-verbose: build
+	@echo "Running tests in verbose mode"
+	ENV=test go test -v ./...
+
 # ========= Linting =========
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."

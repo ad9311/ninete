@@ -2,7 +2,6 @@
 package main
 
 import (
-	"log"
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -17,7 +16,11 @@ func main() {
 
 	app, err := prog.Load()
 	if err != nil {
-		log.Fatalf("failed to load app configuration: %v", err)
+		prog.NewLogger(prog.LogOptions{
+			EnableColor: true,
+		}).Errorf("failed to load app configuration: %v", err)
+
+		os.Exit(1)
 	}
 
 	exitCode, err = start(app)
