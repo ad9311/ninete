@@ -19,6 +19,8 @@ func main() {
 		prog.NewLogger(prog.LogOptions{
 			EnableColor: true,
 		}).Errorf("failed to load app configuration: %v", err)
+
+		os.Exit(1)
 	}
 
 	exitCode, err = start(app)

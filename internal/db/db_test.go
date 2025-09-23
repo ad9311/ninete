@@ -26,7 +26,7 @@ func TestOpen(t *testing.T) {
 			func(t *testing.T) {
 				maxOpenConns := os.Getenv("MAX_OPEN_CONNS")
 				value := strconv.Itoa(sqlDB.Stats().MaxOpenConnections)
-				require.Equal(t, value, maxOpenConns)
+				require.Equal(t, maxOpenConns, value)
 			},
 		},
 	}
