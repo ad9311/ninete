@@ -10,9 +10,9 @@ import (
 )
 
 type SignUpParams struct {
-	Username             string `json:"username" validate:"required,min=3,max=20"` // TODO validate format
+	Username             string `json:"username" validate:"required,alphanumunicode,min=3,max=20"`
 	Email                string `json:"email" validate:"email"`
-	Password             string `json:"password" validate:"min=8,max=20"` // TODO validate format
+	Password             string `json:"password" validate:"min=8,max=20"`
 	PasswordConfirmation string `json:"passwordConfirmation" validate:"min=8,max=20"`
 }
 
