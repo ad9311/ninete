@@ -12,10 +12,10 @@ import (
 
 func TestOpen(t *testing.T) {
 	_, err := prog.Load()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sqlDB, err := db.Open()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	cases := []struct {
 		name     string
