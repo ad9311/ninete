@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"database/sql"
+	"fmt"
 	"os"
 	"strconv"
 	"testing"
@@ -9,6 +11,25 @@ import (
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/stretchr/testify/require"
 )
+
+func OpenTestDB(url string) (*sql.DB, error) {
+	var sqlDB *sql.DB
+
+	if url == "" {
+		return nil, fmt.Errorf("'DATABASE_URL' %w", prog.ErrEnvNoTSet)
+	}
+
+	if err := os.Setenv("DATABASE_URL", url); err != nil {
+		return nil, fmt.Errorf("failed set DATABASE_URL env: %w", err)
+	}
+
+	sqlDB, err := db.Open()
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	return sqlDB, nil
+}
 
 func TestOpen(t *testing.T) {
 	_, err := prog.Load()
