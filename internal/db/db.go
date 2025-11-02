@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	initFile = "init/init.sql"
-
-	defaultMaxOpenConns = 1
-	defaultMaxIdleConns = 1
+	DefaultMaxOpenConns = 1
+	DefaultMaxIdleConns = 1
 )
+
+const initFile = "init/init.sql"
 
 //go:embed init/*.sql
 var initPragmas embed.FS
@@ -26,12 +26,12 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("'DATABASE_URL' %w", prog.ErrEnvNoTSet)
 	}
 
-	maxOpenConns, err := prog.SetInt("MAX_OPEN_CONNS", defaultMaxOpenConns)
+	maxOpenConns, err := prog.SetInt("MAX_OPEN_CONNS", DefaultMaxOpenConns)
 	if err != nil {
 		return nil, err
 	}
 
-	maxIdleConns, err := prog.SetInt("MAX_IDLE_CONNS", defaultMaxIdleConns)
+	maxIdleConns, err := prog.SetInt("MAX_IDLE_CONNS", DefaultMaxIdleConns)
 	if err != nil {
 		return nil, err
 	}
