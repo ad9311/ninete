@@ -51,16 +51,19 @@ clean: ## Removes compiled binaries
 	@echo "Removing binaries..."
 	@rm -rf ./build/*
 
-clean-db: ## Removes db files
-	@echo "Removing databases..."
-	@rm -rf ./data/db/db
-	@rm -rf ./data/db/test
+clean-db: ## Removes dev database file
+	@echo "Removing development database..."
+	@rm -rf ./data/db/dev/*
+
+clean-test-db: ## Removes test database files
+	@echo "Removing test databases..."
+	@rm -rf ./data/db/test/*
 
 clean-test-cache: ## Cleans go test cache
 	@echo "Removing go test cache..."
 	@go clean -testcache
 
-clean-full: clean clean-db clean-test-cache ## Runs `clean`, `clean-db` and `clean-test-cache`
+clean-full: clean clean-db clean-test-db clean-test-cache ## Runs `clean`, `clean-db`, `clean-test-db` and `clean-test-cache`
 	@echo "Full clean done!"
 
 deps: ## Install and tidy dependencies
@@ -69,17 +72,15 @@ deps: ## Install and tidy dependencies
 	go mod tidy
 
 # ========= Tests ===========
-test: build
+test: build clean-test-db ## Runs the tests
 	@echo "Running tests..."
 	@mkdir -p ./data/db/test
 	ENV=test go test ./...
-	@rm -rf ./data/db/test/*
 
-test-verbose: build
+test-verbose: build clean-test-db ## Runs the tests in verbose mode
 	@echo "Running tests in verbose mode"
 	@mkdir -p ./data/db/test
 	ENV=test go test -v ./...
-	@rm -rf ./data/db/test/*
 
 # ========= Linting =========
 lint: ## Run golangci-lint
