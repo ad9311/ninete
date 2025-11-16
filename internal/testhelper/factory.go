@@ -53,3 +53,12 @@ func (f *Factory) User(t *testing.T, params logic.SignUpParams) repo.SafeUser {
 
 	return user
 }
+
+func (f *Factory) RefreshToken(t *testing.T, userID int) logic.Token {
+	t.Helper()
+
+	refreshToken, err := f.Store.NewRefreshToken(t.Context(), userID)
+	require.NoError(t, err)
+
+	return refreshToken
+}

@@ -35,7 +35,7 @@ func TestFindUserByEmail(t *testing.T) {
 			},
 		},
 		{
-			"should_fail_no_user",
+			"should_fail_not_found",
 			func(t *testing.T) {
 				_, err := f.Store.FindUserByEmail(ctx, "noemail@email.com")
 				require.ErrorIs(t, err, logic.ErrNotFound)
@@ -75,7 +75,7 @@ func TestFindUser(t *testing.T) {
 			},
 		},
 		{
-			"should_fail_no_user",
+			"should_fail_not_found",
 			func(t *testing.T) {
 				_, err := f.Store.FindUser(ctx, -1)
 				require.ErrorIs(t, err, logic.ErrNotFound)

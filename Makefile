@@ -8,6 +8,8 @@ export
 GO_BUILD_ENVS     ?= CGO_ENABLED=1
 INTERNAL_PATH     := github.com/ad9311/ninete/internal
 SHELL             := /bin/bash
+pkg               ?= ./...
+func              ?=
 
 # ========= Phony =========
 .PHONY: help dev build build-final deps lint lint-fix
@@ -75,12 +77,12 @@ deps: ## Install and tidy dependencies
 test: build clean-test-db ## Runs the tests
 	@echo "Running tests..."
 	@mkdir -p ./data/db/test
-	ENV=test go test ./...
+	ENV=test go test $(if $(func),-run $(func),) $(pkg)
 
 test-verbose: build clean-test-db ## Runs the tests in verbose mode
 	@echo "Running tests in verbose mode"
 	@mkdir -p ./data/db/test
-	ENV=test go test -v ./...
+	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)
 
 # ========= Linting =========
 lint: ## Run golangci-lint
