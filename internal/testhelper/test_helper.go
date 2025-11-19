@@ -76,6 +76,10 @@ func SetJSONHeader(req *http.Request) {
 	req.Header.Set("Content-Type", "application/json")
 }
 
+func SetAuthHeader(req *http.Request, token string) {
+	req.Header.Set("Authorization", "Bearer "+token)
+}
+
 func MarshalPayload(t *testing.T, params any) *bytes.Buffer {
 	t.Helper()
 

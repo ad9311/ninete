@@ -95,6 +95,28 @@ func (f *Factory) User(t *testing.T, params logic.SignUpParams) repo.SafeUser {
 	return user
 }
 
+func (f *Factory) SignInUser(
+	t *testing.T,
+	ctx context.Context,
+	params logic.SessionParams,
+) Response[serve.SessionResponse] {
+	t.Helper()
+
+	body := MarshalPayload(t, params)
+	res, req := f.NewRequest(ctx, http.MethodPost, "/auth/sign-in", body)
+	f.Server.Router.ServeHTTP(res, req)
+	if res.Code != http.StatusCreated {
+		var payload FailedResponse
+		UnmarshalPayload(t, res, &payload)
+		t.Fatalf("failed to sign in user for test, %s", payload.Error)
+	}
+
+	var payload Response[serve.SessionResponse]
+	UnmarshalPayload(t, res, &payload)
+
+	return payload
+}
+
 func (f *Factory) RefreshToken(t *testing.T, userID int) logic.Token {
 	t.Helper()
 

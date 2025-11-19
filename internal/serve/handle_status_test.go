@@ -1,7 +1,6 @@
 package serve_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -30,9 +29,7 @@ func TestGetReadyz(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.Code)
 
 	var payload testhelper.Response[logic.AppStats]
-
-	err := json.Unmarshal(res.Body.Bytes(), &payload)
-	require.NoError(t, err)
+	testhelper.UnmarshalPayload(t, res, payload)
 	require.Contains(t, payload.Data.ENV, "test")
 	require.Nil(t, payload.Error)
 }
