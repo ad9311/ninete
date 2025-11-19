@@ -69,6 +69,13 @@ func (*Factory) NewRequest(
 	res := httptest.NewRecorder()
 	req := httptest.NewRequestWithContext(ctx, method, target, body)
 
+	if method == http.MethodPost ||
+		method == http.MethodPatch ||
+		method == http.MethodPut ||
+		method == http.MethodDelete {
+		SetJSONHeader(req)
+	}
+
 	return res, req
 }
 

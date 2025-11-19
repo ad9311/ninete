@@ -1,10 +1,15 @@
 package testhelper
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"testing"
 
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/prog"
@@ -65,4 +70,27 @@ func SetUpPackageTest(dbName string) int {
 	}
 
 	return 0
+}
+
+func SetJSONHeader(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+}
+
+func MarshalPayload(t *testing.T, params any) *bytes.Buffer {
+	t.Helper()
+
+	body, err := json.Marshal(params)
+	if err != nil {
+		t.Fatalf("failed to marshal params, %v", err)
+	}
+
+	return bytes.NewBuffer(body)
+}
+
+func UnmarshalPayload(t *testing.T, res *httptest.ResponseRecorder, payload any) {
+	t.Helper()
+
+	if err := json.Unmarshal(res.Body.Bytes(), payload); err != nil {
+		t.Fatalf("failed to unmarshal payload, %v", err)
+	}
 }
