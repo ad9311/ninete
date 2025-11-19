@@ -8,6 +8,8 @@ export
 GO_BUILD_ENVS     ?= CGO_ENABLED=1
 INTERNAL_PATH     := github.com/ad9311/ninete/internal
 SHELL             := /bin/bash
+pkg               ?= ./...
+func              ?=
 
 # ========= Phony =========
 .PHONY: help dev build build-final deps lint lint-fix
@@ -51,9 +53,20 @@ clean: ## Removes compiled binaries
 	@echo "Removing binaries..."
 	@rm -rf ./build/*
 
-clean-full: clean ## Runs `clean` and deletes all databases
-	@echo "Removing databases..."
-	@rm -rf ./data/db/*
+clean-db: ## Removes dev database file
+	@echo "Removing development database..."
+	@rm -rf ./data/db/dev/*
+
+clean-test-db: ## Removes test database files
+	@echo "Removing test databases..."
+	@rm -rf ./data/db/test/*
+
+clean-test-cache: ## Cleans go test cache
+	@echo "Removing go test cache..."
+	@go clean -testcache
+
+clean-full: clean clean-db clean-test-db clean-test-cache ## Runs `clean`, `clean-db`, `clean-test-db` and `clean-test-cache`
+	@echo "Full clean done!"
 
 deps: ## Install and tidy dependencies
 	@echo "Installing dependencies..."
@@ -61,13 +74,15 @@ deps: ## Install and tidy dependencies
 	go mod tidy
 
 # ========= Tests ===========
-test: build
+test: build clean-test-db ## Runs the tests
 	@echo "Running tests..."
-	ENV=test go test ./...
+	@mkdir -p ./data/db/test
+	ENV=test go test $(if $(func),-run $(func),) $(pkg)
 
-test-verbose: build
+test-verbose: build clean-test-db ## Runs the tests in verbose mode
 	@echo "Running tests in verbose mode"
-	ENV=test go test -v ./...
+	@mkdir -p ./data/db/test
+	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)
 
 # ========= Linting =========
 lint: ## Run golangci-lint

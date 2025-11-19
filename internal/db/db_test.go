@@ -25,6 +25,10 @@ func TestOpen(t *testing.T) {
 			"should_set_the_correct_max_connections",
 			func(t *testing.T) {
 				maxOpenConns := os.Getenv("MAX_OPEN_CONNS")
+				if maxOpenConns == "" {
+					maxOpenConns = strconv.Itoa(db.DefaultMaxOpenConns)
+				}
+
 				value := strconv.Itoa(sqlDB.Stats().MaxOpenConnections)
 				require.Equal(t, maxOpenConns, value)
 			},
@@ -34,4 +38,9 @@ func TestOpen(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, tc.testFunc)
 	}
+
+	t.Cleanup(func() {
+		err := sqlDB.Close()
+		require.NoError(t, err)
+	})
 }

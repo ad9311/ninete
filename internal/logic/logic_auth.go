@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/ad9311/ninete/internal/repo"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type SignUpParams struct {
-	Username             string `json:"username" validate:"required,min=3,max=20"` // TODO validate format
+	Username             string `json:"username" validate:"required,alphanumunicode,min=3,max=20"`
 	Email                string `json:"email" validate:"email"`
-	Password             string `json:"password" validate:"min=8,max=20"` // TODO validate format
+	Password             string `json:"password" validate:"min=8,max=20"`
 	PasswordConfirmation string `json:"passwordConfirmation" validate:"min=8,max=20"`
 }
 
@@ -38,14 +39,14 @@ func (s *Store) SignUpUser(ctx context.Context, params SignUpParams) (repo.SafeU
 		return user.ToSafe(), err
 	}
 
-	passwordHash, err := hashPassword(params.Password)
+	passwordHash, err := hashPassword(strings.TrimSpace(params.Password))
 	if err != nil {
 		return user.ToSafe(), err
 	}
 
 	user, err = s.queries.InsertUser(ctx, repo.InsertUserParams{
-		Username:     params.Username,
-		Email:        params.Email,
+		Username:     sanitizeParam(params.Username),
+		Email:        sanitizeParam(params.Email),
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
@@ -126,4 +127,11 @@ func comparePasswords(rawPassword, passwordHash string) error {
 	}
 
 	return nil
+}
+
+func sanitizeParam(p string) string {
+	trimmed := strings.TrimSpace(p)
+	lowercase := strings.ToLower(trimmed)
+
+	return lowercase
 }

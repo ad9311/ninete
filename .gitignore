@@ -53,3 +53,7 @@ vendor/
 
 # Docker
 .dockerignore
+
+# Temporary files
+/.cache/
+tmp/
