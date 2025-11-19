@@ -22,6 +22,16 @@ type Factory struct {
 	sqlDB  *sql.DB
 }
 
+type Response[T any] struct {
+	Data  T
+	Error any
+}
+
+type FailedResponse struct {
+	Data  any
+	Error string
+}
+
 func NewFactory(t *testing.T) Factory {
 	t.Helper()
 
@@ -48,7 +58,14 @@ func NewFactory(t *testing.T) Factory {
 	return f
 }
 
-func (*Factory) NewRequest(ctx context.Context, method, target string, body io.Reader) (*httptest.ResponseRecorder, *http.Request) {
+func (*Factory) NewRequest(
+	ctx context.Context,
+	method, target string,
+	body io.Reader,
+) (
+	*httptest.ResponseRecorder,
+	*http.Request,
+) {
 	res := httptest.NewRecorder()
 	req := httptest.NewRequestWithContext(ctx, method, target, body)
 
