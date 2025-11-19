@@ -56,3 +56,4 @@ vendor/
 
 # Temporary files
 /.cache/
+tmp/
