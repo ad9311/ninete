@@ -91,10 +91,10 @@ func MarshalPayload(t *testing.T, params any) *bytes.Buffer {
 	return bytes.NewBuffer(body)
 }
 
-func UnmarshalPayload(t *testing.T, res *httptest.ResponseRecorder, payload any) {
+func UnmarshalBody(t *testing.T, res *httptest.ResponseRecorder, body any) {
 	t.Helper()
 
-	if err := json.Unmarshal(res.Body.Bytes(), payload); err != nil {
-		t.Fatalf("failed to unmarshal payload, %v", err)
+	if err := json.Unmarshal(res.Body.Bytes(), body); err != nil {
+		t.Fatalf("failed to unmarshal body, %v", err)
 	}
 }

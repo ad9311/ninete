@@ -37,9 +37,9 @@ func TestGetMe(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, res.Code)
 
-	var payload testhelper.Response[repo.SafeUser]
-	testhelper.UnmarshalPayload(t, res, &payload)
-	require.Equal(t, user.ID, payload.Data.ID)
-	require.Equal(t, user.Email, payload.Data.Email)
-	require.Equal(t, user.Username, payload.Data.Username)
+	var resBody testhelper.Response[repo.SafeUser]
+	testhelper.UnmarshalBody(t, res, &resBody)
+	require.Equal(t, user.ID, resBody.Data.ID)
+	require.Equal(t, user.Email, resBody.Data.Email)
+	require.Equal(t, user.Username, resBody.Data.Username)
 }

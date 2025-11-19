@@ -107,12 +107,12 @@ func (f *Factory) SignInUser(
 	f.Server.Router.ServeHTTP(res, req)
 	if res.Code != http.StatusCreated {
 		var payload FailedResponse
-		UnmarshalPayload(t, res, &payload)
+		UnmarshalBody(t, res, &payload)
 		t.Fatalf("failed to sign in user for test, %s", payload.Error)
 	}
 
 	var payload Response[serve.SessionResponse]
-	UnmarshalPayload(t, res, &payload)
+	UnmarshalBody(t, res, &payload)
 
 	return payload
 }

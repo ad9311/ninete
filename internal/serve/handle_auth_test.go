@@ -36,11 +36,11 @@ func TestPostSignUp(t *testing.T) {
 
 				require.Equal(t, http.StatusCreated, res.Code)
 
-				var payload testhelper.Response[repo.SafeUser]
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Equal(t, payload.Data.Username, params.Username)
-				require.Equal(t, payload.Data.Email, params.Email)
-				require.Positive(t, payload.Data.ID)
+				var resBody testhelper.Response[repo.SafeUser]
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Equal(t, resBody.Data.Username, params.Username)
+				require.Equal(t, resBody.Data.Email, params.Email)
+				require.Positive(t, resBody.Data.ID)
 			},
 		},
 		{
@@ -52,10 +52,10 @@ func TestPostSignUp(t *testing.T) {
 
 				require.Equal(t, http.StatusBadRequest, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Equal(t, payload.Error, "UNIQUE constraint failed: users.email")
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Equal(t, resBody.Error, "UNIQUE constraint failed: users.email")
 			},
 		},
 		{
@@ -67,10 +67,10 @@ func TestPostSignUp(t *testing.T) {
 
 				require.Equal(t, http.StatusBadRequest, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Contains(t, payload.Error, logic.ErrValidationFailed.Error())
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Contains(t, resBody.Error, logic.ErrValidationFailed.Error())
 			},
 		},
 	}
@@ -111,10 +111,10 @@ func TestPostSignIn(t *testing.T) {
 
 				require.Equal(t, http.StatusCreated, res.Code)
 
-				var payload testhelper.Response[serve.SessionResponse]
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Equal(t, signUpParams.Email, payload.Data.User.Email)
-				require.NotEmpty(t, payload.Data.AccessToken.Value)
+				var resBody testhelper.Response[serve.SessionResponse]
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Equal(t, signUpParams.Email, resBody.Data.User.Email)
+				require.NotEmpty(t, resBody.Data.AccessToken.Value)
 
 				resp := res.Result()
 				var found bool
@@ -144,10 +144,10 @@ func TestPostSignIn(t *testing.T) {
 
 				require.Equal(t, http.StatusBadRequest, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Equal(t, logic.ErrWrongEmailOrPassword.Error(), payload.Error)
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Equal(t, logic.ErrWrongEmailOrPassword.Error(), resBody.Error)
 			},
 		},
 		{
@@ -159,10 +159,10 @@ func TestPostSignIn(t *testing.T) {
 
 				require.Equal(t, http.StatusBadRequest, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Contains(t, payload.Error, logic.ErrValidationFailed.Error())
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Contains(t, resBody.Error, logic.ErrValidationFailed.Error())
 			},
 		},
 	}
@@ -284,10 +284,10 @@ func TestPostRefresh(t *testing.T) {
 
 				require.Equal(t, http.StatusOK, res.Code)
 
-				var payload testhelper.Response[logic.Token]
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.NotEmpty(t, payload.Data.Value)
-				require.Greater(t, payload.Data.ExpiresAt, payload.Data.IssuedAt)
+				var resBody testhelper.Response[logic.Token]
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.NotEmpty(t, resBody.Data.Value)
+				require.Greater(t, resBody.Data.ExpiresAt, resBody.Data.IssuedAt)
 			},
 		},
 		{
@@ -298,11 +298,11 @@ func TestPostRefresh(t *testing.T) {
 
 				require.Equal(t, http.StatusUnauthorized, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Contains(t, payload.Error, serve.ErrInvalidAuthCreds.Error())
-				require.Contains(t, payload.Error, "refresh cookie not found")
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Contains(t, resBody.Error, serve.ErrInvalidAuthCreds.Error())
+				require.Contains(t, resBody.Error, "refresh cookie not found")
 			},
 		},
 		{
@@ -318,11 +318,11 @@ func TestPostRefresh(t *testing.T) {
 
 				require.Equal(t, http.StatusUnauthorized, res.Code)
 
-				var payload testhelper.FailedResponse
-				testhelper.UnmarshalPayload(t, res, &payload)
-				require.Nil(t, payload.Data)
-				require.Contains(t, payload.Error, serve.ErrInvalidAuthCreds.Error())
-				require.Contains(t, payload.Error, logic.ErrNotFound.Error())
+				var resBody testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &resBody)
+				require.Nil(t, resBody.Data)
+				require.Contains(t, resBody.Error, serve.ErrInvalidAuthCreds.Error())
+				require.Contains(t, resBody.Error, logic.ErrNotFound.Error())
 			},
 		},
 	}

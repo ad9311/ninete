@@ -28,8 +28,8 @@ func TestGetReadyz(t *testing.T) {
 	f.Server.Router.ServeHTTP(res, req)
 	require.Equal(t, http.StatusOK, res.Code)
 
-	var payload testhelper.Response[logic.AppStats]
-	testhelper.UnmarshalPayload(t, res, payload)
-	require.Contains(t, payload.Data.ENV, "test")
-	require.Nil(t, payload.Error)
+	var resBody testhelper.Response[logic.AppStats]
+	testhelper.UnmarshalBody(t, res, &resBody)
+	require.Contains(t, resBody.Data.ENV, "test")
+	require.Nil(t, resBody.Error)
 }
