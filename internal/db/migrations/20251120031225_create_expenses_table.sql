@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "expenses" (
 	"category_id" INTEGER NOT NULL REFERENCES "categories"("id") ON DELETE CASCADE,
 	"description" TEXT NOT NULL,
 	"amount" REAL NOT NULL,
-  "date" DATE NOT NULL,
+  "date" INTEGER NOT NULL,
   "created_at" INTEGER NOT NULL DEFAULT (strftime('%s','now')),
   "updated_at" INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
