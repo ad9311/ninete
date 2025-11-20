@@ -22,6 +22,10 @@ func (s *Server) setUpRoutes() {
 			secure.Use(s.AuthMiddleware)
 
 			secure.Get("/users/me", s.GetMe)
+
+			secure.Route("/expenses", func(e chi.Router) {
+				e.Post("/", s.PostExpense)
+			})
 		})
 	})
 }

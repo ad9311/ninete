@@ -6,8 +6,10 @@ import (
 	"github.com/ad9311/ninete/internal/repo"
 )
 
-func (s *Store) CreateExpense(ctx context.Context, params repo.InsertExpenseParams) (repo.Expense, error) {
+func (s *Store) CreateExpense(ctx context.Context, userID int, params repo.ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
+
+	params.UserID = userID
 
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
@@ -21,14 +23,14 @@ func (s *Store) CreateExpense(ctx context.Context, params repo.InsertExpensePara
 	return expense, nil
 }
 
-func (s *Store) UpdateExpense(ctx context.Context, params repo.UpdateExpenseParams) (repo.Expense, error) {
+func (s *Store) UpdateExpense(ctx context.Context, id int, params repo.ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
 
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
 
-	expense, err := s.queries.UpdateExpense(ctx, params)
+	expense, err := s.queries.UpdateExpense(ctx, id, params)
 	if err != nil {
 		return expense, HandleDBError(err)
 	}

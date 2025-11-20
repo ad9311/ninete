@@ -15,21 +15,12 @@ type Expense struct {
 	UpdatedAt   int64  `json:"updatedAt"`
 }
 
-type InsertExpenseParams struct {
+type ExpenseParams struct {
 	UserID      int    `validate:"required"`
-	CategoryID  int    `validate:"required"`
-	Description string `validate:"required,min=4,max=100"`
-	Amount      uint64 `validate:"required,gt=0"`
-	Date        int64  `validate:"required"`
-}
-
-type UpdateExpenseParams struct {
-	ID          int    `validate:"required"`
-	UserID      int    `validate:"required"`
-	CategoryID  int    `validate:"required"`
-	Description string `validate:"required,min=4,max=100"`
-	Amount      uint64 `validate:"required,gt=0"`
-	Date        int64  `validate:"required"`
+	CategoryID  int    `json:"categoryId" validate:"required"`
+	Description string `json:"description" validate:"required,min=3,max=50"`
+	Amount      uint64 `json:"amount" validate:"required,gt=0"`
+	Date        int64  `json:"date" validate:"required"`
 }
 
 const insertExpense = `
@@ -37,7 +28,7 @@ INSERT INTO "expenses" ("user_id", "category_id", "description", "amount", "date
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *`
 
-func (q *Queries) InsertExpense(ctx context.Context, arg InsertExpenseParams) (Expense, error) {
+func (q *Queries) InsertExpense(ctx context.Context, params ExpenseParams) (Expense, error) {
 	var e Expense
 	var err error
 
@@ -45,11 +36,11 @@ func (q *Queries) InsertExpense(ctx context.Context, arg InsertExpenseParams) (E
 		row := q.db.QueryRowContext(
 			ctx,
 			insertExpense,
-			arg.UserID,
-			arg.CategoryID,
-			arg.Description,
-			arg.Amount,
-			arg.Date,
+			params.UserID,
+			params.CategoryID,
+			params.Description,
+			params.Amount,
+			params.Date,
 		)
 
 		err = row.Scan(
@@ -74,10 +65,10 @@ SET "category_id" = $2,
 	"amount" = $4,
 	"date" = $5,
 	"updated_at" = strftime('%s','now')
-WHERE "id" = $1 AND "user_id" = $6
+WHERE "id" = $1
 RETURNING *`
 
-func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (Expense, error) {
+func (q *Queries) UpdateExpense(ctx context.Context, id int, params ExpenseParams) (Expense, error) {
 	var e Expense
 	var err error
 
@@ -85,12 +76,11 @@ func (q *Queries) UpdateExpense(ctx context.Context, arg UpdateExpenseParams) (E
 		row := q.db.QueryRowContext(
 			ctx,
 			updateExpense,
-			arg.ID,
-			arg.CategoryID,
-			arg.Description,
-			arg.Amount,
-			arg.Date,
-			arg.UserID,
+			id,
+			params.CategoryID,
+			params.Description,
+			params.Amount,
+			params.Date,
 		)
 
 		err = row.Scan(
