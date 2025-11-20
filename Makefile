@@ -29,25 +29,35 @@ build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	$(GO_BUILD_ENVS) go build -o ./build/dev_migrate ./cmd/migrate/main.go
+	$(GO_BUILD_ENVS) go build -o ./build/migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up
 	@echo "Running migrations..."
-	ENV=development ./build/dev_migrate up
+	ENV=development ./build/migrate up
 
 migrate-down: build-migrate ## Run all migrations up
 	@echo "Running one migration down..."
-	ENV=development ./build/dev_migrate down
+	ENV=development ./build/migrate down
 
 migrate-create: build-migrate ## Run all migrations up
 	@echo "Creating migration file..."
-	ENV=development ./build/dev_migrate create $(name)
+	ENV=development ./build/migrate create $(name)
 
 migrate-status: build-migrate ## Run all migrations up
-	ENV=development ./build/dev_migrate status
+	ENV=development ./build/migrate status
 
 seed: build-migrate ## Seed the database
-	ENV=development ./build/dev_migrate seed
+	ENV=development ./build/migrate seed
+
+build-task: ## Build the task binary
+	@echo "Building task binary..."
+	@mkdir -p ./build
+	@mkdir -p ./data/db/dev
+	$(GO_BUILD_ENVS) go build -o ./build/task ./cmd/task/main.go
+
+task: ## Run a task
+	@echo "Running $(name) task..."
+	ENV=development ./build/task $(name)
 
 clean: ## Removes compiled binaries
 	@echo "Removing binaries..."
