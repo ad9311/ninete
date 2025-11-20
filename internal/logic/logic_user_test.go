@@ -22,8 +22,8 @@ func TestFindUserByEmail(t *testing.T) {
 	user := f.User(t, params)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_find_the_user",
@@ -44,7 +44,7 @@ func TestFindUserByEmail(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -62,8 +62,8 @@ func TestFindUser(t *testing.T) {
 	user := f.User(t, params)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_find_the_user",
@@ -84,6 +84,6 @@ func TestFindUser(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }

@@ -18,8 +18,8 @@ func TestOpen(t *testing.T) {
 	require.NoError(t, err)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_set_the_correct_max_connections",
@@ -36,7 +36,7 @@ func TestOpen(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 
 	t.Cleanup(func() {

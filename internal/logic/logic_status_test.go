@@ -13,12 +13,12 @@ func TestAppStatus(t *testing.T) {
 	f := testhelper.NewFactory(t)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
-			name: "should_return_app_status",
-			testFunc: func(t *testing.T) {
+			"should_return_app_status",
+			func(t *testing.T) {
 				stats, err := f.Store.AppStatus()
 				require.NoError(t, err)
 
@@ -36,8 +36,8 @@ func TestAppStatus(t *testing.T) {
 			},
 		},
 		{
-			name: "should_fail_when_database_ping_fails",
-			testFunc: func(t *testing.T) {
+			"should_fail_when_database_ping_fails",
+			func(t *testing.T) {
 				f.CloseDB(t)
 
 				_, err := f.Store.AppStatus()
@@ -48,6 +48,6 @@ func TestAppStatus(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }

@@ -22,8 +22,8 @@ func TestFindRefreshToken(t *testing.T) {
 	refreshToken := f.RefreshToken(t, user.ID)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_find_refresh_token",
@@ -43,7 +43,7 @@ func TestFindRefreshToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -59,8 +59,8 @@ func TestNewRefreshToken(t *testing.T) {
 	})
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_create_refresh_token",
@@ -81,7 +81,7 @@ func TestNewRefreshToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -96,8 +96,8 @@ func TestNewAccessToken(t *testing.T) {
 	})
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_create_access_token",
@@ -115,7 +115,7 @@ func TestNewAccessToken(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -133,20 +133,20 @@ func TestParseAndValidateJWT(t *testing.T) {
 	require.NoError(t, err)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
-			name: "should_parse_valid_token",
-			testFunc: func(t *testing.T) {
+			"should_parse_valid_token",
+			func(t *testing.T) {
 				claims, err := f.Store.ParseAndValidateJWT(token.Value)
 				require.NoError(t, err)
 				require.Equal(t, strconv.Itoa(user.ID), claims["sub"])
 			},
 		},
 		{
-			name: "should_fail_invalid_token",
-			testFunc: func(t *testing.T) {
+			"should_fail_invalid_token",
+			func(t *testing.T) {
 				_, err := f.Store.ParseAndValidateJWT(token.Value + "tampered")
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "token signature is invalid: signature is invalid")
@@ -155,6 +155,6 @@ func TestParseAndValidateJWT(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }

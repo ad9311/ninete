@@ -24,8 +24,8 @@ func TestPostSignUp(t *testing.T) {
 	}
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_register_user",
@@ -76,7 +76,7 @@ func TestPostSignUp(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -95,8 +95,8 @@ func TestPostSignIn(t *testing.T) {
 	f.User(t, signUpParams)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_sign_in_user",
@@ -168,7 +168,7 @@ func TestPostSignIn(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -187,8 +187,8 @@ func TestDeleteSignOut(t *testing.T) {
 	user := f.User(t, signUpParams)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_delete_refresh_token",
@@ -248,7 +248,7 @@ func TestDeleteSignOut(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
 
@@ -267,8 +267,8 @@ func TestPostRefresh(t *testing.T) {
 	user := f.User(t, signUpParams)
 
 	cases := []struct {
-		name     string
-		testFunc func(*testing.T)
+		name string
+		fn   func(*testing.T)
 	}{
 		{
 			"should_return_access_token",
@@ -328,6 +328,6 @@ func TestPostRefresh(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, tc.testFunc)
+		t.Run(tc.name, tc.fn)
 	}
 }
