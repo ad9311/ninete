@@ -5,31 +5,31 @@ import (
 )
 
 type Expense struct {
-	ID          int     `json:"id"`
-	UserID      int     `json:"userId"`
-	CategoryID  int     `json:"categoryId"`
-	Description string  `json:"description"`
-	Amount      float64 `json:"amount"`
-	Date        int64   `json:"date"`
-	CreatedAt   int64   `json:"createdAt"`
-	UpdatedAt   int64   `json:"updatedAt"`
+	ID          int    `json:"id"`
+	UserID      int    `json:"userId"`
+	CategoryID  int    `json:"categoryId"`
+	Description string `json:"description"`
+	Amount      uint64 `json:"amount"`
+	Date        int64  `json:"date"`
+	CreatedAt   int64  `json:"createdAt"`
+	UpdatedAt   int64  `json:"updatedAt"`
 }
 
 type InsertExpenseParams struct {
-	UserID      int
-	CategoryID  int
-	Description string
-	Amount      float64
-	Date        int64
+	UserID      int    `validate:"required"`
+	CategoryID  int    `validate:"required"`
+	Description string `validate:"required,min=4,max=100"`
+	Amount      uint64 `validate:"required,gt=0"`
+	Date        int64  `validate:"required"`
 }
 
 type UpdateExpenseParams struct {
-	ID          int
-	UserID      int
-	CategoryID  int
-	Description string
-	Amount      float64
-	Date        int64
+	ID          int    `validate:"required"`
+	UserID      int    `validate:"required"`
+	CategoryID  int    `validate:"required"`
+	Description string `validate:"required,min=4,max=100"`
+	Amount      uint64 `validate:"required,gt=0"`
+	Date        int64  `validate:"required"`
 }
 
 const insertExpense = `
