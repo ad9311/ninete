@@ -8,7 +8,7 @@ import (
 	"github.com/ad9311/ninete/internal/repo"
 )
 
-func (s *Server) getMe(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := getUserContext(r)
 	if !ok {
 		s.respondError(

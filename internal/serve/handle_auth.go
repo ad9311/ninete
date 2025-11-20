@@ -20,7 +20,7 @@ type SessionResponse struct {
 	AccessToken logic.Token   `json:"accessToken"`
 }
 
-func (s *Server) postSignUp(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PostSignUp(w http.ResponseWriter, r *http.Request) {
 	var params logic.SignUpParams
 	if err := decodeJSONBody(r, &params); err != nil {
 		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
@@ -38,7 +38,7 @@ func (s *Server) postSignUp(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, http.StatusCreated, user)
 }
 
-func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PostSignIn(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var params logic.SessionParams
@@ -65,7 +65,7 @@ func (s *Server) postSignIn(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, http.StatusCreated, res)
 }
 
-func (s *Server) deleteSignOut(w http.ResponseWriter, r *http.Request) {
+func (s *Server) DeleteSignOut(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
 		s.deleteRefreshCookie(w)
@@ -89,7 +89,7 @@ func (s *Server) deleteSignOut(w http.ResponseWriter, r *http.Request) {
 	s.respondNoContent(w)
 }
 
-func (s *Server) postRefresh(w http.ResponseWriter, r *http.Request) {
+func (s *Server) PostRefresh(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	cookie, err := r.Cookie(cookieName)
