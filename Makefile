@@ -55,7 +55,7 @@ build-task: ## Build the task binary
 	@mkdir -p ./data/db/dev
 	$(GO_BUILD_ENVS) go build -o ./build/task ./cmd/task/main.go
 
-task: ## Run a task
+task: build-task ## Run a task
 	@echo "Running $(name) task..."
 	ENV=development ./build/task $(name)
 
