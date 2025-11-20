@@ -2,12 +2,12 @@ package seed
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/ad9311/ninete/internal/db"
-	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
-	"github.com/ad9311/ninete/internal/repo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Run() error {
@@ -26,22 +26,17 @@ func Run() error {
 		}
 	}()
 
-	queries := repo.New(app, sqlDB)
-
-	store, err := logic.New(app, queries)
-	if err != nil {
-		return fmt.Errorf("failed to set up store: %w", err)
-	}
-
 	seeds := []struct {
 		name     string
-		seedFunc func(*prog.App, *logic.Store) error
+		seedFunc func(context.Context, *sql.DB) error
 	}{
 		{"users", seedUsers},
+		{"categories", seedCategories},
 	}
 
+	ctx := context.Background()
 	for _, s := range seeds {
-		err := s.seedFunc(app, store)
+		err := s.seedFunc(ctx, sqlDB)
 		if err != nil {
 			return fmt.Errorf("failed to run seed '%s': %w", s.name, err)
 		}
@@ -50,35 +45,56 @@ func Run() error {
 	return nil
 }
 
-func seedUsers(app *prog.App, store *logic.Store) error {
-	if app.IsProduction() {
-		app.Logger.Log("skipping user seeds")
-
-		return nil
+func seedUsers(ctx context.Context, sqlDB *sql.DB) error {
+	testPwd := "123456789"
+	passHash, err := bcrypt.GenerateFromPassword([]byte(testPwd), bcrypt.MinCost)
+	if err != nil {
+		return err
 	}
 
-	seedPassword := "123456789"
+	query := `
+		BEGIN;
+		INSERT INTO "users" ("username", "email", "password_hash")
+		VALUES
+				('john',  'john@mail.com',   $1),
+				('maria', 'maria@mail.com',  $1),
+				('peter', 'peter@mail.com',  $1)
+		ON CONFLICT DO NOTHING;
+		COMMIT;
+	`
 
-	params := []logic.SignUpParams{
-		{
-			Username:             "mary",
-			Email:                "mary@mail.com",
-			Password:             seedPassword,
-			PasswordConfirmation: seedPassword,
-		},
-		{
-			Username:             "joseph",
-			Email:                "joseph@mail.com",
-			Password:             seedPassword,
-			PasswordConfirmation: seedPassword,
-		},
+	if _, err := sqlDB.ExecContext(ctx, query, passHash); err != nil {
+		return err
 	}
 
-	ctx := context.Background()
-	for _, p := range params {
-		if _, err := store.SignUpUser(ctx, p); err != nil {
-			return err
-		}
+	return nil
+}
+
+func seedCategories(ctx context.Context, sqlDB *sql.DB) error {
+	query := `
+		BEGIN;
+		INSERT INTO "categories" ("name", "uid")
+		VALUES
+				('Housing',  'housing'),
+				('Transportation',  'transportation'),
+				('Groceries',  'groceries'),
+				('Food Delivery', 'foodDelivery'),
+				('Healthcare',  'healthcare'),
+				('Personal Care',  'personalCare'),
+				('Entertainment',  'entertainment'),
+				('Shopping',  'shopping'),
+				('Online Shopping',  'onlineShopping'),
+				('Travel',  'travel'),
+				('Financial',  'financial'),
+				('Pets', 'pets'),
+				('Taxes', 'taxes'),
+				('Other', 'other')
+		ON CONFLICT DO NOTHING;
+		COMMIT;
+	`
+
+	if _, err := sqlDB.ExecContext(ctx, query); err != nil {
+		return err
 	}
 
 	return nil
