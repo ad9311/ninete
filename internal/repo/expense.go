@@ -31,7 +31,7 @@ type UpdateExpenseParams struct {
 	Date        int64
 }
 
-const selectExpense = `SELECT * FROM "expenses" WHERE "id" = $1 AND "user_id" = $2 LIMIT 1`
+const selectExpense = `SELECT * FROM "expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, error) {
 	var e Expense
@@ -62,7 +62,7 @@ func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, e
 
 const insertExpense = `
 INSERT INTO "expenses" ("user_id", "category_id", "description", "amount", "date")
-VALUES ($1, $2, $3, $4, $5)
+VALUES (?, ?, ?, ?, ?)
 RETURNING *`
 
 func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams) (Expense, error) {
@@ -96,10 +96,15 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 }
 
 const updateExpense = `
-UPDATE "expenses"
-SET "category_id" = $2, "description" = $3, "amount" = $4, "date" = $5, "updated_at" = strftime('%s','now')
-WHERE "id" = $1
-RETURNING *`
+UPDATE expenses
+SET category_id = ?,
+    description = ?,
+    amount      = ?,
+    date        = ?,
+    updated_at  = ?
+WHERE id = ?
+RETURNING *;
+`
 
 func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams) (Expense, error) {
 	var e Expense
@@ -109,11 +114,12 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 		row := q.db.QueryRowContext(
 			ctx,
 			updateExpense,
-			params.ID,
 			params.CategoryID,
 			params.Description,
 			params.Amount,
 			params.Date,
+			newUpdatedAt(),
+			params.ID,
 		)
 
 		err = row.Scan(
@@ -131,7 +137,7 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 	return e, err
 }
 
-const deleteExpense = `DELETE FROM "expenses" WHERE "id" = $1 RETURNING *`
+const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? RETURNING *`
 
 func (q *Queries) DeleteExpense(ctx context.Context, id int) (Expense, error) {
 	var e Expense

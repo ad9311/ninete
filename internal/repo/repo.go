@@ -56,3 +56,7 @@ func (q *Queries) wrapQuery(query string, queryFunc func()) {
 
 	queryFunc()
 }
+
+func newUpdatedAt() int64 {
+	return time.Now().UTC().Unix()
+}
