@@ -18,7 +18,8 @@ func getUserContext(r *http.Request) *repo.SafeUser {
 	user, ok := r.Context().Value(prog.KeyCurrentUser).(*repo.SafeUser)
 
 	if !ok {
-		panic(fmt.Sprintf("failed to extract user context, %v", user))
+		err := fmt.Errorf("failed to extract user context, %w, %v", ErrMissingContext, user)
+		panic(err)
 	}
 
 	return user

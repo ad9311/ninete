@@ -19,7 +19,9 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 
 		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
-			s.respondError(w, http.StatusNotFound, logic.ErrNotFound)
+			s.respondError(w, http.StatusNotFound, ErrInvalidId)
+
+			return
 		}
 
 		expense, err := s.store.FindExpense(r.Context(), id, user.ID)
@@ -42,10 +44,7 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 func (s *Server) GetExpense(w http.ResponseWriter, r *http.Request) {
 	expense := getExpenseContext(r)
 
-	data := map[string]any{
-		"expense": expense,
-	}
-	s.respond(w, http.StatusCreated, data)
+	s.respond(w, http.StatusCreated, expense)
 }
 
 func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
@@ -66,10 +65,7 @@ func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{
-		"expense": expense,
-	}
-	s.respond(w, http.StatusCreated, data)
+	s.respond(w, http.StatusCreated, expense)
 }
 
 func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
@@ -90,17 +86,15 @@ func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]any{
-		"expense": expense,
-	}
-	s.respond(w, http.StatusCreated, data)
+	s.respond(w, http.StatusCreated, expense)
 }
 
 func getExpenseContext(r *http.Request) *repo.Expense {
 	expense, ok := r.Context().Value(prog.KeyExpense).(*repo.Expense)
 
 	if !ok {
-		panic(fmt.Sprintf("failed to extract expense context, %v", expense))
+		err := fmt.Errorf("failed to extract expense context, %w, %v", ErrMissingContext, expense)
+		panic(err)
 	}
 
 	return expense
