@@ -27,6 +27,7 @@ func (s *Server) setUpRoutes() {
 				e.Post("/", s.PostExpense)
 				e.Route("/{id}", func(e chi.Router) {
 					e.Use(s.ContextExpense)
+					e.Get("/", s.GetExpense)
 					e.Put("/", s.PutExpense)
 					e.Patch("/", s.PutExpense)
 				})

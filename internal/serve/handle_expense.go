@@ -39,6 +39,15 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 	})
 }
 
+func (s *Server) GetExpense(w http.ResponseWriter, r *http.Request) {
+	expense := getExpenseContext(r)
+
+	data := map[string]any{
+		"expense": expense,
+	}
+	s.respond(w, http.StatusCreated, data)
+}
+
 func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
 	var params logic.ExpenseParams
 
@@ -57,7 +66,10 @@ func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.respond(w, http.StatusCreated, expense)
+	data := map[string]any{
+		"expense": expense,
+	}
+	s.respond(w, http.StatusCreated, data)
 }
 
 func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +90,10 @@ func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.respond(w, http.StatusCreated, expense)
+	data := map[string]any{
+		"expense": expense,
+	}
+	s.respond(w, http.StatusCreated, data)
 }
 
 func getExpenseContext(r *http.Request) *repo.Expense {
