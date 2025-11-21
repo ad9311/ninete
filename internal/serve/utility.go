@@ -3,7 +3,6 @@ package serve
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -55,12 +54,4 @@ func decodeJSONBody(r *http.Request, params any) error {
 	}
 
 	return nil
-}
-
-func (s *Server) missingUserContext(w http.ResponseWriter) {
-	s.respondError(
-		w,
-		http.StatusInternalServerError,
-		fmt.Errorf("%w for current user", ErrMissingContext),
-	)
 }

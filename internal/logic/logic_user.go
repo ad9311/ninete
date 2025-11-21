@@ -20,7 +20,7 @@ func (s *Store) FindUserByEmail(ctx context.Context, email string) (repo.User, e
 func (s *Store) FindUser(ctx context.Context, id int) (repo.User, error) {
 	var user repo.User
 
-	user, err := s.queries.SelectUserByID(ctx, id)
+	user, err := s.queries.SelectUser(ctx, id)
 	if err != nil {
 		return user, HandleDBError(err)
 	}

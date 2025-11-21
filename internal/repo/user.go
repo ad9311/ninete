@@ -64,14 +64,14 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 	return u, err
 }
 
-const selectUserByEmail = `SELECT * FROM "users" WHERE "email" = $1 LIMIT 1`
+const selectUser = `SELECT * FROM "users" WHERE "id" = $1 LIMIT 1`
 
-func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) SelectUser(ctx context.Context, id int) (User, error) {
 	var u User
 	var err error
 
-	q.wrapQuery(selectUserByEmail, func() {
-		row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
+	q.wrapQuery(selectUser, func() {
+		row := q.db.QueryRowContext(ctx, selectUser, id)
 		err = row.Scan(
 			&u.ID,
 			&u.Username,
@@ -85,14 +85,14 @@ func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, er
 	return u, err
 }
 
-const selectUserByID = `SELECT * FROM "users" WHERE "id" = $1 LIMIT 1`
+const selectUserByEmail = `SELECT * FROM "users" WHERE "email" = $1 LIMIT 1`
 
-func (q *Queries) SelectUserByID(ctx context.Context, id int) (User, error) {
+func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	var err error
 
-	q.wrapQuery(selectUserByID, func() {
-		row := q.db.QueryRowContext(ctx, selectUserByID, id)
+	q.wrapQuery(selectUserByEmail, func() {
+		row := q.db.QueryRowContext(ctx, selectUserByEmail, email)
 		err = row.Scan(
 			&u.ID,
 			&u.Username,

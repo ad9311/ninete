@@ -25,6 +25,11 @@ func (s *Server) setUpRoutes() {
 
 			secure.Route("/expenses", func(e chi.Router) {
 				e.Post("/", s.PostExpense)
+				e.Route("/{id}", func(e chi.Router) {
+					e.Use(s.ContextExpense)
+					e.Put("/", s.PutExpense)
+					e.Patch("/", s.PutExpense)
+				})
 			})
 		})
 	})
