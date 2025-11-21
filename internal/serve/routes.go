@@ -30,6 +30,7 @@ func (s *Server) setUpRoutes() {
 					e.Get("/", s.GetExpense)
 					e.Put("/", s.PutExpense)
 					e.Patch("/", s.PutExpense)
+					e.Delete("/", s.DeleteExpense)
 				})
 			})
 		})

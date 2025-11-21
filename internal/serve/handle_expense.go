@@ -44,7 +44,7 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 func (s *Server) GetExpense(w http.ResponseWriter, r *http.Request) {
 	expense := getExpenseContext(r)
 
-	s.respond(w, http.StatusCreated, expense)
+	s.respond(w, http.StatusOK, expense)
 }
 
 func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +86,20 @@ func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.respond(w, http.StatusCreated, expense)
+	s.respond(w, http.StatusOK, expense)
+}
+
+func (s *Server) DeleteExpense(w http.ResponseWriter, r *http.Request) {
+	e := getExpenseContext(r)
+
+	expense, err := s.store.DeleteExpense(r.Context(), e.ID)
+	if err != nil {
+		s.respondError(w, http.StatusBadRequest, err)
+
+		return
+	}
+
+	s.respond(w, http.StatusOK, expense)
 }
 
 func getExpenseContext(r *http.Request) *repo.Expense {
