@@ -42,8 +42,8 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 }
 
 func (s *Server) GetExpenses(w http.ResponseWriter, r *http.Request) {
-	user := getUserContext(r)
-	expenses, err := s.store.FindExpenses(r.Context(), user.ID)
+	// user := getUserContext(r)
+	expenses, err := s.store.FindExpenses(r.Context(), repo.QueryOptions{})
 	if err != nil {
 		s.respondError(w, http.StatusBadRequest, err)
 

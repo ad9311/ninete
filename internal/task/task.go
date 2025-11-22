@@ -1,45 +1,42 @@
 package task
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/repo"
 )
 
-func RunDev(_ *logic.Store) error {
+func RunDev(store *logic.Store) error {
 	queryOptions := repo.QueryOptions{
 		Filters: repo.Filters{
 			FilterFields: []repo.FilterField{
 				{
-					Name:     "id",
+					Name:     "user_id",
 					Value:    1,
 					Operator: "=",
 				},
-				{
-					Name:     "username",
-					Value:    "Andres",
-					Operator: "=",
-				},
 			},
-			Connector: "AND",
 		},
 		Sorting: repo.Sorting{
 			Field: "amount",
-			Order: "desc",
+			Order: "asc",
 		},
 		Pagination: repo.Pagination{
-			PerPage: 0,
-			Page:    0,
+			PerPage: 2,
+			Page:    2,
 		},
 	}
 
-	subQuery, err := queryOptions.Build()
+	es, err := store.FindExpenses(context.Background(), queryOptions)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(subQuery)
+	for _, e := range es {
+		fmt.Println(e)
+	}
 
 	return nil
 }

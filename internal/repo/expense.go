@@ -31,14 +31,22 @@ type UpdateExpenseParams struct {
 	Date        int64
 }
 
-const selectExpenses = `SELECT * FROM "expenses" WHERE "user_id" = ?`
+const selectExpenses = `SELECT * FROM "expenses"`
 
-func (q *Queries) SelectExpenses(ctx context.Context, userID int) ([]Expense, error) {
+func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expense, error) {
 	var es []Expense
 	var err error
 
-	q.wrapQuery(selectExpenses, func() {
-		rows, rowsErr := q.db.QueryContext(ctx, selectExpenses, userID)
+	subQuery, optsErr := opts.Build()
+	if optsErr != nil {
+		return es, optsErr
+	}
+
+	query := selectExpenses + " " + subQuery
+	values := opts.Filters.Values()
+
+	q.wrapQuery(query, func() {
+		rows, rowsErr := q.db.QueryContext(ctx, query, values...)
 		if err != nil {
 			err = rowsErr
 

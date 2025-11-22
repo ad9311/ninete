@@ -67,7 +67,6 @@ type FilterField struct {
 	Name     string
 	Value    any
 	Operator string
-	String   bool
 }
 
 type Filters struct {
@@ -89,6 +88,9 @@ type QueryOptions struct {
 	Filters    Filters
 	Sorting    Sorting
 	Pagination Pagination
+	filters    string
+	sorting    string
+	pagination string
 }
 
 func (q *QueryOptions) Build() (string, error) {
@@ -107,9 +109,25 @@ func (q *QueryOptions) Build() (string, error) {
 		return "", err
 	}
 
-	subQuery := filters + " " + sorting + " " + pagination
+	q.filters = filters
+	q.sorting = sorting
+	q.pagination = pagination
+
+	subQuery := q.filters + " " + q.sorting + " " + q.pagination
 
 	return subQuery, nil
+}
+
+func (q *QueryOptions) FilterSubQuery() string {
+	return q.filters
+}
+
+func (q *QueryOptions) SortingSubQuery() string {
+	return q.sorting
+}
+
+func (q *QueryOptions) PaginationSubQuery() string {
+	return q.pagination
 }
 
 func (f *Filters) Build() (string, error) {
@@ -128,14 +146,7 @@ func (f *Filters) Build() (string, error) {
 			return "", ErrInvalidOperator
 		}
 
-		var value string
-		if field.String {
-			value = fmt.Sprintf("'%v'", field.Value)
-		} else {
-			value = fmt.Sprintf("%v", field.Value)
-		}
-
-		filter := fmt.Sprintf("\"%s\" %s %s", field.Name, field.Operator, value)
+		filter := fmt.Sprintf("\"%s\" %s %s", field.Name, field.Operator, "?")
 
 		buildFilters = append(buildFilters, filter)
 	}
@@ -155,6 +166,16 @@ func (f *Filters) validConnector() bool {
 
 func (f *FilterField) validOperator() bool {
 	return slices.Contains(validOperators(), f.Operator)
+}
+
+func (f *Filters) Values() []any {
+	var values []any
+
+	for _, v := range f.FilterFields {
+		values = append(values, v.Value)
+	}
+
+	return values
 }
 
 func validOperators() []string {

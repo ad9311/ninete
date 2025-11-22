@@ -13,8 +13,8 @@ type ExpenseParams struct {
 	Date        int64  `json:"date" validate:"required"`
 }
 
-func (s *Store) FindExpenses(ctx context.Context, userID int) ([]repo.Expense, error) {
-	expenses, err := s.queries.SelectExpenses(ctx, userID)
+func (s *Store) FindExpenses(ctx context.Context, opts repo.QueryOptions) ([]repo.Expense, error) {
+	expenses, err := s.queries.SelectExpenses(ctx, opts)
 	if err != nil {
 		return expenses, HandleDBError(err)
 	}
