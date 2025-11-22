@@ -83,6 +83,29 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 	return es, err
 }
 
+const countExpenses = `SELECT COUNT(*) FROM "expenses"`
+
+func (q *Queries) CountExpenses(ctx context.Context, filters Filters) (int, error) {
+	var c int
+	var err error
+
+	subQuery, optsErr := filters.Build()
+	if optsErr != nil {
+		return 0, optsErr
+	}
+
+	query := countExpenses + " " + subQuery
+	values := filters.Values()
+
+	q.wrapQuery(query, func() {
+		row := q.db.QueryRowContext(ctx, query, values...)
+
+		err = row.Scan(&c)
+	})
+
+	return c, err
+}
+
 const selectExpense = `SELECT * FROM "expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, error) {

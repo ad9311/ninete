@@ -22,6 +22,15 @@ func (s *Store) FindExpenses(ctx context.Context, opts repo.QueryOptions) ([]rep
 	return expenses, nil
 }
 
+func (s *Store) CountExpenses(ctx context.Context, filters repo.Filters) (int, error) {
+	count, err := s.queries.CountExpenses(ctx, filters)
+	if err != nil {
+		return count, HandleDBError(err)
+	}
+
+	return count, nil
+}
+
 func (s *Store) FindExpense(ctx context.Context, id, userID int) (repo.Expense, error) {
 	expense, err := s.queries.SelectExpense(ctx, id, userID)
 	if err != nil {
