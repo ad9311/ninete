@@ -35,7 +35,7 @@ func (u *User) ToSafe() SafeUser {
 
 const insertUser = `
 INSERT INTO "users" ("username", "email", "password_hash")
-VALUES ($1, $2, $3)
+VALUES (?, ?, ?)
 RETURNING *`
 
 func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
@@ -64,7 +64,7 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 	return u, err
 }
 
-const selectUser = `SELECT * FROM "users" WHERE "id" = $1 LIMIT 1`
+const selectUser = `SELECT * FROM "users" WHERE "id" = ? LIMIT 1`
 
 func (q *Queries) SelectUser(ctx context.Context, id int) (User, error) {
 	var u User
@@ -85,7 +85,7 @@ func (q *Queries) SelectUser(ctx context.Context, id int) (User, error) {
 	return u, err
 }
 
-const selectUserByEmail = `SELECT * FROM "users" WHERE "email" = $1 LIMIT 1`
+const selectUserByEmail = `SELECT * FROM "users" WHERE "email" = ? LIMIT 1`
 
 func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
 	var u User

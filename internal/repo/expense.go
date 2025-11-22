@@ -181,10 +181,10 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 	return e, err
 }
 
-const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? RETURNING *`
+const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? RETURNING "id"`
 
-func (q *Queries) DeleteExpense(ctx context.Context, id int) (Expense, error) {
-	var e Expense
+func (q *Queries) DeleteExpense(ctx context.Context, id int) (int, error) {
+	var i int
 	var err error
 
 	q.wrapQuery(deleteExpense, func() {
@@ -195,16 +195,9 @@ func (q *Queries) DeleteExpense(ctx context.Context, id int) (Expense, error) {
 		)
 
 		err = row.Scan(
-			&e.ID,
-			&e.UserID,
-			&e.CategoryID,
-			&e.Description,
-			&e.Amount,
-			&e.Date,
-			&e.CreatedAt,
-			&e.UpdatedAt,
+			&i,
 		)
 	})
 
-	return e, err
+	return i, err
 }

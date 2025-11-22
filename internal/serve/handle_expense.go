@@ -104,14 +104,14 @@ func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
 func (s *Server) DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	e := getExpenseContext(r)
 
-	expense, err := s.store.DeleteExpense(r.Context(), e.ID)
+	id, err := s.store.DeleteExpense(r.Context(), e.ID)
 	if err != nil {
 		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
 
-	s.respond(w, http.StatusOK, expense)
+	s.respond(w, http.StatusOK, map[string]int{"id": id})
 }
 
 func getExpenseContext(r *http.Request) *repo.Expense {

@@ -73,13 +73,11 @@ func (s *Store) UpdateExpense(ctx context.Context, id int, params ExpenseParams)
 	return expense, nil
 }
 
-func (s *Store) DeleteExpense(ctx context.Context, id int) (repo.Expense, error) {
-	var expense repo.Expense
-
-	expense, err := s.queries.DeleteExpense(ctx, id)
+func (s *Store) DeleteExpense(ctx context.Context, id int) (int, error) {
+	i, err := s.queries.DeleteExpense(ctx, id)
 	if err != nil {
-		return expense, HandleDBError(err)
+		return 0, HandleDBError(err)
 	}
 
-	return expense, nil
+	return i, nil
 }

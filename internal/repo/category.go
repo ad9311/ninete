@@ -12,7 +12,7 @@ type Category struct {
 
 const insertCategory = `
 INSERT INTO "categories" ("name", "uid")
-VALUES ($1, $2)
+VALUES (?, ?)
 RETURNING *`
 
 func (q *Queries) InserCategory(ctx context.Context, name, uid string) (Category, error) {
