@@ -3,6 +3,8 @@ package repo
 import (
 	"database/sql"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/ad9311/ninete/internal/prog"
@@ -59,4 +61,141 @@ func (q *Queries) wrapQuery(query string, queryFunc func()) {
 
 func newUpdatedAt() int64 {
 	return time.Now().UTC().Unix()
+}
+
+type FilterField struct {
+	Name     string
+	Value    any
+	Operator string
+	String   bool
+}
+
+type Filters struct {
+	FilterFields []FilterField
+	Connector    string
+}
+
+type Sorting struct {
+	Field string
+	Order string
+}
+
+type Pagination struct {
+	PerPage int
+	Page    int
+}
+
+type QueryOptions struct {
+	Filters    Filters
+	Sorting    Sorting
+	Pagination Pagination
+}
+
+func (q *QueryOptions) Build() (string, error) {
+	filters, err := q.Filters.Build()
+	if err != nil {
+		return "", err
+	}
+
+	sorting, err := q.Sorting.Build()
+	if err != nil {
+		return "", err
+	}
+
+	pagination, err := q.Pagination.Build()
+	if err != nil {
+		return "", err
+	}
+
+	subQuery := filters + " " + sorting + " " + pagination
+
+	return subQuery, nil
+}
+
+func (f *Filters) Build() (string, error) {
+	if len(f.FilterFields) == 0 {
+		return "", nil
+	}
+
+	if len(f.FilterFields) > 1 && !f.validConnector() {
+		return "", ErrInvalidConnector
+	}
+
+	var buildFilters []string
+
+	for _, field := range f.FilterFields {
+		if field.Name == "" || !field.validOperator() {
+			return "", ErrInvalidOperator
+		}
+
+		var value string
+		if field.String {
+			value = fmt.Sprintf("'%v'", field.Value)
+		} else {
+			value = fmt.Sprintf("%v", field.Value)
+		}
+
+		filter := fmt.Sprintf("\"%s\" %s %s", field.Name, field.Operator, value)
+
+		buildFilters = append(buildFilters, filter)
+	}
+
+	joined := strings.Join(buildFilters, " "+f.Connector+" ")
+
+	return "WHERE " + joined, nil
+}
+
+func (f *Filters) validConnector() bool {
+	if f.Connector != "AND" && f.Connector != "OR" {
+		return false
+	}
+
+	return true
+}
+
+func (f *FilterField) validOperator() bool {
+	return slices.Contains(validOperators(), f.Operator)
+}
+
+func validOperators() []string {
+	return []string{"=", ">", "<", ">=", "<="}
+}
+
+func (s *Sorting) Build() (string, error) {
+	if s.Field == "" && s.Order == "" {
+		return "", nil
+	}
+
+	if !s.validateSortOrder() {
+		return "", ErrInvalidSortOrder
+	}
+
+	sorting := fmt.Sprintf("ORDER BY \"%s\" %s", s.Field, s.Order)
+
+	return sorting, nil
+}
+
+func (s *Sorting) validateSortOrder() bool {
+	s.Order = strings.ToUpper(s.Order)
+
+	if s.Order != "ASC" && s.Order != "DESC" {
+		return false
+	}
+
+	return true
+}
+
+func (p *Pagination) Build() (string, error) {
+	if p.PerPage == 0 && p.Page == 0 {
+		return "", nil
+	}
+
+	if p.Page < 1 || p.PerPage < 1 {
+		return "", ErrInvalidPagination
+	}
+
+	offset := (p.Page - 1) * p.PerPage
+	paginate := fmt.Sprintf("LIMIT %d OFFSET %d", p.PerPage, offset)
+
+	return paginate, nil
 }
