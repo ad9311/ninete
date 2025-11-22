@@ -24,6 +24,7 @@ func (s *Server) setUpRoutes() {
 			secure.Get("/users/me", s.GetMe)
 
 			secure.Route("/expenses", func(e chi.Router) {
+				e.Get("/", s.GetExpenses)
 				e.Post("/", s.PostExpense)
 				e.Route("/{id}", func(e chi.Router) {
 					e.Use(s.ContextExpense)

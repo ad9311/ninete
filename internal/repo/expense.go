@@ -31,6 +31,50 @@ type UpdateExpenseParams struct {
 	Date        int64
 }
 
+const selectExpenses = `SELECT * FROM "expenses" WHERE "user_id" = ?`
+
+func (q *Queries) SelectExpenses(ctx context.Context, userID int) ([]Expense, error) {
+	var es []Expense
+	var err error
+
+	q.wrapQuery(selectExpenses, func() {
+		rows, rowsErr := q.db.QueryContext(ctx, selectExpenses, userID)
+		if err != nil {
+			err = rowsErr
+
+			return
+		}
+		defer func() {
+			if closeErr := rows.Close(); err != nil {
+				err = closeErr
+			}
+		}()
+
+		for rows.Next() {
+			var e Expense
+
+			if scanErr := rows.Scan(
+				&e.ID,
+				&e.UserID,
+				&e.CategoryID,
+				&e.Description,
+				&e.Amount,
+				&e.Date,
+				&e.CreatedAt,
+				&e.UpdatedAt,
+			); scanErr != nil {
+				err = scanErr
+
+				return
+			}
+
+			es = append(es, e)
+		}
+	})
+
+	return es, err
+}
+
 const selectExpense = `SELECT * FROM "expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, error) {
