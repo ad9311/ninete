@@ -35,22 +35,19 @@ const selectExpenses = `SELECT * FROM "expenses"`
 
 func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expense, error) {
 	var es []Expense
-	var err error
 
-	subQuery, optsErr := opts.Build()
-	if optsErr != nil {
-		return es, optsErr
+	subQuery, err := opts.Build()
+	if err != nil {
+		return es, err
 	}
 
 	query := selectExpenses + " " + subQuery
 	values := opts.Filters.Values()
 
-	q.wrapQuery(query, func() {
-		rows, rowsErr := q.db.QueryContext(ctx, query, values...)
+	err = q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
 		if err != nil {
-			err = rowsErr
-
-			return
+			return err
 		}
 		defer func() {
 			if closeErr := rows.Close(); err != nil {
@@ -61,7 +58,7 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 		for rows.Next() {
 			var e Expense
 
-			if scanErr := rows.Scan(
+			if err := rows.Scan(
 				&e.ID,
 				&e.UserID,
 				&e.CategoryID,
@@ -70,14 +67,14 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 				&e.Date,
 				&e.CreatedAt,
 				&e.UpdatedAt,
-			); scanErr != nil {
-				err = scanErr
-
-				return
+			); err != nil {
+				return err
 			}
 
 			es = append(es, e)
 		}
+
+		return err
 	})
 
 	return es, err
@@ -87,20 +84,19 @@ const countExpenses = `SELECT COUNT(*) FROM "expenses"`
 
 func (q *Queries) CountExpenses(ctx context.Context, filters Filters) (int, error) {
 	var c int
-	var err error
 
-	subQuery, optsErr := filters.Build()
-	if optsErr != nil {
-		return 0, optsErr
+	subQuery, err := filters.Build()
+	if err != nil {
+		return 0, err
 	}
 
 	query := countExpenses + " " + subQuery
 	values := filters.Values()
 
-	q.wrapQuery(query, func() {
+	err = q.wrapQuery(query, func() error {
 		row := q.db.QueryRowContext(ctx, query, values...)
 
-		err = row.Scan(&c)
+		return row.Scan(&c)
 	})
 
 	return c, err
@@ -110,17 +106,11 @@ const selectExpense = `SELECT * FROM "expenses" WHERE "id" = ? AND "user_id" = ?
 
 func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, error) {
 	var e Expense
-	var err error
 
-	q.wrapQuery(selectExpense, func() {
-		row := q.db.QueryRowContext(
-			ctx,
-			selectExpense,
-			id,
-			userID,
-		)
+	err := q.wrapQuery(selectExpense, func() error {
+		row := q.db.QueryRowContext(ctx, selectExpense, id, userID)
 
-		err = row.Scan(
+		return row.Scan(
 			&e.ID,
 			&e.UserID,
 			&e.CategoryID,
@@ -142,9 +132,8 @@ RETURNING *`
 
 func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams) (Expense, error) {
 	var e Expense
-	var err error
 
-	q.wrapQuery(insertExpense, func() {
+	err := q.wrapQuery(insertExpense, func() error {
 		row := q.db.QueryRowContext(
 			ctx,
 			insertExpense,
@@ -155,7 +144,7 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 			params.Date,
 		)
 
-		err = row.Scan(
+		return row.Scan(
 			&e.ID,
 			&e.UserID,
 			&e.CategoryID,
@@ -183,9 +172,8 @@ RETURNING *;
 
 func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams) (Expense, error) {
 	var e Expense
-	var err error
 
-	q.wrapQuery(updateExpense, func() {
+	err := q.wrapQuery(updateExpense, func() error {
 		row := q.db.QueryRowContext(
 			ctx,
 			updateExpense,
@@ -197,7 +185,7 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 			params.ID,
 		)
 
-		err = row.Scan(
+		return row.Scan(
 			&e.ID,
 			&e.UserID,
 			&e.CategoryID,
@@ -216,18 +204,11 @@ const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? RETURNING "id"`
 
 func (q *Queries) DeleteExpense(ctx context.Context, id int) (int, error) {
 	var i int
-	var err error
 
-	q.wrapQuery(deleteExpense, func() {
-		row := q.db.QueryRowContext(
-			ctx,
-			deleteExpense,
-			id,
-		)
+	err := q.wrapQuery(deleteExpense, func() error {
+		row := q.db.QueryRowContext(ctx, deleteExpense, id)
 
-		err = row.Scan(
-			&i,
-		)
+		return row.Scan(&i)
 	})
 
 	return i, err

@@ -44,11 +44,11 @@ func (q *Queries) CheckDBStatus() (DBConnStats, error) {
 	return stats, nil
 }
 
-func (q *Queries) wrapQuery(query string, queryFunc func()) {
+func (q *Queries) wrapQuery(query string, queryFunc func() error) error {
 	if !q.app.Logger.EnableQuery {
-		queryFunc()
+		err := queryFunc()
 
-		return
+		return err
 	}
 
 	start := time.Now()
@@ -56,7 +56,7 @@ func (q *Queries) wrapQuery(query string, queryFunc func()) {
 		q.app.Logger.Query(query, time.Since(start))
 	}()
 
-	queryFunc()
+	return queryFunc()
 }
 
 func newUpdatedAt() int64 {

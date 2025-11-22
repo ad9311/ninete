@@ -26,9 +26,8 @@ RETURNING *`
 
 func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (RefreshToken, error) {
 	var rt RefreshToken
-	var err error
 
-	q.wrapQuery(insertRefreshToken, func() {
+	err := q.wrapQuery(insertRefreshToken, func() error {
 		row := q.db.QueryRowContext(
 			ctx,
 			insertRefreshToken,
@@ -38,7 +37,7 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 			arg.ExpiresAt,
 		)
 
-		err = row.Scan(
+		return row.Scan(
 			&rt.ID,
 			&rt.UserID,
 			&rt.TokenHash,
@@ -55,11 +54,11 @@ DELETE FROM "refresh_tokens" WHERE "token_hash" = ? RETURNING id`
 
 func (q *Queries) DeleteRefreshToken(ctx context.Context, tokenHash []byte) (int, error) {
 	var id int
-	var err error
 
-	q.wrapQuery(deleteRefreshToken, func() {
+	err := q.wrapQuery(deleteRefreshToken, func() error {
 		row := q.db.QueryRowContext(ctx, deleteRefreshToken, tokenHash)
-		err = row.Scan(&id)
+
+		return row.Scan(&id)
 	})
 
 	return id, err
@@ -70,12 +69,11 @@ SELECT * FROM "refresh_tokens" WHERE "token_hash" = ? LIMIT 1`
 
 func (q *Queries) SelectRefreshToken(ctx context.Context, tokenHash []byte) (RefreshToken, error) {
 	var rt RefreshToken
-	var err error
 
-	q.wrapQuery(selectRefreshToken, func() {
+	err := q.wrapQuery(selectRefreshToken, func() error {
 		row := q.db.QueryRowContext(ctx, selectRefreshToken, tokenHash)
 
-		err = row.Scan(
+		return row.Scan(
 			&rt.ID,
 			&rt.UserID,
 			&rt.TokenHash,

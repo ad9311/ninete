@@ -17,17 +17,11 @@ RETURNING *`
 
 func (q *Queries) InserCategory(ctx context.Context, name, uid string) (Category, error) {
 	var c Category
-	var err error
 
-	q.wrapQuery(insertCategory, func() {
-		row := q.db.QueryRowContext(
-			ctx,
-			insertCategory,
-			name,
-			uid,
-		)
+	err := q.wrapQuery(insertCategory, func() error {
+		row := q.db.QueryRowContext(ctx, insertCategory, name, uid)
 
-		err = row.Scan(
+		return row.Scan(
 			&c.ID,
 			&c.Name,
 			&c.UID,
