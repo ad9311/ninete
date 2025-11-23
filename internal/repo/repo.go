@@ -115,7 +115,7 @@ func (q *QueryOptions) Build() (string, error) {
 
 	subQuery := q.filters + " " + q.sorting + " " + q.pagination
 
-	return subQuery, nil
+	return strings.TrimSpace(subQuery), nil
 }
 
 func (q *QueryOptions) FilterSubQuery() string {
