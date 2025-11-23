@@ -42,25 +42,44 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 }
 
 func (s *Server) GetExpenses(w http.ResponseWriter, r *http.Request) {
-	user := getUserContext(r)
-	expenses, err := s.store.FindExpenses(r.Context(), repo.QueryOptions{
-		Filters: repo.Filters{
-			FilterFields: []repo.FilterField{
-				{
-					Name:     "user_id",
-					Value:    user.ID,
-					Operator: "=",
-				},
-			},
-		},
-	})
+	params := r.URL.Query().Get("options")
+	opts, err := decodeQueryOptions(params)
 	if err != nil {
 		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
 
-	s.respond(w, http.StatusOK, expenses)
+	user := getUserContext(r)
+	userIDFilter := repo.FilterField{
+		Name:     "user_id",
+		Value:    user.ID,
+		Operator: "=",
+	}
+	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
+	if opts.Filters.Connector == "" {
+		opts.Filters.Connector = "AND"
+	}
+
+	expenses, err := s.store.FindExpenses(r.Context(), opts)
+	if err != nil {
+		s.respondError(w, http.StatusBadRequest, err)
+
+		return
+	}
+
+	count, err := s.store.CountExpenses(r.Context(), opts.Filters)
+	if err != nil {
+		s.respondError(w, http.StatusBadRequest, err)
+
+		return
+	}
+
+	s.respondMeta(w, http.StatusOK, expenses, Meta{
+		PerPage: opts.Pagination.PerPage,
+		Page:    opts.Pagination.Page,
+		Rows:    count,
+	})
 }
 
 func (s *Server) GetExpense(w http.ResponseWriter, r *http.Request) {

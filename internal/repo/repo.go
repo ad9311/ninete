@@ -21,6 +21,36 @@ type DBConnStats struct {
 	InUseConnections   int `json:"inUseConnections"`
 }
 
+type FilterField struct {
+	Name     string `json:"name"`
+	Value    any    `json:"value"`
+	Operator string `json:"operator"`
+}
+
+type Filters struct {
+	FilterFields []FilterField `json:"fields"`
+	Connector    string        `json:"connector"`
+}
+
+type Sorting struct {
+	Field string `json:"field"`
+	Order string `json:"order"`
+}
+
+type Pagination struct {
+	PerPage int `json:"perPage"`
+	Page    int `json:"page"`
+}
+
+type QueryOptions struct {
+	Filters    Filters    `json:"filters"`
+	Sorting    Sorting    `json:"sorting"`
+	Pagination Pagination `json:"pagination"`
+	filters    string
+	sorting    string
+	pagination string
+}
+
 func New(app *prog.App, db *sql.DB) Queries {
 	return Queries{
 		app: app,
@@ -61,36 +91,6 @@ func (q *Queries) wrapQuery(query string, queryFunc func() error) error {
 
 func newUpdatedAt() int64 {
 	return time.Now().UTC().Unix()
-}
-
-type FilterField struct {
-	Name     string
-	Value    any
-	Operator string
-}
-
-type Filters struct {
-	FilterFields []FilterField
-	Connector    string
-}
-
-type Sorting struct {
-	Field string
-	Order string
-}
-
-type Pagination struct {
-	PerPage int
-	Page    int
-}
-
-type QueryOptions struct {
-	Filters    Filters
-	Sorting    Sorting
-	Pagination Pagination
-	filters    string
-	sorting    string
-	pagination string
 }
 
 func (q *QueryOptions) Build() (string, error) {

@@ -9,27 +9,9 @@ import (
 )
 
 func RunDev(store *logic.Store) error {
-	// queryOptions := repo.QueryOptions{
-	// 	Filters: repo.Filters{
-	// 		FilterFields: []repo.FilterField{
-	// 			{
-	// 				Name:     "user_id",
-	// 				Value:    1,
-	// 				Operator: "=",
-	// 			},
-	// 		},
-	// 	},
-	// 	Sorting: repo.Sorting{
-	// 		Field: "amount",
-	// 		Order: "asc",
-	// 	},
-	// 	Pagination: repo.Pagination{
-	// 		PerPage: 2,
-	// 		Page:    2,
-	// 	},
-	// }
+	ctx := context.Background()
 
-	c, err := store.CountExpenses(context.Background(), repo.Filters{
+	filters := repo.Filters{
 		FilterFields: []repo.FilterField{
 			{
 				Name:     "user_id",
@@ -37,16 +19,39 @@ func RunDev(store *logic.Store) error {
 				Operator: "=",
 			},
 		},
-	})
+	}
+
+	sorting := repo.Sorting{
+		Field: "amount",
+		Order: "asc",
+	}
+
+	pagination := repo.Pagination{
+		PerPage: 1,
+		Page:    1,
+	}
+
+	queryOptions := repo.QueryOptions{
+		Filters:    filters,
+		Sorting:    sorting,
+		Pagination: pagination,
+	}
+
+	es, err := store.FindExpenses(ctx, queryOptions)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(c)
+	c, err := store.CountExpenses(ctx, queryOptions.Filters)
+	if err != nil {
+		return err
+	}
 
-	// for _, e := range es {
-	// 	fmt.Println(e)
-	// }
+	for _, e := range es {
+		fmt.Println(e)
+	}
+	fmt.Println("------------------")
+	fmt.Println(c)
 
 	return nil
 }
