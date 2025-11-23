@@ -41,6 +41,10 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 		return es, err
 	}
 
+	if err := opts.Validate(validExpenseFields()); err != nil {
+		return es, err
+	}
+
 	query := selectExpenses + " " + subQuery
 	values := opts.Filters.Values()
 
@@ -212,4 +216,17 @@ func (q *Queries) DeleteExpense(ctx context.Context, id int) (int, error) {
 	})
 
 	return i, err
+}
+
+func validExpenseFields() []string {
+	return []string{
+		"id",
+		"user_id",
+		"category_id",
+		"description",
+		"amount",
+		"date",
+		"created_at",
+		"updated_at",
+	}
 }

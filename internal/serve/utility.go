@@ -67,7 +67,7 @@ func (s *Server) setHeaderAndWrite(w http.ResponseWriter, status int, body any) 
 }
 
 func decodeJSONBody(r *http.Request, params any) error {
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(params); err != nil {
 		return ErrFormParsing
 	}
 

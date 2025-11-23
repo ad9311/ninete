@@ -14,6 +14,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const queryOptionsKey = "query_options"
+
 type Server struct {
 	Router chi.Router
 

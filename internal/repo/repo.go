@@ -130,20 +130,32 @@ func (q *QueryOptions) PaginationSubQuery() string {
 	return q.pagination
 }
 
+func (q *QueryOptions) Validate(fields []string) error {
+	if !q.Filters.ValidFields(fields) || !q.Sorting.ValidField(fields) {
+		availableFields := strings.Join(fields, ",")
+
+		return fmt.Errorf("%w, valid fields are: %s", ErrInvalidField, availableFields)
+	}
+
+	return nil
+}
+
 func (f *Filters) Build() (string, error) {
 	if len(f.FilterFields) == 0 {
 		return "", nil
 	}
 
 	if len(f.FilterFields) > 1 && !f.validConnector() {
-		return "", ErrInvalidConnector
+		return "", fmt.Errorf("%w, valid connectors are 'AND' or 'OR'", ErrInvalidConnector)
 	}
 
 	var buildFilters []string
 
 	for _, field := range f.FilterFields {
 		if field.Name == "" || !field.validOperator() {
-			return "", ErrInvalidOperator
+			operators := strings.Join(validOperators(), ", ")
+
+			return "", fmt.Errorf("%w, valid operators are %s", ErrInvalidOperator, operators)
 		}
 
 		filter := fmt.Sprintf("\"%s\" %s %s", field.Name, field.Operator, "?")
@@ -157,8 +169,23 @@ func (f *Filters) Build() (string, error) {
 }
 
 func (f *Filters) validConnector() bool {
+	f.Connector = strings.ToUpper(f.Connector)
 	if f.Connector != "AND" && f.Connector != "OR" {
 		return false
+	}
+
+	return true
+}
+
+func (f *Filters) ValidFields(fields []string) bool {
+	if len(f.FilterFields) == 0 {
+		return true
+	}
+
+	for _, field := range f.FilterFields {
+		if !slices.Contains(fields, field.Name) {
+			return false
+		}
 	}
 
 	return true
@@ -188,7 +215,7 @@ func (s *Sorting) Build() (string, error) {
 	}
 
 	if !s.validateSortOrder() {
-		return "", ErrInvalidSortOrder
+		return "", fmt.Errorf("%w, valid order are 'ASC' or 'DESC'", ErrInvalidSortOrder)
 	}
 
 	sorting := fmt.Sprintf("ORDER BY \"%s\" %s", s.Field, s.Order)
@@ -204,6 +231,10 @@ func (s *Sorting) validateSortOrder() bool {
 	}
 
 	return true
+}
+
+func (s *Sorting) ValidField(fields []string) bool {
+	return slices.Contains(fields, s.Field)
 }
 
 func (p *Pagination) Build() (string, error) {

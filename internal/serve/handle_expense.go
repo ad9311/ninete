@@ -42,7 +42,7 @@ func (s *Server) ContextExpense(next http.Handler) http.Handler {
 }
 
 func (s *Server) GetExpenses(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query().Get("options")
+	params := r.URL.Query().Get(queryOptionsKey)
 	opts, err := decodeQueryOptions(params)
 	if err != nil {
 		s.respondError(w, http.StatusBadRequest, err)
