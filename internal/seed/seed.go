@@ -6,9 +6,18 @@ import (
 	"fmt"
 
 	"github.com/ad9311/ninete/internal/db"
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
+	"github.com/ad9311/ninete/internal/repo"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type Config struct {
+	App     *prog.App
+	SQLDB   *sql.DB
+	Store   *logic.Store
+	Context context.Context
+}
 
 func Run() error {
 	app, err := prog.Load()
@@ -26,17 +35,31 @@ func Run() error {
 		}
 	}()
 
+	queries := repo.New(app, sqlDB)
+
+	store, err := logic.New(app, queries)
+	if err != nil {
+		return fmt.Errorf("failed to set up store: %w", err)
+	}
+
+	ctx := context.TODO()
+	sc := Config{
+		App:     app,
+		SQLDB:   sqlDB,
+		Store:   store,
+		Context: ctx,
+	}
+
 	seeds := []struct {
 		name     string
-		seedFunc func(context.Context, *sql.DB) error
+		seedFunc func(Config) error
 	}{
 		{"users", seedUsers},
 		{"categories", seedCategories},
 	}
 
-	ctx := context.Background()
 	for _, s := range seeds {
-		err := s.seedFunc(ctx, sqlDB)
+		err := s.seedFunc(sc)
 		if err != nil {
 			return fmt.Errorf("failed to run seed '%s': %w", s.name, err)
 		}
@@ -45,7 +68,26 @@ func Run() error {
 	return nil
 }
 
-func seedUsers(ctx context.Context, sqlDB *sql.DB) error {
+func CategoryNames() []string {
+	return []string{
+		"Housing",
+		"Transportation",
+		"Groceries",
+		"Food Delivery",
+		"Healthcare",
+		"Personal Care",
+		"Entertainment",
+		"Shopping",
+		"Online Shopping",
+		"Travel",
+		"Financial",
+		"Pets",
+		"Taxes",
+		"Other",
+	}
+}
+
+func seedUsers(sc Config) error {
 	testPwd := "123456789"
 	passHash, err := bcrypt.GenerateFromPassword([]byte(testPwd), bcrypt.MinCost)
 	if err != nil {
@@ -63,39 +105,43 @@ func seedUsers(ctx context.Context, sqlDB *sql.DB) error {
 		COMMIT;
 	`
 
-	if _, err := sqlDB.ExecContext(ctx, query, passHash); err != nil {
+	if _, err := sc.SQLDB.ExecContext(sc.Context, query, passHash); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func seedCategories(ctx context.Context, sqlDB *sql.DB) error {
-	query := `
-		BEGIN;
-		INSERT INTO "categories" ("name", "uid")
-		VALUES
-				('Housing',  'housing'),
-				('Transportation',  'transportation'),
-				('Groceries',  'groceries'),
-				('Food Delivery', 'foodDelivery'),
-				('Healthcare',  'healthcare'),
-				('Personal Care',  'personalCare'),
-				('Entertainment',  'entertainment'),
-				('Shopping',  'shopping'),
-				('Online Shopping',  'onlineShopping'),
-				('Travel',  'travel'),
-				('Financial',  'financial'),
-				('Pets', 'pets'),
-				('Taxes', 'taxes'),
-				('Other', 'other')
-		ON CONFLICT DO NOTHING;
-		COMMIT;
-	`
-
-	if _, err := sqlDB.ExecContext(ctx, query); err != nil {
+func seedCategories(sc Config) error {
+	tx, err := sc.SQLDB.BeginTx(sc.Context, nil)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	stmt, err := tx.PrepareContext(sc.Context, `
+		INSERT INTO "categories" ("name", "uid")
+		VALUES (?, ?)
+		ON CONFLICT DO NOTHING;
+	`)
+	if err != nil {
+		_ = tx.Rollback()
+
+		return err
+	}
+	defer func() {
+		if err := stmt.Close(); err != nil {
+			sc.App.Logger.Error(err)
+		}
+	}()
+
+	for _, name := range CategoryNames() {
+		uid := prog.ToLowerCamel(name)
+		if _, err := stmt.ExecContext(sc.Context, name, uid); err != nil {
+			_ = tx.Rollback()
+
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
