@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -124,4 +125,33 @@ func (f *Factory) RefreshToken(t *testing.T, userID int) logic.Token {
 	require.NoError(t, err)
 
 	return refreshToken
+}
+
+func (f *Factory) Category(t *testing.T, name string) repo.Category {
+	t.Helper()
+
+	uid := strings.ReplaceAll(strings.ToLower(name), " ", "_")
+	category, err := f.Store.CreateCategory(t.Context(), name, uid)
+	if err != nil {
+		t.Fatalf("failed to create category, %v", err)
+	}
+
+	return category
+}
+
+func (f *Factory) Expense(t *testing.T, params repo.InsertExpenseParams) repo.Expense {
+	t.Helper()
+
+	logicParams := logic.ExpenseParams{
+		CategoryID:  params.CategoryID,
+		Description: params.Description,
+		Amount:      params.Amount,
+		Date:        params.Date,
+	}
+	expense, err := f.Store.CreateExpense(t.Context(), params.UserID, logicParams)
+	if err != nil {
+		t.Fatalf("failed to create expense, %v", err)
+	}
+
+	return expense
 }
