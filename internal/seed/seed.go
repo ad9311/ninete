@@ -86,6 +86,7 @@ func CategoryNames() []string {
 		"Financial",
 		"Pets",
 		"Taxes",
+		"Subscriptions",
 		"Other",
 	}
 }
