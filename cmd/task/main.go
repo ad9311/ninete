@@ -15,9 +15,7 @@ import (
 func main() {
 	app, err := prog.Load()
 	if err != nil {
-		prog.NewLogger(prog.LogOptions{
-			EnableColor: true,
-		}).Errorf("%v", err)
+		prog.QuickLogger().Errorf("%v", err)
 	}
 
 	sqlDB, err := db.Open()
@@ -32,12 +30,18 @@ func main() {
 		app.Logger.Error(err)
 	}
 
+	tc := task.Config{
+		App:   app,
+		SQLDB: sqlDB,
+		Store: store,
+	}
+
 	code, err := cmd.Run(os.Args[0], []*cmd.Command{
 		{
 			Name:        "dev",
 			Description: "Run test code",
 			Run: func(_ []string) error {
-				return task.RunDev(store)
+				return tc.RunDev()
 			},
 		},
 	})

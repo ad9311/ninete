@@ -47,9 +47,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		prog.NewLogger(prog.LogOptions{
-			EnableColor: true,
-		}).Errorf("%v", err)
+		prog.QuickLogger().Errorf("%v", err)
 	}
 
 	os.Exit(code)

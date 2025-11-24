@@ -1,57 +1,18 @@
 package task
 
 import (
-	"context"
-	"fmt"
+	"database/sql"
 
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/repo"
+	"github.com/ad9311/ninete/internal/prog"
 )
 
-func RunDev(store *logic.Store) error {
-	ctx := context.Background()
+type Config struct {
+	App   *prog.App
+	SQLDB *sql.DB
+	Store *logic.Store
+}
 
-	filters := repo.Filters{
-		FilterFields: []repo.FilterField{
-			{
-				Name:     "user_id",
-				Value:    1,
-				Operator: "=",
-			},
-		},
-	}
-
-	sorting := repo.Sorting{
-		Field: "amount",
-		Order: "asc",
-	}
-
-	pagination := repo.Pagination{
-		PerPage: 1,
-		Page:    1,
-	}
-
-	queryOptions := repo.QueryOptions{
-		Filters:    filters,
-		Sorting:    sorting,
-		Pagination: pagination,
-	}
-
-	es, err := store.FindExpenses(ctx, queryOptions)
-	if err != nil {
-		return err
-	}
-
-	c, err := store.CountExpenses(ctx, queryOptions.Filters)
-	if err != nil {
-		return err
-	}
-
-	for _, e := range es {
-		fmt.Println(e)
-	}
-	fmt.Println("------------------")
-	fmt.Println(c)
-
+func (c *Config) RunDev() error {
 	return nil
 }

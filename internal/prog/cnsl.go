@@ -50,6 +50,15 @@ func NewLogger(opt LogOptions) *Logger {
 	}
 }
 
+func QuickLogger() *Logger {
+	return &Logger{
+		Out:         os.Stdout,
+		OutErr:      os.Stderr,
+		EnableColor: true,
+		EnableQuery: true,
+	}
+}
+
 func (l *Logger) Log(a any) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

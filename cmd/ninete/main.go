@@ -16,9 +16,7 @@ func main() {
 
 	app, err := prog.Load()
 	if err != nil {
-		prog.NewLogger(prog.LogOptions{
-			EnableColor: true,
-		}).Errorf("failed to load app configuration: %v", err)
+		prog.QuickLogger().Errorf("failed to load app configuration: %v", err)
 
 		os.Exit(1)
 	}
