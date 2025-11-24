@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/logic"
@@ -42,7 +43,9 @@ func Run() error {
 		return fmt.Errorf("failed to set up store: %w", err)
 	}
 
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	sc := Config{
 		App:     app,
 		SQLDB:   sqlDB,
@@ -52,14 +55,14 @@ func Run() error {
 
 	seeds := []struct {
 		name     string
-		seedFunc func(Config) error
+		seedFunc func() error
 	}{
-		{"users", seedUsers},
-		{"categories", seedCategories},
+		{"users", sc.SeedUsers},
+		{"categories", sc.SeedCategories},
 	}
 
 	for _, s := range seeds {
-		err := s.seedFunc(sc)
+		err := s.seedFunc()
 		if err != nil {
 			return fmt.Errorf("failed to run seed '%s': %w", s.name, err)
 		}
@@ -87,7 +90,7 @@ func CategoryNames() []string {
 	}
 }
 
-func seedUsers(sc Config) error {
+func (sc *Config) SeedUsers() error {
 	testPwd := "123456789"
 	passHash, err := bcrypt.GenerateFromPassword([]byte(testPwd), bcrypt.MinCost)
 	if err != nil {
@@ -112,7 +115,7 @@ func seedUsers(sc Config) error {
 	return nil
 }
 
-func seedCategories(sc Config) error {
+func (sc *Config) SeedCategories() error {
 	tx, err := sc.SQLDB.BeginTx(sc.Context, nil)
 	if err != nil {
 		return err
