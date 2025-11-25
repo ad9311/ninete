@@ -3,9 +3,12 @@ package task
 import (
 	"context"
 	"database/sql"
+	"time"
 
+	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/seed"
 )
 
@@ -14,6 +17,36 @@ type Config struct {
 	SQLDB   *sql.DB
 	Store   *logic.Store
 	Context context.Context
+}
+
+func New() (*Config, error) {
+	app, err := prog.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB, err := db.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	queries := repo.New(app, sqlDB)
+
+	store, err := logic.New(app, queries)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	tc := Config{
+		App:     app,
+		SQLDB:   sqlDB,
+		Store:   store,
+		Context: ctx,
+	}
+
+	return &tc, nil
 }
 
 func (c *Config) RunTestCode() error {

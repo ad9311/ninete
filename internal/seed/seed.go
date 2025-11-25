@@ -26,6 +26,12 @@ func Run() error {
 		return fmt.Errorf("failed to load program configuration: %w", err)
 	}
 
+	if app.IsProduction() {
+		app.Logger.Log("seeds cannot be run in production")
+
+		return nil
+	}
+
 	sqlDB, err := db.Open()
 	if err != nil {
 		return fmt.Errorf("failed to open the database: %w", err)
