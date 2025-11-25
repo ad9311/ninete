@@ -1,9 +1,7 @@
 package task
 
 import (
-	"context"
 	"database/sql"
-	"time"
 
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/logic"
@@ -13,10 +11,9 @@ import (
 )
 
 type Config struct {
-	App     *prog.App
-	SQLDB   *sql.DB
-	Store   *logic.Store
-	Context context.Context
+	App   *prog.App
+	SQLDB *sql.DB
+	Store *logic.Store
 }
 
 func New() (*Config, error) {
@@ -36,14 +33,11 @@ func New() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	tc := Config{
-		App:     app,
-		SQLDB:   sqlDB,
-		Store:   store,
-		Context: ctx,
+		App:   app,
+		SQLDB: sqlDB,
+		Store: store,
 	}
 
 	return &tc, nil
@@ -55,9 +49,8 @@ func (c *Config) RunTestCode() error {
 
 func (c *Config) CreateCategories() error {
 	sc := seed.Config{
-		App:     c.App,
-		SQLDB:   c.SQLDB,
-		Context: c.Context,
+		App:   c.App,
+		SQLDB: c.SQLDB,
 	}
 
 	if err := sc.SeedCategories(); err != nil {
