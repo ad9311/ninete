@@ -13,17 +13,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const contextTimeout = 10 * time.Second
+
 type Config struct {
-	App     *prog.App
-	SQLDB   *sql.DB
-	Store   *logic.Store
-	Context context.Context
+	App   *prog.App
+	SQLDB *sql.DB
+	Store *logic.Store
 }
 
 func Run() error {
 	app, err := prog.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load program configuration: %w", err)
+	}
+
+	if app.IsProduction() {
+		app.Logger.Log("seeds cannot be run in production")
+
+		return nil
 	}
 
 	sqlDB, err := db.Open()
@@ -43,14 +50,10 @@ func Run() error {
 		return fmt.Errorf("failed to set up store: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	sc := Config{
-		App:     app,
-		SQLDB:   sqlDB,
-		Store:   store,
-		Context: ctx,
+		App:   app,
+		SQLDB: sqlDB,
+		Store: store,
 	}
 
 	seeds := []struct {
@@ -109,7 +112,10 @@ func (sc *Config) SeedUsers() error {
 		COMMIT;
 	`
 
-	if _, err := sc.SQLDB.ExecContext(sc.Context, query, passHash); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	if _, err := sc.SQLDB.ExecContext(ctx, query, passHash); err != nil {
 		return err
 	}
 
@@ -117,12 +123,15 @@ func (sc *Config) SeedUsers() error {
 }
 
 func (sc *Config) SeedCategories() error {
-	tx, err := sc.SQLDB.BeginTx(sc.Context, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
+	defer cancel()
+
+	tx, err := sc.SQLDB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	stmt, err := tx.PrepareContext(sc.Context, `
+	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO "categories" ("name", "uid")
 		VALUES (?, ?)
 		ON CONFLICT DO NOTHING;
@@ -140,7 +149,7 @@ func (sc *Config) SeedCategories() error {
 
 	for _, name := range CategoryNames() {
 		uid := prog.ToLowerCamel(name)
-		if _, err := stmt.ExecContext(sc.Context, name, uid); err != nil {
+		if _, err := stmt.ExecContext(ctx, name, uid); err != nil {
 			_ = tx.Rollback()
 
 			return err

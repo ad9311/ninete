@@ -20,6 +20,16 @@ type Registry struct {
 func Run(appName string, cmds []*Command) (int, error) {
 	reg := NewRegistry().WithUsageName(appName)
 
+	cmds = append(cmds, &Command{
+		Name:        "help",
+		Description: "Prints all available commands",
+		Run: func(_ []string) error {
+			reg.printUsage()
+
+			return nil
+		},
+	})
+
 	for _, c := range cmds {
 		if err := reg.Register(c); err != nil {
 			return 2, err
