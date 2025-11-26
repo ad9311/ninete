@@ -125,6 +125,17 @@ func (s *Server) PostRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := s.store.FindUser(ctx, refreshToken.UserID)
+	if err != nil {
+		s.respondError(
+			w,
+			http.StatusUnauthorized,
+			fmt.Errorf("%w, user not found", ErrInvalidAuthCreds),
+		)
+
+		return
+	}
+
 	accessToken, err := s.store.NewAccessToken(refreshToken.UserID)
 	if err != nil {
 		s.respondError(w, http.StatusInternalServerError, err)
@@ -138,7 +149,12 @@ func (s *Server) PostRefresh(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: accessToken.ExpiresAt,
 	}
 
-	s.respond(w, http.StatusOK, token)
+	res := SessionResponse{
+		User:        user.ToSafe(),
+		AccessToken: token,
+	}
+
+	s.respond(w, http.StatusOK, res)
 }
 
 func (s *Server) setRefreshTokenCookie(w http.ResponseWriter, token logic.Token) {
