@@ -284,10 +284,11 @@ func TestPostRefresh(t *testing.T) {
 
 				require.Equal(t, http.StatusOK, res.Code)
 
-				var resBody testhelper.Response[logic.Token]
+				var resBody testhelper.Response[serve.SessionResponse]
 				testhelper.UnmarshalBody(t, res, &resBody)
-				require.NotEmpty(t, resBody.Data.Value)
-				require.Greater(t, resBody.Data.ExpiresAt, resBody.Data.IssuedAt)
+				require.NotEmpty(t, resBody.Data.AccessToken.Value)
+				require.Greater(t, resBody.Data.AccessToken.ExpiresAt, resBody.Data.AccessToken.IssuedAt)
+				require.Positive(t, resBody.Data.User.ID)
 			},
 		},
 		{
