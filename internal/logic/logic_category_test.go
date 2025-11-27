@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/testhelper"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/require"
@@ -56,6 +57,60 @@ func TestCreateCategory(t *testing.T) {
 
 				_, err = f.Store.CreateCategory(ctx, nameTwo, uid)
 				requireUniqueConstraint(t, err, "categories.uid")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestFindCategories(t *testing.T) {
+	ctx := t.Context()
+	f := testhelper.NewFactory(t)
+
+	categoryOne := f.Category(t, "Find Categories One")
+	categoryTwo := f.Category(t, "Find Categories Two")
+
+	expected := map[int]repo.Category{
+		categoryOne.ID: categoryOne,
+		categoryTwo.ID: categoryTwo,
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			"should_find_categories",
+			func(t *testing.T) {
+				categories, err := f.Store.FindCategories(ctx)
+				require.NoError(t, err)
+
+				require.GreaterOrEqual(t, len(categories), len(expected))
+
+				found := make(map[int]repo.Category)
+				for _, category := range categories {
+					found[category.ID] = category
+				}
+
+				for id, expectedCategory := range expected {
+					category, ok := found[id]
+					require.True(t, ok)
+					require.Equal(t, expectedCategory.Name, category.Name)
+					require.Equal(t, expectedCategory.UID, category.UID)
+				}
+			},
+		},
+		{
+			"should_fail_when_database_closed",
+			func(t *testing.T) {
+				f.CloseDB(t)
+
+				_, err := f.Store.FindCategories(ctx)
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "database is closed")
 			},
 		},
 	}
