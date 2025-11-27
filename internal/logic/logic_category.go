@@ -14,3 +14,12 @@ func (s *Store) CreateCategory(ctx context.Context, name, uid string) (repo.Cate
 
 	return category, nil
 }
+
+func (s *Store) FindCategories(ctx context.Context) ([]repo.Category, error) {
+	categories, err := s.queries.SelectCategories(ctx)
+	if err != nil {
+		return categories, HandleDBError(err)
+	}
+
+	return categories, nil
+}

@@ -134,7 +134,7 @@ func (q *QueryOptions) Validate(fields []string) error {
 	if !q.Filters.ValidFields(fields) || !q.Sorting.ValidField(fields) {
 		availableFields := strings.Join(fields, ",")
 
-		return fmt.Errorf("%w, valid fields are: %s", ErrInvalidField, availableFields)
+		return fmt.Errorf("%w, valid fields for filters and sorting are: %s", ErrInvalidField, availableFields)
 	}
 
 	return nil
@@ -234,6 +234,10 @@ func (s *Sorting) validateSortOrder() bool {
 }
 
 func (s *Sorting) ValidField(fields []string) bool {
+	if s.Field == "" && s.Order == "" {
+		return true
+	}
+
 	return slices.Contains(fields, s.Field)
 }
 

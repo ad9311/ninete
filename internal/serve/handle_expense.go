@@ -92,7 +92,7 @@ func (s *Server) PostExpense(w http.ResponseWriter, r *http.Request) {
 	var params logic.ExpenseParams
 
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
@@ -113,7 +113,7 @@ func (s *Server) PutExpense(w http.ResponseWriter, r *http.Request) {
 	var params logic.ExpenseParams
 
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
