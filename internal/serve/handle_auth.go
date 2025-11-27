@@ -23,7 +23,7 @@ type SessionResponse struct {
 func (s *Server) PostSignUp(w http.ResponseWriter, r *http.Request) {
 	var params logic.SignUpParams
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}
@@ -43,7 +43,7 @@ func (s *Server) PostSignIn(w http.ResponseWriter, r *http.Request) {
 
 	var params logic.SessionParams
 	if err := decodeJSONBody(r, &params); err != nil {
-		s.respondError(w, http.StatusBadRequest, ErrFormParsing)
+		s.respondError(w, http.StatusBadRequest, err)
 
 		return
 	}

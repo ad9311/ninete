@@ -54,8 +54,8 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 			return err
 		}
 		defer func() {
-			if closeErr := rows.Close(); err != nil {
-				err = closeErr
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
 			}
 		}()
 

@@ -32,3 +32,42 @@ func (q *Queries) InserCategory(ctx context.Context, name, uid string) (Category
 
 	return c, err
 }
+
+const selectCategories = `
+SELECT * FROM "categories"`
+
+func (q *Queries) SelectCategories(ctx context.Context) ([]Category, error) {
+	var cs []Category
+
+	err := q.wrapQuery(selectCategories, func() error {
+		rows, err := q.db.QueryContext(ctx, selectCategories)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var c Category
+
+			if err := rows.Scan(
+				&c.ID,
+				&c.Name,
+				&c.UID,
+				&c.CreatedAt,
+				&c.UpdatedAt,
+			); err != nil {
+				return err
+			}
+
+			cs = append(cs, c)
+		}
+
+		return err
+	})
+
+	return cs, err
+}

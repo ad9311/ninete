@@ -23,6 +23,8 @@ func (s *Server) setUpRoutes() {
 
 			secure.Get("/users/me", s.GetMe)
 
+			secure.Get("/categories", s.GetCategories)
+
 			secure.Route("/expenses", func(e chi.Router) {
 				e.Get("/", s.GetExpenses)
 				e.Post("/", s.PostExpense)

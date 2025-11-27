@@ -3,6 +3,7 @@ package serve
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -68,7 +69,7 @@ func (s *Server) setHeaderAndWrite(w http.ResponseWriter, status int, body any) 
 
 func decodeJSONBody(r *http.Request, params any) error {
 	if err := json.NewDecoder(r.Body).Decode(params); err != nil {
-		return ErrFormParsing
+		return fmt.Errorf("%w, %w", ErrFormParsing, err)
 	}
 
 	return nil
