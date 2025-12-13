@@ -90,7 +90,7 @@ func (q *Queries) wrapQuery(query string, queryFunc func() error) error {
 }
 
 func newUpdatedAt() int64 {
-	return time.Now().UTC().Unix()
+	return time.Now().Unix()
 }
 
 func (q *QueryOptions) Build() (string, error) {

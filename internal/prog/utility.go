@@ -42,7 +42,7 @@ func StringToUnixDate(date string) (int64, error) {
 		return 0, fmt.Errorf("failed to parse date, %w", err)
 	}
 
-	return parsedDate.UTC().Unix(), nil
+	return parsedDate.Unix(), nil
 }
 
 func UnixToStringDate(date int64) string {
