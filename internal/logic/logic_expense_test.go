@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/testhelper"
 	"github.com/stretchr/testify/require"
@@ -22,20 +23,18 @@ func TestFindExpenses(t *testing.T) {
 	})
 	category := f.Category(t, "Find Expenses Category")
 
-	date := time.Now().UTC().Unix()
-	expenseOne := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	date := time.Now()
+	expenseOne := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Morning coffee",
 		Amount:      500,
-		Date:        date,
+		Date:        prog.FormatTime(date),
 	})
-	expenseTwo := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expenseTwo := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Lunch",
 		Amount:      1500,
-		Date:        date + 10,
+		Date:        prog.FormatTime(date.Add(10 * time.Second)),
 	})
 
 	otherUser := f.User(t, logic.SignUpParams{
@@ -44,12 +43,11 @@ func TestFindExpenses(t *testing.T) {
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	})
-	f.Expense(t, repo.InsertExpenseParams{
-		UserID:      otherUser.ID,
+	f.Expense(t, otherUser.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Other user expense",
 		Amount:      100,
-		Date:        date,
+		Date:        prog.FormatTime(date),
 	})
 
 	cases := []struct {
@@ -105,20 +103,18 @@ func TestCountExpenses(t *testing.T) {
 	})
 	category := f.Category(t, "Count Expenses Category")
 
-	date := time.Now().UTC().Unix()
-	f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	date := time.Now()
+	f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Breakfast",
 		Amount:      700,
-		Date:        date,
+		Date:        prog.FormatTime(date),
 	})
-	f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Dinner",
 		Amount:      2000,
-		Date:        date + 20,
+		Date:        prog.FormatTime(date.Add(20 * time.Second)),
 	})
 
 	cases := []struct {
@@ -169,12 +165,11 @@ func TestFindExpense(t *testing.T) {
 	})
 	category := f.Category(t, "Find Expense Category")
 
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Groceries",
 		Amount:      3000,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	})
 
 	cases := []struct {
@@ -225,14 +220,13 @@ func TestCreateExpense(t *testing.T) {
 		{
 			"should_create_expense",
 			func(t *testing.T) {
-				params := repo.InsertExpenseParams{
-					UserID:      user.ID,
+				params := logic.ExpenseParams{
 					CategoryID:  category.ID,
 					Description: "Rent",
 					Amount:      120000,
-					Date:        time.Now().UTC().Unix(),
+					Date:        prog.FormatTime(time.Now()),
 				}
-				expense := f.Expense(t, params)
+				expense := f.Expense(t, user.ID, params)
 				require.Equal(t, params.Description, expense.Description)
 				require.Equal(t, params.Amount, expense.Amount)
 				require.Equal(t, user.ID, expense.UserID)
@@ -246,7 +240,7 @@ func TestCreateExpense(t *testing.T) {
 					CategoryID:  category.ID,
 					Description: "ab",
 					Amount:      0,
-					Date:        0,
+					Date:        "",
 				}
 				_, err := f.Store.CreateExpense(ctx, user.ID, params)
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
@@ -273,12 +267,12 @@ func TestUpdateExpense(t *testing.T) {
 		PasswordConfirmation: "123456789",
 	})
 	category := f.Category(t, "Update Expense Category")
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	date := time.Now()
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Subscription",
 		Amount:      900,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(date),
 	})
 
 	cases := []struct {
@@ -292,14 +286,15 @@ func TestUpdateExpense(t *testing.T) {
 					CategoryID:  category.ID,
 					Description: "Subscription upgraded",
 					Amount:      1500,
-					Date:        expense.Date + 50,
+					Date:        prog.FormatTime(date.Add(50 * time.Second)),
 				}
 				updated, err := f.Store.UpdateExpense(ctx, expense.ID, params)
 				require.NoError(t, err)
 				require.Equal(t, expense.ID, updated.ID)
 				require.Equal(t, params.Description, updated.Description)
 				require.Equal(t, params.Amount, updated.Amount)
-				require.Equal(t, params.Date, updated.Date)
+				updatedDate := prog.UnixToStringDate(updated.Date)
+				require.Equal(t, params.Date, updatedDate)
 			},
 		},
 		{
@@ -309,7 +304,7 @@ func TestUpdateExpense(t *testing.T) {
 					CategoryID:  category.ID,
 					Description: "",
 					Amount:      0,
-					Date:        0,
+					Date:        "",
 				}
 				_, err := f.Store.UpdateExpense(ctx, expense.ID, params)
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
@@ -325,7 +320,7 @@ func TestUpdateExpense(t *testing.T) {
 					CategoryID:  category.ID,
 					Description: "Missing expense",
 					Amount:      100,
-					Date:        expense.Date,
+					Date:        prog.FormatTime(date),
 				}
 				_, err := f.Store.UpdateExpense(ctx, -1, params)
 				require.ErrorIs(t, err, logic.ErrNotFound)
@@ -349,12 +344,11 @@ func TestDeleteExpense(t *testing.T) {
 		PasswordConfirmation: "123456789",
 	})
 	category := f.Category(t, "Delete Expense Category")
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "To be deleted",
 		Amount:      400,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	})
 
 	cases := []struct {
