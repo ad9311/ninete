@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
 	"github.com/ad9311/ninete/internal/testhelper"
@@ -30,21 +31,19 @@ func TestGetExpenses(t *testing.T) {
 	require.NoError(t, err)
 
 	category := f.Category(t, "Get Expenses Category")
-	date := time.Now().UTC().Unix()
+	date := time.Now()
 
-	expenseOne := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expenseOne := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Coffee",
 		Amount:      300,
-		Date:        date,
+		Date:        prog.FormatTime(date),
 	})
-	expenseTwo := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expenseTwo := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Lunch",
 		Amount:      1200,
-		Date:        date + 10,
+		Date:        prog.FormatTime(date.Add(10 * time.Second)),
 	})
 
 	otherUser := f.User(t, logic.SignUpParams{
@@ -53,12 +52,11 @@ func TestGetExpenses(t *testing.T) {
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	})
-	f.Expense(t, repo.InsertExpenseParams{
-		UserID:      otherUser.ID,
+	f.Expense(t, otherUser.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Other user expense",
 		Amount:      100,
-		Date:        date,
+		Date:        prog.FormatTime(date),
 	})
 
 	cases := []struct {
@@ -151,12 +149,11 @@ func TestGetExpense(t *testing.T) {
 	require.NoError(t, err)
 
 	category := f.Category(t, "Get Expense Category")
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Groceries",
 		Amount:      5000,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	})
 
 	cases := []struct {
@@ -236,7 +233,7 @@ func TestPostExpense(t *testing.T) {
 					CategoryID:  category.ID,
 					Description: "Rent",
 					Amount:      100000,
-					Date:        time.Now().UTC().Unix(),
+					Date:        prog.FormatTime(time.Now()),
 				}
 
 				res, req := f.NewRequest(ctx, http.MethodPost, "/expenses", testhelper.MarshalPayload(t, params))
@@ -295,19 +292,18 @@ func TestPutExpense(t *testing.T) {
 
 	category := f.Category(t, "Put Expense Category")
 
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Old description",
 		Amount:      2000,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	})
 
 	params := logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Updated description",
 		Amount:      3000,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	}
 
 	target := fmt.Sprintf("/expenses/%d", expense.ID)
@@ -342,12 +338,11 @@ func TestDeleteExpense(t *testing.T) {
 
 	category := f.Category(t, "Delete Expense Category")
 
-	expense := f.Expense(t, repo.InsertExpenseParams{
-		UserID:      user.ID,
+	expense := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "To delete",
 		Amount:      500,
-		Date:        time.Now().UTC().Unix(),
+		Date:        prog.FormatTime(time.Now()),
 	})
 
 	target := fmt.Sprintf("/expenses/%d", expense.ID)

@@ -39,18 +39,26 @@ func NewFactory(t *testing.T) Factory {
 	var f Factory
 
 	app, err := prog.Load()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to load factory program, %v", err)
+	}
 
 	sqlDB, err := db.Open()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to open factory database, %v", err)
+	}
 
 	queries := repo.New(app, sqlDB)
 
 	store, err := logic.New(app, queries)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to instantiate factory store, %v", err)
+	}
 
 	server, err := serve.New(app, store)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to instantiate factory server, %v", err)
+	}
 
 	f.Store = store
 	f.Server = server
@@ -91,7 +99,9 @@ func (f *Factory) User(t *testing.T, params logic.SignUpParams) repo.SafeUser {
 	t.Helper()
 
 	user, err := f.Store.SignUpUser(t.Context(), params)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create factory user, %v", err)
+	}
 
 	return user
 }
@@ -122,7 +132,9 @@ func (f *Factory) RefreshToken(t *testing.T, userID int) logic.Token {
 	t.Helper()
 
 	refreshToken, err := f.Store.NewRefreshToken(t.Context(), userID)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("failed to create factory refresh token, %v", err)
+	}
 
 	return refreshToken
 }
@@ -133,13 +145,13 @@ func (f *Factory) Category(t *testing.T, name string) repo.Category {
 	uid := strings.ReplaceAll(strings.ToLower(name), " ", "_")
 	category, err := f.Store.CreateCategory(t.Context(), name, uid)
 	if err != nil {
-		t.Fatalf("failed to create category, %v", err)
+		t.Fatalf("failed to create factory category, %v", err)
 	}
 
 	return category
 }
 
-func (f *Factory) Expense(t *testing.T, params repo.InsertExpenseParams) repo.Expense {
+func (f *Factory) Expense(t *testing.T, userID int, params logic.ExpenseParams) repo.Expense {
 	t.Helper()
 
 	logicParams := logic.ExpenseParams{
@@ -148,9 +160,9 @@ func (f *Factory) Expense(t *testing.T, params repo.InsertExpenseParams) repo.Ex
 		Amount:      params.Amount,
 		Date:        params.Date,
 	}
-	expense, err := f.Store.CreateExpense(t.Context(), params.UserID, logicParams)
+	expense, err := f.Store.CreateExpense(t.Context(), userID, logicParams)
 	if err != nil {
-		t.Fatalf("failed to create expense, %v", err)
+		t.Fatalf("failed to create factory expense, %v", err)
 	}
 
 	return expense
