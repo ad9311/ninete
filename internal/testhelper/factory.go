@@ -14,13 +14,15 @@ import (
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
+	"github.com/ad9311/ninete/internal/task"
 	"github.com/stretchr/testify/require"
 )
 
 type Factory struct {
-	Store  *logic.Store
-	Server *serve.Server
-	sqlDB  *sql.DB
+	Store      *logic.Store
+	Server     *serve.Server
+	TaskConfig *task.Config
+	sqlDB      *sql.DB
 }
 
 type Response[T any] struct {
@@ -62,6 +64,11 @@ func NewFactory(t *testing.T) Factory {
 
 	f.Store = store
 	f.Server = server
+	f.TaskConfig = &task.Config{
+		App:   app,
+		SQLDB: sqlDB,
+		Store: store,
+	}
 	f.sqlDB = sqlDB
 
 	return f
