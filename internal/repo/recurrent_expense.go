@@ -74,7 +74,7 @@ func (q *Queries) InsertRecurrentExpense(
 const updateLastCopyCreated = `
 UPDATE "recurrent_expenses"
 SET "last_copy_created_at"  = ?,
-    "updated_at"         = ?
+    "updated_at"            = ?
 WHERE "id" = ?
 RETURNING "last_copy_created_at";
 `
