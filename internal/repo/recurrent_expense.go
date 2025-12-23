@@ -101,13 +101,15 @@ func (q *Queries) UpdateLastCopyCreated(
 	return re, err
 }
 
-const selectRecurrentExpense = `SELECT * FROM "recurrent_expenses" WHERE "id" = ? LIMIT 1`
+const selectRecurrentExpense = `
+SELECT * FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
+`
 
-func (q *Queries) SelectRecurrentExpense(ctx context.Context, id int) (RecurrentExpense, error) {
+func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (RecurrentExpense, error) {
 	var re RecurrentExpense
 
 	err := q.wrapQuery(selectRecurrentExpense, func() error {
-		row := q.db.QueryRowContext(ctx, selectRecurrentExpense, id)
+		row := q.db.QueryRowContext(ctx, selectRecurrentExpense, id, userID)
 
 		return row.Scan(
 			&re.ID,

@@ -16,8 +16,8 @@ type RecurrentExpenseParams struct {
 	Period      uint   `json:"period" validate:"required,gt=0,lt=25"`
 }
 
-func (s *Store) FindRecurrentExpense(ctx context.Context, id int) (repo.RecurrentExpense, error) {
-	recurrentExpense, err := s.queries.SelectRecurrentExpense(ctx, id)
+func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.RecurrentExpense, error) {
+	recurrentExpense, err := s.queries.SelectRecurrentExpense(ctx, id, userID)
 	if err != nil {
 		return recurrentExpense, HandleDBError(err)
 	}
@@ -61,8 +61,6 @@ func (s *Store) CreateExpenseFromPeriod(
 		if err != nil {
 			return expense, err
 		}
-
-		s.app.Logger.Debugf("%v", recurrent.LastCopyCreatedAt.Valid)
 
 		return expense, nil
 	}

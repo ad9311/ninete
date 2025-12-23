@@ -11,9 +11,9 @@ CREATE TABLE IF NOT EXISTS "recurrent_expenses" (
   "updated_at" INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
 
 -- +goose Down
 DROP TABLE IF EXISTS "recurrent_expenses";
 
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
