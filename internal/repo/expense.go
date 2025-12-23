@@ -165,7 +165,7 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 
 const updateExpense = `
 UPDATE "expenses"
-SET categ"ory_id = ?,
+SET "category_id" = ?,
     "description" = ?,
     "amount"      = ?,
     "date"        = ?,

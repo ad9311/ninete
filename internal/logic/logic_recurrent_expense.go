@@ -63,6 +63,7 @@ func (s *Store) CreateExpenseFromPeriod(
 		}
 
 		s.app.Logger.Debugf("%v", recurrent.LastCopyCreatedAt.Valid)
+
 		return expense, nil
 	}
 
