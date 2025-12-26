@@ -50,6 +50,38 @@ func (s *Store) CreateRecurrentExpense(
 	return recurrentExpense, nil
 }
 
+func (s *Store) UpdateRecurrentExpense(
+	ctx context.Context,
+	params repo.UpdateRecurrentExpenseParams,
+) (repo.RecurrentExpense, error) {
+	recurrentExpense, err := s.queries.UpdateRecurrentExpense(ctx, params)
+	if err != nil {
+		return recurrentExpense, HandleDBError(err)
+	}
+
+	return recurrentExpense, nil
+}
+
+func (s *Store) UpdateLastCopyCreatedAt(
+	ctx context.Context,
+	recurrent repo.RecurrentExpense,
+	date int64,
+) (repo.RecurrentExpense, error) {
+	re, err := s.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+		ID:                recurrent.ID,
+		UserID:            recurrent.UserID,
+		Description:       recurrent.Description,
+		Amount:            recurrent.Amount,
+		Period:            recurrent.Period,
+		LastCopyCreatedAt: recurrent.LastCopyCreatedAt,
+	})
+	if err != nil {
+		return re, err
+	}
+
+	return re, nil
+}
+
 func (s *Store) CreateExpenseFromPeriod(
 	ctx context.Context,
 	recurrent repo.RecurrentExpense,
@@ -104,7 +136,7 @@ func (s *Store) createExpenseFromRecurrent(
 		return expense, HandleDBError(err)
 	}
 
-	_, err = s.queries.UpdateLastCopyCreated(ctx, recurrent.ID, time.Now().Unix())
+	_, err = s.UpdateLastCopyCreatedAt(ctx, recurrent, time.Now().Unix())
 	if err != nil {
 		return expense, HandleDBError(err)
 	}

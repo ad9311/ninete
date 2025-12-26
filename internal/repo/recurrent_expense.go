@@ -26,11 +26,12 @@ type InsertRecurrentExpenseParams struct {
 }
 
 type UpdateRecurrentExpenseParams struct {
-	ID          int
-	CategoryID  int
-	Description string
-	Amount      uint64
-	Period      uint
+	ID                int
+	UserID            int
+	Description       string
+	Amount            uint64
+	Period            uint
+	LastCopyCreatedAt sql.NullInt64
 }
 
 const insertRecurrentExpense = `
@@ -71,31 +72,47 @@ func (q *Queries) InsertRecurrentExpense(
 	return re, err
 }
 
-const updateLastCopyCreated = `
+const updateRecurrentExpense = `
 UPDATE "recurrent_expenses"
-SET "last_copy_created_at"  = ?,
-    "updated_at"            = ?
-WHERE "id" = ?
-RETURNING "last_copy_created_at";
+SET "description"          = ?,
+    "amount"               = ?,
+    "period"               = ?,
+    "last_copy_created_at" = ?,
+    "updated_at"           = ?
+WHERE "id" = ? AND "user_id" = ?
+RETURNING *;
 `
 
-func (q *Queries) UpdateLastCopyCreated(
+func (q *Queries) UpdateRecurrentExpense(
 	ctx context.Context,
-	id int,
-	lastCopyCreated int64,
+	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re RecurrentExpense
 
-	err := q.wrapQuery(updateLastCopyCreated, func() error {
+	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(
 			ctx,
-			updateLastCopyCreated,
-			lastCopyCreated,
+			updateRecurrentExpense,
+			params.Description,
+			params.Amount,
+			params.Period,
+			params.LastCopyCreatedAt,
 			newUpdatedAt(),
-			id,
+			params.ID,
+			params.UserID,
 		)
 
-		return row.Scan(&re.LastCopyCreatedAt)
+		return row.Scan(
+			&re.ID,
+			&re.UserID,
+			&re.CategoryID,
+			&re.Description,
+			&re.Amount,
+			&re.Period,
+			&re.LastCopyCreatedAt,
+			&re.CreatedAt,
+			&re.UpdatedAt,
+		)
 	})
 
 	return re, err
