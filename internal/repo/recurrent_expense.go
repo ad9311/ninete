@@ -3,6 +3,8 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 )
 
 type RecurrentExpense struct {
@@ -201,29 +203,50 @@ WHERE "last_copy_created_at" IS NULL
           )
         END
       ) >= "period"
-ORDER BY "id" ASC
-LIMIT ? OFFSET ?;
 `
 
 func (q *Queries) SelectDueRecurrentExpenses(
 	ctx context.Context,
 	nowUnix int64,
-	limit int,
-	offset int,
+	sorting Sorting,
+	pagination Pagination,
 ) ([]RecurrentExpense, error) {
 	var res []RecurrentExpense
 
-	err := q.wrapQuery(selectDueRecurrentExpenses, func() error {
+	if sorting.Field == "" && sorting.Order == "" {
+		sorting = Sorting{
+			Field: "id",
+			Order: "ASC",
+		}
+	}
+
+	if !sorting.ValidField(validRecurrentExpenseFields()) {
+		availableFields := strings.Join(validRecurrentExpenseFields(), ",")
+
+		return nil, fmt.Errorf("%w, valid fields for sorting are: %s", ErrInvalidField, availableFields)
+	}
+
+	sortingQuery, err := sorting.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	paginationQuery, err := pagination.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	query := strings.TrimSpace(selectDueRecurrentExpenses + " " + sortingQuery + " " + paginationQuery)
+
+	err = q.wrapQuery(query, func() error {
 		rows, err := q.db.QueryContext(
 			ctx,
-			selectDueRecurrentExpenses,
+			query,
 			nowUnix,
 			nowUnix,
 			nowUnix,
 			nowUnix,
 			nowUnix,
-			limit,
-			offset,
 		)
 		if err != nil {
 			return err
@@ -258,4 +281,18 @@ func (q *Queries) SelectDueRecurrentExpenses(
 	})
 
 	return res, err
+}
+
+func validRecurrentExpenseFields() []string {
+	return []string{
+		"id",
+		"user_id",
+		"category_id",
+		"description",
+		"amount",
+		"period",
+		"last_copy_created_at",
+		"created_at",
+		"updated_at",
+	}
 }

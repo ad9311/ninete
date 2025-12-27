@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/ad9311/ninete/internal/cmd"
@@ -28,6 +29,13 @@ func main() {
 			Description: "Create categories",
 			Run: func(_ []string) error {
 				return tc.CreateCategories()
+			},
+		},
+		{
+			Name:        "create_expenses_from_recurrent",
+			Description: "Create expenses from recurrent expenses",
+			Run: func(_ []string) error {
+				return tc.CreateExpensesFromRecurrent(context.Background())
 			},
 		},
 	})

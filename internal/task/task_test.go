@@ -66,6 +66,21 @@ func TestCreateExpensesFromRecurrent(t *testing.T) {
 		LastCopyCreatedAt: sql.NullInt64{Valid: true, Int64: time.Now().AddDate(0, -1, 0).Unix()},
 	})
 	require.NoError(t, err)
+	recurrentDueSecond := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
+		CategoryID:  category.ID,
+		Description: "Task mobile",
+		Amount:      4200,
+		Period:      1,
+	})
+	_, err = f.Store.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+		ID:                recurrentDueSecond.ID,
+		UserID:            user.ID,
+		Description:       recurrentDueSecond.Description,
+		Amount:            recurrentDueSecond.Amount,
+		Period:            recurrentDueSecond.Period,
+		LastCopyCreatedAt: sql.NullInt64{Valid: true, Int64: time.Now().AddDate(0, -1, 0).Unix()},
+	})
+	require.NoError(t, err)
 	recurrentNotDue := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Not due yet",
@@ -89,9 +104,8 @@ func TestCreateExpensesFromRecurrent(t *testing.T) {
 		{
 			"should_create_due_expenses_and_skip_not_due",
 			func(t *testing.T) {
-				created, err := f.TaskConfig.CreateExpensesFromRecurrent(ctx)
+				err := f.TaskConfig.CreateExpensesFromRecurrent(ctx)
 				require.NoError(t, err)
-				require.Equal(t, 1, created)
 
 				expenses, err := f.Store.FindExpenses(ctx, repo.QueryOptions{
 					Filters: repo.Filters{
@@ -101,8 +115,12 @@ func TestCreateExpensesFromRecurrent(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
-				require.Len(t, expenses, 1)
-				require.Equal(t, recurrentDue.Description, expenses[0].Description)
+				require.Len(t, expenses, 2)
+				descriptions := []string{expenses[0].Description, expenses[1].Description}
+				require.ElementsMatch(t, []string{
+					recurrentDue.Description,
+					recurrentDueSecond.Description,
+				}, descriptions)
 			},
 		},
 	}
