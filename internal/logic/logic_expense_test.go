@@ -23,7 +23,7 @@ func TestFindExpenses(t *testing.T) {
 	})
 	category := f.Category(t, "Find Expenses Category")
 
-	date := time.Now()
+	date := time.Now() // The frontend sends time as local time
 	expenseOne := f.Expense(t, user.ID, logic.ExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Morning coffee",

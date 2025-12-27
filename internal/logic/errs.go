@@ -19,6 +19,8 @@ var (
 	ErrNotFound = errors.New("resource not found")
 
 	ErrInvalidJWTToken = errors.New("invalid jwt token")
+
+	ErrRecordAlreadyExist = errors.New("record already exist")
 )
 
 func (s *Store) ValidateStruct(st any) error {

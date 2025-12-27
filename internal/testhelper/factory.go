@@ -174,3 +174,24 @@ func (f *Factory) Expense(t *testing.T, userID int, params logic.ExpenseParams) 
 
 	return expense
 }
+
+func (f *Factory) RecurrentExpense(
+	t *testing.T,
+	userID int,
+	params logic.RecurrentExpenseParams,
+) repo.RecurrentExpense {
+	t.Helper()
+
+	logicParams := logic.RecurrentExpenseParams{
+		CategoryID:  params.CategoryID,
+		Description: params.Description,
+		Amount:      params.Amount,
+		Period:      params.Period,
+	}
+	recurrent, err := f.Store.CreateRecurrentExpense(t.Context(), userID, logicParams)
+	if err != nil {
+		t.Fatalf("failed to create factory recurrent expense, %v", err)
+	}
+
+	return recurrent
+}

@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"slices"
@@ -13,6 +14,11 @@ import (
 type Queries struct {
 	app *prog.App
 	db  *sql.DB
+}
+
+type TxQueries struct {
+	app *prog.App
+	tx  *sql.Tx
 }
 
 type DBConnStats struct {
@@ -58,6 +64,22 @@ func New(app *prog.App, db *sql.DB) Queries {
 	}
 }
 
+func (q *Queries) WithTx(ctx context.Context, fn func(*TxQueries) error) error {
+	tx, err := q.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	tq := &TxQueries{app: q.app, tx: tx}
+	if err := fn(tq); err != nil {
+		_ = tx.Rollback()
+
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func (q *Queries) CheckDBStatus() (DBConnStats, error) {
 	var stats DBConnStats
 
@@ -75,6 +97,21 @@ func (q *Queries) CheckDBStatus() (DBConnStats, error) {
 }
 
 func (q *Queries) wrapQuery(query string, queryFunc func() error) error {
+	if !q.app.Logger.EnableQuery {
+		err := queryFunc()
+
+		return err
+	}
+
+	start := time.Now()
+	defer func() {
+		q.app.Logger.Query(query, time.Since(start))
+	}()
+
+	return queryFunc()
+}
+
+func (q *TxQueries) wrapQuery(query string, queryFunc func() error) error {
 	if !q.app.Logger.EnableQuery {
 		err := queryFunc()
 
