@@ -163,6 +163,35 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 	return e, err
 }
 
+func (q *TxQueries) InsertExpense(ctx context.Context, params InsertExpenseParams) (Expense, error) {
+	var e Expense
+
+	err := q.wrapQuery(insertExpense, func() error {
+		row := q.tx.QueryRowContext(
+			ctx,
+			insertExpense,
+			params.UserID,
+			params.CategoryID,
+			params.Description,
+			params.Amount,
+			params.Date,
+		)
+
+		return row.Scan(
+			&e.ID,
+			&e.UserID,
+			&e.CategoryID,
+			&e.Description,
+			&e.Amount,
+			&e.Date,
+			&e.CreatedAt,
+			&e.UpdatedAt,
+		)
+	})
+
+	return e, err
+}
+
 const updateExpense = `
 UPDATE "expenses"
 SET "category_id" = ?,

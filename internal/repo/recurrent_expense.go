@@ -118,6 +118,41 @@ func (q *Queries) UpdateRecurrentExpense(
 	return re, err
 }
 
+func (q *TxQueries) UpdateRecurrentExpense(
+	ctx context.Context,
+	params UpdateRecurrentExpenseParams,
+) (RecurrentExpense, error) {
+	var re RecurrentExpense
+
+	err := q.wrapQuery(updateRecurrentExpense, func() error {
+		row := q.tx.QueryRowContext(
+			ctx,
+			updateRecurrentExpense,
+			params.Description,
+			params.Amount,
+			params.Period,
+			params.LastCopyCreatedAt,
+			newUpdatedAt(),
+			params.ID,
+			params.UserID,
+		)
+
+		return row.Scan(
+			&re.ID,
+			&re.UserID,
+			&re.CategoryID,
+			&re.Description,
+			&re.Amount,
+			&re.Period,
+			&re.LastCopyCreatedAt,
+			&re.CreatedAt,
+			&re.UpdatedAt,
+		)
+	})
+
+	return re, err
+}
+
 const selectRecurrentExpense = `
 SELECT * FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
 `

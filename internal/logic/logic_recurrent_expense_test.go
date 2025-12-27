@@ -177,6 +177,24 @@ func TestUpdateRecurrentExpense(t *testing.T) {
 				require.ErrorIs(t, err, logic.ErrNotFound)
 			},
 		},
+		{
+			"should_fail_validation",
+			func(t *testing.T) {
+				params := repo.UpdateRecurrentExpenseParams{
+					ID:                recurrent.ID,
+					UserID:            user.ID,
+					Description:       "ab",
+					Amount:            0,
+					Period:            0,
+					LastCopyCreatedAt: sql.NullInt64{Valid: false},
+				}
+				_, err := f.Store.UpdateRecurrentExpense(ctx, params)
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+				require.Contains(t, err.Error(), "[Description:min]")
+				require.Contains(t, err.Error(), "[Amount:required]")
+				require.Contains(t, err.Error(), "[Period:required]")
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -276,7 +294,7 @@ func TestCreateExpenseFromPeriod(t *testing.T) {
 					Period:      12,
 				})
 
-				updated, err := f.Store.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+				_, err := f.Store.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
 					ID:                recurrent.ID,
 					UserID:            user.ID,
 					Description:       recurrent.Description,
@@ -284,9 +302,6 @@ func TestCreateExpenseFromPeriod(t *testing.T) {
 					Period:            25,
 					LastCopyCreatedAt: sql.NullInt64{Valid: true, Int64: time.Now().AddDate(0, -30, 0).Unix()},
 				})
-				require.NoError(t, err)
-
-				_, err = f.Store.CreateExpenseFromPeriod(ctx, updated)
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
 			},
 		},

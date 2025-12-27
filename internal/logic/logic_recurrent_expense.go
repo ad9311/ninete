@@ -17,6 +17,12 @@ type RecurrentExpenseParams struct {
 	Period      uint   `json:"period" validate:"required,gt=0,lt=25"`
 }
 
+type recurrentExpenseUpdateParams struct {
+	Description string `validate:"required,min=3,max=50"`
+	Amount      uint64 `validate:"required,gt=0"`
+	Period      uint   `validate:"required,gt=0,lt=25"`
+}
+
 func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.RecurrentExpense, error) {
 	recurrentExpense, err := s.queries.SelectRecurrentExpense(ctx, id, userID)
 	if err != nil {
@@ -55,6 +61,15 @@ func (s *Store) UpdateRecurrentExpense(
 	ctx context.Context,
 	params repo.UpdateRecurrentExpenseParams,
 ) (repo.RecurrentExpense, error) {
+	var recurrentExpense repo.RecurrentExpense
+	if err := s.ValidateStruct(recurrentExpenseUpdateParams{
+		Description: params.Description,
+		Amount:      params.Amount,
+		Period:      params.Period,
+	}); err != nil {
+		return recurrentExpense, err
+	}
+
 	recurrentExpense, err := s.queries.UpdateRecurrentExpense(ctx, params)
 	if err != nil {
 		return recurrentExpense, HandleDBError(err)
@@ -125,21 +140,55 @@ func (s *Store) createExpenseFromRecurrent(
 	ctx context.Context,
 	recurrent repo.RecurrentExpense,
 ) (repo.Expense, error) {
-	nowStr := prog.UnixToStringDate(time.Now().Unix())
+	var expense repo.Expense
 
-	expense, err := s.CreateExpense(ctx, recurrent.UserID, ExpenseParams{
+	nowUnix := time.Now().Unix()
+	nowStr := prog.UnixToStringDate(nowUnix)
+	expenseParams := ExpenseParams{
 		CategoryID:  recurrent.CategoryID,
 		Description: recurrent.Description,
 		Amount:      recurrent.Amount,
 		Date:        nowStr,
-	})
-	if err != nil {
-		return expense, HandleDBError(err)
+	}
+	if err := s.ValidateStruct(expenseParams); err != nil {
+		return expense, err
 	}
 
-	_, err = s.UpdateLastCopyCreatedAt(ctx, recurrent, time.Now().Unix())
+	date, err := prog.StringToUnixDate(expenseParams.Date)
 	if err != nil {
-		return expense, HandleDBError(err)
+		return expense, err
+	}
+
+	err = s.queries.WithTx(ctx, func(txq *repo.TxQueries) error {
+		var txErr error
+
+		expense, txErr = txq.InsertExpense(ctx, repo.InsertExpenseParams{
+			UserID:      recurrent.UserID,
+			CategoryID:  recurrent.CategoryID,
+			Description: recurrent.Description,
+			Amount:      recurrent.Amount,
+			Date:        date,
+		})
+		if txErr != nil {
+			return HandleDBError(txErr)
+		}
+
+		_, txErr = txq.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+			ID:                recurrent.ID,
+			UserID:            recurrent.UserID,
+			Description:       recurrent.Description,
+			Amount:            recurrent.Amount,
+			Period:            recurrent.Period,
+			LastCopyCreatedAt: sql.NullInt64{Int64: nowUnix, Valid: true},
+		})
+		if txErr != nil {
+			return HandleDBError(txErr)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return expense, err
 	}
 
 	return expense, nil
