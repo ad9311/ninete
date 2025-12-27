@@ -299,27 +299,65 @@ func TestPutExpense(t *testing.T) {
 		Date:        prog.FormatTime(time.Now()),
 	})
 
-	params := logic.ExpenseParams{
-		CategoryID:  category.ID,
-		Description: "Updated description",
-		Amount:      3000,
-		Date:        prog.FormatTime(time.Now()),
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			"should_update_expense",
+			func(t *testing.T) {
+				params := logic.ExpenseParams{
+					CategoryID:  category.ID,
+					Description: "Updated description",
+					Amount:      3000,
+					Date:        prog.FormatTime(time.Now()),
+				}
+
+				target := fmt.Sprintf("/expenses/%d", expense.ID)
+				res, req := f.NewRequest(ctx, http.MethodPut, target, testhelper.MarshalPayload(t, params))
+				testhelper.SetAuthHeader(req, token.Value)
+
+				f.Server.Router.ServeHTTP(res, req)
+
+				require.Equal(t, http.StatusOK, res.Code)
+
+				var payload testhelper.Response[repo.Expense]
+				testhelper.UnmarshalBody(t, res, &payload)
+				require.Nil(t, payload.Error)
+				require.Equal(t, expense.ID, payload.Data.ID)
+				require.Equal(t, params.Description, payload.Data.Description)
+				require.Equal(t, params.Amount, payload.Data.Amount)
+			},
+		},
+		{
+			"should_fail_not_found",
+			func(t *testing.T) {
+				params := logic.ExpenseParams{
+					CategoryID:  category.ID,
+					Description: "Missing expense",
+					Amount:      100,
+					Date:        prog.FormatTime(time.Now()),
+				}
+
+				target := "/expenses/999999"
+				res, req := f.NewRequest(ctx, http.MethodPut, target, testhelper.MarshalPayload(t, params))
+				testhelper.SetAuthHeader(req, token.Value)
+
+				f.Server.Router.ServeHTTP(res, req)
+
+				require.Equal(t, http.StatusNotFound, res.Code)
+
+				var payload testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &payload)
+				require.Nil(t, payload.Data)
+				require.Contains(t, payload.Error, logic.ErrNotFound.Error())
+			},
+		},
 	}
 
-	target := fmt.Sprintf("/expenses/%d", expense.ID)
-	res, req := f.NewRequest(ctx, http.MethodPut, target, testhelper.MarshalPayload(t, params))
-	testhelper.SetAuthHeader(req, token.Value)
-
-	f.Server.Router.ServeHTTP(res, req)
-
-	require.Equal(t, http.StatusOK, res.Code)
-
-	var payload testhelper.Response[repo.Expense]
-	testhelper.UnmarshalBody(t, res, &payload)
-	require.Nil(t, payload.Error)
-	require.Equal(t, expense.ID, payload.Data.ID)
-	require.Equal(t, params.Description, payload.Data.Description)
-	require.Equal(t, params.Amount, payload.Data.Amount)
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
 }
 
 func TestDeleteExpense(t *testing.T) {
@@ -345,22 +383,53 @@ func TestDeleteExpense(t *testing.T) {
 		Date:        prog.FormatTime(time.Now()),
 	})
 
-	target := fmt.Sprintf("/expenses/%d", expense.ID)
-	res, req := f.NewRequest(ctx, http.MethodDelete, target, nil)
-	testhelper.SetAuthHeader(req, token.Value)
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			"should_delete_expense",
+			func(t *testing.T) {
+				target := fmt.Sprintf("/expenses/%d", expense.ID)
+				res, req := f.NewRequest(ctx, http.MethodDelete, target, nil)
+				testhelper.SetAuthHeader(req, token.Value)
 
-	f.Server.Router.ServeHTTP(res, req)
+				f.Server.Router.ServeHTTP(res, req)
 
-	require.Equal(t, http.StatusOK, res.Code)
+				require.Equal(t, http.StatusOK, res.Code)
 
-	var payload struct {
-		Data  map[string]int `json:"data"`
-		Error any            `json:"error"`
+				var payload struct {
+					Data  map[string]int `json:"data"`
+					Error any            `json:"error"`
+				}
+				testhelper.UnmarshalBody(t, res, &payload)
+				require.Nil(t, payload.Error)
+				require.Equal(t, expense.ID, payload.Data["id"])
+
+				_, err = f.Store.FindExpense(ctx, expense.ID, user.ID)
+				require.ErrorIs(t, err, logic.ErrNotFound)
+			},
+		},
+		{
+			"should_fail_not_found",
+			func(t *testing.T) {
+				target := "/expenses/999999"
+				res, req := f.NewRequest(ctx, http.MethodDelete, target, nil)
+				testhelper.SetAuthHeader(req, token.Value)
+
+				f.Server.Router.ServeHTTP(res, req)
+
+				require.Equal(t, http.StatusNotFound, res.Code)
+
+				var payload testhelper.FailedResponse
+				testhelper.UnmarshalBody(t, res, &payload)
+				require.Nil(t, payload.Data)
+				require.Contains(t, payload.Error, logic.ErrNotFound.Error())
+			},
+		},
 	}
-	testhelper.UnmarshalBody(t, res, &payload)
-	require.Nil(t, payload.Error)
-	require.Equal(t, expense.ID, payload.Data["id"])
 
-	_, err = f.Store.FindExpense(ctx, expense.ID, user.ID)
-	require.ErrorIs(t, err, logic.ErrNotFound)
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
 }
