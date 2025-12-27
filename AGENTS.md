@@ -26,6 +26,8 @@
 - Run tests via Make targets only; do not invoke `go test` directly.
 - Run the full suite with `make test`; use `make test func=TestName pkg=./internal/serve` to scope.
 - Test DB setup/teardown is handled by the Make targets; do not create or manage it manually.
+- Use table-driven tests with a `cases` struct containing `name` and `fn` fields, and assert with `require`.
+- After updating tests or lint-sensitive files, run `make lint-fix` instead of `gofmt`.
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short, imperative, and descriptive (e.g., "Fix broken query for expense").

@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -73,7 +74,7 @@ func (s *Store) UpdateLastCopyCreatedAt(
 		Description:       recurrent.Description,
 		Amount:            recurrent.Amount,
 		Period:            recurrent.Period,
-		LastCopyCreatedAt: recurrent.LastCopyCreatedAt,
+		LastCopyCreatedAt: sql.NullInt64{Int64: date, Valid: true},
 	})
 	if err != nil {
 		return re, err
