@@ -35,10 +35,10 @@ func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.
 func (s *Store) FindDueRecurrentExpenses(
 	ctx context.Context,
 	nowUnix int64,
-	limit int,
-	offset int,
+	sorting repo.Sorting,
+	pagination repo.Pagination,
 ) ([]repo.RecurrentExpense, error) {
-	recurrentExpenses, err := s.queries.SelectDueRecurrentExpenses(ctx, nowUnix, limit, offset)
+	recurrentExpenses, err := s.queries.SelectDueRecurrentExpenses(ctx, nowUnix, sorting, pagination)
 	if err != nil {
 		return nil, HandleDBError(err)
 	}

@@ -63,18 +63,33 @@ func (c *Config) CreateCategories() error {
 	return nil
 }
 
-func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) (int, error) {
+func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) error {
 	const batchSize = 100
 	created := 0
 	nowUnix := time.Now().Unix()
+	c.App.Logger.Log("create_expenses_from_recurrent started")
+	defer func() {
+		c.App.Logger.Logf("create_expenses_from_recurrent finished: created=%d", created)
+	}()
 
 	for {
-		recurrentExpenses, err := c.Store.FindDueRecurrentExpenses(ctx, nowUnix, batchSize, 0)
+		recurrentExpenses, err := c.Store.FindDueRecurrentExpenses(
+			ctx,
+			nowUnix,
+			repo.Sorting{
+				Field: "id",
+				Order: "ASC",
+			},
+			repo.Pagination{
+				PerPage: batchSize,
+				Page:    1,
+			},
+		)
 		if err != nil {
-			return created, err
+			return err
 		}
 		if len(recurrentExpenses) == 0 {
-			return created, nil
+			return nil
 		}
 
 		for _, recurrent := range recurrentExpenses {
@@ -84,14 +99,14 @@ func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) (int, error) {
 					continue
 				}
 
-				return created, err
+				return err
 			}
 
 			created++
 		}
 
 		if len(recurrentExpenses) < batchSize {
-			return created, nil
+			return nil
 		}
 	}
 }

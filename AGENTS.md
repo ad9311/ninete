@@ -20,6 +20,7 @@
 - Go 1.25.1 module: `github.com/ad9311/ninete`.
 - Use `gofmt`-formatted Go code and standard Go naming (Exported identifiers in `CamelCase`, packages in lowercase).
 - Prefer small, focused packages in `internal/` with clear boundaries (db, repo, logic, serve).
+- Task functions should return only `error`; log any counts or metadata instead of returning them.
 
 ## Testing Guidelines
 - Tests live alongside code under `internal/` and use the standard `*_test.go` pattern.
