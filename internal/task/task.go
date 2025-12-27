@@ -66,11 +66,10 @@ func (c *Config) CreateCategories() error {
 func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) (int, error) {
 	const batchSize = 100
 	created := 0
-	offset := 0
 	nowUnix := time.Now().Unix()
 
 	for {
-		recurrentExpenses, err := c.Store.FindDueRecurrentExpenses(ctx, nowUnix, batchSize, offset)
+		recurrentExpenses, err := c.Store.FindDueRecurrentExpenses(ctx, nowUnix, batchSize, 0)
 		if err != nil {
 			return created, err
 		}
@@ -94,7 +93,5 @@ func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) (int, error) {
 		if len(recurrentExpenses) < batchSize {
 			return created, nil
 		}
-
-		offset += batchSize
 	}
 }
