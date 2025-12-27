@@ -32,6 +32,20 @@ func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.
 	return recurrentExpense, nil
 }
 
+func (s *Store) FindDueRecurrentExpenses(
+	ctx context.Context,
+	nowUnix int64,
+	limit int,
+	offset int,
+) ([]repo.RecurrentExpense, error) {
+	recurrentExpenses, err := s.queries.SelectDueRecurrentExpenses(ctx, nowUnix, limit, offset)
+	if err != nil {
+		return nil, HandleDBError(err)
+	}
+
+	return recurrentExpenses, nil
+}
+
 func (s *Store) CreateRecurrentExpense(
 	ctx context.Context,
 	userID int,

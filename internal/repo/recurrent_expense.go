@@ -178,3 +178,84 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 
 	return re, err
 }
+
+const selectDueRecurrentExpenses = `
+SELECT *
+FROM "recurrent_expenses"
+WHERE "last_copy_created_at" IS NULL
+   OR (
+        CASE
+          WHEN CAST(strftime('%d', datetime(?, 'unixepoch')) AS int) <
+               CAST(strftime('%d', datetime("last_copy_created_at", 'unixepoch')) AS int)
+          THEN (
+            (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
+             CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
+            (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
+             CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int)) - 1
+          )
+          ELSE (
+            (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
+             CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
+            (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
+             CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int))
+          )
+        END
+      ) >= "period"
+ORDER BY "id" ASC
+LIMIT ? OFFSET ?;
+`
+
+func (q *Queries) SelectDueRecurrentExpenses(
+	ctx context.Context,
+	nowUnix int64,
+	limit int,
+	offset int,
+) ([]RecurrentExpense, error) {
+	var res []RecurrentExpense
+
+	err := q.wrapQuery(selectDueRecurrentExpenses, func() error {
+		rows, err := q.db.QueryContext(
+			ctx,
+			selectDueRecurrentExpenses,
+			nowUnix,
+			nowUnix,
+			nowUnix,
+			nowUnix,
+			nowUnix,
+			limit,
+			offset,
+		)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var re RecurrentExpense
+
+			if err := rows.Scan(
+				&re.ID,
+				&re.UserID,
+				&re.CategoryID,
+				&re.Description,
+				&re.Amount,
+				&re.Period,
+				&re.LastCopyCreatedAt,
+				&re.CreatedAt,
+				&re.UpdatedAt,
+			); err != nil {
+				return err
+			}
+
+			res = append(res, re)
+		}
+
+		return nil
+	})
+
+	return res, err
+}

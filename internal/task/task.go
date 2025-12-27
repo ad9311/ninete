@@ -1,7 +1,10 @@
 package task
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"time"
 
 	"github.com/ad9311/ninete/internal/db"
 	"github.com/ad9311/ninete/internal/logic"
@@ -58,4 +61,40 @@ func (c *Config) CreateCategories() error {
 	}
 
 	return nil
+}
+
+func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) (int, error) {
+	const batchSize = 100
+	created := 0
+	offset := 0
+	nowUnix := time.Now().Unix()
+
+	for {
+		recurrentExpenses, err := c.Store.FindDueRecurrentExpenses(ctx, nowUnix, batchSize, offset)
+		if err != nil {
+			return created, err
+		}
+		if len(recurrentExpenses) == 0 {
+			return created, nil
+		}
+
+		for _, recurrent := range recurrentExpenses {
+			_, err := c.Store.CreateExpenseFromPeriod(ctx, recurrent)
+			if err != nil {
+				if errors.Is(err, logic.ErrRecordAlreadyExist) {
+					continue
+				}
+
+				return created, err
+			}
+
+			created++
+		}
+
+		if len(recurrentExpenses) < batchSize {
+			return created, nil
+		}
+
+		offset += batchSize
+	}
 }
