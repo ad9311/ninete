@@ -57,9 +57,7 @@ func (s *Server) GetExpenses(w http.ResponseWriter, r *http.Request) {
 		Operator: "=",
 	}
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
-	if opts.Filters.Connector == "" {
-		opts.Filters.Connector = "AND"
-	}
+	opts.Filters.Connector = "AND"
 
 	expenses, err := s.store.FindExpenses(r.Context(), opts)
 	if err != nil {

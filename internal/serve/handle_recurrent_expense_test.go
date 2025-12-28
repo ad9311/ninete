@@ -123,6 +123,46 @@ func TestGetRecurrentExpenses(t *testing.T) {
 				require.Contains(t, payload.Error, repo.ErrInvalidField.Error())
 			},
 		},
+		{
+			"should_force_and_connector_for_user_filter",
+			func(t *testing.T) {
+				opts := repo.QueryOptions{
+					Filters: repo.Filters{
+						FilterFields: []repo.FilterField{
+							{
+								Name:     "id",
+								Value:    0,
+								Operator: ">",
+							},
+						},
+						Connector: "OR",
+					},
+					Sorting: repo.Sorting{Field: "id", Order: "ASC"},
+				}
+				optsJSON, err := json.Marshal(opts)
+				require.NoError(t, err)
+
+				target := "/recurrent-expenses?query_options=" + url.QueryEscape(string(optsJSON))
+
+				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
+				testhelper.SetAuthHeader(req, token.Value)
+
+				f.Server.Router.ServeHTTP(res, req)
+
+				require.Equal(t, http.StatusOK, res.Code)
+
+				var payload struct {
+					Data  []repo.RecurrentExpense `json:"data"`
+					Error any                     `json:"error"`
+				}
+				testhelper.UnmarshalBody(t, res, &payload)
+
+				require.Nil(t, payload.Error)
+				require.Len(t, payload.Data, 2)
+				require.Equal(t, user.ID, payload.Data[0].UserID)
+				require.Equal(t, user.ID, payload.Data[1].UserID)
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -225,10 +265,14 @@ func TestPutRecurrentExpense(t *testing.T) {
 		Period:      1,
 	})
 
-	params := map[string]any{
-		"description": "Updated description",
-		"amount":      3000,
-		"period":      2,
+	params := struct {
+		Description string `json:"description"`
+		Amount      uint64 `json:"amount"`
+		Period      uint   `json:"period"`
+	}{
+		Description: "Updated description",
+		Amount:      3000,
+		Period:      2,
 	}
 
 	target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
@@ -243,9 +287,9 @@ func TestPutRecurrentExpense(t *testing.T) {
 	testhelper.UnmarshalBody(t, res, &payload)
 	require.Nil(t, payload.Error)
 	require.Equal(t, recurrent.ID, payload.Data.ID)
-	require.Equal(t, params["description"], payload.Data.Description)
-	require.Equal(t, uint64(params["amount"].(int)), payload.Data.Amount)
-	require.Equal(t, uint(params["period"].(int)), payload.Data.Period)
+	require.Equal(t, params.Description, payload.Data.Description)
+	require.Equal(t, params.Amount, payload.Data.Amount)
+	require.Equal(t, params.Period, payload.Data.Period)
 }
 
 func TestPostRecurrentExpense(t *testing.T) {
@@ -341,10 +385,14 @@ func TestPatchRecurrentExpense(t *testing.T) {
 		Period:      1,
 	})
 
-	params := map[string]any{
-		"description": "Patched description",
-		"amount":      2200,
-		"period":      1,
+	params := struct {
+		Description string `json:"description"`
+		Amount      uint64 `json:"amount"`
+		Period      uint   `json:"period"`
+	}{
+		Description: "Patched description",
+		Amount:      2200,
+		Period:      1,
 	}
 
 	target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
@@ -359,9 +407,9 @@ func TestPatchRecurrentExpense(t *testing.T) {
 	testhelper.UnmarshalBody(t, res, &payload)
 	require.Nil(t, payload.Error)
 	require.Equal(t, recurrent.ID, payload.Data.ID)
-	require.Equal(t, params["description"], payload.Data.Description)
-	require.Equal(t, uint64(params["amount"].(int)), payload.Data.Amount)
-	require.Equal(t, uint(params["period"].(int)), payload.Data.Period)
+	require.Equal(t, params.Description, payload.Data.Description)
+	require.Equal(t, params.Amount, payload.Data.Amount)
+	require.Equal(t, params.Period, payload.Data.Period)
 }
 
 func TestDeleteRecurrentExpense(t *testing.T) {

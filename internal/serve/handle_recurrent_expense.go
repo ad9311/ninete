@@ -63,9 +63,7 @@ func (s *Server) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 		Operator: "=",
 	}
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
-	if opts.Filters.Connector == "" {
-		opts.Filters.Connector = "AND"
-	}
+	opts.Filters.Connector = "AND"
 
 	recurrentExpenses, err := s.store.FindRecurrentExpenses(r.Context(), opts)
 	if err != nil {

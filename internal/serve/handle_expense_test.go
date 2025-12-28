@@ -127,6 +127,46 @@ func TestGetExpenses(t *testing.T) {
 				require.Contains(t, payload.Error, repo.ErrInvalidField.Error())
 			},
 		},
+		{
+			"should_force_and_connector_for_user_filter",
+			func(t *testing.T) {
+				opts := repo.QueryOptions{
+					Filters: repo.Filters{
+						FilterFields: []repo.FilterField{
+							{
+								Name:     "id",
+								Value:    0,
+								Operator: ">",
+							},
+						},
+						Connector: "OR",
+					},
+					Sorting: repo.Sorting{Field: "id", Order: "ASC"},
+				}
+				optsJSON, err := json.Marshal(opts)
+				require.NoError(t, err)
+
+				target := "/expenses?query_options=" + url.QueryEscape(string(optsJSON))
+
+				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
+				testhelper.SetAuthHeader(req, token.Value)
+
+				f.Server.Router.ServeHTTP(res, req)
+
+				require.Equal(t, http.StatusOK, res.Code)
+
+				var payload struct {
+					Data  []repo.Expense `json:"data"`
+					Error any            `json:"error"`
+				}
+				testhelper.UnmarshalBody(t, res, &payload)
+
+				require.Nil(t, payload.Error)
+				require.Len(t, payload.Data, 2)
+				require.Equal(t, user.ID, payload.Data[0].UserID)
+				require.Equal(t, user.ID, payload.Data[1].UserID)
+			},
+		},
 	}
 
 	for _, tc := range cases {
