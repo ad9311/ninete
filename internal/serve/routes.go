@@ -36,6 +36,18 @@ func (s *Server) setUpRoutes() {
 					e.Delete("/", s.DeleteExpense)
 				})
 			})
+
+			secure.Route("/recurrent-expenses", func(re chi.Router) {
+				re.Get("/", s.GetRecurrentExpenses)
+				re.Post("/", s.PostRecurrentExpense)
+				re.Route("/{id}", func(e chi.Router) {
+					e.Use(s.ContextRecurrentExpense)
+					e.Get("/", s.GetRecurrentExpense)
+					e.Put("/", s.PutRecurrentExpense)
+					e.Patch("/", s.PutRecurrentExpense)
+					e.Delete("/", s.DeleteRecurrentExpense)
+				})
+			})
 		})
 	})
 }

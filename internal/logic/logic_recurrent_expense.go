@@ -32,6 +32,24 @@ func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.
 	return recurrentExpense, nil
 }
 
+func (s *Store) FindRecurrentExpenses(ctx context.Context, opts repo.QueryOptions) ([]repo.RecurrentExpense, error) {
+	recurrentExpenses, err := s.queries.SelectRecurrentExpenses(ctx, opts)
+	if err != nil {
+		return nil, HandleDBError(err)
+	}
+
+	return recurrentExpenses, nil
+}
+
+func (s *Store) CountRecurrentExpenses(ctx context.Context, filters repo.Filters) (int, error) {
+	count, err := s.queries.CountRecurrentExpenses(ctx, filters)
+	if err != nil {
+		return 0, HandleDBError(err)
+	}
+
+	return count, nil
+}
+
 func (s *Store) FindDueRecurrentExpenses(
 	ctx context.Context,
 	nowUnix int64,
@@ -90,6 +108,15 @@ func (s *Store) UpdateRecurrentExpense(
 	}
 
 	return recurrentExpense, nil
+}
+
+func (s *Store) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
+	i, err := s.queries.DeleteRecurrentExpense(ctx, id, userID)
+	if err != nil {
+		return 0, HandleDBError(err)
+	}
+
+	return i, nil
 }
 
 func (s *Store) UpdateLastCopyCreatedAt(

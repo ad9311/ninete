@@ -41,6 +41,82 @@ INSERT INTO "recurrent_expenses" ("user_id", "category_id", "description", "amou
 VALUES (?, ?, ?, ?, ?)
 RETURNING *`
 
+const selectRecurrentExpenses = `SELECT * FROM "recurrent_expenses"`
+
+func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions) ([]RecurrentExpense, error) {
+	var res []RecurrentExpense
+
+	subQuery, err := opts.Build()
+	if err != nil {
+		return res, err
+	}
+
+	if err := opts.Validate(validRecurrentExpenseFields()); err != nil {
+		return res, err
+	}
+
+	query := strings.TrimSpace(selectRecurrentExpenses + " " + subQuery)
+	values := opts.Filters.Values()
+
+	err = q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var re RecurrentExpense
+
+			if err := rows.Scan(
+				&re.ID,
+				&re.UserID,
+				&re.CategoryID,
+				&re.Description,
+				&re.Amount,
+				&re.Period,
+				&re.LastCopyCreatedAt,
+				&re.CreatedAt,
+				&re.UpdatedAt,
+			); err != nil {
+				return err
+			}
+
+			res = append(res, re)
+		}
+
+		return nil
+	})
+
+	return res, err
+}
+
+const countRecurrentExpenses = `SELECT COUNT(*) FROM "recurrent_expenses"`
+
+func (q *Queries) CountRecurrentExpenses(ctx context.Context, filters Filters) (int, error) {
+	var c int
+
+	subQuery, err := filters.Build()
+	if err != nil {
+		return 0, err
+	}
+
+	query := strings.TrimSpace(countRecurrentExpenses + " " + subQuery)
+	values := filters.Values()
+
+	err = q.wrapQuery(query, func() error {
+		row := q.db.QueryRowContext(ctx, query, values...)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
 func (q *Queries) InsertRecurrentExpense(
 	ctx context.Context,
 	params InsertRecurrentExpenseParams,
@@ -84,6 +160,8 @@ SET "description"          = ?,
 WHERE "id" = ? AND "user_id" = ?
 RETURNING *;
 `
+
+const deleteRecurrentExpense = `DELETE FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
 
 func (q *Queries) UpdateRecurrentExpense(
 	ctx context.Context,
@@ -153,6 +231,18 @@ func (q *TxQueries) UpdateRecurrentExpense(
 	})
 
 	return re, err
+}
+
+func (q *Queries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
+	var i int
+
+	err := q.wrapQuery(deleteRecurrentExpense, func() error {
+		row := q.db.QueryRowContext(ctx, deleteRecurrentExpense, id, userID)
+
+		return row.Scan(&i)
+	})
+
+	return i, err
 }
 
 const selectRecurrentExpense = `
