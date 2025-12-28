@@ -6,23 +6,21 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
-	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/serve"
 	"github.com/ad9311/ninete/internal/testhelper"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetExpenses(t *testing.T) {
+func TestGetRecurrentExpenses(t *testing.T) {
 	ctx := t.Context()
 	f := testhelper.NewFactory(t)
 
 	userParams := logic.SignUpParams{
-		Username:             "getexpenses",
-		Email:                "getexpenses@example.com",
+		Username:             "getrecurrexps",
+		Email:                "getrecurrexps@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	}
@@ -30,33 +28,31 @@ func TestGetExpenses(t *testing.T) {
 	token, err := f.Store.NewAccessToken(user.ID)
 	require.NoError(t, err)
 
-	category := f.Category(t, "Get Expenses Category")
-	date := time.Now()
-
-	expenseOne := f.Expense(t, user.ID, logic.ExpenseParams{
+	category := f.Category(t, "Get Recurrent Expenses Category")
+	recurrentOne := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
-		Description: "Coffee",
-		Amount:      300,
-		Date:        prog.FormatTime(date),
+		Description: "Monthly rent",
+		Amount:      90000,
+		Period:      1,
 	})
-	expenseTwo := f.Expense(t, user.ID, logic.ExpenseParams{
+	recurrentTwo := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
-		Description: "Lunch",
-		Amount:      1200,
-		Date:        prog.FormatTime(date.Add(10 * time.Second)),
+		Description: "Internet",
+		Amount:      8000,
+		Period:      1,
 	})
 
 	otherUser := f.User(t, logic.SignUpParams{
-		Username:             "getexpensesother",
-		Email:                "getexpensesother@example.com",
+		Username:             "getrecurrother",
+		Email:                "getrecurrother@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	})
-	f.Expense(t, otherUser.ID, logic.ExpenseParams{
+	f.RecurrentExpense(t, otherUser.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
-		Description: "Other user expense",
-		Amount:      100,
-		Date:        prog.FormatTime(date),
+		Description: "Other user recurrent",
+		Amount:      1000,
+		Period:      1,
 	})
 
 	cases := []struct {
@@ -64,7 +60,7 @@ func TestGetExpenses(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			"should_list_user_expenses",
+			"should_list_user_recurrent_expenses",
 			func(t *testing.T) {
 				opts := repo.QueryOptions{
 					Sorting: repo.Sorting{Field: "id", Order: "ASC"},
@@ -76,7 +72,7 @@ func TestGetExpenses(t *testing.T) {
 				optsJSON, err := json.Marshal(opts)
 				require.NoError(t, err)
 
-				target := "/expenses?query_options=" + url.QueryEscape(string(optsJSON))
+				target := "/recurrent-expenses?query_options=" + url.QueryEscape(string(optsJSON))
 
 				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
 				testhelper.SetAuthHeader(req, token.Value)
@@ -86,16 +82,16 @@ func TestGetExpenses(t *testing.T) {
 				require.Equal(t, http.StatusOK, res.Code)
 
 				var payload struct {
-					Data  []repo.Expense `json:"data"`
-					Error any            `json:"error"`
-					Meta  serve.Meta     `json:"meta"`
+					Data  []repo.RecurrentExpense `json:"data"`
+					Error any                     `json:"error"`
+					Meta  serve.Meta              `json:"meta"`
 				}
 				testhelper.UnmarshalBody(t, res, &payload)
 
 				require.Nil(t, payload.Error)
 				require.Len(t, payload.Data, 2)
-				require.Equal(t, expenseOne.ID, payload.Data[0].ID)
-				require.Equal(t, expenseTwo.ID, payload.Data[1].ID)
+				require.Equal(t, recurrentOne.ID, payload.Data[0].ID)
+				require.Equal(t, recurrentTwo.ID, payload.Data[1].ID)
 				require.Equal(t, user.ID, payload.Data[0].UserID)
 				require.Equal(t, user.ID, payload.Data[1].UserID)
 				require.Equal(t, opts.Pagination.PerPage, payload.Meta.PerPage)
@@ -112,7 +108,7 @@ func TestGetExpenses(t *testing.T) {
 				optsJSON, err := json.Marshal(opts)
 				require.NoError(t, err)
 
-				target := "/expenses?query_options=" + url.QueryEscape(string(optsJSON))
+				target := "/recurrent-expenses?query_options=" + url.QueryEscape(string(optsJSON))
 
 				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
 				testhelper.SetAuthHeader(req, token.Value)
@@ -146,7 +142,7 @@ func TestGetExpenses(t *testing.T) {
 				optsJSON, err := json.Marshal(opts)
 				require.NoError(t, err)
 
-				target := "/expenses?query_options=" + url.QueryEscape(string(optsJSON))
+				target := "/recurrent-expenses?query_options=" + url.QueryEscape(string(optsJSON))
 
 				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
 				testhelper.SetAuthHeader(req, token.Value)
@@ -156,8 +152,8 @@ func TestGetExpenses(t *testing.T) {
 				require.Equal(t, http.StatusOK, res.Code)
 
 				var payload struct {
-					Data  []repo.Expense `json:"data"`
-					Error any            `json:"error"`
+					Data  []repo.RecurrentExpense `json:"data"`
+					Error any                     `json:"error"`
 				}
 				testhelper.UnmarshalBody(t, res, &payload)
 
@@ -174,13 +170,13 @@ func TestGetExpenses(t *testing.T) {
 	}
 }
 
-func TestGetExpense(t *testing.T) {
+func TestGetRecurrentExpense(t *testing.T) {
 	ctx := t.Context()
 	f := testhelper.NewFactory(t)
 
 	userParams := logic.SignUpParams{
-		Username:             "getexpense",
-		Email:                "getexpense@example.com",
+		Username:             "getrecurrexp",
+		Email:                "getrecurrexp@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	}
@@ -188,12 +184,12 @@ func TestGetExpense(t *testing.T) {
 	token, err := f.Store.NewAccessToken(user.ID)
 	require.NoError(t, err)
 
-	category := f.Category(t, "Get Expense Category")
-	expense := f.Expense(t, user.ID, logic.ExpenseParams{
+	category := f.Category(t, "Get Recurrent Expense Category")
+	recurrent := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
-		Description: "Groceries",
-		Amount:      5000,
-		Date:        prog.FormatTime(time.Now()),
+		Description: "Streaming",
+		Amount:      1500,
+		Period:      1,
 	})
 
 	cases := []struct {
@@ -201,9 +197,9 @@ func TestGetExpense(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			"should_get_expense",
+			"should_get_recurrent_expense",
 			func(t *testing.T) {
-				target := fmt.Sprintf("/expenses/%d", expense.ID)
+				target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
 
 				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
 				testhelper.SetAuthHeader(req, token.Value)
@@ -212,19 +208,19 @@ func TestGetExpense(t *testing.T) {
 
 				require.Equal(t, http.StatusOK, res.Code)
 
-				var payload testhelper.Response[repo.Expense]
+				var payload testhelper.Response[repo.RecurrentExpense]
 				testhelper.UnmarshalBody(t, res, &payload)
 				require.Nil(t, payload.Error)
-				require.Equal(t, expense.ID, payload.Data.ID)
-				require.Equal(t, expense.Description, payload.Data.Description)
-				require.Equal(t, expense.Amount, payload.Data.Amount)
-				require.Equal(t, expense.UserID, payload.Data.UserID)
+				require.Equal(t, recurrent.ID, payload.Data.ID)
+				require.Equal(t, recurrent.Description, payload.Data.Description)
+				require.Equal(t, recurrent.Amount, payload.Data.Amount)
+				require.Equal(t, recurrent.UserID, payload.Data.UserID)
 			},
 		},
 		{
 			"should_fail_not_found",
 			func(t *testing.T) {
-				target := "/expenses/999999"
+				target := "/recurrent-expenses/999999"
 
 				res, req := f.NewRequest(ctx, http.MethodGet, target, nil)
 				testhelper.SetAuthHeader(req, token.Value)
@@ -246,13 +242,13 @@ func TestGetExpense(t *testing.T) {
 	}
 }
 
-func TestPostExpense(t *testing.T) {
+func TestPutRecurrentExpense(t *testing.T) {
 	ctx := t.Context()
 	f := testhelper.NewFactory(t)
 
 	userParams := logic.SignUpParams{
-		Username:             "postexpense",
-		Email:                "postexpense@example.com",
+		Username:             "putrecurrexp",
+		Email:                "putrecurrexp@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	}
@@ -260,30 +256,80 @@ func TestPostExpense(t *testing.T) {
 	token, err := f.Store.NewAccessToken(user.ID)
 	require.NoError(t, err)
 
-	category := f.Category(t, "Post Expense Category")
+	category := f.Category(t, "Put Recurrent Expense Category")
+
+	recurrent := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
+		CategoryID:  category.ID,
+		Description: "Old description",
+		Amount:      2000,
+		Period:      1,
+	})
+
+	params := struct {
+		Description string `json:"description"`
+		Amount      uint64 `json:"amount"`
+		Period      uint   `json:"period"`
+	}{
+		Description: "Updated description",
+		Amount:      3000,
+		Period:      2,
+	}
+
+	target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
+	res, req := f.NewRequest(ctx, http.MethodPut, target, testhelper.MarshalPayload(t, params))
+	testhelper.SetAuthHeader(req, token.Value)
+
+	f.Server.Router.ServeHTTP(res, req)
+
+	require.Equal(t, http.StatusOK, res.Code)
+
+	var payload testhelper.Response[repo.RecurrentExpense]
+	testhelper.UnmarshalBody(t, res, &payload)
+	require.Nil(t, payload.Error)
+	require.Equal(t, recurrent.ID, payload.Data.ID)
+	require.Equal(t, params.Description, payload.Data.Description)
+	require.Equal(t, params.Amount, payload.Data.Amount)
+	require.Equal(t, params.Period, payload.Data.Period)
+}
+
+func TestPostRecurrentExpense(t *testing.T) {
+	ctx := t.Context()
+	f := testhelper.NewFactory(t)
+
+	userParams := logic.SignUpParams{
+		Username:             "postrecurrexp",
+		Email:                "postrecurrexp@example.com",
+		Password:             "123456789",
+		PasswordConfirmation: "123456789",
+	}
+	user := f.User(t, userParams)
+	token, err := f.Store.NewAccessToken(user.ID)
+	require.NoError(t, err)
+
+	category := f.Category(t, "Post Recurrent Expense Category")
 
 	cases := []struct {
 		name string
 		fn   func(*testing.T)
 	}{
 		{
-			"should_create_expense",
+			"should_create_recurrent_expense",
 			func(t *testing.T) {
-				params := logic.ExpenseParams{
+				params := logic.RecurrentExpenseParams{
 					CategoryID:  category.ID,
 					Description: "Rent",
 					Amount:      100000,
-					Date:        prog.FormatTime(time.Now()),
+					Period:      1,
 				}
 
-				res, req := f.NewRequest(ctx, http.MethodPost, "/expenses", testhelper.MarshalPayload(t, params))
+				res, req := f.NewRequest(ctx, http.MethodPost, "/recurrent-expenses", testhelper.MarshalPayload(t, params))
 				testhelper.SetAuthHeader(req, token.Value)
 
 				f.Server.Router.ServeHTTP(res, req)
 
 				require.Equal(t, http.StatusCreated, res.Code)
 
-				var payload testhelper.Response[repo.Expense]
+				var payload testhelper.Response[repo.RecurrentExpense]
 				testhelper.UnmarshalBody(t, res, &payload)
 				require.Nil(t, payload.Error)
 				require.Equal(t, params.Description, payload.Data.Description)
@@ -294,9 +340,9 @@ func TestPostExpense(t *testing.T) {
 		{
 			"should_fail_validation",
 			func(t *testing.T) {
-				params := logic.ExpenseParams{}
+				params := logic.RecurrentExpenseParams{}
 
-				res, req := f.NewRequest(ctx, http.MethodPost, "/expenses", testhelper.MarshalPayload(t, params))
+				res, req := f.NewRequest(ctx, http.MethodPost, "/recurrent-expenses", testhelper.MarshalPayload(t, params))
 				testhelper.SetAuthHeader(req, token.Value)
 
 				f.Server.Router.ServeHTTP(res, req)
@@ -316,13 +362,13 @@ func TestPostExpense(t *testing.T) {
 	}
 }
 
-func TestPutExpense(t *testing.T) {
+func TestPatchRecurrentExpense(t *testing.T) {
 	ctx := t.Context()
 	f := testhelper.NewFactory(t)
 
 	userParams := logic.SignUpParams{
-		Username:             "putexpense",
-		Email:                "putexpense@example.com",
+		Username:             "patchrecurrexp",
+		Email:                "patchrecurrexp@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	}
@@ -330,45 +376,49 @@ func TestPutExpense(t *testing.T) {
 	token, err := f.Store.NewAccessToken(user.ID)
 	require.NoError(t, err)
 
-	category := f.Category(t, "Put Expense Category")
+	category := f.Category(t, "Patch Recurrent Expense Category")
 
-	expense := f.Expense(t, user.ID, logic.ExpenseParams{
+	recurrent := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
 		Description: "Old description",
 		Amount:      2000,
-		Date:        prog.FormatTime(time.Now()),
+		Period:      1,
 	})
 
-	params := logic.ExpenseParams{
-		CategoryID:  category.ID,
-		Description: "Updated description",
-		Amount:      3000,
-		Date:        prog.FormatTime(time.Now()),
+	params := struct {
+		Description string `json:"description"`
+		Amount      uint64 `json:"amount"`
+		Period      uint   `json:"period"`
+	}{
+		Description: "Patched description",
+		Amount:      2200,
+		Period:      1,
 	}
 
-	target := fmt.Sprintf("/expenses/%d", expense.ID)
-	res, req := f.NewRequest(ctx, http.MethodPut, target, testhelper.MarshalPayload(t, params))
+	target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
+	res, req := f.NewRequest(ctx, http.MethodPatch, target, testhelper.MarshalPayload(t, params))
 	testhelper.SetAuthHeader(req, token.Value)
 
 	f.Server.Router.ServeHTTP(res, req)
 
 	require.Equal(t, http.StatusOK, res.Code)
 
-	var payload testhelper.Response[repo.Expense]
+	var payload testhelper.Response[repo.RecurrentExpense]
 	testhelper.UnmarshalBody(t, res, &payload)
 	require.Nil(t, payload.Error)
-	require.Equal(t, expense.ID, payload.Data.ID)
+	require.Equal(t, recurrent.ID, payload.Data.ID)
 	require.Equal(t, params.Description, payload.Data.Description)
 	require.Equal(t, params.Amount, payload.Data.Amount)
+	require.Equal(t, params.Period, payload.Data.Period)
 }
 
-func TestDeleteExpense(t *testing.T) {
+func TestDeleteRecurrentExpense(t *testing.T) {
 	ctx := t.Context()
 	f := testhelper.NewFactory(t)
 
 	userParams := logic.SignUpParams{
-		Username:             "deleteexpense",
-		Email:                "deleteexpense@example.com",
+		Username:             "delrecurrexp",
+		Email:                "delrecurrexp@example.com",
 		Password:             "123456789",
 		PasswordConfirmation: "123456789",
 	}
@@ -376,16 +426,16 @@ func TestDeleteExpense(t *testing.T) {
 	token, err := f.Store.NewAccessToken(user.ID)
 	require.NoError(t, err)
 
-	category := f.Category(t, "Delete Expense Category")
+	category := f.Category(t, "Delete Recurrent Expense Category")
 
-	expense := f.Expense(t, user.ID, logic.ExpenseParams{
+	recurrent := f.RecurrentExpense(t, user.ID, logic.RecurrentExpenseParams{
 		CategoryID:  category.ID,
 		Description: "To delete",
 		Amount:      500,
-		Date:        prog.FormatTime(time.Now()),
+		Period:      1,
 	})
 
-	target := fmt.Sprintf("/expenses/%d", expense.ID)
+	target := fmt.Sprintf("/recurrent-expenses/%d", recurrent.ID)
 	res, req := f.NewRequest(ctx, http.MethodDelete, target, nil)
 	testhelper.SetAuthHeader(req, token.Value)
 
@@ -399,8 +449,8 @@ func TestDeleteExpense(t *testing.T) {
 	}
 	testhelper.UnmarshalBody(t, res, &payload)
 	require.Nil(t, payload.Error)
-	require.Equal(t, expense.ID, payload.Data["id"])
+	require.Equal(t, recurrent.ID, payload.Data["id"])
 
-	_, err = f.Store.FindExpense(ctx, expense.ID, user.ID)
+	_, err = f.Store.FindRecurrentExpense(ctx, recurrent.ID, user.ID)
 	require.ErrorIs(t, err, logic.ErrNotFound)
 }
