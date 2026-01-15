@@ -38,6 +38,13 @@ func main() {
 				return tc.CreateExpensesFromRecurrent(context.Background())
 			},
 		},
+		{
+			Name:        "delete_expired_refresh_tokens",
+			Description: "Delete expired refresh tokens",
+			Run: func(_ []string) error {
+				return tc.DeleteExpiredRefreshTokens(context.Background())
+			},
+		},
 	})
 	if err != nil {
 		tc.App.Logger.Error(err)
