@@ -10,7 +10,7 @@ import (
 	"github.com/ad9311/ninete/internal/task"
 )
 
-const taskTimeout = 30 * time.Second
+const taskTimeout = 50 * time.Second
 
 func main() {
 	tc, err := task.New()
