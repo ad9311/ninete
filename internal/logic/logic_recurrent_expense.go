@@ -145,7 +145,7 @@ func (s *Store) CreateExpenseFromPeriod(
 ) (repo.Expense, error) {
 	var expense repo.Expense
 
-	if !recurrent.LastCopyCreatedAt.Valid {
+	if recurrent.LastCopyCreatedAt == nil {
 		expense, err := s.createExpenseFromRecurrent(ctx, recurrent)
 		if err != nil {
 			return expense, err
@@ -154,7 +154,7 @@ func (s *Store) CreateExpenseFromPeriod(
 		return expense, nil
 	}
 
-	lastCopy := time.Unix(recurrent.LastCopyCreatedAt.Int64, 0).UTC()
+	lastCopy := time.Unix(*recurrent.LastCopyCreatedAt, 0).UTC()
 	now := time.Now().UTC()
 
 	timePassed := monthsBetween(lastCopy, now)

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type RecurrentExpense struct {
+type recurrentExpense struct {
 	ID                int           `json:"id"`
 	UserID            int           `json:"userId"`
 	CategoryID        int           `json:"categoryId"`
@@ -17,6 +17,46 @@ type RecurrentExpense struct {
 	LastCopyCreatedAt sql.NullInt64 `json:"lastCopyCreated"`
 	CreatedAt         int64         `json:"createdAt"`
 	UpdatedAt         int64         `json:"updatedAt"`
+}
+
+type RecurrentExpense struct {
+	ID                int    `json:"id"`
+	UserID            int    `json:"userId"`
+	CategoryID        int    `json:"categoryId"`
+	Description       string `json:"description"`
+	Amount            uint64 `json:"amount"`
+	Period            uint   `json:"period"`
+	LastCopyCreatedAt *int64 `json:"lastCopyCreated"`
+	CreatedAt         int64  `json:"createdAt"`
+	UpdatedAt         int64  `json:"updatedAt"`
+}
+
+func (re recurrentExpense) toRecurrentExpense() RecurrentExpense {
+	var lastCopy *int64
+	if re.LastCopyCreatedAt.Valid {
+		value := re.LastCopyCreatedAt.Int64
+		lastCopy = &value
+	}
+
+	return RecurrentExpense{
+		ID:                re.ID,
+		UserID:            re.UserID,
+		CategoryID:        re.CategoryID,
+		Description:       re.Description,
+		Amount:            re.Amount,
+		Period:            re.Period,
+		LastCopyCreatedAt: lastCopy,
+		CreatedAt:         re.CreatedAt,
+		UpdatedAt:         re.UpdatedAt,
+	}
+}
+
+func NullInt64FromPtr(value *int64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{Valid: false}
+	}
+
+	return sql.NullInt64{Int64: *value, Valid: true}
 }
 
 type InsertRecurrentExpenseParams struct {
@@ -70,7 +110,7 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 		}()
 
 		for rows.Next() {
-			var re RecurrentExpense
+			var re recurrentExpense
 
 			if err := rows.Scan(
 				&re.ID,
@@ -86,7 +126,7 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 				return err
 			}
 
-			res = append(res, re)
+			res = append(res, re.toRecurrentExpense())
 		}
 
 		return nil
@@ -121,7 +161,7 @@ func (q *Queries) InsertRecurrentExpense(
 	ctx context.Context,
 	params InsertRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
-	var re RecurrentExpense
+	var re recurrentExpense
 
 	err := q.wrapQuery(insertRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(
@@ -147,7 +187,7 @@ func (q *Queries) InsertRecurrentExpense(
 		)
 	})
 
-	return re, err
+	return re.toRecurrentExpense(), err
 }
 
 const updateRecurrentExpense = `
@@ -167,7 +207,7 @@ func (q *Queries) UpdateRecurrentExpense(
 	ctx context.Context,
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
-	var re RecurrentExpense
+	var re recurrentExpense
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(
@@ -195,14 +235,14 @@ func (q *Queries) UpdateRecurrentExpense(
 		)
 	})
 
-	return re, err
+	return re.toRecurrentExpense(), err
 }
 
 func (q *TxQueries) UpdateRecurrentExpense(
 	ctx context.Context,
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
-	var re RecurrentExpense
+	var re recurrentExpense
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.tx.QueryRowContext(
@@ -230,7 +270,7 @@ func (q *TxQueries) UpdateRecurrentExpense(
 		)
 	})
 
-	return re, err
+	return re.toRecurrentExpense(), err
 }
 
 func (q *Queries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
@@ -250,7 +290,7 @@ SELECT * FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
 `
 
 func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (RecurrentExpense, error) {
-	var re RecurrentExpense
+	var re recurrentExpense
 
 	err := q.wrapQuery(selectRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(ctx, selectRecurrentExpense, id, userID)
@@ -268,7 +308,7 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 		)
 	})
 
-	return re, err
+	return re.toRecurrentExpense(), err
 }
 
 const selectDueRecurrentExpenses = `
@@ -348,7 +388,7 @@ func (q *Queries) SelectDueRecurrentExpenses(
 		}()
 
 		for rows.Next() {
-			var re RecurrentExpense
+			var re recurrentExpense
 
 			if err := rows.Scan(
 				&re.ID,
@@ -364,7 +404,7 @@ func (q *Queries) SelectDueRecurrentExpenses(
 				return err
 			}
 
-			res = append(res, re)
+			res = append(res, re.toRecurrentExpense())
 		}
 
 		return nil

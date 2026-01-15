@@ -130,7 +130,7 @@ func (s *Server) PutRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 		Description:       params.Description,
 		Amount:            params.Amount,
 		Period:            params.Period,
-		LastCopyCreatedAt: recurrent.LastCopyCreatedAt,
+		LastCopyCreatedAt: repo.NullInt64FromPtr(recurrent.LastCopyCreatedAt),
 	})
 	if err != nil {
 		s.respondError(w, http.StatusBadRequest, err)

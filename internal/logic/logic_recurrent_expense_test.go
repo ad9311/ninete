@@ -158,8 +158,8 @@ func TestUpdateRecurrentExpense(t *testing.T) {
 				require.Equal(t, params.Description, updated.Description)
 				require.Equal(t, params.Amount, updated.Amount)
 				require.Equal(t, params.Period, updated.Period)
-				require.True(t, updated.LastCopyCreatedAt.Valid)
-				require.Equal(t, lastCopy.Int64, updated.LastCopyCreatedAt.Int64)
+				require.NotNil(t, updated.LastCopyCreatedAt)
+				require.Equal(t, lastCopy.Int64, *updated.LastCopyCreatedAt)
 			},
 		},
 		{
@@ -230,13 +230,13 @@ func TestUpdateLastCopyCreatedAt(t *testing.T) {
 				copyDate := time.Now().Unix()
 				updated, err := f.Store.UpdateLastCopyCreatedAt(ctx, recurrent, copyDate)
 				require.NoError(t, err)
-				require.True(t, updated.LastCopyCreatedAt.Valid)
-				require.Equal(t, copyDate, updated.LastCopyCreatedAt.Int64)
+				require.NotNil(t, updated.LastCopyCreatedAt)
+				require.Equal(t, copyDate, *updated.LastCopyCreatedAt)
 
 				reloaded, err := f.Store.FindRecurrentExpense(ctx, recurrent.ID, user.ID)
 				require.NoError(t, err)
-				require.True(t, reloaded.LastCopyCreatedAt.Valid)
-				require.Equal(t, copyDate, reloaded.LastCopyCreatedAt.Int64)
+				require.NotNil(t, reloaded.LastCopyCreatedAt)
+				require.Equal(t, copyDate, *reloaded.LastCopyCreatedAt)
 			},
 		},
 	}
@@ -281,7 +281,7 @@ func TestCreateExpenseFromPeriod(t *testing.T) {
 
 				reloaded, err := f.Store.FindRecurrentExpense(ctx, recurrent.ID, user.ID)
 				require.NoError(t, err)
-				require.True(t, reloaded.LastCopyCreatedAt.Valid)
+				require.NotNil(t, reloaded.LastCopyCreatedAt)
 			},
 		},
 		{
