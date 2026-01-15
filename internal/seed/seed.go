@@ -91,6 +91,7 @@ func CategoryNames() []string {
 		"Taxes",
 		"Subscriptions",
 		"Other",
+		"Utilities",
 		"Restaurants",
 	}
 }
