@@ -129,3 +129,59 @@ func TestCreateExpensesFromRecurrent(t *testing.T) {
 		t.Run(tc.name, tc.fn)
 	}
 }
+
+func TestDeleteExpiredRefreshTokens(t *testing.T) {
+	f := testhelper.NewFactory(t)
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			"should_delete_expired_tokens",
+			func(t *testing.T) {
+				ctx := t.Context()
+
+				user := f.User(t, logic.SignUpParams{
+					Username:             "taskdeleteexpired",
+					Email:                "taskdeleteexpired@email.com",
+					Password:             "123456789",
+					PasswordConfirmation: "123456789",
+				})
+				expiredToken := f.RefreshToken(t, user.ID)
+				validToken := f.RefreshToken(t, user.ID)
+				f.SetRefreshTokenExpiry(t, expiredToken.Value, time.Now().Add(-time.Hour).Unix())
+
+				err := f.TaskConfig.DeleteExpiredRefreshTokens(ctx)
+				require.NoError(t, err)
+
+				_, err = f.Store.FindRefreshToken(ctx, expiredToken.Value)
+				require.ErrorIs(t, err, logic.ErrNotFound)
+
+				_, err = f.Store.FindRefreshToken(ctx, validToken.Value)
+				require.NoError(t, err)
+			},
+		},
+		{
+			"should_do_nothing_when_none_expired",
+			func(t *testing.T) {
+				ctx := t.Context()
+
+				user := f.User(t, logic.SignUpParams{
+					Username:             "tasknoexpired",
+					Email:                "tasknoexpired@email.com",
+					Password:             "123456789",
+					PasswordConfirmation: "123456789",
+				})
+				_ = f.RefreshToken(t, user.ID)
+
+				err := f.TaskConfig.DeleteExpiredRefreshTokens(ctx)
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}

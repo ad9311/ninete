@@ -146,6 +146,22 @@ func (f *Factory) RefreshToken(t *testing.T, userID int) logic.Token {
 	return refreshToken
 }
 
+func (f *Factory) SetRefreshTokenExpiry(
+	t *testing.T,
+	tokenValue string,
+	expiresAt int64,
+) {
+	t.Helper()
+
+	hash := logic.HashToken(tokenValue)
+	_, err := f.sqlDB.Exec(
+		`UPDATE "refresh_tokens" SET "expires_at" = ? WHERE "token_hash" = ?`,
+		expiresAt,
+		hash,
+	)
+	require.NoError(t, err)
+}
+
 func (f *Factory) Category(t *testing.T, name string) repo.Category {
 	t.Helper()
 
