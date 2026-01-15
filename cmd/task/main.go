@@ -2,13 +2,15 @@
 package main
 
 import (
-	"context"
 	"os"
+	"time"
 
 	"github.com/ad9311/ninete/internal/cmd"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/task"
 )
+
+const taskTimeout = 50 * time.Second
 
 func main() {
 	tc, err := task.New()
@@ -35,7 +37,14 @@ func main() {
 			Name:        "create_expenses_from_recurrent",
 			Description: "Create expenses from recurrent expenses",
 			Run: func(_ []string) error {
-				return tc.CreateExpensesFromRecurrent(context.Background())
+				return prog.WithTimeout(taskTimeout, tc.CreateExpensesFromRecurrent)
+			},
+		},
+		{
+			Name:        "delete_expired_refresh_tokens",
+			Description: "Delete expired refresh tokens",
+			Run: func(_ []string) error {
+				return prog.WithTimeout(taskTimeout, tc.DeleteExpiredRefreshTokens)
 			},
 		},
 	})

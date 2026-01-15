@@ -34,7 +34,7 @@ func (q *Queries) InserCategory(ctx context.Context, name, uid string) (Category
 }
 
 const selectCategories = `
-SELECT * FROM "categories"`
+SELECT * FROM "categories" ORDER BY "name"`
 
 func (q *Queries) SelectCategories(ctx context.Context) ([]Category, error) {
 	var cs []Category

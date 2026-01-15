@@ -110,3 +110,19 @@ func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) error {
 		}
 	}
 }
+
+func (c *Config) DeleteExpiredRefreshTokens(ctx context.Context) error {
+	c.App.Logger.Log("Deleting expired refresh tokens started")
+	defer func() {
+		c.App.Logger.Log("Deleting expired refresh tokens finished")
+	}()
+
+	deleted, err := c.Store.DeleteExpiredRefreshTokens(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.App.Logger.Logf("Deleted = %d", deleted)
+
+	return nil
+}

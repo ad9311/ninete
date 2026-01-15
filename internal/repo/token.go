@@ -84,3 +84,26 @@ func (q *Queries) SelectRefreshToken(ctx context.Context, tokenHash []byte) (Ref
 
 	return rt, err
 }
+
+const deleteRefreshTokensAt = `
+DELETE FROM "refresh_tokens" WHERE "expires_at" <= ?`
+
+func (q *Queries) DeleteRefreshTokensAt(ctx context.Context, nowUnix int64) (int, error) {
+	var deleted int64
+
+	err := q.wrapQuery(deleteRefreshTokensAt, func() error {
+		result, err := q.db.ExecContext(ctx, deleteRefreshTokensAt, nowUnix)
+		if err != nil {
+			return err
+		}
+
+		deleted, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return int(deleted), err
+}

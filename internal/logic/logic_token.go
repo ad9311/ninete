@@ -95,6 +95,17 @@ func (s *Store) NewAccessToken(userID int) (Token, error) {
 	return token, nil
 }
 
+func (s *Store) DeleteExpiredRefreshTokens(ctx context.Context) (int, error) {
+	nowUnix := time.Now().Unix()
+
+	deleted, err := s.queries.DeleteRefreshTokensAt(ctx, nowUnix)
+	if err != nil {
+		return 0, HandleDBError(err)
+	}
+
+	return deleted, nil
+}
+
 func (s *Store) ParseAndValidateJWT(tokenString string) (jwt.MapClaims, error) {
 	var claims jwt.MapClaims
 
