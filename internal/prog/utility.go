@@ -1,6 +1,7 @@
 package prog
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -53,4 +54,11 @@ func UnixToStringDate(date int64) string {
 
 func FormatTime(date time.Time) string {
 	return date.Format(time.RFC3339)
+}
+
+func WithTimeout(d time.Duration, fn func(context.Context) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d)
+	defer cancel()
+
+	return fn(ctx)
 }

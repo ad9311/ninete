@@ -14,10 +14,9 @@ import (
 )
 
 type Config struct {
-	App     *prog.App
-	SQLDB   *sql.DB
-	Store   *logic.Store
-	Queries repo.Queries
+	App   *prog.App
+	SQLDB *sql.DB
+	Store *logic.Store
 }
 
 func New() (*Config, error) {
@@ -39,10 +38,9 @@ func New() (*Config, error) {
 	}
 
 	tc := Config{
-		App:     app,
-		SQLDB:   sqlDB,
-		Store:   store,
-		Queries: queries,
+		App:   app,
+		SQLDB: sqlDB,
+		Store: store,
 	}
 
 	return &tc, nil
@@ -114,13 +112,12 @@ func (c *Config) CreateExpensesFromRecurrent(ctx context.Context) error {
 }
 
 func (c *Config) DeleteExpiredRefreshTokens(ctx context.Context) error {
-	nowUnix := time.Now().Unix()
 	c.App.Logger.Log("Deleting expired refresh tokens started")
 	defer func() {
 		c.App.Logger.Log("Deleting expired refresh tokens finished")
 	}()
 
-	deleted, err := c.Queries.DeleteExpiredRefreshTokens(ctx, nowUnix)
+	deleted, err := c.Store.DeleteExpiredRefreshTokens(ctx)
 	if err != nil {
 		return err
 	}
