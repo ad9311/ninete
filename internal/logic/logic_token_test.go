@@ -3,6 +3,7 @@ package logic_test
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/testhelper"
@@ -150,6 +151,64 @@ func TestParseAndValidateJWT(t *testing.T) {
 				_, err := f.Store.ParseAndValidateJWT(token.Value + "tampered")
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "token signature is invalid: signature is invalid")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestDeleteExpiredRefreshTokens(t *testing.T) {
+	f := testhelper.NewFactory(t)
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			"should_delete_only_expired_tokens",
+			func(t *testing.T) {
+				ctx := t.Context()
+
+				user := f.User(t, logic.SignUpParams{
+					Username:             "deleteexpired",
+					Email:                "deleteexpired@email.com",
+					Password:             "123456789",
+					PasswordConfirmation: "123456789",
+				})
+				expiredToken := f.RefreshToken(t, user.ID)
+				validToken := f.RefreshToken(t, user.ID)
+				f.SetRefreshTokenExpiry(t, expiredToken.Value, time.Now().Add(-time.Hour).Unix())
+
+				deleted, err := f.Store.DeleteExpiredRefreshTokens(ctx)
+				require.NoError(t, err)
+				require.Equal(t, 1, deleted)
+
+				_, err = f.Store.FindRefreshToken(ctx, expiredToken.Value)
+				require.ErrorIs(t, err, logic.ErrNotFound)
+
+				_, err = f.Store.FindRefreshToken(ctx, validToken.Value)
+				require.NoError(t, err)
+			},
+		},
+		{
+			"should_return_zero_when_no_expired_tokens",
+			func(t *testing.T) {
+				ctx := t.Context()
+
+				user := f.User(t, logic.SignUpParams{
+					Username:             "noexpired",
+					Email:                "noexpired@email.com",
+					Password:             "123456789",
+					PasswordConfirmation: "123456789",
+				})
+				_ = f.RefreshToken(t, user.ID)
+
+				deleted, err := f.Store.DeleteExpiredRefreshTokens(ctx)
+				require.NoError(t, err)
+				require.Equal(t, 0, deleted)
 			},
 		},
 	}

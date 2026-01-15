@@ -26,7 +26,7 @@ type Token struct {
 }
 
 func (s *Store) FindRefreshToken(ctx context.Context, tokenStr string) (repo.RefreshToken, error) {
-	tokenHash := hashToken(tokenStr)
+	tokenHash := HashToken(tokenStr)
 
 	refreshToken, err := s.queries.SelectRefreshToken(ctx, tokenHash)
 	if err != nil {
@@ -48,7 +48,7 @@ func (s *Store) NewRefreshToken(ctx context.Context, userID int) (Token, error) 
 
 	_, err = s.queries.InsertRefreshToken(ctx, repo.InsertRefreshTokenParams{
 		UserID:    userID,
-		TokenHash: hashToken(value),
+		TokenHash: HashToken(value),
 		IssuedAt:  iat,
 		ExpiresAt: exp,
 	})
@@ -122,6 +122,12 @@ func (s *Store) ParseAndValidateJWT(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
+func HashToken(token string) []byte {
+	sum := sha256.Sum256([]byte(token))
+
+	return sum[:]
+}
+
 func (s *Store) parseJWT(tokenString string) (*jwt.Token, error) {
 	keyFunc := func(_ *jwt.Token) (any, error) {
 		return []byte(s.tokenVars.jwtSecret), nil
@@ -192,10 +198,4 @@ func randomRefreshToken() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(b[:]), nil
-}
-
-func hashToken(token string) []byte {
-	sum := sha256.Sum256([]byte(token))
-
-	return sum[:]
 }

@@ -96,7 +96,7 @@ func (s *Store) SignInUser(ctx context.Context, params SessionParams) (NewSessio
 }
 
 func (s *Store) SignOutUser(ctx context.Context, tokenStr string) error {
-	tokenHash := hashToken(tokenStr)
+	tokenHash := HashToken(tokenStr)
 
 	_, err := s.queries.DeleteRefreshToken(ctx, tokenHash)
 	if err != nil {
