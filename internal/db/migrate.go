@@ -21,16 +21,13 @@ const migrationsPath = "migrations"
 var embededMigrations embed.FS
 
 func RunMigrationsUp() error {
-	sqlDB, err := setUpMigrator()
+	app, sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
+	defer closeSQLDB(app, sqlDB)
 
 	if err := goose.Up(sqlDB, migrationsPath); err != nil {
-		return err
-	}
-
-	if err := sqlDB.Close(); err != nil {
 		return err
 	}
 
@@ -38,16 +35,13 @@ func RunMigrationsUp() error {
 }
 
 func RunMigrationsDown() error {
-	sqlDB, err := setUpMigrator()
+	app, sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
+	defer closeSQLDB(app, sqlDB)
 
 	if err := goose.Down(sqlDB, migrationsPath); err != nil {
-		return err
-	}
-
-	if err := sqlDB.Close(); err != nil {
 		return err
 	}
 
@@ -55,10 +49,11 @@ func RunMigrationsDown() error {
 }
 
 func CreateMigration() error {
-	sqlDB, err := setUpMigrator()
+	app, sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
+	defer closeSQLDB(app, sqlDB)
 
 	migrationName, err := promptMigrationName()
 	if err != nil {
@@ -69,53 +64,47 @@ func CreateMigration() error {
 		return err
 	}
 
-	if err := sqlDB.Close(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func PrintStatus() error {
-	sqlDB, err := setUpMigrator()
+	app, sqlDB, err := setUpMigrator()
 	if err != nil {
 		return err
 	}
+	defer closeSQLDB(app, sqlDB)
 
 	if err := goose.Status(sqlDB, migrationsPath); err != nil {
 		return err
 	}
 
-	if err := sqlDB.Close(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func setUpMigrator() (*sql.DB, error) {
+func setUpMigrator() (*prog.App, *sql.DB, error) {
 	app, err := prog.Load()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	sqlDB, err := Open()
 	if err != nil {
-		return sqlDB, err
+		return app, sqlDB, err
 	}
-	defer func() {
-		if err := sqlDB.Close(); err != nil {
-			app.Logger.Errorf("failed to close database: %v", err)
-		}
-	}()
 
 	goose.SetBaseFS(embededMigrations)
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		return sqlDB, fmt.Errorf("failed to set dialect: %w", err)
+		return app, sqlDB, fmt.Errorf("failed to set dialect: %w", err)
 	}
 
-	return sqlDB, nil
+	return app, sqlDB, nil
+}
+
+func closeSQLDB(app *prog.App, sqlDB *sql.DB) {
+	if err := sqlDB.Close(); err != nil {
+		app.Logger.Errorf("failed to close database: %v", err)
+	}
 }
 
 func promptMigrationName() (string, error) {
