@@ -1,0 +1,5 @@
+{{ define "form_error" }}
+  {{ if ne .error "" }}
+    <p style="color: red;">{{ .error }}</p>
+  {{ end }}
+{{ end }}

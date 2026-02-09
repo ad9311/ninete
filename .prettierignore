@@ -1,0 +1,6 @@
+*
+!web/
+!web/static/
+!web/static/**
+!web/views/
+!web/views/**

@@ -1,0 +1,17 @@
+PRAGMA encoding = "UTF-8";
+PRAGMA page_size = 4096;
+PRAGMA auto_vacuum = INCREMENTAL;
+PRAGMA application_id = 0x6E696E657465;
+PRAGMA foreign_keys = ON;
+PRAGMA ignore_check_constraints = OFF;
+PRAGMA recursive_triggers = ON;
+PRAGMA trusted_schema = OFF;
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
+PRAGMA temp_store = MEMORY;
+PRAGMA cache_size = -5120;
+PRAGMA temp.cache_size = -5120;
+PRAGMA wal_autocheckpoint = 1000;
+PRAGMA busy_timeout = 5000;
+PRAGMA mmap_size = 67108864;
+PRAGMA optimize;

@@ -1,0 +1,50 @@
+version: "2"
+
+run:
+  timeout: 2m
+  tests: true
+  go: "1.25.1"
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+
+linters:
+  enable:
+    # Default
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+
+    # Added
+    - revive
+    - misspell
+    - importas
+    - gocyclo
+    - err113
+    - errname
+    - nlreturn
+    - gocritic
+    - gochecknoglobals
+    - gosec
+    - lll
+
+  settings:
+    lll:
+      line-length: 120
+      tab-width: 2
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+  exclusions:
+    rules:
+      - linters: [gosec]
+        path: 'internal/repo/token.go'
+        text: 'G101'

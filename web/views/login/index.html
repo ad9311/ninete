@@ -1,0 +1,11 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>LOGIN</h1>
+  {{ template "form_error" . }}
+  <form action="/login" method="post">
+    {{ template "csrf" . }}
+    <input type="email" placeholder="Email" name="email" />
+    <input type="password" placeholder="Password" name="password" />
+    <button type="submit">Login</button>
+  </form>
+{{ end }}
