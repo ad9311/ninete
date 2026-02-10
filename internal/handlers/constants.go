@@ -27,7 +27,9 @@ const (
 )
 
 // Expense templates.
-// Add expense template names here when expense views are introduced.
+const (
+	ExpensesIndex TemplateName = "expenses/index"
+)
 
 // System templates.
 const (
