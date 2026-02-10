@@ -3,12 +3,23 @@
   <h1>NEW EXPENSES</h1>
   <a href="/expenses">Back to expenses</a>
   {{ template "form_error" . }}
-  <form action="/expenses" method="post">
+  <form
+    action="/expenses"
+    method="post"
+    data-controller="date"
+    data-action="submit->date#prepare"
+  >
     {{ template "csrf" . }}
     <input type="number" placeholder="Category ID" name="category_id" />
     <input type="text" placeholder="Description" name="description" />
     <input type="number" placeholder="Amount" name="amount" />
-    <input type="datetime-local" placeholder="Date" name="date" />
+    <input
+      type="datetime-local"
+      placeholder="Date"
+      data-date-target="local"
+      step="1"
+    />
+    <input type="hidden" name="date" data-date-target="value" />
     <button type="submit">Submit</button>
   </form>
 {{ end }}

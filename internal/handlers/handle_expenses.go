@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -55,7 +54,7 @@ func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 	_, err = h.store.CreateExpense(ctx, user.ID, params)
 	if err != nil {
 		data["error"] = err.Error()
-		h.render(w, http.StatusOK, ExpensesNew, data)
+		h.render(w, http.StatusBadRequest, ExpensesNew, data)
 
 		return
 	}
@@ -69,20 +68,25 @@ func parseExpenseForm(r *http.Request) (logic.ExpenseParams, error) {
 		return params, fmt.Errorf("failed to parse form, %w", err)
 	}
 
-	categoryID, err := prog.ParseID(r.FormValue("category_id"))
+	categoryID, err := prog.ParseID(r.FormValue("category_id"), "Category ID")
 	if err != nil {
 		return params, err
 	}
 
-	// _, err = prog.StringToUnixDate(r.FormValue("date"))
-	// if err != nil {
-	// 	return params, err
-	// }
+	amount, err := prog.ParseAmount(r.FormValue("amount"))
+	if err != nil {
+		return params, err
+	}
+
+	date, err := prog.StringToUnixDate(r.FormValue("date"))
+	if err != nil {
+		return params, err
+	}
 
 	params.CategoryID = categoryID
 	params.Description = r.FormValue("description")
-	params.Date = time.Now().Unix()
-	params.Amount = 100 // TODO
+	params.Amount = amount
+	params.Date = date
 
 	return params, nil
 }

@@ -4,7 +4,7 @@
   <a href="/expenses/new">New</a>
   <ul>
     {{ range .expenses }}
-      <li>{{ .ID }}</li>
+      <li>{{ .ID }} - {{ .Description }} - {{ .Amount }} - {{ .Date }}</li>
     {{ end }}
   </ul>
 {{ end }}

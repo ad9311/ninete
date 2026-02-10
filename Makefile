@@ -21,7 +21,7 @@ build: ## Build the application binary
 	@mkdir -p ./data/db/dev
 	@$(GO_BUILD_ENVS) go build -o ./build/dev ./cmd/ninete/main.go
 
-dev: build ## Run the app in development mode
+dev: build-static-js build ## Run the app in development mode
 	@echo "Starting application..."
 	@ENV=development ./build/dev
 
@@ -85,7 +85,7 @@ deps: ## Install and tidy dependencies
 
 build-static-js: ## Build web/static/js/index.ts into web/static/js/build/index.js with bun
 	@echo "Building static JS bundle..."
-	bun build web/static/js/index.ts --outfile web/static/js/build/index.js
+	bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
 
 # ========= Tests ===========
 test: build clean-test-db ## Runs the tests
