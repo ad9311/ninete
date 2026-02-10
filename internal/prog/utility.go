@@ -2,6 +2,7 @@ package prog
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -43,6 +44,15 @@ func StringToUnixDate(date string) (int64, error) {
 	}
 
 	return parsedDate.Unix(), nil
+}
+
+func ParseID(idStr string) (int, error) {
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse id of value %s, %w", idStr, err)
+	}
+
+	return int(id), nil
 }
 
 // func UnixToStringDate(date int64) string {

@@ -1,0 +1,14 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW EXPENSES</h1>
+  <a href="/expenses">Back to expenses</a>
+  {{ template "form_error" . }}
+  <form action="/expenses" method="post">
+    {{ template "csrf" . }}
+    <input type="number" placeholder="Category ID" name="category_id" />
+    <input type="text" placeholder="Description" name="description" />
+    <input type="number" placeholder="Amount" name="amount" />
+    <input type="datetime-local" placeholder="Date" name="date" />
+    <button type="submit">Submit</button>
+  </form>
+{{ end }}

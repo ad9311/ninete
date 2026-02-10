@@ -1,4 +1,10 @@
 {{ template "layout" . }}
 {{ define "main" }}
   <h1>EXPENSES</h1>
+  <a href="/expenses/new">New</a>
+  <ul>
+    {{ range .expenses }}
+      <li>{{ .ID }}</li>
+    {{ end }}
+  </ul>
 {{ end }}
