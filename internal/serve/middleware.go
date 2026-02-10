@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/repo"
-	"github.com/ad9311/ninete/internal/webkeys"
-	"github.com/ad9311/ninete/internal/webtmpl"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/justinas/nosurf"
 )
@@ -31,18 +30,18 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 }
 
 func (s *Server) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	s.renderTemplate(w, http.StatusNotFound, webtmpl.NotFoundIndex, s.tmplData(r))
+	s.renderTemplate(w, http.StatusNotFound, handlers.NotFoundIndex, s.tmplData(r))
 }
 
 func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
 	data := s.tmplData(r)
 	data["error"] = ErrNotAllowed.Error()
-	s.renderTemplate(w, http.StatusMethodNotAllowed, webtmpl.ErrorIndex, data)
+	s.renderTemplate(w, http.StatusMethodNotAllowed, handlers.ErrorIndex, data)
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isUserSignedIn := s.Session.GetBool(r.Context(), webkeys.SessionIsUserSignedIn)
+		isUserSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
 		requestPath := r.URL.Path
 
 		if isUserSignedIn {
@@ -88,7 +87,7 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 		csrf := nosurf.Token(r)
 
 		var currentUser repo.User
-		id := s.Session.GetInt(ctx, webkeys.SessionUserID)
+		id := s.Session.GetInt(ctx, handlers.SessionUserID)
 		if id > 0 {
 			currentUser, _ = s.store.FindUser(ctx, id)
 		}
@@ -99,7 +98,7 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"currentUser": currentUser,
 		}
 
-		ctx = context.WithValue(ctx, webkeys.TemplateData, templateMap)
+		ctx = context.WithValue(ctx, handlers.TemplateData, templateMap)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

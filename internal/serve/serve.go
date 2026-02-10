@@ -13,7 +13,6 @@ import (
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
-	"github.com/ad9311/ninete/internal/webtmpl"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 )
@@ -22,7 +21,7 @@ type Server struct {
 	Router  chi.Router
 	Session *scs.SessionManager
 
-	templates map[webtmpl.Name]*template.Template
+	templates map[handlers.TemplateName]*template.Template
 	handlers  *handlers.Handler
 	app       *prog.App
 	store     *logic.Store
