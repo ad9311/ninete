@@ -1,7 +1,9 @@
 package prog
 
 import (
+	"fmt"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -34,14 +36,14 @@ func Capitalize(s string) string {
 	return string(unicode.ToUpper(r)) + strings.ToLower(s[size:])
 }
 
-// func StringToUnixDate(date string) (int64, error) {
-// 	parsedDate, err := time.Parse(time.RFC3339, date)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("failed to parse date, %w", err)
-// 	}
+func StringToUnixDate(date string) (int64, error) {
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse date, %w", err)
+	}
 
-// 	return parsedDate.Unix(), nil
-// }
+	return parsedDate.Unix(), nil
+}
 
 // func UnixToStringDate(date int64) string {
 // 	normalDate := time.Unix(date, 0)

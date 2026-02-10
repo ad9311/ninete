@@ -2,12 +2,15 @@ package serve
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/ad9311/ninete/internal/handlers"
-	"github.com/ad9311/ninete/internal/repo"
+	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/justinas/nosurf"
 )
@@ -86,18 +89,29 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 		ctx := r.Context()
 		csrf := nosurf.Token(r)
 
-		var currentUser repo.User
+		var currentUser *logic.User
+		isUserSignedIn := s.Session.GetBool(ctx, handlers.SessionIsUserSignedIn)
 		id := s.Session.GetInt(ctx, handlers.SessionUserID)
-		if id > 0 {
-			currentUser, _ = s.store.FindUser(ctx, id)
+		if isUserSignedIn {
+			user, err := s.store.FindUser(ctx, id)
+			currentUser = &user
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					currentUser = nil
+				} else {
+					s.app.Logger.Errorf("failed to find current user %v", err)
+				}
+			}
 		}
 
 		templateMap := map[string]any{
-			"csrfToken":   csrf,
-			"error":       "",
-			"currentUser": currentUser,
+			"csrfToken":      csrf,
+			"error":          "",
+			"isUserSignedIn": isUserSignedIn,
+			"currentUser":    currentUser,
 		}
 
+		ctx = context.WithValue(ctx, prog.KeyCurrentUser, currentUser)
 		ctx = context.WithValue(ctx, handlers.TemplateData, templateMap)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

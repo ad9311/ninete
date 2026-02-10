@@ -21,7 +21,7 @@ func (s *Store) Login(ctx context.Context, params SessionParams) (repo.User, err
 		return user, err
 	}
 
-	user, err := s.FindUserByEmail(ctx, params.Email)
+	user, err := s.FindUserForAuth(ctx, params.Email)
 	if err != nil {
 		return user, ErrWrongEmailOrPassword
 	}

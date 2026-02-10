@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/prog"
 )
 
 func (h *Handler) GetLogin(w http.ResponseWriter, r *http.Request) {
@@ -50,4 +51,14 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func getUserContext(r *http.Request) *logic.User {
+	user, ok := r.Context().Value(prog.KeyCurrentUser).(*logic.User)
+
+	if !ok {
+		panic("failed to extract user context")
+	}
+
+	return user
 }
