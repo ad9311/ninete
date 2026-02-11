@@ -34,8 +34,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 
 	expenses, err := h.store.FindExpenses(r.Context(), opts)
 	if err != nil {
-		data["error"] = err.Error()
-		h.render(w, http.StatusBadRequest, ExpensesIndex, data)
+		h.renderErr(w, r, http.StatusBadRequest, ExpensesIndex, err)
 
 		return
 	}
@@ -46,16 +45,13 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, ExpensesNew, h.tmplData(r))
+	h.renderPage(w, r, http.StatusOK, ExpensesNew)
 }
 
 func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
-	data := h.tmplData(r)
-
 	params, err := parseExpenseForm(r)
 	if err != nil {
-		data["error"] = err.Error()
-		h.render(w, http.StatusBadRequest, ExpensesNew, h.tmplData(r))
+		h.renderErr(w, r, http.StatusBadRequest, ExpensesNew, err)
 
 		return
 	}
@@ -65,8 +61,7 @@ func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 
 	_, err = h.store.CreateExpense(ctx, user.ID, params)
 	if err != nil {
-		data["error"] = err.Error()
-		h.render(w, http.StatusBadRequest, ExpensesNew, data)
+		h.renderErr(w, r, http.StatusBadRequest, ExpensesNew, err)
 
 		return
 	}

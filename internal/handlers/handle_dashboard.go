@@ -5,5 +5,5 @@ import (
 )
 
 func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, DashboardIndex, h.tmplData(r))
+	h.renderPage(w, r, http.StatusOK, DashboardIndex)
 }

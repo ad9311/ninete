@@ -32,16 +32,6 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 	}
 }
 
-func (s *Server) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	s.renderTemplate(w, http.StatusNotFound, handlers.NotFoundIndex, s.tmplData(r))
-}
-
-func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	data := s.tmplData(r)
-	data["error"] = ErrNotAllowed.Error()
-	s.renderTemplate(w, http.StatusMethodNotAllowed, handlers.ErrorIndex, data)
-}
-
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isUserSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
@@ -133,8 +123,8 @@ func (s *Server) setUpMiddlewares() {
 
 	s.Router.Use(s.setTmplData)
 
-	s.Router.NotFound(s.NotFoundHandler)
-	s.Router.MethodNotAllowed(s.MethodNotAllowedHandler)
+	s.Router.NotFound(s.handlers.NotFound)
+	s.Router.MethodNotAllowed(s.handlers.MethodNotAllowed)
 }
 
 func publicRoutes() []string {

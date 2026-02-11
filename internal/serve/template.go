@@ -83,3 +83,7 @@ func viewKey(path string) handlers.TemplateName {
 func templateFuncMap() template.FuncMap {
 	return template.FuncMap{}
 }
+
+func (s *Server) templateByName(name handlers.TemplateName) *template.Template {
+	return s.templates[name]
+}

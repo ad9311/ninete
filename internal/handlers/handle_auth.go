@@ -8,14 +8,14 @@ import (
 )
 
 func (h *Handler) GetLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, LoginIndex, h.tmplData(r))
+	h.renderPage(w, r, http.StatusOK, LoginIndex)
 }
 
 func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {
-		h.renderError(w, r, http.StatusBadRequest, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusBadRequest, ErrorIndex, err)
 
 		return
 	}
@@ -25,7 +25,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	})
 	if err != nil {
-		h.renderError(w, r, http.StatusBadRequest, LoginIndex, err)
+		h.renderErr(w, r, http.StatusBadRequest, LoginIndex, err)
 
 		return
 	}
@@ -40,12 +40,12 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := h.session.Destroy(ctx); err != nil {
-		h.renderError(w, r, http.StatusInternalServerError, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}
 	if err := h.session.RenewToken(ctx); err != nil {
-		h.renderError(w, r, http.StatusInternalServerError, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}
