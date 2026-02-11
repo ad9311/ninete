@@ -21,6 +21,10 @@ type expenseRow struct {
 	Date         int64
 }
 
+// ----------------------------------------------------------------------------- //
+// Context Middleware
+// ----------------------------------------------------------------------------- //
+
 func (h *Handler) ExpenseContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -50,6 +54,10 @@ func (h *Handler) ExpenseContext(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+// ----------------------------------------------------------------------------- //
+// Handlers
+// ----------------------------------------------------------------------------- //
 
 func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
@@ -123,6 +131,22 @@ func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, ExpensesNew, data)
 }
 
+func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := h.tmplData(r)
+	expense := getExpense(r)
+
+	categories, _, err := h.findCategories(ctx)
+	setExpenseFormData(data, categories, *expense)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesEdit, err)
+
+		return
+	}
+
+	h.render(w, http.StatusOK, ExpensesEdit, data)
+}
+
 func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	data := h.tmplData(r)
@@ -157,22 +181,6 @@ func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/expenses", http.StatusSeeOther)
-}
-
-func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	data := h.tmplData(r)
-	expense := *getExpense(r)
-
-	categories, _, err := h.findCategories(ctx)
-	setExpenseFormData(data, categories, expense)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ExpensesEdit, err)
-
-		return
-	}
-
-	h.render(w, http.StatusOK, ExpensesEdit, data)
 }
 
 func (h *Handler) PostExpensesUpdate(w http.ResponseWriter, r *http.Request) {
@@ -235,6 +243,10 @@ func (h *Handler) PostExpensesDelete(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/expenses", http.StatusSeeOther)
 }
+
+// ----------------------------------------------------------------------------- //
+// Unexported Functions and Helpers
+// ----------------------------------------------------------------------------- //
 
 func parseExpenseForm(r *http.Request) (logic.ExpenseParams, error) {
 	var params logic.ExpenseParams
