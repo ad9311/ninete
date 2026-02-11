@@ -20,6 +20,14 @@ func (s *Server) setUpRoutes() {
 			dashboard.Get("/dashboard", s.handlers.GetDashboard)
 		})
 
+		root.Group(func(expenses chi.Router) {
+			expenses.Route("/expenses", func(expenses chi.Router) {
+				expenses.Get("/", s.handlers.GetExpenses)
+				expenses.Post("/", s.handlers.PostExpenses)
+				expenses.Get("/new", s.handlers.GetExpensesNew)
+			})
+		})
+
 		setUpFileServer(root)
 	})
 }

@@ -1,7 +1,10 @@
 package prog
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -34,14 +37,40 @@ func Capitalize(s string) string {
 	return string(unicode.ToUpper(r)) + strings.ToLower(s[size:])
 }
 
-// func StringToUnixDate(date string) (int64, error) {
-// 	parsedDate, err := time.Parse(time.RFC3339, date)
-// 	if err != nil {
-// 		return 0, fmt.Errorf("failed to parse date, %w", err)
-// 	}
+func StringToUnixDate(date string) (int64, error) {
+	parsedDate, err := time.Parse(time.RFC3339, date)
+	if err != nil {
+		return 0, parseError(date, "Date", err)
+	}
 
-// 	return parsedDate.Unix(), nil
-// }
+	return parsedDate.Unix(), nil
+}
+
+func ParseID(idStr, fieldName string) (int, error) {
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return 0, parseError(id, fieldName, err)
+	}
+
+	return int(id), nil
+}
+
+func ParseAmount(amountStr string) (uint64, error) {
+	amount, err := strconv.ParseInt(amountStr, 10, 64)
+	if err != nil {
+		return 0, parseError(amount, "Amount", err)
+	}
+
+	if amount < 0 {
+		return 0, fmt.Errorf("%w, amount cannot be negative", ErrParsing)
+	}
+
+	return uint64(amount), nil
+}
+
+func parseError(value any, fieldName string, err error) error {
+	return fmt.Errorf("%w of %s \"%v\", %w", ErrParsing, fieldName, value, err)
+}
 
 // func UnixToStringDate(date int64) string {
 // 	normalDate := time.Unix(date, 0)

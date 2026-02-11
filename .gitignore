@@ -24,6 +24,7 @@ main
 /bin/
 /build/
 /dist/
+/web/static/js/build
 
 # Databases
 /data/db/

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ad9311/ninete/internal/webtmpl"
+	"github.com/ad9311/ninete/internal/handlers"
 )
 
 const (
@@ -25,8 +25,8 @@ func (s *Server) LoadTemplates() error {
 	return nil
 }
 
-func parseTemplates() (map[webtmpl.Name]*template.Template, error) {
-	vc := map[webtmpl.Name]*template.Template{}
+func parseTemplates() (map[handlers.TemplateName]*template.Template, error) {
+	vc := map[handlers.TemplateName]*template.Template{}
 
 	views, err := filepath.Glob(viewsPath)
 	if err != nil {
@@ -73,11 +73,11 @@ func parseTemplates() (map[webtmpl.Name]*template.Template, error) {
 	return vc, nil
 }
 
-func viewKey(path string) webtmpl.Name {
+func viewKey(path string) handlers.TemplateName {
 	dir := strings.Split(filepath.Dir(path), "/")
 	action := strings.Split(filepath.Base(path), ".")
 
-	return webtmpl.Name(fmt.Sprintf("%s/%s", dir[len(dir)-1], action[0]))
+	return handlers.TemplateName(fmt.Sprintf("%s/%s", dir[len(dir)-1], action[0]))
 }
 
 func templateFuncMap() template.FuncMap {

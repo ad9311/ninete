@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"net/http"
 
-	"github.com/ad9311/ninete/internal/webkeys"
-	"github.com/ad9311/ninete/internal/webtmpl"
+	"github.com/ad9311/ninete/internal/handlers"
 )
 
 func (s *Server) renderTemplate(
 	w http.ResponseWriter,
 	status int,
-	tmplName webtmpl.Name,
+	tmplName handlers.TemplateName,
 	data map[string]any,
 ) {
 	if s.app.IsDevelopment() {
@@ -43,7 +42,7 @@ func (s *Server) renderTemplate(
 }
 
 func (s *Server) tmplData(r *http.Request) map[string]any {
-	templateMap, ok := r.Context().Value(webkeys.TemplateData).(map[string]any)
+	templateMap, ok := r.Context().Value(handlers.TemplateData).(map[string]any)
 	if !ok {
 		panic("failed to retrieve template data map")
 	}

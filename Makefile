@@ -12,7 +12,7 @@ pkg               ?= ./...
 func              ?=
 
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix
+.PHONY: help dev build build-final deps lint lint-fix build-static-js
 
 # ========= App / Dev =========
 build: ## Build the application binary
@@ -21,7 +21,7 @@ build: ## Build the application binary
 	@mkdir -p ./data/db/dev
 	@$(GO_BUILD_ENVS) go build -o ./build/dev ./cmd/ninete/main.go
 
-dev: build ## Run the app in development mode
+dev: build-static-js build ## Run the app in development mode
 	@echo "Starting application..."
 	@ENV=development ./build/dev
 
@@ -83,6 +83,10 @@ deps: ## Install and tidy dependencies
 	go mod download
 	go mod tidy
 
+build-static-js: ## Build web/static/js/index.ts into web/static/js/build/index.js with bun
+	@echo "Building static JS bundle..."
+	bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+
 # ========= Tests ===========
 test: build clean-test-db ## Runs the tests
 	@echo "Running tests..."
@@ -102,6 +106,10 @@ lint: ## Run golangci-lint
 lint-fix: ## Run golangci-lint with automatic fixes
 	@echo "Running golangci-lint (with --fix)..."
 	golangci-lint run --fix
+	@echo "Running static formatter and linters with bun..."
+	bun run format:static
+	bun run lint:css
+	bun run lint:js
 
 # ========= Help =========
 help: ## Show this help message

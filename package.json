@@ -31,5 +31,9 @@
     "stylelint": "^17.1.1",
     "stylelint-config-standard": "^40.0.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@hotwired/stimulus": "^3.2.2",
+    "@hotwired/turbo": "^8.0.23"
   }
 }

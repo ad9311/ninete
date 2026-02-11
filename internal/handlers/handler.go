@@ -5,12 +5,11 @@ import (
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
-	"github.com/ad9311/ninete/internal/webtmpl"
 	"github.com/alexedwards/scs/v2"
 )
 
 type (
-	RenderFunc       func(http.ResponseWriter, int, webtmpl.Name, map[string]any)
+	RenderFunc       func(http.ResponseWriter, int, TemplateName, map[string]any)
 	TemplateDataFunc func(*http.Request) map[string]any
 )
 
@@ -44,7 +43,7 @@ func (h *Handler) renderError(
 	w http.ResponseWriter,
 	r *http.Request,
 	status int,
-	tmplName webtmpl.Name,
+	tmplName TemplateName,
 	err error,
 ) {
 	data := h.tmplData(r)
