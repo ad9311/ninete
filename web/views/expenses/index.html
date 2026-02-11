@@ -2,9 +2,32 @@
 {{ define "main" }}
   <h1>EXPENSES</h1>
   <a href="/expenses/new">New</a>
-  <ul>
-    {{ range .expenses }}
-      <li>{{ .ID }} - {{ .Description }} - {{ .Amount }} - {{ .Date }}</li>
-    {{ end }}
-  </ul>
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .expenses }}
+        <tr>
+          <td>{{ .CategoryName }}</td>
+          <td>{{ .Description }}</td>
+          <td>{{ .Amount }}</td>
+          <td>{{ .Date }}</td>
+          <td>
+            <a href="/expenses/{{ .ID }}/edit">Edit</a>
+            <form action="/expenses/{{ .ID }}/delete" method="post">
+              {{ template "csrf" $ }}
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
 {{ end }}

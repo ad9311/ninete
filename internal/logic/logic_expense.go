@@ -61,14 +61,14 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 	return expense, nil
 }
 
-func (s *Store) UpdateExpense(ctx context.Context, id int, params ExpenseParams) (repo.Expense, error) {
+func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
 
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
 
-	expense, err := s.queries.UpdateExpense(ctx, repo.UpdateExpenseParams{
+	expense, err := s.queries.UpdateExpense(ctx, userID, repo.UpdateExpenseParams{
 		ID:          id,
 		CategoryID:  params.CategoryID,
 		Description: params.Description,
@@ -82,8 +82,8 @@ func (s *Store) UpdateExpense(ctx context.Context, id int, params ExpenseParams)
 	return expense, nil
 }
 
-func (s *Store) DeleteExpense(ctx context.Context, id int) (int, error) {
-	i, err := s.queries.DeleteExpense(ctx, id)
+func (s *Store) DeleteExpense(ctx context.Context, id, userID int) (int, error) {
+	i, err := s.queries.DeleteExpense(ctx, id, userID)
 	if err != nil {
 		return 0, err
 	}

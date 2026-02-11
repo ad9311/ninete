@@ -10,7 +10,6 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/justinas/nosurf"
 )
@@ -101,8 +100,8 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"currentUser":    currentUser,
 		}
 
-		ctx = context.WithValue(ctx, prog.KeyCurrentUser, currentUser)
-		ctx = context.WithValue(ctx, handlers.TemplateData, templateMap)
+		ctx = context.WithValue(ctx, handlers.KeyCurrentUser, currentUser)
+		ctx = context.WithValue(ctx, handlers.KeyTemplateData, templateMap)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

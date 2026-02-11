@@ -8,9 +8,7 @@ import (
 
 const templateExecErr = "ERROR EXECUTING TEMPLATE"
 
-var (
-	ErrNotAllowed = errors.New("request not allowed")
-)
+var ErrNotAllowed = errors.New("request not allowed")
 
 func (h *Handler) render(
 	w http.ResponseWriter,
@@ -74,7 +72,7 @@ func (h *Handler) renderErr(
 }
 
 func (*Handler) tmplData(r *http.Request) map[string]any {
-	templateMap, ok := r.Context().Value(TemplateData).(map[string]any)
+	templateMap, ok := r.Context().Value(KeyTemplateData).(map[string]any)
 	if !ok {
 		panic("failed to retrieve template data map")
 	}

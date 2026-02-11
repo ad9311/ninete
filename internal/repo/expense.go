@@ -200,10 +200,15 @@ SET "category_id" = ?,
     "date"        = ?,
     "updated_at"  = ?
 WHERE "id" = ?
+  AND "user_id" = ?
 RETURNING *;
 `
 
-func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams) (Expense, error) {
+func (q *Queries) UpdateExpense(
+	ctx context.Context,
+	userID int,
+	params UpdateExpenseParams,
+) (Expense, error) {
 	var e Expense
 
 	err := q.wrapQuery(updateExpense, func() error {
@@ -216,6 +221,7 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 			params.Date,
 			newUpdatedAt(),
 			params.ID,
+			userID,
 		)
 
 		return row.Scan(
@@ -233,13 +239,13 @@ func (q *Queries) UpdateExpense(ctx context.Context, params UpdateExpenseParams)
 	return e, err
 }
 
-const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? RETURNING "id"`
+const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
 
-func (q *Queries) DeleteExpense(ctx context.Context, id int) (int, error) {
+func (q *Queries) DeleteExpense(ctx context.Context, id, userID int) (int, error) {
 	var i int
 
 	err := q.wrapQuery(deleteExpense, func() error {
-		row := q.db.QueryRowContext(ctx, deleteExpense, id)
+		row := q.db.QueryRowContext(ctx, deleteExpense, id, userID)
 
 		return row.Scan(&i)
 	})

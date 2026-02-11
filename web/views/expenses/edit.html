@@ -1,10 +1,10 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW EXPENSE</h1>
+  <h1>EDIT EXPENSE</h1>
   <a href="/expenses">Back to expenses</a>
   {{ template "form_error" . }}
   <form
-    action="/expenses"
+    action="/expenses/{{ .expense.ID }}"
     method="post"
     data-controller="date"
     data-action="submit->date#prepare"
