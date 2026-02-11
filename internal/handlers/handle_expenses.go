@@ -13,19 +13,31 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
+	q := r.URL.Query()
+	sortOrder := q.Get("sort_order")
+	sortField := q.Get("sort_field")
+
 	userIDFilter := repo.FilterField{
 		Name:     "user_id",
 		Value:    user.ID,
 		Operator: "=",
 	}
 
-	opts := repo.QueryOptions{}
+	opts := repo.QueryOptions{
+		Sorting: repo.Sorting{
+			Order: sortOrder,
+			Field: sortField,
+		},
+	}
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
 	opts.Filters.Connector = "AND"
 
 	expenses, err := h.store.FindExpenses(r.Context(), opts)
 	if err != nil {
 		data["error"] = err.Error()
+		h.render(w, http.StatusBadRequest, ExpensesIndex, data)
+
+		return
 	}
 
 	data["expenses"] = expenses
