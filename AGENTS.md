@@ -1,37 +1,39 @@
 # NINETE Architecture Guide
 
 ## Purpose
-This document explains how the project is structured and how packages interact at runtime.
+This document describes the current project structure and runtime interactions.
 
-## Runtime Flow
-1. `cmd/ninete/main.go` loads app config with `prog.Load()`.
-2. It opens SQLite through `db.Open()`.
-3. It creates data access with `repo.New(app, sqlDB)`.
-4. It creates business logic with `logic.New(app, queries)`.
-5. It creates HTTP server with `serve.New(app, store)`.
-6. It loads templates with `server.LoadTemplates()`.
-7. It starts the HTTP server via `server.Start()`.
+## Runtime Flow (`cmd/ninete`)
+1. `cmd/ninete/main.go` loads application config using `prog.Load()`.
+2. It opens SQLite via `db.Open()`.
+3. It creates repository queries via `repo.New(app, sqlDB)`.
+4. It creates business logic via `logic.New(app, queries)`.
+5. It creates the HTTP server via `serve.New(app, store)`.
+6. It loads templates via `server.LoadTemplates()`.
+7. It starts HTTP serving via `server.Start()`.
 
-## Request Flow
-1. Incoming request enters Chi router in `internal/serve`.
-2. Middlewares run in order:
+## Request Flow (`internal/serve` -> `internal/handlers`)
+1. Request enters Chi router in `internal/serve/routes.go`.
+2. Global middleware order:
 - Recoverer, request ID, timeout.
 - CSRF middleware (`nosurf`).
 - Auth gate (`AuthMiddleware`).
-- Template context setup (`setTmplData`).
-3. Route dispatches to handlers in `internal/handlers`.
-4. Handlers call `logic.Store` methods.
-5. Logic calls `repo.Queries` methods.
-6. Repo executes SQL against SQLite.
-7. Handler renders templates via injected render function.
+- Template/context setup (`setTmplData`).
+3. Route-level middleware may run (example: `ExpenseContext` on `/expenses/{id}` routes).
+4. Handler executes endpoint behavior in `internal/handlers`.
+5. Handler calls `logic.Store` methods.
+6. Logic calls `repo.Queries` methods.
+7. Repo executes SQL against SQLite.
+8. Handler renders templates through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`.
 
 ## Layering
-- `cmd/*`: composition and process entrypoints.
+- `cmd/*`: process entrypoints and composition.
 - `internal/serve` + `internal/handlers`: HTTP transport.
-- `internal/logic`: business/application rules.
-- `internal/repo`: SQL persistence layer.
-- `internal/db`: database connection, migration, seed plumbing.
-- `internal/prog`: runtime config and logging primitives.
+- `internal/logic`: business rules and validation.
+- `internal/repo`: SQL persistence.
+- `internal/db`: DB open/migrations/seeds.
+- `internal/prog`: config/logging/shared utilities.
+- `internal/task`: app-level task hooks executed by `cmd/task`.
 
 ## Package Reference
 
@@ -39,110 +41,139 @@ This document explains how the project is structured and how packages interact a
 - **Role**: Main web app entrypoint.
 - **Key file**: `cmd/ninete/main.go`.
 - **Responsibilities**:
-- Bootstrap app and dependencies.
-- Start web server lifecycle.
+- Bootstrap dependencies.
+- Start server lifecycle.
 
 ### `cmd/migrate`
 - **Role**: Migration/seed CLI entrypoint.
 - **Key file**: `cmd/migrate/main.go`.
 - **Responsibilities**:
-- Registers migration commands (`up`, `down`, `create`, `status`, `seed`).
-- Delegates command execution to `internal/cmd`.
+- Register migration commands (`up`, `down`, `create`, `status`, `seed`).
+- Delegate execution to `internal/db` functions via `internal/cmd`.
+
+### `cmd/task`
+- **Role**: Task CLI entrypoint.
+- **Key file**: `cmd/task/main.go`.
+- **Responsibilities**:
+- Register task commands.
+- Bootstrap app/db/store and run task functions from `internal/task`.
 
 ### `internal/cmd`
-- **Role**: Small CLI command registry and dispatcher.
+- **Role**: CLI command registry/dispatcher.
 - **Key files**: `internal/cmd/cmd.go`, `internal/cmd/errs.go`.
 - **Responsibilities**:
 - Register command handlers.
-- Parse command name from `os.Args`.
+- Parse command names from args.
 - Print usage/help.
 - Execute selected command and return exit codes.
 
 ### `internal/prog`
-- **Role**: Shared runtime primitives.
+- **Role**: Runtime primitives.
 - **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`, `internal/prog/errs.go`.
 - **Responsibilities**:
 - Load environment configuration.
 - Validate `ENV` (`production`, `development`, `test`).
-- Load `.env` for non-production.
-- Provide structured logger (`Logger`) including SQL timing output.
-- Utility conversions like `ToLowerCamel`.
+- Load `.env` outside production.
+- Provide app logger (`Logger`) with query timing support.
+- Shared utility parsing/conversion helpers.
 
 ### `internal/db`
-- **Role**: Database setup and maintenance operations.
+- **Role**: Database setup and maintenance.
 - **Key files**: `internal/db/db.go`, `internal/db/migrate.go`, `internal/db/seed.go`, `internal/db/migrations/*.sql`, `internal/db/init/init.sql`.
 - **Responsibilities**:
-- Open SQLite DB with connection limits and startup PRAGMAs.
-- Execute Goose migrations (embedded SQL files).
-- Create migrations interactively.
-- Run seed routines using logic layer APIs.
+- Open SQLite with startup PRAGMAs.
+- Execute Goose migrations.
+- Create new migration files.
+- Run seed routines.
 
 ### `internal/repo`
-- **Role**: Data access layer (SQL).
+- **Role**: SQL data access layer.
 - **Key files**:
-- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`, `internal/repo/err.go`.
+- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`, `internal/repo/errs.go`.
 - Entities: `internal/repo/user.go`, `internal/repo/category.go`, `internal/repo/expense.go`, `internal/repo/recurrent_expense.go`.
 - **Responsibilities**:
-- Encapsulate SQL CRUD/query operations.
-- Provide transactional API (`WithTx`, `TxQueries`).
-- Build validated query fragments (`Filters`, `Sorting`, `Pagination`).
-- Convert nullable DB fields to domain-facing shapes where needed.
+- Implement SQL CRUD and query operations.
+- Provide transaction API (`WithTx`, `TxQueries`).
+- Validate/filter sorting/pagination query options.
 - Emit query timing logs through `prog.Logger`.
+- Enforce ownership constraints where applicable (example: expense update/delete scoped by user).
 
 ### `internal/logic`
 - **Role**: Application/business logic.
-- **Key files**: `internal/logic/logic.go`, `internal/logic/logic_auth.go`, `internal/logic/logic_user.go`, `internal/logic/logic_category.go`, `internal/logic/err.go`.
+- **Key files**: `internal/logic/logic.go`, `internal/logic/logic_auth.go`, `internal/logic/logic_user.go`, `internal/logic/logic_category.go`, `internal/logic/logic_expense.go`, `internal/logic/errs.go`.
 - **Responsibilities**:
-- Own use-case methods exposed to handlers.
-- Validate inputs with `go-playground/validator`.
-- Handle authentication flow (`Login` + bcrypt password compare).
-- Keep route layer free of SQL and validation details.
+- Expose use-cases to handlers.
+- Validate inputs (`go-playground/validator`).
+- Handle auth flows.
+- Keep route layer free of SQL details.
 
 ### `internal/serve`
-- **Role**: HTTP infrastructure and server lifecycle.
-- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/render.go`, `internal/serve/template.go`, `internal/serve/errs.go`.
+- **Role**: HTTP server infrastructure/lifecycle.
+- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`, `internal/serve/errs.go`.
 - **Responsibilities**:
-- Create and configure Chi router and SCS session manager.
-- Register routes and middleware stack.
-- Handle auth redirect behavior and CSRF setup.
-- Build and inject template data map into context.
-- Parse and cache templates.
-- Graceful start/shutdown with timeouts and signal handling.
-- Return hardcoded error when layout template is missing (`ErrLayoutNotFound`).
+- Configure Chi router and SCS session manager.
+- Register global middleware and routes.
+- Configure CSRF and auth redirection.
+- Build and inject template/request context data.
+- Parse/cache templates and expose lookup callback to handlers.
+- Start and gracefully shut down HTTP server.
 
 ### `internal/handlers`
-- **Role**: HTTP endpoint handlers.
-- **Key files**: `internal/handlers/handler.go`, `internal/handlers/auth.go`, `internal/handlers/root.go`, `internal/handlers/dashboard.go`.
+- **Role**: HTTP handlers and rendering.
+- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/handle_auth.go`, `internal/handlers/handle_root.go`, `internal/handlers/handle_dashboard.go`, `internal/handlers/handle_expenses.go`, `internal/handlers/constants.go`.
 - **Responsibilities**:
-- Implement endpoint behavior (`/`, `/login`, `/logout`, `/dashboard`).
-- Call logic methods and session operations.
-- Render responses through injected render function.
-- Keep route methods decoupled from `serve.Server` internals.
+- Implement endpoint behavior.
+- Use `logic.Store` + session manager for app actions.
+- Own template rendering helpers and render error paths.
+- Provide context-key and template-name constants.
 
-### `internal/webkeys`
-- **Role**: Shared context/session key constants.
-- **Key file**: `internal/webkeys/keys.go`.
+### `internal/task`
+- **Role**: Task hooks used by `cmd/task`.
+- **Key file**: `internal/task/task.go`.
 - **Responsibilities**:
-- Provide canonical key names used across `serve` and `handlers`.
+- Define task entrypoints executed with initialized app/store dependencies.
 
-### `internal/webtmpl`
-- **Role**: Shared template name constants.
-- **Key file**: `internal/webtmpl/template_names.go`.
-- **Responsibilities**:
-- Define typed template identifiers (`webtmpl.Name`).
-- Prevent hardcoded template string duplication.
+## Handler File Structure Convention
+- Apply this structure to all `internal/handlers/handle_*.go` files:
+1. Context middleware(s).
+2. Handlers in Rails/RuboCop action order: `index`, `show`, `new`, `edit`, `create`, `update`, `delete`.
+3. Exported functions that are not handlers.
+4. Unexported functions/helpers.
+- Use section-separator comments between blocks.
+- If an action is intentionally missing (for example `show`), leave a short note comment in the handler section.
 
 ## UI/Assets Structure
-- Templates: `web/views/layout.html`, `web/views/*/index.html`, `web/views/common/_*.html`.
-- Static files: `web/static/css`, `web/static/js`, `web/static/img`.
-- Server serves static assets under `/static/*`.
+- Templates:
+- `web/views/layout.html`
+- `web/views/dashboard/index.html`
+- `web/views/login/index.html`
+- `web/views/expenses/index.html`
+- `web/views/expenses/new.html`
+- `web/views/expenses/edit.html`
+- `web/views/error/index.html`
+- `web/views/not_found/index.html`
+- Partials: `web/views/common/_*.html`
+- Static assets: `web/static/css`, `web/static/js`, `web/static/img`
+- Static route prefix: `/static/*`
 
 ## Data Model Overview
-- `users`: auth identity and password hash.
-- `categories`: normalized spending categories with stable `uid`.
-- `expenses`: one-off transactions linked to user + category.
-- `recurrent_expenses`: recurring templates with month period and optional `last_copy_created_at`.
+- `users`: authentication identity and password hash.
+- `categories`: normalized category catalog (`name`, `uid`).
+- `expenses`: one-off transactions linked to `user_id` and `category_id`.
+- `recurrent_expenses`: recurring templates with period and copy-tracking metadata.
 
-## Current Exposure vs Domain Scope
-- Exposed HTTP routes currently cover auth and dashboard.
-- Expense and recurrent-expense domain logic exists at repository level and is ready for additional handlers/routes.
+## Current Route Exposure
+- Auth:
+- `GET /login`
+- `POST /login`
+- `POST /logout`
+- Core:
+- `GET /`
+- `GET /dashboard`
+- Expenses:
+- `GET /expenses`
+- `GET /expenses/new`
+- `POST /expenses`
+- `GET /expenses/{id}/edit` (uses `ExpenseContext`)
+- `POST /expenses/{id}` (uses `ExpenseContext`)
+- `POST /expenses/{id}/delete` (uses `ExpenseContext`)

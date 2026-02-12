@@ -43,11 +43,13 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 	}
 
 	s.handlers = handlers.New(handlers.Deps{
-		App:          app,
-		Store:        store,
-		Session:      s.Session,
-		Render:       s.renderTemplate,
-		TemplateData: s.tmplData,
+		App:            app,
+		Store:          store,
+		Session:        s.Session,
+		TemplateByName: s.templateByName,
+		ReloadTemplates: func() error {
+			return s.LoadTemplates()
+		},
 	})
 
 	s.setUpMiddlewares()

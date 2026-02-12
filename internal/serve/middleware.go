@@ -10,7 +10,6 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/justinas/nosurf"
 )
@@ -30,16 +29,6 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func (s *Server) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
-	s.renderTemplate(w, http.StatusNotFound, handlers.NotFoundIndex, s.tmplData(r))
-}
-
-func (s *Server) MethodNotAllowedHandler(w http.ResponseWriter, r *http.Request) {
-	data := s.tmplData(r)
-	data["error"] = ErrNotAllowed.Error()
-	s.renderTemplate(w, http.StatusMethodNotAllowed, handlers.ErrorIndex, data)
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
@@ -111,8 +100,8 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"currentUser":    currentUser,
 		}
 
-		ctx = context.WithValue(ctx, prog.KeyCurrentUser, currentUser)
-		ctx = context.WithValue(ctx, handlers.TemplateData, templateMap)
+		ctx = context.WithValue(ctx, handlers.KeyCurrentUser, currentUser)
+		ctx = context.WithValue(ctx, handlers.KeyTemplateData, templateMap)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -133,8 +122,8 @@ func (s *Server) setUpMiddlewares() {
 
 	s.Router.Use(s.setTmplData)
 
-	s.Router.NotFound(s.NotFoundHandler)
-	s.Router.MethodNotAllowed(s.MethodNotAllowedHandler)
+	s.Router.NotFound(s.handlers.NotFound)
+	s.Router.MethodNotAllowed(s.handlers.MethodNotAllowed)
 }
 
 func publicRoutes() []string {

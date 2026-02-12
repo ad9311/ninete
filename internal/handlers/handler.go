@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"net/http"
+	"html/template"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -9,44 +9,32 @@ import (
 )
 
 type (
-	RenderFunc       func(http.ResponseWriter, int, TemplateName, map[string]any)
-	TemplateDataFunc func(*http.Request) map[string]any
+	TemplateLookupFunc func(TemplateName) *template.Template
+	TemplateReloadFunc func() error
 )
 
 type Deps struct {
-	App          *prog.App
-	Store        *logic.Store
-	Session      *scs.SessionManager
-	Render       RenderFunc
-	TemplateData TemplateDataFunc
+	App             *prog.App
+	Store           *logic.Store
+	Session         *scs.SessionManager
+	TemplateByName  TemplateLookupFunc
+	ReloadTemplates TemplateReloadFunc
 }
 
 type Handler struct {
-	app      *prog.App
-	store    *logic.Store
-	session  *scs.SessionManager
-	render   RenderFunc
-	tmplData TemplateDataFunc
+	app             *prog.App
+	store           *logic.Store
+	session         *scs.SessionManager
+	templateByName  TemplateLookupFunc
+	reloadTemplates TemplateReloadFunc
 }
 
 func New(deps Deps) *Handler {
 	return &Handler{
-		app:      deps.App,
-		store:    deps.Store,
-		session:  deps.Session,
-		render:   deps.Render,
-		tmplData: deps.TemplateData,
+		app:             deps.App,
+		store:           deps.Store,
+		session:         deps.Session,
+		templateByName:  deps.TemplateByName,
+		reloadTemplates: deps.ReloadTemplates,
 	}
-}
-
-func (h *Handler) renderError(
-	w http.ResponseWriter,
-	r *http.Request,
-	status int,
-	tmplName TemplateName,
-	err error,
-) {
-	data := h.tmplData(r)
-	data["error"] = err.Error()
-	h.render(w, status, tmplName, data)
 }

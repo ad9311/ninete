@@ -25,6 +25,28 @@ func (s *Server) setUpRoutes() {
 				expenses.Get("/", s.handlers.GetExpenses)
 				expenses.Post("/", s.handlers.PostExpenses)
 				expenses.Get("/new", s.handlers.GetExpensesNew)
+				expenses.Route("/{id}", func(expenses chi.Router) {
+					expenses.Use(s.handlers.ExpenseContext)
+
+					expenses.Post("/", s.handlers.PostExpensesUpdate)
+					expenses.Get("/edit", s.handlers.GetExpensesEdit)
+					expenses.Post("/delete", s.handlers.PostExpensesDelete)
+				})
+			})
+		})
+
+		root.Group(func(recurrentExpenses chi.Router) {
+			recurrentExpenses.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
+				recurrentExpenses.Get("/", s.handlers.GetRecurrentExpenses)
+				recurrentExpenses.Post("/", s.handlers.PostRecurrentExpenses)
+				recurrentExpenses.Get("/new", s.handlers.GetRecurrentExpensesNew)
+				recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
+					recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
+
+					recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
+					recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
+					recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
+				})
 			})
 		})
 

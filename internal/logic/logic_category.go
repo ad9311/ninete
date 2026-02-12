@@ -18,3 +18,12 @@ func (s *Store) CreateCategory(ctx context.Context, name string) (repo.Category,
 
 	return category, nil
 }
+
+func (s *Store) FindCategories(ctx context.Context) ([]repo.Category, error) {
+	categories, err := s.queries.SelectCategories(ctx)
+	if err != nil {
+		return categories, err
+	}
+
+	return categories, nil
+}

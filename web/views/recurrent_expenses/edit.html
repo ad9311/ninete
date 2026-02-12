@@ -1,20 +1,15 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW EXPENSE</h1>
-  <a href="/expenses">Back to expenses</a>
+  <h1>EDIT RECURRENT EXPENSE</h1>
+  <a href="/recurrent-expenses">Back to recurrent expenses</a>
   {{ template "form_error" . }}
-  <form
-    action="/expenses"
-    method="post"
-    data-controller="date"
-    data-action="submit->date#prepare"
-  >
+  <form action="/recurrent-expenses/{{ .recurrentExpense.ID }}" method="post">
     {{ template "csrf" . }}
     <select name="category_id">
       {{ range .categories }}
         <option
           value="{{ .ID }}"
-          {{ if eq .ID $.expense.CategoryID }}selected{{ end }}
+          {{ if eq .ID $.recurrentExpense.CategoryID }}selected{{ end }}
         >
           {{ .Name }}
         </option>
@@ -24,25 +19,21 @@
       type="text"
       placeholder="Description"
       name="description"
-      value="{{ .expense.Description }}"
+      value="{{ .recurrentExpense.Description }}"
     />
     <input
       type="number"
       placeholder="Amount"
       name="amount"
-      value="{{ .expense.Amount }}"
+      value="{{ .recurrentExpense.Amount }}"
     />
     <input
-      type="datetime-local"
-      placeholder="Date"
-      data-date-target="local"
+      type="number"
+      min="1"
       step="1"
-    />
-    <input
-      type="hidden"
-      name="date"
-      data-date-target="value"
-      value="{{ .expense.Date }}"
+      placeholder="Period in months"
+      name="period"
+      value="{{ .recurrentExpense.Period }}"
     />
     <button type="submit">Submit</button>
   </form>

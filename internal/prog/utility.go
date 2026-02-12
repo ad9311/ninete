@@ -72,19 +72,12 @@ func parseError(value any, fieldName string, err error) error {
 	return fmt.Errorf("%w of %s \"%v\", %w", ErrParsing, fieldName, value, err)
 }
 
-// func UnixToStringDate(date int64) string {
-// 	normalDate := time.Unix(date, 0)
+func UnixToStringDate(date int64, format string) string {
+	normalDate := time.Unix(date, 0)
 
-// 	return FormatTime(normalDate)
-// }
+	return FormatTime(normalDate, format)
+}
 
-// func FormatTime(date time.Time) string {
-// 	return date.Format(time.RFC3339)
-// }
-
-// func WithTimeout(d time.Duration, fn func(context.Context) error) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), d)
-// 	defer cancel()
-
-// 	return fn(ctx)
-// }
+func FormatTime(date time.Time, format string) string {
+	return date.Format(format)
+}

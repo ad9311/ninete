@@ -4,18 +4,17 @@ import (
 	"net/http"
 
 	"github.com/ad9311/ninete/internal/logic"
-	"github.com/ad9311/ninete/internal/prog"
 )
 
 func (h *Handler) GetLogin(w http.ResponseWriter, r *http.Request) {
-	h.render(w, http.StatusOK, LoginIndex, h.tmplData(r))
+	h.renderPage(w, r, http.StatusOK, LoginIndex)
 }
 
 func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := r.ParseForm(); err != nil {
-		h.renderError(w, r, http.StatusBadRequest, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusBadRequest, ErrorIndex, err)
 
 		return
 	}
@@ -25,7 +24,7 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	})
 	if err != nil {
-		h.renderError(w, r, http.StatusBadRequest, LoginIndex, err)
+		h.renderErr(w, r, http.StatusBadRequest, LoginIndex, err)
 
 		return
 	}
@@ -40,12 +39,12 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	if err := h.session.Destroy(ctx); err != nil {
-		h.renderError(w, r, http.StatusInternalServerError, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}
 	if err := h.session.RenewToken(ctx); err != nil {
-		h.renderError(w, r, http.StatusInternalServerError, ErrorIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}
@@ -54,10 +53,10 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCurrentUser(r *http.Request) *logic.User {
-	user, ok := r.Context().Value(prog.KeyCurrentUser).(*logic.User)
+	user, ok := r.Context().Value(KeyCurrentUser).(*logic.User)
 
 	if !ok {
-		panic("failed to extract user context")
+		panic("failed to get user context")
 	}
 
 	return user
