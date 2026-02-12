@@ -35,6 +35,21 @@ func (s *Server) setUpRoutes() {
 			})
 		})
 
+		root.Group(func(recurrentExpenses chi.Router) {
+			recurrentExpenses.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
+				recurrentExpenses.Get("/", s.handlers.GetRecurrentExpenses)
+				recurrentExpenses.Post("/", s.handlers.PostRecurrentExpenses)
+				recurrentExpenses.Get("/new", s.handlers.GetRecurrentExpensesNew)
+				recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
+					recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
+
+					recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
+					recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
+					recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
+				})
+			})
+		})
+
 		setUpFileServer(root)
 	})
 }

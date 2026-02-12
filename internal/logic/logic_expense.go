@@ -7,10 +7,8 @@ import (
 )
 
 type ExpenseParams struct {
-	CategoryID  int    `validate:"required,gt=0"`
-	Description string `validate:"required,min=3,max=50"`
-	Amount      uint64 `validate:"required,gt=0"`
-	Date        int64  `validate:"required,gt=0"`
+	expenseBaseParams
+	Date int64 `validate:"required,gt=0"`
 }
 
 func (s *Store) FindExpenses(ctx context.Context, opts repo.QueryOptions) ([]repo.Expense, error) {

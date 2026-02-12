@@ -4,9 +4,10 @@ package handlers
 type ContextKey string
 
 const (
-	KeyCurrentUser  = ContextKey("userID")
-	KeyTemplateData = ContextKey("templateData")
-	KeyExpense      = ContextKey("expenseID")
+	KeyCurrentUser      = ContextKey("userID")
+	KeyTemplateData     = ContextKey("templateData")
+	KeyExpense          = ContextKey("expenseID")
+	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
@@ -29,6 +30,11 @@ const (
 	ExpensesIndex TemplateName = "expenses/index"
 	ExpensesNew   TemplateName = "expenses/new"
 	ExpensesEdit  TemplateName = "expenses/edit"
+
+	// Recurrent expense templates.
+	RecurrentExpensesIndex TemplateName = "recurrent_expenses/index"
+	RecurrentExpensesNew   TemplateName = "recurrent_expenses/new"
+	RecurrentExpensesEdit  TemplateName = "recurrent_expenses/edit"
 
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"

@@ -70,6 +70,7 @@ type InsertRecurrentExpenseParams struct {
 type UpdateRecurrentExpenseParams struct {
 	ID                int
 	UserID            int
+	CategoryID        int
 	Description       string
 	Amount            uint64
 	Period            uint
@@ -192,10 +193,11 @@ func (q *Queries) InsertRecurrentExpense(
 
 const updateRecurrentExpense = `
 UPDATE "recurrent_expenses"
-SET "description"          = ?,
+SET "category_id"          = ?,
+    "description"          = ?,
     "amount"               = ?,
     "period"               = ?,
-    "last_copy_created_at" = ?,
+    "last_copy_created_at" = COALESCE(?, "last_copy_created_at"),
     "updated_at"           = ?
 WHERE "id" = ? AND "user_id" = ?
 RETURNING *;
@@ -213,6 +215,7 @@ func (q *Queries) UpdateRecurrentExpense(
 		row := q.db.QueryRowContext(
 			ctx,
 			updateRecurrentExpense,
+			params.CategoryID,
 			params.Description,
 			params.Amount,
 			params.Period,
@@ -248,6 +251,7 @@ func (q *TxQueries) UpdateRecurrentExpense(
 		row := q.tx.QueryRowContext(
 			ctx,
 			updateRecurrentExpense,
+			params.CategoryID,
 			params.Description,
 			params.Amount,
 			params.Period,

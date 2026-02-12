@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/ad9311/ninete/internal/logic"
@@ -250,16 +249,7 @@ func (h *Handler) PostExpensesDelete(w http.ResponseWriter, r *http.Request) {
 
 func parseExpenseForm(r *http.Request) (logic.ExpenseParams, error) {
 	var params logic.ExpenseParams
-	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form, %w", err)
-	}
-
-	categoryID, err := prog.ParseID(r.FormValue("category_id"), "Category ID")
-	if err != nil {
-		return params, err
-	}
-
-	amount, err := prog.ParseAmount(r.FormValue("amount"))
+	base, err := parseExpenseFormBase(r)
 	if err != nil {
 		return params, err
 	}
@@ -269,28 +259,12 @@ func parseExpenseForm(r *http.Request) (logic.ExpenseParams, error) {
 		return params, err
 	}
 
-	params.CategoryID = categoryID
-	params.Description = r.FormValue("description")
-	params.Amount = amount
+	params.CategoryID = base.CategoryID
+	params.Description = base.Description
+	params.Amount = base.Amount
 	params.Date = date
 
 	return params, nil
-}
-
-func (h *Handler) findCategories(
-	ctx context.Context,
-) ([]repo.Category, map[int]string, error) {
-	categories, err := h.store.FindCategories(ctx)
-	if err != nil {
-		return categories, nil, err
-	}
-
-	categoryNameByID := make(map[int]string, len(categories))
-	for _, category := range categories {
-		categoryNameByID[category.ID] = category.Name
-	}
-
-	return categories, categoryNameByID, nil
 }
 
 func setExpenseFormData(
@@ -298,8 +272,7 @@ func setExpenseFormData(
 	categories []repo.Category,
 	expense repo.Expense,
 ) {
-	data["categories"] = categories
-	data["expense"] = expense
+	setResourceFormData(data, categories, "expense", expense)
 }
 
 func getExpense(r *http.Request) *repo.Expense {

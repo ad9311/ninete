@@ -1,0 +1,33 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>RECURRENT EXPENSES</h1>
+  <a href="/recurrent-expenses/new">New</a>
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Period (months)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .recurrentExpenses }}
+        <tr>
+          <td>{{ .CategoryName }}</td>
+          <td>{{ .Description }}</td>
+          <td>{{ .Amount | currency }}</td>
+          <td>{{ .Period }}</td>
+          <td>
+            <a href="/recurrent-expenses/{{ .ID }}/edit">Edit</a>
+            <form action="/recurrent-expenses/{{ .ID }}/delete" method="post">
+              {{ template "csrf" $ }}
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+{{ end }}
