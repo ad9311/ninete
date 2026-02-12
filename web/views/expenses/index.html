@@ -17,8 +17,8 @@
         <tr>
           <td>{{ .CategoryName }}</td>
           <td>{{ .Description }}</td>
-          <td>{{ .Amount }}</td>
-          <td>{{ .Date }}</td>
+          <td>{{ .Amount | currency }}</td>
+          <td>{{ .Date | timeStamp }}</td>
           <td>
             <a href="/expenses/{{ .ID }}/edit">Edit</a>
             <form action="/expenses/{{ .ID }}/delete" method="post">

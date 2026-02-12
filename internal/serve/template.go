@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"html/template"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ad9311/ninete/internal/handlers"
+	"github.com/ad9311/ninete/internal/prog"
 )
 
 const (
@@ -81,7 +84,20 @@ func viewKey(path string) handlers.TemplateName {
 }
 
 func templateFuncMap() template.FuncMap {
-	return template.FuncMap{}
+	currency := func(v uint64) string {
+		base := float64(v) / 100.00
+
+		return "$" + strconv.FormatFloat(base, 'f', 2, 64)
+	}
+
+	timeStamp := func(v int64) string {
+		return prog.UnixToStringDate(v, time.DateOnly)
+	}
+
+	return template.FuncMap{
+		"currency":  currency,
+		"timeStamp": timeStamp,
+	}
 }
 
 func (s *Server) templateByName(name handlers.TemplateName) *template.Template {
