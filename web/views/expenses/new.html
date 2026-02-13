@@ -10,40 +10,6 @@
     data-action="submit->date#prepare"
   >
     {{ template "csrf" . }}
-    <select name="category_id">
-      {{ range .categories }}
-        <option
-          value="{{ .ID }}"
-          {{ if eq .ID $.expense.CategoryID }}selected{{ end }}
-        >
-          {{ .Name }}
-        </option>
-      {{ end }}
-    </select>
-    <input
-      type="text"
-      placeholder="Description"
-      name="description"
-      value="{{ .expense.Description }}"
-    />
-    <input
-      type="number"
-      placeholder="Amount"
-      name="amount"
-      value="{{ .expense.Amount }}"
-    />
-    <input
-      type="datetime-local"
-      placeholder="Date"
-      data-date-target="local"
-      step="1"
-    />
-    <input
-      type="hidden"
-      name="date"
-      data-date-target="value"
-      value="{{ .expense.Date }}"
-    />
-    <button type="submit">Submit</button>
+    {{ template "expense_form" . }}
   </form>
 {{ end }}

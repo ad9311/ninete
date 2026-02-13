@@ -1,7 +1,7 @@
 # NINETE Architecture Guide
 
 ## Purpose
-This document describes the current project structure and runtime interactions.
+This document gives high-level context so agents can navigate the codebase quickly and make consistent changes.
 
 ## Runtime Flow (`cmd/ninete`)
 1. `cmd/ninete/main.go` loads application config using `prog.Load()`.
@@ -19,7 +19,7 @@ This document describes the current project structure and runtime interactions.
 - CSRF middleware (`nosurf`).
 - Auth gate (`AuthMiddleware`).
 - Template/context setup (`setTmplData`).
-3. Route-level middleware may run (example: `ExpenseContext` on `/expenses/{id}` routes).
+3. Route-level context middleware may run for resource-specific lookups.
 4. Handler executes endpoint behavior in `internal/handlers`.
 5. Handler calls `logic.Store` methods.
 6. Logic calls `repo.Queries` methods.
@@ -34,6 +34,15 @@ This document describes the current project structure and runtime interactions.
 - `internal/db`: DB open/migrations/seeds.
 - `internal/prog`: config/logging/shared utilities.
 - `internal/task`: app-level task hooks executed by `cmd/task`.
+
+## Engineering Workflow
+- Use `Makefile` targets as the default way to run project commands.
+- After implementing changes, run `make lint-fix`.
+- After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
+- Temporary note: there are no tests yet. For now, keep the test step in the workflow but mark it as skipped when it only reports `[no test files]`.
+- Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
+- Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
+- Any temporary file should go under `./tmp/`
 
 ## Package Reference
 
@@ -60,7 +69,7 @@ This document describes the current project structure and runtime interactions.
 
 ### `internal/cmd`
 - **Role**: CLI command registry/dispatcher.
-- **Key files**: `internal/cmd/cmd.go`, `internal/cmd/errs.go`.
+- **Key files**: `internal/cmd/cmd.go`..
 - **Responsibilities**:
 - Register command handlers.
 - Parse command names from args.
@@ -69,7 +78,7 @@ This document describes the current project structure and runtime interactions.
 
 ### `internal/prog`
 - **Role**: Runtime primitives.
-- **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`, `internal/prog/errs.go`.
+- **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`.
 - **Responsibilities**:
 - Load environment configuration.
 - Validate `ENV` (`production`, `development`, `test`).
@@ -89,8 +98,8 @@ This document describes the current project structure and runtime interactions.
 ### `internal/repo`
 - **Role**: SQL data access layer.
 - **Key files**:
-- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`, `internal/repo/errs.go`.
-- Entities: `internal/repo/user.go`, `internal/repo/category.go`, `internal/repo/expense.go`, `internal/repo/recurrent_expense.go`.
+- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`..
+- Domain query files follow `internal/repo/*.go` by resource.
 - **Responsibilities**:
 - Implement SQL CRUD and query operations.
 - Provide transaction API (`WithTx`, `TxQueries`).
@@ -100,16 +109,17 @@ This document describes the current project structure and runtime interactions.
 
 ### `internal/logic`
 - **Role**: Application/business logic.
-- **Key files**: `internal/logic/logic.go`, `internal/logic/logic_auth.go`, `internal/logic/logic_user.go`, `internal/logic/logic_category.go`, `internal/logic/logic_expense.go`, `internal/logic/errs.go`.
+- **Key files**: `internal/logic/logic.go`.
 - **Responsibilities**:
 - Expose use-cases to handlers.
 - Validate inputs (`go-playground/validator`).
 - Handle auth flows.
 - Keep route layer free of SQL details.
+- Logic files must be named with the `logic_` prefix.
 
 ### `internal/serve`
 - **Role**: HTTP server infrastructure/lifecycle.
-- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`, `internal/serve/errs.go`.
+- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`.
 - **Responsibilities**:
 - Configure Chi router and SCS session manager.
 - Register global middleware and routes.
@@ -120,12 +130,13 @@ This document describes the current project structure and runtime interactions.
 
 ### `internal/handlers`
 - **Role**: HTTP handlers and rendering.
-- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/handle_auth.go`, `internal/handlers/handle_root.go`, `internal/handlers/handle_dashboard.go`, `internal/handlers/handle_expenses.go`, `internal/handlers/constants.go`.
+- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`.
 - **Responsibilities**:
 - Implement endpoint behavior.
 - Use `logic.Store` + session manager for app actions.
 - Own template rendering helpers and render error paths.
 - Provide context-key and template-name constants.
+- Handler endpoint files must be named with the `handle_` prefix.
 
 ### `internal/task`
 - **Role**: Task hooks used by `cmd/task`.
@@ -134,46 +145,24 @@ This document describes the current project structure and runtime interactions.
 - Define task entrypoints executed with initialized app/store dependencies.
 
 ## Handler File Structure Convention
-- Apply this structure to all `internal/handlers/handle_*.go` files:
+- ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
+- Apply this structure to each handler file:
 1. Context middleware(s).
-2. Handlers in Rails/RuboCop action order: `index`, `show`, `new`, `edit`, `create`, `update`, `delete`.
+2. Handlers in action order: `index`, `show`, `new`, `edit`, `create`, `update`, `delete`.
 3. Exported functions that are not handlers.
 4. Unexported functions/helpers.
 - Use section-separator comments between blocks.
 - If an action is intentionally missing (for example `show`), leave a short note comment in the handler section.
 
 ## UI/Assets Structure
-- Templates:
-- `web/views/layout.html`
-- `web/views/dashboard/index.html`
-- `web/views/login/index.html`
-- `web/views/expenses/index.html`
-- `web/views/expenses/new.html`
-- `web/views/expenses/edit.html`
-- `web/views/error/index.html`
-- `web/views/not_found/index.html`
-- Partials: `web/views/common/_*.html`
-- Static assets: `web/static/css`, `web/static/js`, `web/static/img`
-- Static route prefix: `/static/*`
+- Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
+- Shared layout lives in `web/views/layout.html`.
+- Shared partials live in `web/views/common/_*.html`.
+- Static assets live under `web/static/` (for example css/js/img).
+- Route definitions are the source of truth in `internal/serve/routes.go`.
 
 ## Data Model Overview
 - `users`: authentication identity and password hash.
 - `categories`: normalized category catalog (`name`, `uid`).
 - `expenses`: one-off transactions linked to `user_id` and `category_id`.
 - `recurrent_expenses`: recurring templates with period and copy-tracking metadata.
-
-## Current Route Exposure
-- Auth:
-- `GET /login`
-- `POST /login`
-- `POST /logout`
-- Core:
-- `GET /`
-- `GET /dashboard`
-- Expenses:
-- `GET /expenses`
-- `GET /expenses/new`
-- `POST /expenses`
-- `GET /expenses/{id}/edit` (uses `ExpenseContext`)
-- `POST /expenses/{id}` (uses `ExpenseContext`)
-- `POST /expenses/{id}/delete` (uses `ExpenseContext`)

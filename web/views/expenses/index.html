@@ -9,6 +9,7 @@
         <th>Description</th>
         <th>Amount</th>
         <th>Date</th>
+        <th>Tags</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -19,6 +20,7 @@
           <td>{{ .Description }}</td>
           <td>{{ .Amount | currency }}</td>
           <td>{{ .Date | timeStamp }}</td>
+          <td>{{ .Tags }}</td>
           <td>
             <a href="/expenses/{{ .ID }}/edit">Edit</a>
             <form action="/expenses/{{ .ID }}/delete" method="post">
