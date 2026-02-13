@@ -37,11 +37,12 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ## Engineering Workflow
 - Use `Makefile` targets as the default way to run project commands.
-- Before implementing changes, run `make lint-fix`.
+- After implementing changes, run `make lint-fix`.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - Temporary note: there are no tests yet. For now, keep the test step in the workflow but mark it as skipped when it only reports `[no test files]`.
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
+- Any temporary file should go under `./tmp/`
 
 ## Package Reference
 
