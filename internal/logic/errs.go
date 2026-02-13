@@ -8,4 +8,6 @@ var (
 
 	ErrValidationAssertion = errors.New("failed to assert error type")
 	ErrValidationFailed    = errors.New("validation failed")
+
+	ErrTagResolutionFailed = errors.New("failed to resolve tags")
 )

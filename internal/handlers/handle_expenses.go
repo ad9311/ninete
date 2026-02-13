@@ -18,6 +18,7 @@ type expenseRow struct {
 	Description  string
 	Amount       uint64
 	Date         int64
+	Tags         string
 }
 
 // ----------------------------------------------------------------------------- //
@@ -96,6 +97,22 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows := make([]expenseRow, 0, len(expenses))
+	expenseIDs := make([]int, 0, len(expenses))
+	for _, expense := range expenses {
+		expenseIDs = append(expenseIDs, expense.ID)
+	}
+
+	expenseTagRows, err := h.store.FindExpenseTagRows(r.Context(), expenseIDs, user.ID)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesIndex, err)
+
+		return
+	}
+	expenseTagNames := map[int][]string{}
+	for _, row := range expenseTagRows {
+		expenseTagNames[row.ExpenseID] = append(expenseTagNames[row.ExpenseID], row.TagName)
+	}
+
 	for _, expense := range expenses {
 		categoryName := categoryNameByID[expense.CategoryID]
 		if categoryName == "" {
@@ -108,6 +125,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 			Description:  expense.Description,
 			Amount:       expense.Amount,
 			Date:         expense.Date,
+			Tags:         logic.JoinTagNames(expenseTagNames[expense.ID]),
 		})
 	}
 
@@ -120,7 +138,7 @@ func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 
 	categories, _, err := h.findCategories(r.Context())
-	setExpenseFormData(data, categories, repo.Expense{})
+	setExpenseFormData(data, categories, repo.Expense{}, "")
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ExpensesNew, err)
 
@@ -136,12 +154,24 @@ func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
 	expense := getExpense(r)
 
 	categories, _, err := h.findCategories(ctx)
-	setExpenseFormData(data, categories, *expense)
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ExpensesEdit, err)
 
 		return
 	}
+
+	expenseTags, err := h.store.FindExpenseTags(ctx, expense.ID, getCurrentUser(r).ID)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesEdit, err)
+
+		return
+	}
+
+	var tagNames []string
+	for _, tag := range expenseTags {
+		tagNames = append(tagNames, tag.Name)
+	}
+	setExpenseFormData(data, categories, *expense, logic.JoinTagNames(tagNames))
 
 	h.render(w, http.StatusOK, ExpensesEdit, data)
 }
@@ -149,9 +179,10 @@ func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	data := h.tmplData(r)
+	rawTagsInput := r.FormValue("tags")
 
 	categories, _, categoriesErr := h.findCategories(ctx)
-	setExpenseFormData(data, categories, repo.Expense{})
+	setExpenseFormData(data, categories, repo.Expense{}, rawTagsInput)
 
 	params, err := parseExpenseForm(r)
 	if err != nil {
@@ -169,7 +200,7 @@ func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 			Description: params.Description,
 			Amount:      params.Amount,
 			Date:        params.Date,
-		})
+		}, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, ExpensesNew, err)
 
 		return
@@ -187,9 +218,10 @@ func (h *Handler) PostExpensesUpdate(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 	expense := *getExpense(r)
+	rawTagsInput := r.FormValue("tags")
 
 	categories, _, categoriesErr := h.findCategories(ctx)
-	setExpenseFormData(data, categories, expense)
+	setExpenseFormData(data, categories, expense, rawTagsInput)
 
 	params, err := parseExpenseForm(r)
 	if err != nil {
@@ -210,7 +242,7 @@ func (h *Handler) PostExpensesUpdate(w http.ResponseWriter, r *http.Request) {
 		expense.Description = params.Description
 		expense.Amount = params.Amount
 		expense.Date = params.Date
-		setExpenseFormData(data, categories, expense)
+		setExpenseFormData(data, categories, expense, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, ExpensesEdit, err)
 
 		return
@@ -263,6 +295,7 @@ func parseExpenseForm(r *http.Request) (logic.ExpenseParams, error) {
 	params.Description = base.Description
 	params.Amount = base.Amount
 	params.Date = date
+	params.Tags = logic.ParseTagNames(r.FormValue("tags"))
 
 	return params, nil
 }
@@ -271,8 +304,10 @@ func setExpenseFormData(
 	data map[string]any,
 	categories []repo.Category,
 	expense repo.Expense,
+	tagsInput string,
 ) {
 	setResourceFormData(data, categories, "expense", expense)
+	data["tagsInput"] = tagsInput
 }
 
 func getExpense(r *http.Request) *repo.Expense {

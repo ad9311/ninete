@@ -8,7 +8,7 @@ import (
 )
 
 type TagParams struct {
-	Name string `validate:"required,min=1,max=50"`
+	Name string `validate:"required,max=20"`
 }
 
 func (s *Store) FindTags(ctx context.Context, opts repo.QueryOptions) ([]repo.Tag, error) {
@@ -23,7 +23,7 @@ func (s *Store) FindTags(ctx context.Context, opts repo.QueryOptions) ([]repo.Ta
 func (s *Store) CreateTag(ctx context.Context, userID int, params TagParams) (repo.Tag, error) {
 	var tag repo.Tag
 
-	params.Name = strings.TrimSpace(params.Name)
+	params.Name = normalizeTagName(params.Name)
 	if err := s.ValidateStruct(params); err != nil {
 		return tag, err
 	}
@@ -46,4 +46,86 @@ func (s *Store) DeleteTag(ctx context.Context, id, userID int) (int, error) {
 	}
 
 	return i, nil
+}
+
+func ParseTagNames(raw string) []string {
+	rawTags := strings.Split(raw, ";")
+
+	return normalizeTagNames(rawTags)
+}
+
+func JoinTagNames(tagNames []string) string {
+	return strings.Join(tagNames, "; ")
+}
+
+func normalizeTagNames(tagNames []string) []string {
+	var normalized []string
+	seen := map[string]struct{}{}
+
+	for _, tag := range tagNames {
+		tag = normalizeTagName(tag)
+		if tag == "" {
+			continue
+		}
+
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		normalized = append(normalized, tag)
+	}
+
+	return normalized
+}
+
+func normalizeTagName(tag string) string {
+	return strings.ToLower(strings.TrimSpace(tag))
+}
+
+func (s *Store) ensureTagsForUserTx(
+	ctx context.Context,
+	tq *repo.TxQueries,
+	userID int,
+	tagNames []string,
+) ([]repo.Tag, error) {
+	tagNames = normalizeTagNames(tagNames)
+	if len(tagNames) == 0 {
+		return []repo.Tag{}, nil
+	}
+
+	for _, name := range tagNames {
+		if err := s.ValidateStruct(TagParams{Name: name}); err != nil {
+			return nil, err
+		}
+
+		err := tq.InsertOrIgnoreTag(ctx, repo.InsertTagParams{
+			UserID: userID,
+			Name:   name,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	foundTags, err := tq.SelectTagsByUserAndNames(ctx, userID, tagNames)
+	if err != nil {
+		return nil, err
+	}
+
+	tagsByName := map[string]repo.Tag{}
+	for _, tag := range foundTags {
+		tagsByName[tag.Name] = tag
+	}
+
+	orderedTags := make([]repo.Tag, 0, len(tagNames))
+	for _, name := range tagNames {
+		tag, ok := tagsByName[name]
+		if !ok {
+			return nil, ErrTagResolutionFailed
+		}
+
+		orderedTags = append(orderedTags, tag)
+	}
+
+	return orderedTags, nil
 }

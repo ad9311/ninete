@@ -239,6 +239,41 @@ func (q *Queries) UpdateExpense(
 	return e, err
 }
 
+func (q *TxQueries) UpdateExpense(
+	ctx context.Context,
+	userID int,
+	params UpdateExpenseParams,
+) (Expense, error) {
+	var e Expense
+
+	err := q.wrapQuery(updateExpense, func() error {
+		row := q.tx.QueryRowContext(
+			ctx,
+			updateExpense,
+			params.CategoryID,
+			params.Description,
+			params.Amount,
+			params.Date,
+			newUpdatedAt(),
+			params.ID,
+			userID,
+		)
+
+		return row.Scan(
+			&e.ID,
+			&e.UserID,
+			&e.CategoryID,
+			&e.Description,
+			&e.Amount,
+			&e.Date,
+			&e.CreatedAt,
+			&e.UpdatedAt,
+		)
+	})
+
+	return e, err
+}
+
 const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
 
 func (q *Queries) DeleteExpense(ctx context.Context, id, userID int) (int, error) {

@@ -1,6 +1,10 @@
 package repo
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"strings"
+)
 
 type Tag struct {
 	ID        int
@@ -43,23 +47,12 @@ func (q *Queries) SelectTags(ctx context.Context, opts QueryOptions) ([]Tag, err
 			}
 		}()
 
-		for rows.Next() {
-			var t Tag
-
-			if err := rows.Scan(
-				&t.ID,
-				&t.UserID,
-				&t.Name,
-				&t.CreatedAt,
-				&t.UpdatedAt,
-			); err != nil {
-				return err
-			}
-
-			ts = append(ts, t)
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
 		}
 
-		return err
+		return nil
 	})
 
 	return ts, err
@@ -88,6 +81,84 @@ func (q *Queries) InsertTag(ctx context.Context, params InsertTagParams) (Tag, e
 	return t, err
 }
 
+const insertOrIgnoreTag = `
+INSERT OR IGNORE INTO "tags" ("user_id", "name")
+VALUES (?, ?)`
+
+func (q *TxQueries) InsertOrIgnoreTag(ctx context.Context, params InsertTagParams) error {
+	return q.wrapQuery(insertOrIgnoreTag, func() error {
+		_, err := q.tx.ExecContext(ctx, insertOrIgnoreTag, params.UserID, params.Name)
+
+		return err
+	})
+}
+
+const selectTagsByUserAndNames = `
+SELECT * FROM "tags"
+WHERE "user_id" = ?
+  AND "name" IN (%s)
+ORDER BY "name" ASC`
+
+func (q *Queries) SelectTagsByUserAndNames(ctx context.Context, userID int, names []string) ([]Tag, error) {
+	var ts []Tag
+	if len(names) == 0 {
+		return ts, nil
+	}
+
+	query, values := selectTagsByUserAndNamesQuery(userID, names)
+
+	err := q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ts, err
+}
+
+func (q *TxQueries) SelectTagsByUserAndNames(ctx context.Context, userID int, names []string) ([]Tag, error) {
+	var ts []Tag
+	if len(names) == 0 {
+		return ts, nil
+	}
+
+	query, values := selectTagsByUserAndNamesQuery(userID, names)
+
+	err := q.wrapQuery(query, func() error {
+		rows, err := q.tx.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ts, err
+}
+
 const deleteTag = `DELETE FROM "tags" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
 
 func (q *Queries) DeleteTag(ctx context.Context, id, userID int) (int, error) {
@@ -110,4 +181,44 @@ func validTagFields() []string {
 		"created_at",
 		"updated_at",
 	}
+}
+
+type tagRows interface {
+	Next() bool
+	Scan(dest ...any) error
+}
+
+func scanTagRows(rows tagRows) ([]Tag, error) {
+	var ts []Tag
+
+	for rows.Next() {
+		var t Tag
+
+		if err := rows.Scan(
+			&t.ID,
+			&t.UserID,
+			&t.Name,
+			&t.CreatedAt,
+			&t.UpdatedAt,
+		); err != nil {
+			return ts, err
+		}
+
+		ts = append(ts, t)
+	}
+
+	return ts, nil
+}
+
+func selectTagsByUserAndNamesQuery(userID int, names []string) (string, []any) {
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(names)), ",")
+	query := fmt.Sprintf(selectTagsByUserAndNames, placeholders)
+
+	values := make([]any, 0, len(names)+1)
+	values = append(values, userID)
+	for _, name := range names {
+		values = append(values, name)
+	}
+
+	return query, values
 }
