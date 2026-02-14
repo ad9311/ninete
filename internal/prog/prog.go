@@ -32,8 +32,12 @@ func Load() (*App, error) {
 	}
 
 	if env != ENVProduction {
-		path, ok := findRelativeENVFile()
-		if err := godotenv.Load(path); !ok || err != nil {
+		path, ok := FindRelativePath(".env")
+		if !ok {
+			return nil, fmt.Errorf("failed to load '.env', file %w", os.ErrNotExist)
+		}
+
+		if err := godotenv.Load(path); err != nil {
 			return nil, fmt.Errorf("failed to load '.env', file %w", err)
 		}
 	}
@@ -101,14 +105,18 @@ func validENVs() map[string]bool {
 	return mappedEnvs
 }
 
-func findRelativeENVFile() (string, bool) {
+func FindRelativePath(pathName string) (string, bool) {
+	if pathName == "" {
+		return "", false
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", false
 	}
 
 	for {
-		p := filepath.Join(dir, ".env")
+		p := filepath.Join(dir, pathName)
 		if fileExists(p) {
 			return p, true
 		}
@@ -118,6 +126,15 @@ func findRelativeENVFile() (string, bool) {
 		}
 		dir = parent
 	}
+}
+
+func FindRoot() (string, bool) {
+	goModPath, ok := FindRelativePath("go.mod")
+	if !ok {
+		return "", false
+	}
+
+	return filepath.Dir(goModPath), true
 }
 
 func fileExists(p string) bool {

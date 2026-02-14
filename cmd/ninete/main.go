@@ -45,10 +45,7 @@ func start(app *prog.App) (int, error) {
 
 	store := logic.New(app, queries)
 
-	server, err := serve.New(app, store)
-	if err != nil {
-		return 1, err
-	}
+	server := serve.New(app, store)
 
 	err = server.LoadTemplates()
 	if err != nil {
