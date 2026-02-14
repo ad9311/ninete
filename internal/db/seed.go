@@ -49,7 +49,7 @@ func RunSeeds() error {
 	}
 
 	for _, s := range seeds {
-		if app.IsProduction() {
+		if s.skipOnProd {
 			continue
 		}
 
