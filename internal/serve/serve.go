@@ -28,7 +28,7 @@ type Server struct {
 	port      string
 }
 
-func New(app *prog.App, store *logic.Store) (*Server, error) {
+func New(app *prog.App, store *logic.Store) *Server {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -56,7 +56,7 @@ func New(app *prog.App, store *logic.Store) (*Server, error) {
 	s.setUpRoutes()
 	s.setUpSession()
 
-	return s, nil
+	return s
 }
 
 func (s *Server) Start() error {
