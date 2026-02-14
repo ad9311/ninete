@@ -16,6 +16,8 @@ type Spec struct {
 }
 
 func New(t *testing.T) Spec {
+	t.Helper()
+
 	app, err := prog.Load()
 	if err != nil {
 		t.Fatalf("failed to load app configuration: %v", err)
@@ -25,6 +27,11 @@ func New(t *testing.T) Spec {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			t.Fatalf("failed to close test database: %v", closeErr)
+		}
+	})
 
 	queries := repo.New(app, sqlDB)
 
