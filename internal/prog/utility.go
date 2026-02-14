@@ -9,6 +9,10 @@ import (
 	"unicode/utf8"
 )
 
+func NormalizeLowerTrim(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
+
 func ToLowerCamel(s string) string {
 	words := strings.FieldsFunc(s, func(r rune) bool {
 		return r == '_' || r == '-' || r == ' ' || r == '.'

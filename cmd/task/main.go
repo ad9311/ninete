@@ -25,8 +25,13 @@ func main() {
 func taskCommands() []*cmd.Command {
 	return []*cmd.Command{
 		{
-			Name:        "testdev",
-			Description: "Runs development-only task hooks",
+			Name:        "create_invitation_code",
+			Description: "Prompts and creates one invitation code",
+			Run:         runTask(task.CreateInvitationCode),
+		},
+		{
+			Name:        "test",
+			Description: "Runs testing code",
 			Run:         runTask(task.TestDev),
 		},
 	}

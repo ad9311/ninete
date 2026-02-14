@@ -1,0 +1,18 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>REGISTER</h1>
+  {{ template "form_error" . }}
+  <form action="/register" method="post">
+    {{ template "csrf" . }}
+    <input type="text" placeholder="Username" name="username" />
+    <input type="email" placeholder="Email" name="email" />
+    <input type="password" placeholder="Password" name="password" />
+    <input
+      type="password"
+      placeholder="Password Confirmation"
+      name="passwordConfirmation"
+    />
+    <input type="text" placeholder="Invitation Code" name="invitationCode" />
+    <button type="submit">Register</button>
+  </form>
+{{ end }}
