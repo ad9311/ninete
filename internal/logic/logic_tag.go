@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 )
 
@@ -23,7 +24,7 @@ func (s *Store) FindTags(ctx context.Context, opts repo.QueryOptions) ([]repo.Ta
 func (s *Store) CreateTag(ctx context.Context, userID int, params TagParams) (repo.Tag, error) {
 	var tag repo.Tag
 
-	params.Name = normalizeTagName(params.Name)
+	params.Name = prog.NormalizeLowerTrim(params.Name)
 	if err := s.ValidateStruct(params); err != nil {
 		return tag, err
 	}
@@ -63,7 +64,7 @@ func normalizeTagNames(tagNames []string) []string {
 	seen := map[string]struct{}{}
 
 	for _, tag := range tagNames {
-		tag = normalizeTagName(tag)
+		tag = prog.NormalizeLowerTrim(tag)
 		if tag == "" {
 			continue
 		}
@@ -76,10 +77,6 @@ func normalizeTagNames(tagNames []string) []string {
 	}
 
 	return normalized
-}
-
-func normalizeTagName(tag string) string {
-	return strings.ToLower(strings.TrimSpace(tag))
 }
 
 func (s *Store) ensureTagsForUserTx(

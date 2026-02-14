@@ -24,7 +24,8 @@ const (
 	DashboardIndex TemplateName = "dashboard/index"
 
 	// Auth templates.
-	LoginIndex TemplateName = "login/index"
+	LoginIndex    TemplateName = "login/index"
+	RegisterIndex TemplateName = "register/index"
 
 	// Expense templates.
 	ExpensesIndex TemplateName = "expenses/index"

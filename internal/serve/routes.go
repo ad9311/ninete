@@ -11,6 +11,8 @@ func (s *Server) setUpRoutes() {
 		root.Get("/", s.handlers.GetRoot)
 
 		root.Group(func(auth chi.Router) {
+			auth.Get("/register", s.handlers.GetRegister)
+			auth.Post("/register", s.handlers.PostRegister)
 			auth.Get("/login", s.handlers.GetLogin)
 			auth.Post("/login", s.handlers.PostLogin)
 			auth.Post("/logout", s.handlers.PostLogout)
