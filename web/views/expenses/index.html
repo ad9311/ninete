@@ -22,11 +22,7 @@
           <td>{{ .Date | timeStamp }}</td>
           <td>{{ .Tags }}</td>
           <td>
-            <a href="/expenses/{{ .ID }}/edit">Edit</a>
-            <form action="/expenses/{{ .ID }}/delete" method="post">
-              {{ template "csrf" $ }}
-              <button type="submit" class="btn-danger btn-sm">Delete</button>
-            </form>
+            <a href="/expenses/{{ .ID }}">visit</a>
           </td>
         </tr>
       {{ end }}

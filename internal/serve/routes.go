@@ -30,6 +30,7 @@ func (s *Server) setUpRoutes() {
 				expenses.Route("/{id}", func(expenses chi.Router) {
 					expenses.Use(s.handlers.ExpenseContext)
 
+					expenses.Get("/", s.handlers.GetExpense)
 					expenses.Post("/", s.handlers.PostExpensesUpdate)
 					expenses.Get("/edit", s.handlers.GetExpensesEdit)
 					expenses.Post("/delete", s.handlers.PostExpensesDelete)

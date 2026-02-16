@@ -440,6 +440,36 @@ func TestDeleteExpense(t *testing.T) {
 	}
 }
 
+func TestExtractTagNames(t *testing.T) {
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_return_tag_names_in_order",
+			fn: func(t *testing.T) {
+				tagNames := logic.ExtractTagNames([]repo.Tag{
+					{Name: "tag_a_1"},
+					{Name: "tag_b_1"},
+					{Name: "tag_c_1"},
+				})
+				require.Equal(t, []string{"tag_a_1", "tag_b_1", "tag_c_1"}, tagNames)
+			},
+		},
+		{
+			name: "should_return_empty_slice_for_empty_tags",
+			fn: func(t *testing.T) {
+				tagNames := logic.ExtractTagNames([]repo.Tag{})
+				require.Empty(t, tagNames)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newExpenseParams(
 	categoryID int,
 	description string,
