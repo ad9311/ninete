@@ -63,24 +63,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	q := r.URL.Query()
-	sortOrder := q.Get("sort_order")
-	sortField := q.Get("sort_field")
-
-	userIDFilter := repo.FilterField{
-		Name:     "user_id",
-		Value:    user.ID,
-		Operator: "=",
-	}
-
-	opts := repo.QueryOptions{
-		Sorting: repo.Sorting{
-			Order: sortOrder,
-			Field: sortField,
-		},
-	}
-	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
-	opts.Filters.Connector = "AND"
+	opts := userScopedQueryOpts(r, user.ID)
 
 	recurrentExpenses, err := h.store.FindRecurrentExpenses(r.Context(), opts)
 	if err != nil {
@@ -89,23 +72,16 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, categoryNameByID, err := h.findCategories(r.Context())
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
-
+	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, RecurrentExpensesIndex)
+	if !ok {
 		return
 	}
 
 	rows := make([]recurrentExpenseRow, 0, len(recurrentExpenses))
 	for _, recurrentExpense := range recurrentExpenses {
-		categoryName := categoryNameByID[recurrentExpense.CategoryID]
-		if categoryName == "" {
-			categoryName = "Unknown"
-		}
-
 		rows = append(rows, recurrentExpenseRow{
 			ID:           recurrentExpense.ID,
-			CategoryName: categoryName,
+			CategoryName: categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
 			Description:  recurrentExpense.Description,
 			Amount:       recurrentExpense.Amount,
 			Period:       recurrentExpense.Period,
@@ -118,25 +94,17 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	data := h.tmplData(r)
 	recurrentExpense := getRecurrentExpense(r)
 
-	_, categoryNameByID, err := h.findCategories(ctx)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesShow, err)
-
+	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, RecurrentExpensesShow)
+	if !ok {
 		return
-	}
-
-	categoryName := categoryNameByID[recurrentExpense.CategoryID]
-	if categoryName == "" {
-		categoryName = "Unknown"
 	}
 
 	data["recurrentExpense"] = recurrentExpenseRow{
 		ID:           recurrentExpense.ID,
-		CategoryName: categoryName,
+		CategoryName: categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
 		Description:  recurrentExpense.Description,
 		Amount:       recurrentExpense.Amount,
 		Period:       recurrentExpense.Period,
@@ -148,29 +116,26 @@ func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetRecurrentExpensesNew(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 
-	categories, _, err := h.findCategories(r.Context())
-	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{})
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesNew, err)
-
+	categories, _, ok := h.findCategoriesOrErr(w, r, RecurrentExpensesNew)
+	if !ok {
 		return
 	}
+
+	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{})
 
 	h.render(w, http.StatusOK, RecurrentExpensesNew, data)
 }
 
 func (h *Handler) GetRecurrentExpensesEdit(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
 	data := h.tmplData(r)
 	recurrentExpense := getRecurrentExpense(r)
 
-	categories, _, err := h.findCategories(ctx)
-	setRecurrentExpenseFormData(data, categories, *recurrentExpense)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesEdit, err)
-
+	categories, _, ok := h.findCategoriesOrErr(w, r, RecurrentExpensesEdit)
+	if !ok {
 		return
 	}
+
+	setRecurrentExpenseFormData(data, categories, *recurrentExpense)
 
 	h.render(w, http.StatusOK, RecurrentExpensesEdit, data)
 }

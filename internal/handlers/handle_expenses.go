@@ -63,24 +63,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	q := r.URL.Query()
-	sortOrder := q.Get("sort_order")
-	sortField := q.Get("sort_field")
-
-	userIDFilter := repo.FilterField{
-		Name:     "user_id",
-		Value:    user.ID,
-		Operator: "=",
-	}
-
-	opts := repo.QueryOptions{
-		Sorting: repo.Sorting{
-			Order: sortOrder,
-			Field: sortField,
-		},
-	}
-	opts.Filters.FilterFields = append(opts.Filters.FilterFields, userIDFilter)
-	opts.Filters.Connector = "AND"
+	opts := userScopedQueryOpts(r, user.ID)
 
 	expenses, err := h.store.FindExpenses(r.Context(), opts)
 	if err != nil {
@@ -89,10 +72,8 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, categoryNameByID, err := h.findCategories(r.Context())
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ExpensesIndex, err)
-
+	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, ExpensesIndex)
+	if !ok {
 		return
 	}
 
@@ -114,14 +95,9 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, expense := range expenses {
-		categoryName := categoryNameByID[expense.CategoryID]
-		if categoryName == "" {
-			categoryName = "Unknown"
-		}
-
 		rows = append(rows, expenseRow{
 			ID:           expense.ID,
-			CategoryName: categoryName,
+			CategoryName: categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
 			Description:  expense.Description,
 			Amount:       expense.Amount,
 			Date:         expense.Date,
@@ -140,16 +116,9 @@ func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 	expense := getExpense(r)
 
-	_, categoryNameByID, err := h.findCategories(ctx)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ExpensesShow, err)
-
+	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, ExpensesShow)
+	if !ok {
 		return
-	}
-
-	categoryName := categoryNameByID[expense.CategoryID]
-	if categoryName == "" {
-		categoryName = "Unknown"
 	}
 
 	expenseTags, err := h.store.FindExpenseTags(ctx, expense.ID, user.ID)
@@ -161,7 +130,7 @@ func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {
 
 	data["expense"] = expenseRow{
 		ID:           expense.ID,
-		CategoryName: categoryName,
+		CategoryName: categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
 		Description:  expense.Description,
 		Amount:       expense.Amount,
 		Date:         expense.Date,
@@ -174,13 +143,12 @@ func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 
-	categories, _, err := h.findCategories(r.Context())
-	setExpenseFormData(data, categories, repo.Expense{}, "")
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ExpensesNew, err)
-
+	categories, _, ok := h.findCategoriesOrErr(w, r, ExpensesNew)
+	if !ok {
 		return
 	}
+
+	setExpenseFormData(data, categories, repo.Expense{}, "")
 
 	h.render(w, http.StatusOK, ExpensesNew, data)
 }
@@ -190,10 +158,8 @@ func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	expense := getExpense(r)
 
-	categories, _, err := h.findCategories(ctx)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ExpensesEdit, err)
-
+	categories, _, ok := h.findCategoriesOrErr(w, r, ExpensesEdit)
+	if !ok {
 		return
 	}
 
