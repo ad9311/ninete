@@ -78,7 +78,7 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 			es = append(es, e)
 		}
 
-		return err
+		return rows.Err()
 	})
 
 	return es, err

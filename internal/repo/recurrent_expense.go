@@ -130,7 +130,7 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 			res = append(res, re.toRecurrentExpense())
 		}
 
-		return nil
+		return rows.Err()
 	})
 
 	return res, err
@@ -411,7 +411,7 @@ func (q *Queries) SelectDueRecurrentExpenses(
 			res = append(res, re.toRecurrentExpense())
 		}
 
-		return nil
+		return rows.Err()
 	})
 
 	return res, err

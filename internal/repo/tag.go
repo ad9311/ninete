@@ -186,6 +186,7 @@ func validTagFields() []string {
 type tagRows interface {
 	Next() bool
 	Scan(dest ...any) error
+	Err() error
 }
 
 func scanTagRows(rows tagRows) ([]Tag, error) {
@@ -207,7 +208,7 @@ func scanTagRows(rows tagRows) ([]Tag, error) {
 		ts = append(ts, t)
 	}
 
-	return ts, nil
+	return ts, rows.Err()
 }
 
 func selectTagsByUserAndNamesQuery(userID int, names []string) (string, []any) {

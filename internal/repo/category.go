@@ -66,7 +66,7 @@ func (q *Queries) SelectCategories(ctx context.Context) ([]Category, error) {
 			cs = append(cs, c)
 		}
 
-		return err
+		return rows.Err()
 	})
 
 	return cs, err

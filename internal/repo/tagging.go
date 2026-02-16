@@ -139,7 +139,7 @@ func (q *Queries) SelectExpenseTagRows(
 			rowsResult = append(rowsResult, row)
 		}
 
-		return nil
+		return rows.Err()
 	})
 
 	return rowsResult, err
