@@ -18,7 +18,7 @@ type expenseRow struct {
 	Description  string
 	Amount       uint64
 	Date         int64
-	Tags         string
+	Tags         []string
 }
 
 // ----------------------------------------------------------------------------- //
@@ -125,7 +125,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 			Description:  expense.Description,
 			Amount:       expense.Amount,
 			Date:         expense.Date,
-			Tags:         logic.JoinTagNames(expenseTagNames[expense.ID]),
+			Tags:         expenseTagNames[expense.ID],
 		})
 	}
 
@@ -165,7 +165,7 @@ func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {
 		Description:  expense.Description,
 		Amount:       expense.Amount,
 		Date:         expense.Date,
-		Tags:         logic.JoinTagNames(logic.ExtractTagNames(expenseTags)),
+		Tags:         logic.ExtractTagNames(expenseTags),
 	}
 
 	h.render(w, http.StatusOK, ExpensesShow, data)

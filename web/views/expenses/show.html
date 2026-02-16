@@ -27,9 +27,13 @@
         <th>Tags</th>
         <td>
           {{ if .expense.Tags }}
-            {{ .expense.Tags }}
+            <div class="chip-list">
+              {{ range .expense.Tags }}
+                <span class="chip">{{ . }}</span>
+              {{ end }}
+            </div>
           {{ else }}
-            -
+            <span class="chip chip-empty">No tags</span>
           {{ end }}
         </td>
       </tr>

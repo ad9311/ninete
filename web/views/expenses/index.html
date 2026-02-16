@@ -23,7 +23,17 @@
           <td>{{ .Description }}</td>
           <td class="amount-value">{{ .Amount | currency }}</td>
           <td>{{ .Date | timeStamp }}</td>
-          <td>{{ .Tags }}</td>
+          <td>
+            {{ if .Tags }}
+              <div class="chip-list">
+                {{ range .Tags }}
+                  <span class="chip">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </td>
           <td>
             <a href="/expenses/{{ .ID }}">Visit</a>
           </td>
