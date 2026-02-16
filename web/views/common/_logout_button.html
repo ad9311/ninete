@@ -1,6 +1,6 @@
 {{ define "logout_button" }}
   <form action="/logout" method="post">
     {{ template "csrf" . }}
-    <button type="submit">Logout</button>
+    <button type="submit" class="btn-danger">Logout</button>
   </form>
 {{ end }}

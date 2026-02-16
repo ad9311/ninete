@@ -28,12 +28,15 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ## Layering
 - `cmd/*`: process entrypoints and composition.
-- `internal/serve` + `internal/handlers`: HTTP transport.
-- `internal/logic`: business rules and validation.
+- `internal/serve`: HTTP server lifecycle, router/middleware/session wiring, template loading.
+- `internal/handlers`: HTTP transport adapter (request parsing, context middleware, response rendering).
+- `internal/logic`: business rules/use-cases and validation.
 - `internal/repo`: SQL persistence.
 - `internal/db`: DB open/migrations/seeds.
 - `internal/prog`: config/logging/shared utilities.
 - `internal/task`: app-level task hooks executed by `cmd/task`.
+- `internal/spec`: test setup/factories for integration-style package tests.
+- Preferred dependency direction: handlers -> logic -> repo -> db.
 
 ## Engineering Workflow
 - Use `Makefile` targets as the default way to run project commands.
@@ -75,7 +78,7 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ### `internal/cmd`
 - **Role**: CLI command registry/dispatcher.
-- **Key files**: `internal/cmd/cmd.go`..
+- **Key files**: `internal/cmd/cmd.go`.
 - **Responsibilities**:
 - Register command handlers.
 - Parse command names from args.
@@ -104,7 +107,7 @@ This document gives high-level context so agents can navigate the codebase quick
 ### `internal/repo`
 - **Role**: SQL data access layer.
 - **Key files**:
-- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`..
+- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`.
 - Domain query files follow `internal/repo/*.go` by resource.
 - **Responsibilities**:
 - Implement SQL CRUD and query operations.
@@ -115,13 +118,13 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ### `internal/logic`
 - **Role**: Application/business logic.
-- **Key files**: `internal/logic/logic.go`.
+- **Key files**: `internal/logic/logic.go`, `internal/logic/logic_*.go`.
 - **Responsibilities**:
 - Expose use-cases to handlers.
 - Validate inputs (`go-playground/validator`).
 - Handle auth flows.
 - Keep route layer free of SQL details.
-- Logic files must be named with the `logic_` prefix.
+- The `logic_` prefix is reserved for service/business-use-case files.
 
 ### `internal/serve`
 - **Role**: HTTP server infrastructure/lifecycle.
@@ -150,15 +153,18 @@ This document gives high-level context so agents can navigate the codebase quick
 - **Responsibilities**:
 - Define task entrypoints executed with initialized app/store dependencies.
 
-## Handler File Structure Convention
+### `internal/spec`
+- **Role**: Test support package for DB-backed setup and factories.
+- **Key files**: `internal/spec/setup.go`, `internal/spec/factory.go`, `internal/spec/spec.go`.
+- **Responsibilities**:
+- Initialize isolated test DB state.
+- Provide reusable factories/helpers for logic tests.
+
+## File Structure Convention
 - ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
-- Apply this structure to each handler file:
-1. Context middleware(s).
-2. Handlers in action order: `index`, `show`, `new`, `edit`, `create`, `update`, `delete`.
-3. Exported functions that are not handlers.
-4. Unexported functions/helpers.
-- Use section-separator comments between blocks.
-- If an action is intentionally missing (for example `show`), leave a short note comment in the handler section.
+- Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
+- The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
+
 
 ## UI/Assets Structure
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
@@ -169,6 +175,9 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ## Data Model Overview
 - `users`: authentication identity and password hash.
+- `invitation_codes`: hashed invite codes plus deterministic fingerprints for lookup/uniqueness.
 - `categories`: normalized category catalog (`name`, `uid`).
 - `expenses`: one-off transactions linked to `user_id` and `category_id`.
 - `recurrent_expenses`: recurring templates with period and copy-tracking metadata.
+- `tags`: user-scoped labels (unique per user, case-insensitive by normalized name).
+- `taggings`: polymorphic join records between tags and taggable entities (`taggable_type`, `taggable_id`), currently used for expense tagging.

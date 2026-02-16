@@ -25,7 +25,7 @@
             <a href="/expenses/{{ .ID }}/edit">Edit</a>
             <form action="/expenses/{{ .ID }}/delete" method="post">
               {{ template "csrf" $ }}
-              <button type="submit">Delete</button>
+              <button type="submit" class="btn-danger btn-sm">Delete</button>
             </form>
           </td>
         </tr>
