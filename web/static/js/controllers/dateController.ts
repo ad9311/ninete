@@ -27,28 +27,47 @@ export default class extends Controller {
   }
 
   private hydrateLocalDate() {
+    const setCurrentLocalDate = () => {
+      this.localTarget.value = toLocalDateTimeInput(new Date());
+    };
+
     if (this.localTarget.value) {
       return;
     }
 
     const rawValue = this.valueTarget.value?.trim();
     if (!rawValue) {
+      setCurrentLocalDate();
       return;
     }
 
     const unix = Number(rawValue);
     if (!Number.isNaN(unix)) {
+      if (unix <= 0) {
+        setCurrentLocalDate();
+        return;
+      }
+
       const date = new Date(unix * 1000);
       if (!Number.isNaN(date.getTime())) {
         this.localTarget.value = toLocalDateTimeInput(date);
+
+        return;
       }
+
+      setCurrentLocalDate();
+
       return;
     }
 
     const parsed = new Date(rawValue);
     if (!Number.isNaN(parsed.getTime())) {
       this.localTarget.value = toLocalDateTimeInput(parsed);
+
+      return;
     }
+
+    setCurrentLocalDate();
   }
 }
 
