@@ -46,6 +46,7 @@ func (s *Server) setUpRoutes() {
 				recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
 					recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
 
+					recurrentExpenses.Get("/", s.handlers.GetRecurrentExpense)
 					recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
 					recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
 					recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)

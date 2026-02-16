@@ -117,6 +117,34 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 	h.render(w, http.StatusOK, RecurrentExpensesIndex, data)
 }
 
+func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := h.tmplData(r)
+	recurrentExpense := getRecurrentExpense(r)
+
+	_, categoryNameByID, err := h.findCategories(ctx)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesShow, err)
+
+		return
+	}
+
+	categoryName := categoryNameByID[recurrentExpense.CategoryID]
+	if categoryName == "" {
+		categoryName = "Unknown"
+	}
+
+	data["recurrentExpense"] = recurrentExpenseRow{
+		ID:           recurrentExpense.ID,
+		CategoryName: categoryName,
+		Description:  recurrentExpense.Description,
+		Amount:       recurrentExpense.Amount,
+		Period:       recurrentExpense.Period,
+	}
+
+	h.render(w, http.StatusOK, RecurrentExpensesShow, data)
+}
+
 func (h *Handler) GetRecurrentExpensesNew(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 
