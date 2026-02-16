@@ -65,5 +65,6 @@ func setUpFileServer(root chi.Router) {
 
 func (s *Server) setUpSession() {
 	s.Session.Cookie.Secure = s.app.IsProduction()
+	s.Session.Cookie.HttpOnly = true
 	s.Session.Cookie.Name = "ninete_session"
 }
