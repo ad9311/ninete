@@ -18,13 +18,14 @@
       ></script>
       <title>NINETE</title>
     </head>
-    <body body hx-boost="true">
-      {{ if ne .currentUser nil }}
-        <p>Hello, {{ .currentUser.Username }}</p>
-        {{ template "logout_button" . }}
-      {{ end }}
-      {{ block "main" . }}
-      {{ end }}
+    <body class="theme-light" hx-boost="true">
+      <div class="page-shell">
+        {{ template "header" . }}
+        <main class="page-main">
+          {{ block "main" . }}
+          {{ end }}
+        </main>
+      </div>
     </body>
   </html>
 {{ end }}

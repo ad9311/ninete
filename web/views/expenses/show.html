@@ -1,0 +1,51 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>EXPENSE</h1>
+  <nav class="page-links">
+    <a href="/expenses">Expenses</a>
+    <a href="/recurrent-expenses">Recurrent Expenses</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Category</th>
+        <td>{{ .expense.CategoryName }}</td>
+      </tr>
+      <tr>
+        <th>Description</th>
+        <td>{{ .expense.Description }}</td>
+      </tr>
+      <tr>
+        <th>Amount</th>
+        <td class="amount-value">{{ .expense.Amount | currency }}</td>
+      </tr>
+      <tr>
+        <th>Date</th>
+        <td>{{ .expense.Date | timeStamp }}</td>
+      </tr>
+      <tr>
+        <th>Tags</th>
+        <td>
+          {{ if .expense.Tags }}
+            <div class="chip-list">
+              {{ range .expense.Tags }}
+                <span class="chip">{{ . }}</span>
+              {{ end }}
+            </div>
+          {{ else }}
+            <span class="chip chip-empty">No tags</span>
+          {{ end }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/expenses/{{ .expense.ID }}/edit">Edit Expense</a>
+      <form action="/expenses/{{ .expense.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button type="submit" class="btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </section>
+{{ end }}

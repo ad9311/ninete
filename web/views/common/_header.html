@@ -1,0 +1,11 @@
+{{ define "header" }}
+  <header class="site-header">
+    <a href="/" class="site-brand">NINETE</a>
+    {{ if ne .currentUser nil }}
+      <div class="site-header-actions">
+        <p class="site-user">{{ .currentUser.Username }}</p>
+        {{ template "logout_button" . }}
+      </div>
+    {{ end }}
+  </header>
+{{ end }}

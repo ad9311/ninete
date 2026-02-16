@@ -1,40 +1,61 @@
 {{ template "layout" . }}
 {{ define "main" }}
   <h1>EDIT RECURRENT EXPENSE</h1>
-  <a href="/recurrent-expenses">Back to recurrent expenses</a>
-  {{ template "form_error" . }}
-  <form action="/recurrent-expenses/{{ .recurrentExpense.ID }}" method="post">
-    {{ template "csrf" . }}
-    <select name="category_id">
-      {{ range .categories }}
-        <option
-          value="{{ .ID }}"
-          {{ if eq .ID $.recurrentExpense.CategoryID }}selected{{ end }}
-        >
-          {{ .Name }}
-        </option>
-      {{ end }}
-    </select>
-    <input
-      type="text"
-      placeholder="Description"
-      name="description"
-      value="{{ .recurrentExpense.Description }}"
-    />
-    <input
-      type="number"
-      placeholder="Amount"
-      name="amount"
-      value="{{ .recurrentExpense.Amount }}"
-    />
-    <input
-      type="number"
-      min="1"
-      step="1"
-      placeholder="Period in months"
-      name="period"
-      value="{{ .recurrentExpense.Period }}"
-    />
-    <button type="submit">Submit</button>
-  </form>
+  <nav class="page-links">
+    <a href="/recurrent-expenses/{{ .recurrentExpense.ID }}">
+      Visit Recurrent Expense
+    </a>
+    <a href="/recurrent-expenses">Recurrent Expenses</a>
+    <a href="/expenses">Expenses</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form
+      action="/recurrent-expenses/{{ .recurrentExpense.ID }}"
+      method="post"
+      data-controller="amount"
+      data-action="submit->amount#prepare"
+    >
+      {{ template "csrf" . }}
+      <select name="category_id">
+        {{ range .categories }}
+          <option
+            value="{{ .ID }}"
+            {{ if eq .ID $.recurrentExpense.CategoryID }}selected{{ end }}
+          >
+            {{ .Name }}
+          </option>
+        {{ end }}
+      </select>
+      <input
+        type="text"
+        placeholder="Description"
+        name="description"
+        value="{{ .recurrentExpense.Description }}"
+      />
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        placeholder="Amount"
+        data-amount-target="local"
+        data-action="input->amount#sync"
+      />
+      <input
+        type="hidden"
+        name="amount"
+        data-amount-target="value"
+        value="{{ .recurrentExpense.Amount }}"
+      />
+      <input
+        type="number"
+        min="1"
+        step="1"
+        placeholder="Period in months"
+        name="period"
+        value="{{ .recurrentExpense.Period }}"
+      />
+      <button type="submit" class="btn-primary">Submit</button>
+    </form>
+  </section>
 {{ end }}

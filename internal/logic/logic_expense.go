@@ -48,6 +48,15 @@ func (s *Store) FindExpenseTags(ctx context.Context, expenseID, userID int) ([]r
 	return tags, nil
 }
 
+func ExtractTagNames(tags []repo.Tag) []string {
+	tagNames := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tagNames = append(tagNames, tag.Name)
+	}
+
+	return tagNames
+}
+
 func (s *Store) FindExpenseTagRows(
 	ctx context.Context,
 	expenseIDs []int,

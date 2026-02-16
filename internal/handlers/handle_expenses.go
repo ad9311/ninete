@@ -18,7 +18,7 @@ type expenseRow struct {
 	Description  string
 	Amount       uint64
 	Date         int64
-	Tags         string
+	Tags         []string
 }
 
 // ----------------------------------------------------------------------------- //
@@ -125,13 +125,50 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 			Description:  expense.Description,
 			Amount:       expense.Amount,
 			Date:         expense.Date,
-			Tags:         logic.JoinTagNames(expenseTagNames[expense.ID]),
+			Tags:         expenseTagNames[expense.ID],
 		})
 	}
 
 	data["expenses"] = rows
 
 	h.render(w, http.StatusOK, ExpensesIndex, data)
+}
+
+func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := h.tmplData(r)
+	user := getCurrentUser(r)
+	expense := getExpense(r)
+
+	_, categoryNameByID, err := h.findCategories(ctx)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesShow, err)
+
+		return
+	}
+
+	categoryName := categoryNameByID[expense.CategoryID]
+	if categoryName == "" {
+		categoryName = "Unknown"
+	}
+
+	expenseTags, err := h.store.FindExpenseTags(ctx, expense.ID, user.ID)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesShow, err)
+
+		return
+	}
+
+	data["expense"] = expenseRow{
+		ID:           expense.ID,
+		CategoryName: categoryName,
+		Description:  expense.Description,
+		Amount:       expense.Amount,
+		Date:         expense.Date,
+		Tags:         logic.ExtractTagNames(expenseTags),
+	}
+
+	h.render(w, http.StatusOK, ExpensesShow, data)
 }
 
 func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
@@ -166,12 +203,7 @@ func (h *Handler) GetExpensesEdit(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-
-	var tagNames []string
-	for _, tag := range expenseTags {
-		tagNames = append(tagNames, tag.Name)
-	}
-	setExpenseFormData(data, categories, *expense, logic.JoinTagNames(tagNames))
+	setExpenseFormData(data, categories, *expense, logic.JoinTagNames(logic.ExtractTagNames(expenseTags)))
 
 	h.render(w, http.StatusOK, ExpensesEdit, data)
 }

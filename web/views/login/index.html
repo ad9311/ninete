@@ -1,11 +1,18 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>LOGIN</h1>
-  {{ template "form_error" . }}
-  <form action="/login" method="post">
-    {{ template "csrf" . }}
-    <input type="email" placeholder="Email" name="email" />
-    <input type="password" placeholder="Password" name="password" />
-    <button type="submit">Login</button>
-  </form>
+  <section class="auth-page">
+    <div class="auth-card">
+      <h1>LOGIN</h1>
+      {{ template "form_error" . }}
+      <form action="/login" method="post" class="form-stack">
+        {{ template "csrf" . }}
+        <input type="email" placeholder="Email" name="email" />
+        <input type="password" placeholder="Password" name="password" />
+        <button type="submit" class="btn-primary">Login</button>
+      </form>
+      <p class="auth-switch">
+        Need an account? <a href="/register">Register</a>
+      </p>
+    </div>
+  </section>
 {{ end }}

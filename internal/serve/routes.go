@@ -30,6 +30,7 @@ func (s *Server) setUpRoutes() {
 				expenses.Route("/{id}", func(expenses chi.Router) {
 					expenses.Use(s.handlers.ExpenseContext)
 
+					expenses.Get("/", s.handlers.GetExpense)
 					expenses.Post("/", s.handlers.PostExpensesUpdate)
 					expenses.Get("/edit", s.handlers.GetExpensesEdit)
 					expenses.Post("/delete", s.handlers.PostExpensesDelete)
@@ -45,6 +46,7 @@ func (s *Server) setUpRoutes() {
 				recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
 					recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
 
+					recurrentExpenses.Get("/", s.handlers.GetRecurrentExpense)
 					recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
 					recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
 					recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
