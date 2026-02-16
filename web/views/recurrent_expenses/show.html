@@ -23,7 +23,10 @@
     </tbody>
   </table>
   <a href="/recurrent-expenses/{{ .recurrentExpense.ID }}/edit">Edit</a>
-  <form action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete" method="post">
+  <form
+    action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
+    method="post"
+  >
     {{ template "csrf" . }}
     <button type="submit" class="btn-danger btn-sm">Delete</button>
   </form>

@@ -17,8 +17,16 @@
   />
   <input
     type="number"
+    min="0"
+    step="0.01"
     placeholder="Amount"
+    data-amount-target="local"
+    data-action="input->amount#sync"
+  />
+  <input
+    type="hidden"
     name="amount"
+    data-amount-target="value"
     value="{{ .expense.Amount }}"
   />
   <input

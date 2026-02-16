@@ -6,8 +6,8 @@
   <form
     action="/expenses/{{ .expense.ID }}"
     method="post"
-    data-controller="date"
-    data-action="submit->date#prepare"
+    data-controller="date amount"
+    data-action="submit->date#prepare submit->amount#prepare"
   >
     {{ template "csrf" . }}
     {{ template "expense_form" . }}
