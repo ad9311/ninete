@@ -1,7 +1,10 @@
 {{ template "layout" . }}
 {{ define "main" }}
   <h1>RECURRENT EXPENSE</h1>
-  <a href="/recurrent-expenses">Back to recurrent expenses</a>
+  <nav class="page-links">
+    <a href="/recurrent-expenses">Recurrent Expenses</a>
+    <a href="/expenses">Expenses</a>
+  </nav>
   <table>
     <tbody>
       <tr>
@@ -14,7 +17,7 @@
       </tr>
       <tr>
         <th>Amount</th>
-        <td>{{ .recurrentExpense.Amount | currency }}</td>
+        <td class="amount-value">{{ .recurrentExpense.Amount | currency }}</td>
       </tr>
       <tr>
         <th>Period (months)</th>
@@ -22,12 +25,18 @@
       </tr>
     </tbody>
   </table>
-  <a href="/recurrent-expenses/{{ .recurrentExpense.ID }}/edit">Edit</a>
-  <form
-    action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
-    method="post"
-  >
-    {{ template "csrf" . }}
-    <button type="submit" class="btn-danger btn-sm">Delete</button>
-  </form>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/recurrent-expenses/{{ .recurrentExpense.ID }}/edit">
+        Edit Recurrent Expense
+      </a>
+      <form
+        action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
+        method="post"
+      >
+        {{ template "csrf" . }}
+        <button type="submit" class="btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </section>
 {{ end }}

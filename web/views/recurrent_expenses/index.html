@@ -1,8 +1,11 @@
 {{ template "layout" . }}
 {{ define "main" }}
   <h1>RECURRENT EXPENSES</h1>
-  <a href="/recurrent-expenses/new">New</a>
-  <table style="width: 100%;">
+  <nav class="page-links">
+    <a href="/recurrent-expenses/new">New Recurrent Expense</a>
+    <a href="/expenses">Expenses</a>
+  </nav>
+  <table>
     <thead>
       <tr>
         <th>Category</th>
@@ -17,10 +20,10 @@
         <tr>
           <td>{{ .CategoryName }}</td>
           <td>{{ .Description }}</td>
-          <td>{{ .Amount | currency }}</td>
+          <td class="amount-value">{{ .Amount | currency }}</td>
           <td>{{ .Period }}</td>
           <td>
-            <a href="/recurrent-expenses/{{ .ID }}">visit</a>
+            <a href="/recurrent-expenses/{{ .ID }}">Visit</a>
           </td>
         </tr>
       {{ end }}
@@ -29,7 +32,9 @@
       <tr>
         <th colspan="5">
           Total recurrent expenses
-          {{ .recurrentExpenses | sumAmount | currency }}
+          <span class="amount-value">
+            {{ .recurrentExpenses | sumAmount | currency }}
+          </span>
         </th>
       </tr>
     </tfoot>

@@ -1,15 +1,20 @@
 {{ template "layout" . }}
 {{ define "main" }}
   <h1>NEW EXPENSE</h1>
-  <a href="/expenses">Back to expenses</a>
-  {{ template "form_error" . }}
-  <form
-    action="/expenses"
-    method="post"
-    data-controller="date amount"
-    data-action="submit->date#prepare submit->amount#prepare"
-  >
-    {{ template "csrf" . }}
-    {{ template "expense_form" . }}
-  </form>
+  <nav class="page-links">
+    <a href="/expenses">Expenses</a>
+    <a href="/recurrent-expenses">Recurrent Expenses</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form
+      action="/expenses"
+      method="post"
+      data-controller="date amount"
+      data-action="submit->date#prepare submit->amount#prepare"
+    >
+      {{ template "csrf" . }}
+      {{ template "expense_form" . }}
+    </form>
+  </section>
 {{ end }}

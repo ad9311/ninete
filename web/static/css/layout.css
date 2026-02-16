@@ -26,10 +26,13 @@
   --radius-3: 0.25rem;
   --color-bg: #f2f2f3;
   --color-bg-accent: #ececef;
+  --color-bg-glow: #fff;
   --color-surface: #fff;
   --color-surface-muted: #f7f7f8;
+  --color-surface-hover: #fafafb;
   --color-text: #1b1b1d;
   --color-text-muted: #55555c;
+  --color-input-placeholder: #7a7a82;
   --color-border: #c8c8ce;
   --color-border-strong: #a7a7ae;
   --color-focus: #2f2f35;
@@ -59,7 +62,11 @@ body {
   line-height: 1.4;
   color: var(--color-text);
   background:
-    radial-gradient(100% 30rem at 0% 0%, #fff 0%, transparent 70%),
+    radial-gradient(
+      100% 30rem at 0% 0%,
+      var(--color-bg-glow) 0%,
+      transparent 70%
+    ),
     linear-gradient(180deg, var(--color-bg-accent) 0%, var(--color-bg) 100%);
 }
 
@@ -153,8 +160,36 @@ p {
   text-align: center;
 }
 
+.auth-switch {
+  text-align: center;
+}
+
 .form-stack {
   display: grid;
+  gap: var(--space-3);
+}
+
+.form-card {
+  width: min(100%, var(--size-form));
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-1);
+}
+
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-3);
 }
 
@@ -185,7 +220,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: #7a7a82;
+  color: var(--color-input-placeholder);
 }
 
 input:hover,
@@ -286,7 +321,7 @@ tbody tr + tr td {
 }
 
 tbody tr:hover {
-  background: #fafafb;
+  background: var(--color-surface-hover);
 }
 
 td:last-child {
@@ -298,6 +333,16 @@ td form {
   margin: 0 0 0 var(--space-2);
   max-width: none;
   vertical-align: middle;
+}
+
+.resource-actions form {
+  margin: 0;
+  max-width: none;
+}
+
+.amount-value {
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 input:focus-visible,
@@ -355,7 +400,8 @@ button:focus-visible {
 }
 
 .theme-light .page-main > form,
-.theme-light .page-main > .form-stack {
+.theme-light .page-main > .form-stack,
+.theme-light .page-main > .form-card {
   max-width: var(--size-form);
 }
 

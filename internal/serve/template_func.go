@@ -51,10 +51,7 @@ func sumAmount(rows any) uint64 {
 			continue
 		}
 
-		switch amount.Kind() {
-		case reflect.Uint64:
-			total += amount.Uint()
-		}
+		total += amount.Uint()
 	}
 
 	return total
