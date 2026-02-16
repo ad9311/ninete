@@ -8,8 +8,6 @@ import (
 	"github.com/ad9311/ninete/internal/prog"
 )
 
-type QueryInt interface{}
-
 type Queries struct {
 	app *prog.App
 	db  *sql.DB
@@ -35,7 +33,9 @@ func (q *Queries) WithTx(ctx context.Context, fn func(*TxQueries) error) error {
 
 	tq := &TxQueries{app: q.app, tx: tx}
 	if err := fn(tq); err != nil {
-		_ = tx.Rollback()
+		if rbErr := tx.Rollback(); rbErr != nil {
+			q.app.Logger.Errorf("transaction rollback failed: %v", rbErr)
+		}
 
 		return err
 	}
