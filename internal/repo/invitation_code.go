@@ -4,7 +4,7 @@ import "context"
 
 type InvitationCode struct {
 	ID              int
-	CodeHash        string
+	CodeHash        []byte
 	CodeFingerprint string
 	CreatedAt       int64
 	UpdatedAt       int64

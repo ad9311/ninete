@@ -77,8 +77,8 @@ func (s *Store) ValidateInvitationCode(ctx context.Context, rawCode string) erro
 	return nil
 }
 
-func compareInvitationCode(rawCode, codeHash string) error {
-	if err := bcrypt.CompareHashAndPassword([]byte(codeHash), []byte(rawCode)); err != nil {
+func compareInvitationCode(rawCode string, codeHash []byte) error {
+	if err := bcrypt.CompareHashAndPassword(codeHash, []byte(rawCode)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return ErrInvalidInvitationCode
 		}
