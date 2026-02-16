@@ -67,7 +67,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 
 	expenses, err := h.store.FindExpenses(r.Context(), opts)
 	if err != nil {
-		h.renderErr(w, r, http.StatusBadRequest, ExpensesIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesIndex, err)
 
 		return
 	}

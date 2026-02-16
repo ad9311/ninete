@@ -86,7 +86,7 @@ func HashPassword(rawPassword string) ([]byte, error) {
 	passHash, err := bcrypt.GenerateFromPassword([]byte(rawPassword), bcrypt.DefaultCost)
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
-			return passHash, fmt.Errorf("%w, too long", ErrWithPasswords)
+			return passHash, fmt.Errorf("%w: too long", ErrWithPasswords)
 		}
 
 		return passHash, err

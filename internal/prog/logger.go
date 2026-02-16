@@ -129,7 +129,7 @@ func (l *Logger) Query(query string, dur time.Duration) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
+	query = strings.TrimSpace(strings.Join(strings.Fields(query), " "))
 
 	durStr := " [" + dur.String() + "]"
 	format := bold + blue + query + ";" + red + durStr

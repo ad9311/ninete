@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"net/http"
+	"time"
 )
 
 const templateExecErr = "ERROR EXECUTING TEMPLATE"
@@ -16,7 +17,7 @@ func (h *Handler) render(
 	tmplName TemplateName,
 	data map[string]any,
 ) {
-	if h.app.IsDevelopment() {
+	if h.app.IsDevelopment() && time.Since(h.lastReload) > templateReloadInterval {
 		h.app.Logger.Log("Rebuilding templates...")
 		if err := h.reloadTemplates(); err != nil {
 			h.app.Logger.Errorf("failed to reload templates: %v", err)
@@ -24,6 +25,7 @@ func (h *Handler) render(
 
 			return
 		}
+		h.lastReload = time.Now()
 	}
 
 	view := h.templateByName(tmplName)

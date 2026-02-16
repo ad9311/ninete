@@ -67,7 +67,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 
 	recurrentExpenses, err := h.store.FindRecurrentExpenses(r.Context(), opts)
 	if err != nil {
-		h.renderErr(w, r, http.StatusBadRequest, RecurrentExpensesIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
 
 		return
 	}
