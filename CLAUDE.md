@@ -141,7 +141,7 @@ This document gives high-level context so agents can navigate the codebase quick
 
 ### `internal/handlers`
 - **Role**: HTTP handlers and rendering.
-- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`.
+- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`, `internal/handlers/expense_shared.go`.
 - **Responsibilities**:
 - Implement endpoint behavior.
 - Use `logic.Store` + session manager for app actions.
