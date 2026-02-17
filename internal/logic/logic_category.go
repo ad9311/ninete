@@ -11,7 +11,7 @@ func (s *Store) CreateCategory(ctx context.Context, name string) (repo.Category,
 	var category repo.Category
 
 	uid := prog.ToLowerCamel(name)
-	category, err := s.queries.InserCategory(ctx, name, uid)
+	category, err := s.queries.InsertCategory(ctx, name, uid)
 	if err != nil {
 		return category, err
 	}

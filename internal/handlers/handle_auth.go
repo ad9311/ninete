@@ -36,6 +36,12 @@ func (h *Handler) PostRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.session.RenewToken(ctx); err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
+
+		return
+	}
+
 	h.session.Put(ctx, SessionIsUserSignedIn, true)
 	h.session.Put(ctx, SessionUserID, user.ID)
 
@@ -57,6 +63,12 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		h.renderErr(w, r, http.StatusBadRequest, LoginIndex, err)
+
+		return
+	}
+
+	if err := h.session.RenewToken(ctx); err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}

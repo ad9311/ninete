@@ -15,10 +15,11 @@ This document gives high-level context so agents can navigate the codebase quick
 ## Request Flow (`internal/serve` -> `internal/handlers`)
 1. Request enters Chi router in `internal/serve/routes.go`.
 2. Global middleware order:
-- Recoverer, request ID, timeout.
+- Logger (non-test), Recoverer, request ID.
+- Security headers, request body limit, timeout.
 - CSRF middleware (`nosurf`).
-- Auth gate (`AuthMiddleware`).
 - Template/context setup (`setTmplData`).
+- Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`).
 3. Route-level context middleware may run for resource-specific lookups.
 4. Handler executes endpoint behavior in `internal/handlers`.
 5. Handler calls `logic.Store` methods.

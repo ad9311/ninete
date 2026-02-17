@@ -64,7 +64,7 @@ func (l *Logger) Log(a any) {
 	defer l.mutex.Unlock()
 
 	if err := output(l.Out, "%v", a); err != nil {
-		panic(err)
+		_ = output(l.OutErr, "log write failed: %v", err)
 	}
 }
 
@@ -73,7 +73,7 @@ func (l *Logger) Logf(format string, args ...any) {
 	defer l.mutex.Unlock()
 
 	if err := output(l.Out, format, args...); err != nil {
-		panic(err)
+		_ = output(l.OutErr, "log write failed: %v", err)
 	}
 }
 
@@ -84,7 +84,7 @@ func (l *Logger) Error(a any) {
 	format := l.handleColor(red+"%v", "%v")
 
 	if err := output(l.OutErr, format, a); err != nil {
-		panic(err)
+		_ = output(l.Out, "error log write failed: %v", err)
 	}
 }
 
@@ -95,7 +95,7 @@ func (l *Logger) Errorf(format string, args ...any) {
 	colorFormat := l.handleColor(red+format, format)
 
 	if err := output(l.OutErr, colorFormat, args...); err != nil {
-		panic(err)
+		_ = output(l.Out, "error log write failed: %v", err)
 	}
 }
 
@@ -106,7 +106,7 @@ func (l *Logger) Debug(a any) {
 	format := l.handleColor(yellow+"%v", "%v")
 
 	if err := output(l.Out, format, a); err != nil {
-		panic(err)
+		_ = output(l.OutErr, "debug log write failed: %v", err)
 	}
 }
 
@@ -117,7 +117,7 @@ func (l *Logger) Debugf(format string, args ...any) {
 	colorFormat := l.handleColor(yellow+format, format)
 
 	if err := output(l.Out, colorFormat, args...); err != nil {
-		panic(err)
+		_ = output(l.OutErr, "debug log write failed: %v", err)
 	}
 }
 
@@ -129,14 +129,14 @@ func (l *Logger) Query(query string, dur time.Duration) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	query = strings.TrimSpace(strings.ReplaceAll(query, "\n", " "))
+	query = strings.TrimSpace(strings.Join(strings.Fields(query), " "))
 
 	durStr := " [" + dur.String() + "]"
 	format := bold + blue + query + ";" + red + durStr
 	format = l.handleColor(format, query+";"+durStr)
 
 	if err := output(l.Out, format); err != nil {
-		panic(err)
+		_ = output(l.OutErr, "query log write failed: %v", err)
 	}
 }
 

@@ -15,7 +15,7 @@ INSERT INTO "categories" ("name", "uid")
 VALUES (?, ?)
 RETURNING *`
 
-func (q *Queries) InserCategory(ctx context.Context, name, uid string) (Category, error) {
+func (q *Queries) InsertCategory(ctx context.Context, name, uid string) (Category, error) {
 	var c Category
 
 	err := q.wrapQuery(insertCategory, func() error {
@@ -66,7 +66,7 @@ func (q *Queries) SelectCategories(ctx context.Context) ([]Category, error) {
 			cs = append(cs, c)
 		}
 
-		return err
+		return rows.Err()
 	})
 
 	return cs, err

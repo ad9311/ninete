@@ -32,42 +32,45 @@ func parseTemplates() (map[handlers.TemplateName]*template.Template, error) {
 	if err != nil {
 		return vc, err
 	}
+	if len(views) == 0 {
+		return vc, nil
+	}
+
+	layouts, err := filepath.Glob(layoutPath)
+	if err != nil {
+		return vc, err
+	}
+	if len(layouts) == 0 {
+		return vc, ErrLayoutNotFound
+	}
+
+	base, err := template.New("layout").Funcs(templateFuncMap()).ParseGlob(layoutPath)
+	if err != nil {
+		return vc, err
+	}
+
+	partials, err := filepath.Glob(partialsPath)
+	if err != nil {
+		return vc, err
+	}
+	if len(partials) > 0 {
+		base, err = base.ParseGlob(partialsPath)
+		if err != nil {
+			return vc, err
+		}
+	}
 
 	for _, v := range views {
-		file := filepath.Base(v)
-		newView, err := template.New(file).Funcs(templateFuncMap()).ParseFiles(v)
+		clone, err := base.Clone()
 		if err != nil {
 			return vc, err
 		}
 
-		layouts, err := filepath.Glob(layoutPath)
-		if err != nil {
+		if _, err = clone.ParseFiles(v); err != nil {
 			return vc, err
 		}
 
-		if len(layouts) == 0 {
-			return vc, ErrLayoutNotFound
-		}
-
-		partials, err := filepath.Glob(partialsPath)
-		if err != nil {
-			return vc, err
-		}
-
-		newView, err = newView.ParseGlob(layoutPath)
-		if err != nil {
-			return vc, err
-		}
-
-		if len(partials) > 0 {
-			newView, err = newView.ParseGlob(partialsPath)
-			if err != nil {
-				return vc, err
-			}
-		}
-
-		name := viewKey(v)
-		vc[name] = newView
+		vc[viewKey(v)] = clone
 	}
 
 	return vc, nil

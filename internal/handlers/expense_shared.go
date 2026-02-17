@@ -15,6 +15,25 @@ type expenseFormBase struct {
 	Amount      uint64
 }
 
+func userScopedQueryOpts(r *http.Request, userID int) repo.QueryOptions {
+	q := r.URL.Query()
+
+	opts := repo.QueryOptions{
+		Sorting: repo.Sorting{
+			Order: q.Get("sort_order"),
+			Field: q.Get("sort_field"),
+		},
+	}
+	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
+		Name:     "user_id",
+		Value:    userID,
+		Operator: "=",
+	})
+	opts.Filters.Connector = "AND"
+
+	return opts
+}
+
 func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {
 	var base expenseFormBase
 
@@ -53,6 +72,29 @@ func (h *Handler) findCategories(
 	}
 
 	return categories, categoryNameByID, nil
+}
+
+func (h *Handler) findCategoriesOrErr(
+	w http.ResponseWriter,
+	r *http.Request,
+	tmpl TemplateName,
+) ([]repo.Category, map[int]string, bool) {
+	categories, nameByID, err := h.findCategories(r.Context())
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, tmpl, err)
+
+		return nil, nil, false
+	}
+
+	return categories, nameByID, true
+}
+
+func categoryNameOrUnknown(nameByID map[int]string, categoryID int) string {
+	if name := nameByID[categoryID]; name != "" {
+		return name
+	}
+
+	return "Unknown"
 }
 
 func setResourceFormData(

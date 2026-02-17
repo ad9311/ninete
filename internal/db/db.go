@@ -41,13 +41,13 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	if err := sqlDB.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
 	initQuery, err := readInitSQL(initFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run %s script: %w", initFile, err)
+	}
+
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	if _, err := sqlDB.Exec(initQuery); err != nil {

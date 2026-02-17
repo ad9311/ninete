@@ -96,7 +96,7 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 		return res, err
 	}
 
-	query := strings.TrimSpace(selectRecurrentExpenses + " " + subQuery)
+	query := selectRecurrentExpenses + " " + subQuery
 	values := opts.Filters.Values()
 
 	err = q.wrapQuery(query, func() error {
@@ -130,7 +130,7 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 			res = append(res, re.toRecurrentExpense())
 		}
 
-		return nil
+		return rows.Err()
 	})
 
 	return res, err
@@ -146,7 +146,7 @@ func (q *Queries) CountRecurrentExpenses(ctx context.Context, filters Filters) (
 		return 0, err
 	}
 
-	query := strings.TrimSpace(countRecurrentExpenses + " " + subQuery)
+	query := countRecurrentExpenses + " " + subQuery
 	values := filters.Values()
 
 	err = q.wrapQuery(query, func() error {
@@ -370,7 +370,7 @@ func (q *Queries) SelectDueRecurrentExpenses(
 		return nil, err
 	}
 
-	query := strings.TrimSpace(selectDueRecurrentExpenses + " " + sortingQuery + " " + paginationQuery)
+	query := selectDueRecurrentExpenses + " " + sortingQuery + " " + paginationQuery
 
 	err = q.wrapQuery(query, func() error {
 		rows, err := q.db.QueryContext(
@@ -411,7 +411,7 @@ func (q *Queries) SelectDueRecurrentExpenses(
 			res = append(res, re.toRecurrentExpense())
 		}
 
-		return nil
+		return rows.Err()
 	})
 
 	return res, err

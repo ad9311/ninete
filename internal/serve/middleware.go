@@ -32,13 +32,18 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isUserSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
-		requestPath := r.URL.Path
+	guestRoutes := map[string]bool{
+		"/login":    true,
+		"/register": true,
+	}
 
-		if isUserSignedIn {
-			if requestPath == "/login" || requestPath == "/register" {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		isSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
+
+		if guestRoutes[path] {
+			if isSignedIn {
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 
 				return
 			}
@@ -48,15 +53,19 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		for _, route := range publicRoutes() {
-			if strings.HasPrefix(requestPath, route) {
-				next.ServeHTTP(w, r)
+		if strings.HasPrefix(path, "/static/") {
+			next.ServeHTTP(w, r)
 
-				return
-			}
+			return
 		}
 
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		if !isSignedIn {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -106,6 +115,26 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 	})
 }
 
+const maxRequestBodySize = 1 << 20 // 1 MB
+
+func (*Server) limitRequestBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodySize)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (*Server) securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (s *Server) setUpMiddlewares() {
 	if !s.app.IsTest() {
 		s.Router.Use(middleware.Logger)
@@ -113,23 +142,16 @@ func (s *Server) setUpMiddlewares() {
 
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.RequestID)
+	s.Router.Use(s.securityHeaders)
+	s.Router.Use(s.limitRequestBody)
 
 	s.Router.Use(s.WithTimeout(5 * time.Second))
 
 	s.Router.Use(s.csrf)
 
-	s.Router.Use(s.AuthMiddleware)
-
 	s.Router.Use(s.setTmplData)
+	s.Router.Use(s.AuthMiddleware)
 
 	s.Router.NotFound(s.handlers.NotFound)
 	s.Router.MethodNotAllowed(s.handlers.MethodNotAllowed)
-}
-
-func publicRoutes() []string {
-	return []string{
-		"/login",
-		"/register",
-		"/static",
-	}
 }

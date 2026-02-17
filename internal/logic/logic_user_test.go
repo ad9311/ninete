@@ -150,7 +150,7 @@ func TestFindUserForAuth(t *testing.T) {
 				require.Equal(t, createdUser.ID, foundUser.ID)
 				require.Equal(t, params.Username, foundUser.Username)
 				require.Equal(t, params.Email, foundUser.Email)
-				require.Equal(t, passwordHash, foundUser.PasswordHash)
+				require.Equal(t, []byte(passwordHash), foundUser.PasswordHash)
 			},
 		},
 		{

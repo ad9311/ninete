@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"html/template"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -21,12 +22,15 @@ type Deps struct {
 	ReloadTemplates TemplateReloadFunc
 }
 
+const templateReloadInterval = 2 * time.Second
+
 type Handler struct {
 	app             *prog.App
 	store           *logic.Store
 	session         *scs.SessionManager
 	templateByName  TemplateLookupFunc
 	reloadTemplates TemplateReloadFunc
+	lastReload      time.Time
 }
 
 func New(deps Deps) *Handler {

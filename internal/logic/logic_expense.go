@@ -76,7 +76,6 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
-	params.Tags = normalizeTagNames(params.Tags)
 
 	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
 		var txErr error
@@ -107,7 +106,6 @@ func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params Expens
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
-	params.Tags = normalizeTagNames(params.Tags)
 
 	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
 		var txErr error
