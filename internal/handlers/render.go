@@ -44,6 +44,7 @@ func (h *Handler) render(
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	if _, err := buff.WriteTo(w); err != nil {
 		h.app.Logger.Errorf("failed to write response: %v", err)

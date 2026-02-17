@@ -95,8 +95,8 @@ func HashPassword(rawPassword string) ([]byte, error) {
 	return passHash, nil
 }
 
-func comparePasswords(rawPassword, passwordHash string) error {
-	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(rawPassword)); err != nil {
+func comparePasswords(rawPassword string, passwordHash []byte) error {
+	if err := bcrypt.CompareHashAndPassword(passwordHash, []byte(rawPassword)); err != nil {
 		return ErrWrongEmailOrPassword
 	}
 

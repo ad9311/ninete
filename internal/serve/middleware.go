@@ -32,13 +32,18 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 }
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		isUserSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
-		requestPath := r.URL.Path
+	guestRoutes := map[string]bool{
+		"/login":    true,
+		"/register": true,
+	}
 
-		if isUserSignedIn {
-			if requestPath == "/login" || requestPath == "/register" {
-				http.Redirect(w, r, "/", http.StatusSeeOther)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		isSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
+
+		if guestRoutes[path] {
+			if isSignedIn {
+				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 
 				return
 			}
@@ -48,15 +53,19 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		for _, route := range publicRoutes() {
-			if strings.HasPrefix(requestPath, route) {
-				next.ServeHTTP(w, r)
+		if strings.HasPrefix(path, "/static/") {
+			next.ServeHTTP(w, r)
 
-				return
-			}
+			return
 		}
 
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		if !isSignedIn {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -140,18 +149,9 @@ func (s *Server) setUpMiddlewares() {
 
 	s.Router.Use(s.csrf)
 
-	s.Router.Use(s.AuthMiddleware)
-
 	s.Router.Use(s.setTmplData)
+	s.Router.Use(s.AuthMiddleware)
 
 	s.Router.NotFound(s.handlers.NotFound)
 	s.Router.MethodNotAllowed(s.handlers.MethodNotAllowed)
-}
-
-func publicRoutes() []string {
-	return []string{
-		"/login",
-		"/register",
-		"/static",
-	}
 }
