@@ -63,7 +63,14 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	opts := userScopedQueryOpts(r, user.ID)
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "date", Order: "DESC"})
+
+	totalCount, err := h.store.CountExpenses(r.Context(), opts.Filters)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesIndex, err)
+
+		return
+	}
 
 	expenses, err := h.store.FindExpenses(r.Context(), opts)
 	if err != nil {
@@ -72,7 +79,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, ExpensesIndex)
+	categories, categoryNameByID, ok := h.findCategoriesOrErr(w, r, ExpensesIndex)
 	if !ok {
 		return
 	}
@@ -106,6 +113,9 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data["expenses"] = rows
+	data["categories"] = categories
+	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["basePath"] = "/expenses"
 
 	h.render(w, http.StatusOK, ExpensesIndex, data)
 }

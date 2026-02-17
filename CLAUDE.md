@@ -48,6 +48,7 @@ This document gives high-level context so agents can navigate the codebase quick
 - Any temporary file should go under `./tmp/`
 
 ## Testing Conventions
+- Test files live in the same directory as the code they test, using external test packages (e.g., `package logic_test`).
 - Use package-level `TestMain` when database bootstrapping is needed and run setup through `internal/spec`.
 - Write table-driven tests with a `cases` struct containing `name` and `fn func(*testing.T)`.
 - Keep test functions uncluttered by delegating repeated setup and record creation to test factories/helpers.
@@ -173,6 +174,8 @@ This document gives high-level context so agents can navigate the codebase quick
 - Shared partials live in `web/views/common/_*.html`.
 - Static assets live under `web/static/` (for example css/js/img).
 - Route definitions are the source of truth in `internal/serve/routes.go`.
+- **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
+- Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
 
 ## Data Model Overview
 - `users`: authentication identity and password hash.

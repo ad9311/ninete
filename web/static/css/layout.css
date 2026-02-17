@@ -372,6 +372,63 @@ td form {
   opacity: 0.9;
 }
 
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.filters label {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.filters select {
+  width: 14rem;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pagination-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--radius-2);
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+a.pagination-link:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
+
+.pagination-current {
+  background: var(--color-neutral);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.pagination-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
