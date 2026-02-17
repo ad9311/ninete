@@ -5,6 +5,9 @@
 .env.production
 .env.staging
 
+# Agents
+/.claude/
+
 # Keep example and test env files in repo
 !.env.example
 !.env.test
