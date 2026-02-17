@@ -1,0 +1,37 @@
+{{ define "pagination" }}
+  {{ if gt .pagination.TotalPages 1 }}
+    <nav class="pagination" aria-label="Pagination">
+      {{ if .pagination.HasPrev }}
+        <a
+          href="{{ pageURL .basePath (sub .pagination.CurrentPage 1) .pagination }}"
+          class="pagination-link"
+          >Prev</a
+        >
+      {{ else }}
+        <span class="pagination-link pagination-disabled">Prev</span>
+      {{ end }}
+
+      {{ range pageRange .pagination.TotalPages .pagination.CurrentPage }}
+        {{ if eq . $.pagination.CurrentPage }}
+          <span class="pagination-link pagination-current">{{ . }}</span>
+        {{ else }}
+          <a
+            href="{{ pageURL $.basePath . $.pagination }}"
+            class="pagination-link"
+            >{{ . }}</a
+          >
+        {{ end }}
+      {{ end }}
+
+      {{ if .pagination.HasNext }}
+        <a
+          href="{{ pageURL .basePath (add .pagination.CurrentPage 1) .pagination }}"
+          class="pagination-link"
+          >Next</a
+        >
+      {{ else }}
+        <span class="pagination-link pagination-disabled">Next</span>
+      {{ end }}
+    </nav>
+  {{ end }}
+{{ end }}

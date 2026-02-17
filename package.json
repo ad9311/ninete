@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/ad9311/ninete#readme",
   "devDependencies": {
+    "@types/hotwired__turbo": "^8.0.6",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9",

@@ -23,6 +23,15 @@ func (s *Store) FindRecurrentExpenses(
 	return recurrentExpenses, nil
 }
 
+func (s *Store) CountRecurrentExpenses(ctx context.Context, filters repo.Filters) (int, error) {
+	count, err := s.queries.CountRecurrentExpenses(ctx, filters)
+	if err != nil {
+		return count, err
+	}
+
+	return count, nil
+}
+
 func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.RecurrentExpense, error) {
 	recurrentExpense, err := s.queries.SelectRecurrentExpense(ctx, id, userID)
 	if err != nil {

@@ -5,13 +5,104 @@
     <a href="/expenses/new">New Expense</a>
     <a href="/recurrent-expenses">Recurrent Expenses</a>
   </nav>
+  <div class="filters" data-controller="filter">
+    <label>
+      Category
+      <select
+        data-filter-target="categoryId"
+        data-action="change->filter#apply"
+      >
+        <option value="">All categories</option>
+        {{ range .categories }}
+          <option
+            value="{{ .ID }}"
+            {{ if eq .ID $.pagination.CategoryID }}selected{{ end }}
+          >
+            {{ .Name }}
+          </option>
+        {{ end }}
+      </select>
+    </label>
+    <label>
+      Date range
+      <select data-filter-target="dateRange" data-action="change->filter#apply">
+        <option value="">All time</option>
+        {{ range dateRangeOptions }}
+          <option
+            value="{{ .Value }}"
+            {{ if eq .Value $.pagination.DateRange }}selected{{ end }}
+          >
+            {{ .Label }}
+          </option>
+        {{ end }}
+      </select>
+    </label>
+  </div>
   <table>
     <thead>
       <tr>
-        <th>Category</th>
-        <th>Description</th>
-        <th>Amount</th>
-        <th>Date</th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "category_id" .pagination }}"
+            class="sort-link"
+            >Category
+            {{ if eq .pagination.SortField "category_id" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "description" .pagination }}"
+            class="sort-link"
+            >Description
+            {{ if eq .pagination.SortField "description" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "amount" .pagination }}"
+            class="sort-link"
+            >Amount
+            {{ if eq .pagination.SortField "amount" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a href="{{ sortURL .basePath "date" .pagination }}" class="sort-link"
+            >Date
+            {{ if eq .pagination.SortField "date" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
         <th>Tags</th>
         <th>Actions</th>
       </tr>
@@ -51,4 +142,5 @@
       </tr>
     </tfoot>
   </table>
+  {{ template "pagination" . }}
 {{ end }}
