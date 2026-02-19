@@ -318,12 +318,12 @@ func newRecurrentExpenseParams(
 	amount uint64,
 	period uint,
 ) logic.RecurrentExpenseParams {
-	params := logic.RecurrentExpenseParams{
+	return logic.RecurrentExpenseParams{
+		ExpenseBaseParams: logic.ExpenseBaseParams{
+			CategoryID:  categoryID,
+			Description: description,
+			Amount:      amount,
+		},
 		Period: period,
 	}
-	params.CategoryID = categoryID
-	params.Description = description
-	params.Amount = amount
-
-	return params
 }

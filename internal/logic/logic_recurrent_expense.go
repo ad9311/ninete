@@ -7,7 +7,7 @@ import (
 )
 
 type RecurrentExpenseParams struct {
-	expenseBaseParams
+	ExpenseBaseParams
 	Period uint `validate:"required,gt=0"`
 }
 
