@@ -7,7 +7,7 @@ import (
 )
 
 type ExpenseParams struct {
-	expenseBaseParams
+	ExpenseBaseParams
 	Date int64    `validate:"required,gt=0"`
 	Tags []string `validate:"-"`
 }
