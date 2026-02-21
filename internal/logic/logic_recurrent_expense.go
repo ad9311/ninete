@@ -2,6 +2,8 @@ package logic
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
@@ -99,4 +101,58 @@ func (s *Store) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int
 	}
 
 	return i, nil
+}
+
+func (s *Store) CopyDueRecurrentExpenses(ctx context.Context, now time.Time) (int, error) {
+	nowUnix := now.Unix()
+	expenseDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Unix()
+
+	recurrentExpenses, err := s.queries.SelectAllDueRecurrentExpenses(ctx, nowUnix)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(recurrentExpenses) == 0 {
+		return 0, nil
+	}
+
+	copied := 0
+	for _, re := range recurrentExpenses {
+		if err := s.copyRecurrentExpense(ctx, re, expenseDate); err != nil {
+			s.app.Logger.Errorf("failed to copy recurrent expense [id=%d]: %v", re.ID, err)
+
+			continue
+		}
+
+		copied++
+	}
+
+	return copied, nil
+}
+
+func (s *Store) copyRecurrentExpense(ctx context.Context, re repo.RecurrentExpense, expenseDate int64) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		_, err := tq.InsertExpense(ctx, repo.InsertExpenseParams{
+			UserID:      re.UserID,
+			CategoryID:  re.CategoryID,
+			Description: re.Description,
+			Amount:      re.Amount,
+			Date:        expenseDate,
+		})
+		if err != nil {
+			return err
+		}
+
+		_, err = tq.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+			ID:                re.ID,
+			UserID:            re.UserID,
+			CategoryID:        re.CategoryID,
+			Description:       re.Description,
+			Amount:            re.Amount,
+			Period:            re.Period,
+			LastCopyCreatedAt: sql.NullInt64{Int64: expenseDate, Valid: true},
+		})
+
+		return err
+	})
 }

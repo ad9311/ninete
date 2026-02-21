@@ -37,6 +37,22 @@ func CreateInvitationCode(app *prog.App, store *logic.Store) error {
 	return nil
 }
 
+func CopyDueRecurrentExpenses(app *prog.App, store *logic.Store) error {
+	ctx, cancel := newContext()
+	defer cancel()
+
+	now := time.Now().UTC()
+
+	copied, err := store.CopyDueRecurrentExpenses(ctx, now)
+	if err != nil {
+		return err
+	}
+
+	app.Logger.Logf("Copied %d recurrent expense(s) into expenses", copied)
+
+	return nil
+}
+
 func newContext() (context.Context, context.CancelFunc) {
 	ctx := context.Background()
 

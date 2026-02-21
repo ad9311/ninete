@@ -30,6 +30,11 @@ func taskCommands() []*cmd.Command {
 			Run:         runTask(task.CreateInvitationCode),
 		},
 		{
+			Name:        "copy_due_recurrent_expenses",
+			Description: "Creates expenses from due recurrent expenses",
+			Run:         runTask(task.CopyDueRecurrentExpenses),
+		},
+		{
 			Name:        "test",
 			Description: "Runs testing code",
 			Run:         runTask(task.TestDev),

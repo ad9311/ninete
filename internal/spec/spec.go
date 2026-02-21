@@ -11,8 +11,9 @@ import (
 )
 
 type Spec struct {
-	Store  *logic.Store
-	Server *serve.Server
+	Store   *logic.Store
+	Server  *serve.Server
+	Queries repo.Queries
 }
 
 func New(t *testing.T) Spec {
@@ -43,7 +44,8 @@ func New(t *testing.T) Spec {
 	}
 
 	return Spec{
-		Store:  store,
-		Server: server,
+		Store:   store,
+		Server:  server,
+		Queries: queries,
 	}
 }

@@ -3,8 +3,6 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"strings"
 )
 
 type recurrentExpense struct {
@@ -315,73 +313,24 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 	return re.toRecurrentExpense(), err
 }
 
-const selectDueRecurrentExpenses = `
+const selectAllDueRecurrentExpenses = `
 SELECT *
 FROM "recurrent_expenses"
 WHERE "last_copy_created_at" IS NULL
    OR (
-        CASE
-          WHEN CAST(strftime('%d', datetime(?, 'unixepoch')) AS int) <
-               CAST(strftime('%d', datetime("last_copy_created_at", 'unixepoch')) AS int)
-          THEN (
-            (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
-             CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
-            (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
-             CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int)) - 1
-          )
-          ELSE (
-            (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
-             CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
-            (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
-             CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int))
-          )
-        END
+        (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
+         CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
+        (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
+         CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int))
       ) >= "period"
+ORDER BY "id" ASC
 `
 
-func (q *Queries) SelectDueRecurrentExpenses(
-	ctx context.Context,
-	nowUnix int64,
-	sorting Sorting,
-	pagination Pagination,
-) ([]RecurrentExpense, error) {
+func (q *Queries) SelectAllDueRecurrentExpenses(ctx context.Context, nowUnix int64) ([]RecurrentExpense, error) {
 	var res []RecurrentExpense
 
-	if sorting.Field == "" && sorting.Order == "" {
-		sorting = Sorting{
-			Field: "id",
-			Order: "ASC",
-		}
-	}
-
-	if !sorting.ValidField(validRecurrentExpenseFields()) {
-		availableFields := strings.Join(validRecurrentExpenseFields(), ",")
-
-		return nil, fmt.Errorf("%w, valid fields for sorting are: %s", ErrInvalidField, availableFields)
-	}
-
-	sortingQuery, err := sorting.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	paginationQuery, err := pagination.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	query := selectDueRecurrentExpenses + " " + sortingQuery + " " + paginationQuery
-
-	err = q.wrapQuery(query, func() error {
-		rows, err := q.db.QueryContext(
-			ctx,
-			query,
-			nowUnix,
-			nowUnix,
-			nowUnix,
-			nowUnix,
-			nowUnix,
-		)
+	err := q.wrapQuery(selectAllDueRecurrentExpenses, func() error {
+		rows, err := q.db.QueryContext(ctx, selectAllDueRecurrentExpenses, nowUnix, nowUnix)
 		if err != nil {
 			return err
 		}

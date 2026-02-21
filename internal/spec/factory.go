@@ -1,6 +1,7 @@
 package spec
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/logic"
@@ -67,6 +68,27 @@ func (s *Spec) CreateExpense(t *testing.T, userID int, params logic.ExpenseParam
 	require.NoError(t, err)
 
 	return expense
+}
+
+func (s *Spec) SetRecurrentExpenseLastCopy(
+	t *testing.T,
+	re repo.RecurrentExpense,
+	lastCopy int64,
+) repo.RecurrentExpense {
+	t.Helper()
+
+	updated, err := s.Queries.UpdateRecurrentExpense(t.Context(), repo.UpdateRecurrentExpenseParams{
+		ID:                re.ID,
+		UserID:            re.UserID,
+		CategoryID:        re.CategoryID,
+		Description:       re.Description,
+		Amount:            re.Amount,
+		Period:            re.Period,
+		LastCopyCreatedAt: sql.NullInt64{Int64: lastCopy, Valid: true},
+	})
+	require.NoError(t, err)
+
+	return updated
 }
 
 func (s *Spec) CreateRecurrentExpense(

@@ -3,6 +3,7 @@ package logic_test
 import (
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/repo"
@@ -303,6 +304,112 @@ func TestDeleteRecurrentExpense(t *testing.T) {
 
 				_, err := s.Store.DeleteRecurrentExpense(ctx, recurrentExpense.ID, otherUser.ID)
 				require.ErrorIs(t, err, sql.ErrNoRows)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestCopyDueRecurrentExpenses(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "recurrent_user_copy_1",
+		Email:        "recurrent_user_copy_1@example.com",
+		PasswordHash: []byte("recurrent_user_copy_hash_1"),
+	})
+	category := s.CreateCategory(t, "recurrent category copy 1")
+	now := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+	expenseDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Unix()
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_copy_when_last_copy_is_null",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(
+					t,
+					user.ID,
+					newRecurrentExpenseParams(category.ID, "copy null last 1", 5000, 1),
+				)
+
+				copied, err := s.Store.CopyDueRecurrentExpenses(ctx, now)
+				require.NoError(t, err)
+				require.GreaterOrEqual(t, copied, 1)
+
+				expenses, err := s.Store.FindExpenses(ctx, repo.QueryOptions{
+					Filters: repo.Filters{
+						FilterFields: []repo.FilterField{
+							{Name: "user_id", Value: user.ID, Operator: "="},
+							{Name: "description", Value: re.Description, Operator: "="},
+						},
+						Connector: "AND",
+					},
+				})
+				require.NoError(t, err)
+				require.Len(t, expenses, 1)
+				require.Equal(t, expenseDate, expenses[0].Date)
+
+				updated, err := s.Store.FindRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.NotNil(t, updated.LastCopyCreatedAt)
+				require.Equal(t, expenseDate, *updated.LastCopyCreatedAt)
+			},
+		},
+		{
+			name: "should_copy_when_period_has_elapsed",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(
+					t,
+					user.ID,
+					newRecurrentExpenseParams(category.ID, "copy elapsed 1", 6000, 1),
+				)
+				twoMonthsAgo := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()
+				s.SetRecurrentExpenseLastCopy(t, re, twoMonthsAgo)
+
+				copied, err := s.Store.CopyDueRecurrentExpenses(ctx, now)
+				require.NoError(t, err)
+				require.GreaterOrEqual(t, copied, 1)
+
+				updated, err := s.Store.FindRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.NotNil(t, updated.LastCopyCreatedAt)
+				require.Equal(t, expenseDate, *updated.LastCopyCreatedAt)
+			},
+		},
+		{
+			name: "should_not_copy_when_period_not_elapsed",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(
+					t,
+					user.ID,
+					newRecurrentExpenseParams(category.ID, "copy not elapsed 1", 7000, 3),
+				)
+				oneMonthAgo := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC).Unix()
+				s.SetRecurrentExpenseLastCopy(t, re, oneMonthAgo)
+
+				_, err := s.Store.CopyDueRecurrentExpenses(ctx, now)
+				require.NoError(t, err)
+
+				updated, err := s.Store.FindRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.NotNil(t, updated.LastCopyCreatedAt)
+				require.Equal(t, oneMonthAgo, *updated.LastCopyCreatedAt)
+			},
+		},
+		{
+			name: "should_return_zero_when_no_due_expenses",
+			fn: func(t *testing.T) {
+				// Use a date far enough in the past that nothing is due
+				pastNow := time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
+				copied, err := s.Store.CopyDueRecurrentExpenses(ctx, pastNow)
+				require.NoError(t, err)
+				require.Equal(t, 0, copied)
 			},
 		},
 	}
