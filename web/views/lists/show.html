@@ -6,13 +6,113 @@
     <a href="/lists">Lists</a>
   </nav>
   {{ template "form_error" . }}
+  <div class="filters" data-controller="task-filter">
+    <label>
+      Done
+      <select
+        data-task-filter-target="done"
+        data-action="change->task-filter#apply"
+      >
+        <option value="">All</option>
+        <option
+          value="true"
+          {{ if eq .pagination.Done "true" }}selected{{ end }}
+        >
+          Yes
+        </option>
+        <option
+          value="false"
+          {{ if eq .pagination.Done "false" }}selected{{ end }}
+        >
+          No
+        </option>
+      </select>
+    </label>
+    <label>
+      Priority
+      <select
+        data-task-filter-target="priority"
+        data-action="change->task-filter#apply"
+      >
+        <option value="">All</option>
+        <option value="1" {{ if eq .pagination.Priority 1 }}selected{{ end }}>
+          Low
+        </option>
+        <option value="2" {{ if eq .pagination.Priority 2 }}selected{{ end }}>
+          Medium
+        </option>
+        <option value="3" {{ if eq .pagination.Priority 3 }}selected{{ end }}>
+          High
+        </option>
+      </select>
+    </label>
+  </div>
   <table>
     <thead>
       <tr>
-        <th>Done</th>
-        <th>Description</th>
-        <th>Priority</th>
+        <th>
+          <a href="{{ sortURL .basePath "done" .pagination }}" class="sort-link"
+            >Done
+            {{ if eq .pagination.SortField "done" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "description" .pagination }}"
+            class="sort-link"
+            >Description
+            {{ if eq .pagination.SortField "description" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "priority" .pagination }}"
+            class="sort-link"
+            >Priority
+            {{ if eq .pagination.SortField "priority" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
         <th>Tags</th>
+        <th>
+          <a
+            href="{{ sortURL .basePath "created_at" .pagination }}"
+            class="sort-link"
+            >Created At
+            {{ if eq .pagination.SortField "created_at" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -43,6 +143,7 @@
               <span class="chip chip-empty">No tags</span>
             {{ end }}
           </td>
+          <td>{{ .CreatedAt | timeStamp }}</td>
           <td>
             <a href="/lists/{{ $.list.ID }}/tasks/{{ .ID }}">Visit</a>
           </td>
@@ -50,6 +151,7 @@
       {{ end }}
     </tbody>
   </table>
+  {{ template "pagination" . }}
   <section class="form-card">
     <div class="resource-actions">
       <a href="/lists/{{ .list.ID }}/edit">Edit List</a>

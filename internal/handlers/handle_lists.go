@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -141,13 +142,36 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 	list := getList(r)
 
-	opts := repo.QueryOptions{
-		Sorting: repo.Sorting{Field: "created_at", Order: "ASC"},
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "ASC"})
+	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
+		Name:     "list_id",
+		Value:    list.ID,
+		Operator: "=",
+	})
+
+	q := r.URL.Query()
+
+	if done := q.Get("done"); done == "true" || done == "false" {
+		opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
+			Name:     "done",
+			Value:    done == "true",
+			Operator: "=",
+		})
 	}
-	opts.Filters.Connector = "AND"
-	opts.Filters.FilterFields = []repo.FilterField{
-		{Name: "list_id", Value: list.ID, Operator: "="},
-		{Name: "user_id", Value: user.ID, Operator: "="},
+
+	if priority, _ := strconv.Atoi(q.Get("priority")); priority > 0 {
+		opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
+			Name:     "priority",
+			Value:    priority,
+			Operator: "=",
+		})
+	}
+
+	totalCount, err := h.store.CountTasks(ctx, opts.Filters)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ListsShow, err)
+
+		return
 	}
 
 	tasks, err := h.store.FindTasks(ctx, opts)
@@ -180,12 +204,15 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 			Priority:      t.Priority,
 			PriorityLabel: priorityLabel(t.Priority),
 			Done:          t.Done,
+			CreatedAt:     t.CreatedAt,
 			Tags:          taskTagNames[t.ID],
 		})
 	}
 
 	data["list"] = list
 	data["tasks"] = taskRows
+	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["basePath"] = fmt.Sprintf("/lists/%d", list.ID)
 
 	h.render(w, http.StatusOK, ListsShow, data)
 }

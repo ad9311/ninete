@@ -30,6 +30,8 @@ type PaginationData struct {
 	SortOrder   string
 	CategoryID  int
 	DateRange   string
+	Done        string
+	Priority    int
 }
 
 type dateRange struct {
@@ -157,6 +159,7 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) 
 
 	q := r.URL.Query()
 	categoryID, _ := strconv.Atoi(q.Get("category_id"))
+	priority, _ := strconv.Atoi(q.Get("priority"))
 
 	return PaginationData{
 		CurrentPage: opts.Pagination.Page,
@@ -169,6 +172,8 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) 
 		SortOrder:   opts.Sorting.Order,
 		CategoryID:  categoryID,
 		DateRange:   q.Get("date_range"),
+		Done:        q.Get("done"),
+		Priority:    priority,
 	}
 }
 

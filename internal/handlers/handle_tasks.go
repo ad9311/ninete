@@ -21,6 +21,7 @@ type taskRow struct {
 	Priority      int
 	PriorityLabel string
 	Done          bool
+	CreatedAt     int64
 	Tags          []string
 }
 
@@ -82,6 +83,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 		Priority:      task.Priority,
 		PriorityLabel: priorityLabel(task.Priority),
 		Done:          task.Done,
+		CreatedAt:     task.CreatedAt,
 		Tags:          logic.ExtractTagNames(taskTags),
 	}
 
