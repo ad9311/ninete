@@ -48,28 +48,6 @@ func (s *Store) FindExpenseTags(ctx context.Context, expenseID, userID int) ([]r
 	return tags, nil
 }
 
-func ExtractTagNames(tags []repo.Tag) []string {
-	tagNames := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		tagNames = append(tagNames, tag.Name)
-	}
-
-	return tagNames
-}
-
-func (s *Store) FindExpenseTagRows(
-	ctx context.Context,
-	expenseIDs []int,
-	userID int,
-) ([]repo.ExpenseTagRow, error) {
-	rows, err := s.queries.SelectExpenseTagRows(ctx, expenseIDs, userID)
-	if err != nil {
-		return rows, err
-	}
-
-	return rows, nil
-}
-
 func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
 
@@ -91,7 +69,7 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 			return txErr
 		}
 
-		return s.replaceExpenseTagsTx(ctx, tq, expense.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err
@@ -121,7 +99,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params Expens
 			return txErr
 		}
 
-		return s.replaceExpenseTagsTx(ctx, tq, expense.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err
@@ -137,38 +115,4 @@ func (s *Store) DeleteExpense(ctx context.Context, id, userID int) (int, error) 
 	}
 
 	return i, nil
-}
-
-func (s *Store) replaceExpenseTagsTx(
-	ctx context.Context,
-	tq *repo.TxQueries,
-	expenseID int,
-	userID int,
-	tagNames []string,
-) error {
-	if err := tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeExpense, expenseID); err != nil {
-		return err
-	}
-
-	if len(tagNames) == 0 {
-		return nil
-	}
-
-	tags, err := s.ensureTagsForUserTx(ctx, tq, userID, tagNames)
-	if err != nil {
-		return err
-	}
-
-	for _, tag := range tags {
-		err := tq.InsertOrIgnoreTagging(ctx, repo.InsertTaggingParams{
-			TagID:        tag.ID,
-			TaggableID:   expenseID,
-			TaggableType: repo.TaggableTypeExpense,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

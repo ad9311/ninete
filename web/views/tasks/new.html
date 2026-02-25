@@ -1,0 +1,15 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW TASK</h1>
+  <nav class="page-links">
+    <a href="/lists/{{ .list.ID }}">{{ .list.Name }}</a>
+    <a href="/lists">Lists</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form action="/lists/{{ .list.ID }}/tasks" method="post">
+      {{ template "csrf" . }}
+      {{ template "task_form" . }}
+    </form>
+  </section>
+{{ end }}

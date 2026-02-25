@@ -76,6 +76,14 @@ func filterParams(pg handlers.PaginationData) string {
 		params += "&date_range=" + pg.DateRange
 	}
 
+	if pg.Done != "" {
+		params += "&done=" + pg.Done
+	}
+
+	if pg.Priority > 0 {
+		params += fmt.Sprintf("&priority=%d", pg.Priority)
+	}
+
 	return params
 }
 
@@ -97,12 +105,18 @@ func pageURL(basePath string, page int, pg handlers.PaginationData) string {
 func filterURL(basePath string, pg handlers.PaginationData, key, value string) string {
 	categoryID := pg.CategoryID
 	dateRange := pg.DateRange
+	done := pg.Done
+	priority := pg.Priority
 
 	switch key {
 	case "category_id":
 		categoryID, _ = strconv.Atoi(value)
 	case "date_range":
 		dateRange = value
+	case "done":
+		done = value
+	case "priority":
+		priority, _ = strconv.Atoi(value)
 	}
 
 	base := fmt.Sprintf("%s?sort_field=%s&sort_order=%s&per_page=%d&page=1",
@@ -113,6 +127,14 @@ func filterURL(basePath string, pg handlers.PaginationData, key, value string) s
 
 	if dateRange != "" {
 		base += "&date_range=" + dateRange
+	}
+
+	if done != "" {
+		base += "&done=" + done
+	}
+
+	if priority > 0 {
+		base += fmt.Sprintf("&priority=%d", priority)
 	}
 
 	return base

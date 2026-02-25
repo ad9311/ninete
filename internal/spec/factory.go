@@ -103,3 +103,21 @@ func (s *Spec) CreateRecurrentExpense(
 
 	return recurrentExpense
 }
+
+func (s *Spec) CreateList(t *testing.T, userID int, name string) repo.List {
+	t.Helper()
+
+	list, err := s.Store.CreateList(t.Context(), userID, logic.ListParams{Name: name})
+	require.NoError(t, err)
+
+	return list
+}
+
+func (s *Spec) CreateTask(t *testing.T, listID, userID int, params logic.TaskParams) repo.Task {
+	t.Helper()
+
+	task, err := s.Store.CreateTask(t.Context(), listID, userID, params)
+	require.NoError(t, err)
+
+	return task
+}

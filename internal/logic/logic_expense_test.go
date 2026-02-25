@@ -274,12 +274,13 @@ func TestFindExpenseTagsAndRows(t *testing.T) {
 				require.Equal(t, "tag_a_1", tags[0].Name)
 				require.Equal(t, "tag_c_1", tags[1].Name)
 
-				rows, err := s.Store.FindExpenseTagRows(ctx, []int{expenseOne.ID, expenseTwo.ID}, user.ID)
+				ids := []int{expenseOne.ID, expenseTwo.ID}
+				rows, err := s.Store.FindTagRows(ctx, repo.TaggableTypeExpense, "expenses", ids, user.ID)
 				require.NoError(t, err)
 				require.Len(t, rows, 3)
-				require.Equal(t, expenseOne.ID, rows[0].ExpenseID)
+				require.Equal(t, expenseOne.ID, rows[0].TargetID)
 				require.Equal(t, "tag_a_1", rows[0].TagName)
-				require.Equal(t, expenseTwo.ID, rows[2].ExpenseID)
+				require.Equal(t, expenseTwo.ID, rows[2].TargetID)
 				require.Equal(t, "tag_b_1", rows[2].TagName)
 			},
 		},
@@ -296,7 +297,7 @@ func TestFindExpenseTagsAndRows(t *testing.T) {
 				require.NoError(t, err)
 				require.Empty(t, tags)
 
-				rows, err := s.Store.FindExpenseTagRows(ctx, []int{}, user.ID)
+				rows, err := s.Store.FindTagRows(ctx, repo.TaggableTypeExpense, "expenses", []int{}, user.ID)
 				require.NoError(t, err)
 				require.Empty(t, rows)
 			},

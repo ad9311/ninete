@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-const TaggableTypeExpense = "expense"
+const (
+	TaggableTypeExpense = "expense"
+	TaggableTypeTask    = "task"
+)
 
 type Tagging struct {
 	ID           int
@@ -23,9 +26,9 @@ type InsertTaggingParams struct {
 	TaggableType string
 }
 
-type ExpenseTagRow struct {
-	ExpenseID int
-	TagName   string
+type TagRow struct {
+	TargetID int
+	TagName  string
 }
 
 const insertOrIgnoreTagging = `
@@ -95,28 +98,30 @@ func (q *Queries) SelectExpenseTags(ctx context.Context, expenseID, userID int) 
 	return ts, err
 }
 
-const selectExpenseTagRowsBase = `
+const selectTagRowsBase = `
 SELECT tg."taggable_id", t."name"
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "expenses" e ON e."id" = tg."taggable_id"
+INNER JOIN "%s" r ON r."id" = tg."taggable_id"
 WHERE tg."taggable_type" = ?
-  AND e."user_id" = ?
+  AND r."user_id" = ?
   AND tg."taggable_id" IN (%s)
 ORDER BY tg."taggable_id" ASC, t."name" ASC
 `
 
-func (q *Queries) SelectExpenseTagRows(
+func (q *Queries) SelectTagRows(
 	ctx context.Context,
-	expenseIDs []int,
+	taggableType string,
+	joinTable string,
+	targetIDs []int,
 	userID int,
-) ([]ExpenseTagRow, error) {
-	var rowsResult []ExpenseTagRow
-	if len(expenseIDs) == 0 {
+) ([]TagRow, error) {
+	var rowsResult []TagRow
+	if len(targetIDs) == 0 {
 		return rowsResult, nil
 	}
 
-	query, values := selectExpenseTagRowsQuery(expenseIDs, userID)
+	query, values := selectTagRowsQuery(taggableType, joinTable, targetIDs, userID)
 
 	err := q.wrapQuery(query, func() error {
 		rows, err := q.db.QueryContext(ctx, query, values...)
@@ -130,9 +135,9 @@ func (q *Queries) SelectExpenseTagRows(
 		}()
 
 		for rows.Next() {
-			var row ExpenseTagRow
+			var row TagRow
 
-			if err := rows.Scan(&row.ExpenseID, &row.TagName); err != nil {
+			if err := rows.Scan(&row.TargetID, &row.TagName); err != nil {
 				return err
 			}
 
@@ -145,15 +150,51 @@ func (q *Queries) SelectExpenseTagRows(
 	return rowsResult, err
 }
 
-func selectExpenseTagRowsQuery(expenseIDs []int, userID int) (string, []any) {
-	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(expenseIDs)), ",")
-	query := fmt.Sprintf(selectExpenseTagRowsBase, placeholders)
+func selectTagRowsQuery(taggableType, joinTable string, targetIDs []int, userID int) (string, []any) {
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(targetIDs)), ",")
+	query := fmt.Sprintf(selectTagRowsBase, joinTable, placeholders)
 
-	values := make([]any, 0, len(expenseIDs)+2)
-	values = append(values, TaggableTypeExpense, userID)
-	for _, id := range expenseIDs {
+	values := make([]any, 0, len(targetIDs)+2)
+	values = append(values, taggableType, userID)
+	for _, id := range targetIDs {
 		values = append(values, id)
 	}
 
 	return query, values
+}
+
+const selectTaskTags = `
+SELECT t.*
+FROM "taggings" tg
+INNER JOIN "tags" t ON t."id" = tg."tag_id"
+INNER JOIN "tasks" tk ON tk."id" = tg."taggable_id"
+WHERE tg."taggable_type" = ?
+  AND tg."taggable_id" = ?
+  AND tk."user_id" = ?
+ORDER BY t."name" ASC
+`
+
+func (q *Queries) SelectTaskTags(ctx context.Context, taskID, userID int) ([]Tag, error) {
+	var ts []Tag
+
+	err := q.wrapQuery(selectTaskTags, func() error {
+		rows, err := q.db.QueryContext(ctx, selectTaskTags, TaggableTypeTask, taskID, userID)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ts, err
 }

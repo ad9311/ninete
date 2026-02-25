@@ -1,0 +1,14 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW LIST</h1>
+  <nav class="page-links">
+    <a href="/lists">Lists</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form action="/lists" method="post">
+      {{ template "csrf" . }}
+      {{ template "list_form" . }}
+    </form>
+  </section>
+{{ end }}

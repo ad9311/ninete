@@ -90,16 +90,13 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 		expenseIDs = append(expenseIDs, expense.ID)
 	}
 
-	expenseTagRows, err := h.store.FindExpenseTagRows(r.Context(), expenseIDs, user.ID)
+	expenseTagRows, err := h.store.FindTagRows(r.Context(), repo.TaggableTypeExpense, "expenses", expenseIDs, user.ID)
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ExpensesIndex, err)
 
 		return
 	}
-	expenseTagNames := map[int][]string{}
-	for _, row := range expenseTagRows {
-		expenseTagNames[row.ExpenseID] = append(expenseTagNames[row.ExpenseID], row.TagName)
-	}
+	expenseTagNames := tagNamesByTargetID(expenseTagRows)
 
 	for _, expense := range expenses {
 		rows = append(rows, expenseRow{

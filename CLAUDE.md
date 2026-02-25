@@ -105,6 +105,7 @@ This document gives high-level context so agents can navigate the codebase quick
 - Execute Goose migrations.
 - Create new migration files.
 - Run seed routines.
+- **Migration index convention**: Simple single-column FK columns use only the inline `REFERENCES "table"("col") ON DELETE CASCADE` declaration — do NOT add a separate `CREATE INDEX` for them. Only add explicit `CREATE INDEX` statements for composite or complex indexes (e.g. `CREATE UNIQUE INDEX … ON "table" ("col_a", lower("col_b"))`). Example of correct inline FK: `"user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE`.
 
 ### `internal/repo`
 - **Role**: SQL data access layer.

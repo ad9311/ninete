@@ -8,6 +8,8 @@ const (
 	KeyTemplateData     = ContextKey("templateData")
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
+	KeyList             = ContextKey("listID")
+	KeyTask             = ContextKey("taskID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
@@ -38,6 +40,17 @@ const (
 	RecurrentExpensesNew   TemplateName = "recurrent_expenses/new"
 	RecurrentExpensesEdit  TemplateName = "recurrent_expenses/edit"
 	RecurrentExpensesShow  TemplateName = "recurrent_expenses/show"
+
+	// List templates.
+	ListsIndex TemplateName = "lists/index"
+	ListsNew   TemplateName = "lists/new"
+	ListsEdit  TemplateName = "lists/edit"
+	ListsShow  TemplateName = "lists/show"
+
+	// Task templates.
+	TasksNew  TemplateName = "tasks/new"
+	TasksEdit TemplateName = "tasks/edit"
+	TasksShow TemplateName = "tasks/show"
 
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"
