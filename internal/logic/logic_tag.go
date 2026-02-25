@@ -79,6 +79,65 @@ func normalizeTagNames(tagNames []string) []string {
 	return normalized
 }
 
+func ExtractTagNames(tags []repo.Tag) []string {
+	tagNames := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tagNames = append(tagNames, tag.Name)
+	}
+
+	return tagNames
+}
+
+func (s *Store) FindTagRows(
+	ctx context.Context,
+	taggableType string,
+	joinTable string,
+	targetIDs []int,
+	userID int,
+) ([]repo.TagRow, error) {
+	rows, err := s.queries.SelectTagRows(ctx, taggableType, joinTable, targetIDs, userID)
+	if err != nil {
+		return rows, err
+	}
+
+	return rows, nil
+}
+
+func (s *Store) replaceTagsTx(
+	ctx context.Context,
+	tq *repo.TxQueries,
+	taggableType string,
+	targetID int,
+	userID int,
+	tagNames []string,
+) error {
+	if err := tq.DeleteTaggingsByTarget(ctx, taggableType, targetID); err != nil {
+		return err
+	}
+
+	if len(tagNames) == 0 {
+		return nil
+	}
+
+	tags, err := s.ensureTagsForUserTx(ctx, tq, userID, tagNames)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range tags {
+		err := tq.InsertOrIgnoreTagging(ctx, repo.InsertTaggingParams{
+			TagID:        tag.ID,
+			TaggableID:   targetID,
+			TaggableType: taggableType,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Store) ensureTagsForUserTx(
 	ctx context.Context,
 	tq *repo.TxQueries,

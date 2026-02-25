@@ -235,6 +235,15 @@ func categoryNameOrUnknown(nameByID map[int]string, categoryID int) string {
 	return "Unknown"
 }
 
+func tagNamesByTargetID(rows []repo.TagRow) map[int][]string {
+	m := map[int][]string{}
+	for _, row := range rows {
+		m[row.TargetID] = append(m[row.TargetID], row.TagName)
+	}
+
+	return m
+}
+
 func setResourceFormData(
 	data map[string]any,
 	categories []repo.Category,

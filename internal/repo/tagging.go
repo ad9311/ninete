@@ -26,14 +26,9 @@ type InsertTaggingParams struct {
 	TaggableType string
 }
 
-type ExpenseTagRow struct {
-	ExpenseID int
-	TagName   string
-}
-
-type TaskTagRow struct {
-	TaskID  int
-	TagName string
+type TagRow struct {
+	TargetID int
+	TagName  string
 }
 
 const insertOrIgnoreTagging = `
@@ -103,28 +98,30 @@ func (q *Queries) SelectExpenseTags(ctx context.Context, expenseID, userID int) 
 	return ts, err
 }
 
-const selectExpenseTagRowsBase = `
+const selectTagRowsBase = `
 SELECT tg."taggable_id", t."name"
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "expenses" e ON e."id" = tg."taggable_id"
+INNER JOIN "%s" r ON r."id" = tg."taggable_id"
 WHERE tg."taggable_type" = ?
-  AND e."user_id" = ?
+  AND r."user_id" = ?
   AND tg."taggable_id" IN (%s)
 ORDER BY tg."taggable_id" ASC, t."name" ASC
 `
 
-func (q *Queries) SelectExpenseTagRows(
+func (q *Queries) SelectTagRows(
 	ctx context.Context,
-	expenseIDs []int,
+	taggableType string,
+	joinTable string,
+	targetIDs []int,
 	userID int,
-) ([]ExpenseTagRow, error) {
-	var rowsResult []ExpenseTagRow
-	if len(expenseIDs) == 0 {
+) ([]TagRow, error) {
+	var rowsResult []TagRow
+	if len(targetIDs) == 0 {
 		return rowsResult, nil
 	}
 
-	query, values := selectExpenseTagRowsQuery(expenseIDs, userID)
+	query, values := selectTagRowsQuery(taggableType, joinTable, targetIDs, userID)
 
 	err := q.wrapQuery(query, func() error {
 		rows, err := q.db.QueryContext(ctx, query, values...)
@@ -138,9 +135,9 @@ func (q *Queries) SelectExpenseTagRows(
 		}()
 
 		for rows.Next() {
-			var row ExpenseTagRow
+			var row TagRow
 
-			if err := rows.Scan(&row.ExpenseID, &row.TagName); err != nil {
+			if err := rows.Scan(&row.TargetID, &row.TagName); err != nil {
 				return err
 			}
 
@@ -153,13 +150,13 @@ func (q *Queries) SelectExpenseTagRows(
 	return rowsResult, err
 }
 
-func selectExpenseTagRowsQuery(expenseIDs []int, userID int) (string, []any) {
-	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(expenseIDs)), ",")
-	query := fmt.Sprintf(selectExpenseTagRowsBase, placeholders)
+func selectTagRowsQuery(taggableType, joinTable string, targetIDs []int, userID int) (string, []any) {
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(targetIDs)), ",")
+	query := fmt.Sprintf(selectTagRowsBase, joinTable, placeholders)
 
-	values := make([]any, 0, len(expenseIDs)+2)
-	values = append(values, TaggableTypeExpense, userID)
-	for _, id := range expenseIDs {
+	values := make([]any, 0, len(targetIDs)+2)
+	values = append(values, taggableType, userID)
+	for _, id := range targetIDs {
 		values = append(values, id)
 	}
 
@@ -200,67 +197,4 @@ func (q *Queries) SelectTaskTags(ctx context.Context, taskID, userID int) ([]Tag
 	})
 
 	return ts, err
-}
-
-const selectTaskTagRowsBase = `
-SELECT tg."taggable_id", t."name"
-FROM "taggings" tg
-INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "tasks" tk ON tk."id" = tg."taggable_id"
-WHERE tg."taggable_type" = ?
-  AND tk."user_id" = ?
-  AND tg."taggable_id" IN (%s)
-ORDER BY tg."taggable_id" ASC, t."name" ASC
-`
-
-func (q *Queries) SelectTaskTagRows(
-	ctx context.Context,
-	taskIDs []int,
-	userID int,
-) ([]TaskTagRow, error) {
-	var rowsResult []TaskTagRow
-	if len(taskIDs) == 0 {
-		return rowsResult, nil
-	}
-
-	query, values := selectTaskTagRowsQuery(taskIDs, userID)
-
-	err := q.wrapQuery(query, func() error {
-		rows, err := q.db.QueryContext(ctx, query, values...)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if closeErr := rows.Close(); closeErr != nil {
-				q.app.Logger.Error(closeErr)
-			}
-		}()
-
-		for rows.Next() {
-			var row TaskTagRow
-
-			if err := rows.Scan(&row.TaskID, &row.TagName); err != nil {
-				return err
-			}
-
-			rowsResult = append(rowsResult, row)
-		}
-
-		return rows.Err()
-	})
-
-	return rowsResult, err
-}
-
-func selectTaskTagRowsQuery(taskIDs []int, userID int) (string, []any) {
-	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(taskIDs)), ",")
-	query := fmt.Sprintf(selectTaskTagRowsBase, placeholders)
-
-	values := make([]any, 0, len(taskIDs)+2)
-	values = append(values, TaggableTypeTask, userID)
-	for _, id := range taskIDs {
-		values = append(values, id)
-	}
-
-	return query, values
 }

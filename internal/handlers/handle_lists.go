@@ -81,7 +81,7 @@ func (h *Handler) GetLists(w http.ResponseWriter, r *http.Request) {
 		listIDs = append(listIDs, l.ID)
 	}
 
-	taskCountByListID, err := h.countTasksByListIDs(r.Context(), listIDs, user.ID)
+	taskCountByListID, err := h.store.CountTasksByListIDs(r.Context(), listIDs, user.ID)
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ListsIndex, err)
 
@@ -162,17 +162,14 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 		taskIDs = append(taskIDs, t.ID)
 	}
 
-	taskTagRows, err := h.store.FindTaskTagRows(ctx, taskIDs, user.ID)
+	taskTagRows, err := h.store.FindTagRows(ctx, repo.TaggableTypeTask, "tasks", taskIDs, user.ID)
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ListsShow, err)
 
 		return
 	}
 
-	taskTagNames := map[int][]string{}
-	for _, row := range taskTagRows {
-		taskTagNames[row.TaskID] = append(taskTagNames[row.TaskID], row.TagName)
-	}
+	taskTagNames := tagNamesByTargetID(taskTagRows)
 
 	taskRows := make([]taskRow, 0, len(tasks))
 	for _, t := range tasks {
@@ -277,34 +274,4 @@ func getList(r *http.Request) *repo.List {
 	}
 
 	return list
-}
-
-func (h *Handler) countTasksByListIDs(
-	ctx context.Context,
-	listIDs []int,
-	userID int,
-) (map[int]int, error) {
-	counts := make(map[int]int, len(listIDs))
-	for _, id := range listIDs {
-		counts[id] = 0
-	}
-
-	for _, listID := range listIDs {
-		filters := repo.Filters{
-			Connector: "AND",
-			FilterFields: []repo.FilterField{
-				{Name: "list_id", Value: listID, Operator: "="},
-				{Name: "user_id", Value: userID, Operator: "="},
-			},
-		}
-
-		count, err := h.store.CountTasks(ctx, filters)
-		if err != nil {
-			return nil, err
-		}
-
-		counts[listID] = count
-	}
-
-	return counts, nil
 }

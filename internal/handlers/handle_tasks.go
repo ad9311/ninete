@@ -221,21 +221,7 @@ func (h *Handler) PostTasksDone(w http.ResponseWriter, r *http.Request) {
 	list := getList(r)
 	task := getTask(r)
 
-	taskTags, err := h.store.FindTaskTags(ctx, task.ID, user.ID)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
-
-		return
-	}
-
-	params := logic.TaskParams{
-		Description: task.Description,
-		Priority:    task.Priority,
-		Done:        !task.Done,
-		Tags:        logic.ExtractTagNames(taskTags),
-	}
-
-	_, err = h.store.UpdateTask(ctx, task.ID, user.ID, params)
+	_, err := h.store.ToggleTaskDone(ctx, task.ID, user.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.NotFound(w, r)

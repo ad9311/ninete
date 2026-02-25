@@ -49,17 +49,13 @@ func (s *Store) FindTaskTags(ctx context.Context, taskID, userID int) ([]repo.Ta
 	return tags, nil
 }
 
-func (s *Store) FindTaskTagRows(
-	ctx context.Context,
-	taskIDs []int,
-	userID int,
-) ([]repo.TaskTagRow, error) {
-	rows, err := s.queries.SelectTaskTagRows(ctx, taskIDs, userID)
+func (s *Store) CountTasksByListIDs(ctx context.Context, listIDs []int, userID int) (map[int]int, error) {
+	counts, err := s.queries.CountTasksByListIDs(ctx, listIDs, userID)
 	if err != nil {
-		return rows, err
+		return nil, err
 	}
 
-	return rows, nil
+	return counts, nil
 }
 
 func (s *Store) CreateTask(ctx context.Context, listID, userID int, params TaskParams) (repo.Task, error) {
@@ -82,7 +78,7 @@ func (s *Store) CreateTask(ctx context.Context, listID, userID int, params TaskP
 			return txErr
 		}
 
-		return s.replaceTaskTagsTx(ctx, tq, task.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeTask, task.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return task, err
@@ -111,8 +107,17 @@ func (s *Store) UpdateTask(ctx context.Context, id, userID int, params TaskParam
 			return txErr
 		}
 
-		return s.replaceTaskTagsTx(ctx, tq, task.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeTask, task.ID, userID, params.Tags)
 	})
+	if err != nil {
+		return task, err
+	}
+
+	return task, nil
+}
+
+func (s *Store) ToggleTaskDone(ctx context.Context, id, userID int) (repo.Task, error) {
+	task, err := s.queries.ToggleTaskDone(ctx, id, userID)
 	if err != nil {
 		return task, err
 	}
@@ -127,38 +132,4 @@ func (s *Store) DeleteTask(ctx context.Context, id, userID int) (int, error) {
 	}
 
 	return i, nil
-}
-
-func (s *Store) replaceTaskTagsTx(
-	ctx context.Context,
-	tq *repo.TxQueries,
-	taskID int,
-	userID int,
-	tagNames []string,
-) error {
-	if err := tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeTask, taskID); err != nil {
-		return err
-	}
-
-	if len(tagNames) == 0 {
-		return nil
-	}
-
-	tags, err := s.ensureTagsForUserTx(ctx, tq, userID, tagNames)
-	if err != nil {
-		return err
-	}
-
-	for _, tag := range tags {
-		err := tq.InsertOrIgnoreTagging(ctx, repo.InsertTaggingParams{
-			TagID:        tag.ID,
-			TaggableID:   taskID,
-			TaggableType: repo.TaggableTypeTask,
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
