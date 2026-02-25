@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-const TaggableTypeExpense = "expense"
+const (
+	TaggableTypeExpense = "expense"
+	TaggableTypeTask    = "task"
+)
 
 type Tagging struct {
 	ID           int
@@ -26,6 +29,11 @@ type InsertTaggingParams struct {
 type ExpenseTagRow struct {
 	ExpenseID int
 	TagName   string
+}
+
+type TaskTagRow struct {
+	TaskID  int
+	TagName string
 }
 
 const insertOrIgnoreTagging = `
@@ -152,6 +160,105 @@ func selectExpenseTagRowsQuery(expenseIDs []int, userID int) (string, []any) {
 	values := make([]any, 0, len(expenseIDs)+2)
 	values = append(values, TaggableTypeExpense, userID)
 	for _, id := range expenseIDs {
+		values = append(values, id)
+	}
+
+	return query, values
+}
+
+const selectTaskTags = `
+SELECT t.*
+FROM "taggings" tg
+INNER JOIN "tags" t ON t."id" = tg."tag_id"
+INNER JOIN "tasks" tk ON tk."id" = tg."taggable_id"
+WHERE tg."taggable_type" = ?
+  AND tg."taggable_id" = ?
+  AND tk."user_id" = ?
+ORDER BY t."name" ASC
+`
+
+func (q *Queries) SelectTaskTags(ctx context.Context, taskID, userID int) ([]Tag, error) {
+	var ts []Tag
+
+	err := q.wrapQuery(selectTaskTags, func() error {
+		rows, err := q.db.QueryContext(ctx, selectTaskTags, TaggableTypeTask, taskID, userID)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ts, err
+}
+
+const selectTaskTagRowsBase = `
+SELECT tg."taggable_id", t."name"
+FROM "taggings" tg
+INNER JOIN "tags" t ON t."id" = tg."tag_id"
+INNER JOIN "tasks" tk ON tk."id" = tg."taggable_id"
+WHERE tg."taggable_type" = ?
+  AND tk."user_id" = ?
+  AND tg."taggable_id" IN (%s)
+ORDER BY tg."taggable_id" ASC, t."name" ASC
+`
+
+func (q *Queries) SelectTaskTagRows(
+	ctx context.Context,
+	taskIDs []int,
+	userID int,
+) ([]TaskTagRow, error) {
+	var rowsResult []TaskTagRow
+	if len(taskIDs) == 0 {
+		return rowsResult, nil
+	}
+
+	query, values := selectTaskTagRowsQuery(taskIDs, userID)
+
+	err := q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var row TaskTagRow
+
+			if err := rows.Scan(&row.TaskID, &row.TagName); err != nil {
+				return err
+			}
+
+			rowsResult = append(rowsResult, row)
+		}
+
+		return rows.Err()
+	})
+
+	return rowsResult, err
+}
+
+func selectTaskTagRowsQuery(taskIDs []int, userID int) (string, []any) {
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(taskIDs)), ",")
+	query := fmt.Sprintf(selectTaskTagRowsBase, placeholders)
+
+	values := make([]any, 0, len(taskIDs)+2)
+	values = append(values, TaggableTypeTask, userID)
+	for _, id := range taskIDs {
 		values = append(values, id)
 	}
 

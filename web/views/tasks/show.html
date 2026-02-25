@@ -1,0 +1,59 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>TASK</h1>
+  <nav class="page-links">
+    <a href="/lists/{{ .list.ID }}">{{ .list.Name }}</a>
+    <a href="/lists">Lists</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Description</th>
+        <td>{{ .task.Description }}</td>
+      </tr>
+      <tr>
+        <th>Priority</th>
+        <td>{{ .task.PriorityLabel }}</td>
+      </tr>
+      <tr>
+        <th>Done</th>
+        <td>{{ if .task.Done }}Yes{{ else }}No{{ end }}</td>
+      </tr>
+      <tr>
+        <th>Tags</th>
+        <td>
+          {{ if .task.Tags }}
+            <div class="chip-list">
+              {{ range .task.Tags }}
+                <span class="chip">{{ . }}</span>
+              {{ end }}
+            </div>
+          {{ else }}
+            <span class="chip chip-empty">No tags</span>
+          {{ end }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <form
+        action="/lists/{{ .list.ID }}/tasks/{{ .task.ID }}/done"
+        method="post"
+      >
+        {{ template "csrf" . }}
+        <button type="submit">
+          {{ if .task.Done }}Mark Undone{{ else }}Mark Done{{ end }}
+        </button>
+      </form>
+      <a href="/lists/{{ .list.ID }}/tasks/{{ .task.ID }}/edit">Edit Task</a>
+      <form
+        action="/lists/{{ .list.ID }}/tasks/{{ .task.ID }}/delete"
+        method="post"
+      >
+        {{ template "csrf" . }}
+        <button type="submit" class="btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </section>
+{{ end }}

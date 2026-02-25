@@ -1,0 +1,62 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>{{ .list.Name }}</h1>
+  <nav class="page-links">
+    <a href="/lists/{{ .list.ID }}/tasks/new">Add Task</a>
+    <a href="/lists">Lists</a>
+  </nav>
+  {{ template "form_error" . }}
+  <table>
+    <thead>
+      <tr>
+        <th>Done</th>
+        <th>Description</th>
+        <th>Priority</th>
+        <th>Tags</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .tasks }}
+        <tr>
+          <td>
+            <form
+              action="/lists/{{ $.list.ID }}/tasks/{{ .ID }}/done"
+              method="post"
+            >
+              {{ template "csrf" $ }}
+              <button type="submit" class="btn-toggle">
+                {{ if .Done }}✓{{ else }}○{{ end }}
+              </button>
+            </form>
+          </td>
+          <td>{{ .Description }}</td>
+          <td>{{ .PriorityLabel }}</td>
+          <td>
+            {{ if .Tags }}
+              <div class="chip-list">
+                {{ range .Tags }}
+                  <span class="chip">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </td>
+          <td>
+            <a href="/lists/{{ $.list.ID }}/tasks/{{ .ID }}">Visit</a>
+          </td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/lists/{{ .list.ID }}/edit">Edit List</a>
+      <form action="/lists/{{ .list.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button type="submit" class="btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </section>
+{{ end }}

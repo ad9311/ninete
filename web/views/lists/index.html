@@ -1,0 +1,42 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>LISTS</h1>
+  <nav class="page-links">
+    <a href="/lists/new">New List</a>
+  </nav>
+  {{ template "form_error" . }}
+  <table>
+    <thead>
+      <tr>
+        <th>
+          <a href="{{ sortURL .basePath "name" .pagination }}" class="sort-link"
+            >Name
+            {{ if eq .pagination.SortField "name" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>Tasks</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .lists }}
+        <tr>
+          <td>{{ .Name }}</td>
+          <td>{{ .TaskCount }}</td>
+          <td>
+            <a href="/lists/{{ .ID }}">Visit</a>
+          </td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  {{ template "pagination" . }}
+{{ end }}

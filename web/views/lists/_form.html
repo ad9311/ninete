@@ -1,0 +1,10 @@
+{{ define "list_form" }}
+  <input
+    type="text"
+    placeholder="List name"
+    name="name"
+    value="{{ .list.Name }}"
+    autofocus
+  />
+  <button type="submit" class="btn-primary">Submit</button>
+{{ end }}
