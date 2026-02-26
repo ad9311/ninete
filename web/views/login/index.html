@@ -8,7 +8,13 @@
         {{ template "csrf" . }}
         <input type="email" placeholder="Email" name="email" />
         <input type="password" placeholder="Password" name="password" />
-        <button type="submit" class="btn-primary">Login</button>
+        <button
+          type="submit"
+          class="btn-primary"
+          data-turbo-submits-with="Logging in..."
+        >
+          Login
+        </button>
       </form>
       <p class="auth-switch">
         Need an account? <a href="/register">Register</a>

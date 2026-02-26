@@ -19,7 +19,13 @@
           placeholder="Invitation Code"
           name="invitationCode"
         />
-        <button type="submit" class="btn-primary">Register</button>
+        <button
+          type="submit"
+          class="btn-primary"
+          data-turbo-submits-with="Registering..."
+        >
+          Register
+        </button>
       </form>
       <p class="auth-switch">
         Already have an account? <a href="/login">Login</a>

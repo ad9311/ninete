@@ -47,5 +47,7 @@
     data-date-target="value"
     value="{{ .expense.Date }}"
   />
-  <button type="submit" class="btn-primary">Submit</button>
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
 {{ end }}

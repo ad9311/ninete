@@ -42,7 +42,7 @@
         method="post"
       >
         {{ template "csrf" . }}
-        <button type="submit">
+        <button type="submit" data-turbo-submits-with="...">
           {{ if .task.Done }}Mark Undone{{ else }}Mark Done{{ end }}
         </button>
       </form>
@@ -52,7 +52,13 @@
         method="post"
       >
         {{ template "csrf" . }}
-        <button type="submit" class="btn-danger btn-sm">Delete</button>
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
       </form>
     </div>
   </section>

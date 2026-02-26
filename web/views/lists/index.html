@@ -5,7 +5,30 @@
     <a href="/lists/new">New List</a>
   </nav>
   {{ template "form_error" . }}
-  <table>
+  <div class="sort-mobile" data-controller="sort">
+    <label>
+      Sort by
+      <select data-sort-target="select" data-action="change->sort#apply">
+        <option
+          value="name:ASC"
+          {{ if and (eq .pagination.SortField "name") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Name (A–Z)
+        </option>
+        <option
+          value="name:DESC"
+          {{ if and (eq .pagination.SortField "name") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Name (Z–A)
+        </option>
+      </select>
+    </label>
+  </div>
+  <table class="data-table">
     <thead>
       <tr>
         <th>
@@ -38,5 +61,18 @@
       {{ end }}
     </tbody>
   </table>
+  <ul class="card-list">
+    {{ range .lists }}
+      <li class="card-list-item">
+        <div class="card-list-row">
+          <a href="/lists/{{ .ID }}" class="card-list-link">{{ .Name }}</a>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Tasks</span>
+          <span>{{ .TaskCount }}</span>
+        </div>
+      </li>
+    {{ end }}
+  </ul>
   {{ template "pagination" . }}
 {{ end }}
