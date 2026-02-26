@@ -47,7 +47,78 @@
       </select>
     </label>
   </div>
-  <table>
+  <div class="sort-mobile" data-controller="sort">
+    <label>
+      Sort by
+      <select data-sort-target="select" data-action="change->sort#apply">
+        <option
+          value="description:ASC"
+          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Description (A–Z)
+        </option>
+        <option
+          value="description:DESC"
+          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Description (Z–A)
+        </option>
+        <option
+          value="priority:DESC"
+          {{ if and (eq .pagination.SortField "priority") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Priority (high–low)
+        </option>
+        <option
+          value="priority:ASC"
+          {{ if and (eq .pagination.SortField "priority") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Priority (low–high)
+        </option>
+        <option
+          value="done:ASC"
+          {{ if and (eq .pagination.SortField "done") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Done (no first)
+        </option>
+        <option
+          value="done:DESC"
+          {{ if and (eq .pagination.SortField "done") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Done (yes first)
+        </option>
+        <option
+          value="created_at:DESC"
+          {{ if and (eq .pagination.SortField "created_at") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Created (newest)
+        </option>
+        <option
+          value="created_at:ASC"
+          {{ if and (eq .pagination.SortField "created_at") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Created (oldest)
+        </option>
+      </select>
+    </label>
+  </div>
+  <table class="data-table">
     <thead>
       <tr>
         <th>
@@ -155,6 +226,54 @@
       {{ end }}
     </tbody>
   </table>
+  <ul class="card-list">
+    {{ range .tasks }}
+      <li class="card-list-item">
+        <div class="card-list-row">
+          <a
+            href="/lists/{{ $.list.ID }}/tasks/{{ .ID }}"
+            class="card-list-link"
+            >{{ .Description }}</a
+          >
+          <form
+            action="/lists/{{ $.list.ID }}/tasks/{{ .ID }}/done"
+            method="post"
+          >
+            {{ template "csrf" $ }}
+            <button
+              type="submit"
+              class="btn-toggle"
+              data-turbo-submits-with="..."
+            >
+              {{ if .Done }}✓{{ else }}○{{ end }}
+            </button>
+          </form>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Priority</span>
+          <span>{{ .PriorityLabel }}</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Created At</span>
+          <span>{{ .CreatedAt | timeStamp }}</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Tags</span>
+          <span>
+            {{ if .Tags }}
+              <span class="chip-list">
+                {{ range .Tags }}
+                  <span class="chip">{{ . }}</span>
+                {{ end }}
+              </span>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </span>
+        </div>
+      </li>
+    {{ end }}
+  </ul>
   {{ template "pagination" . }}
   <section class="form-card">
     <div class="resource-actions">

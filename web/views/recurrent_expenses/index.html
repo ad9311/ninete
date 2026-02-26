@@ -24,7 +24,78 @@
       </select>
     </label>
   </div>
-  <table>
+  <div class="sort-mobile" data-controller="sort">
+    <label>
+      Sort by
+      <select data-sort-target="select" data-action="change->sort#apply">
+        <option
+          value="description:ASC"
+          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Description (A–Z)
+        </option>
+        <option
+          value="description:DESC"
+          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Description (Z–A)
+        </option>
+        <option
+          value="amount:DESC"
+          {{ if and (eq .pagination.SortField "amount") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Amount (high–low)
+        </option>
+        <option
+          value="amount:ASC"
+          {{ if and (eq .pagination.SortField "amount") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Amount (low–high)
+        </option>
+        <option
+          value="period:ASC"
+          {{ if and (eq .pagination.SortField "period") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Period (low–high)
+        </option>
+        <option
+          value="period:DESC"
+          {{ if and (eq .pagination.SortField "period") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Period (high–low)
+        </option>
+        <option
+          value="category_id:ASC"
+          {{ if and (eq .pagination.SortField "category_id") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Category (A–Z)
+        </option>
+        <option
+          value="category_id:DESC"
+          {{ if and (eq .pagination.SortField "category_id") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Category (Z–A)
+        </option>
+      </select>
+    </label>
+  </div>
+  <table class="data-table">
     <thead>
       <tr>
         <th>
@@ -118,5 +189,34 @@
       </tr>
     </tfoot>
   </table>
+  <ul class="card-list">
+    {{ range .recurrentExpenses }}
+      <li class="card-list-item">
+        <div class="card-list-row">
+          <a href="/recurrent-expenses/{{ .ID }}" class="card-list-link"
+            >{{ .Description }}</a
+          >
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Category</span>
+          <span>{{ .CategoryName }}</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Amount</span>
+          <span class="amount-value">{{ .Amount | currency }}</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Period (months)</span>
+          <span>{{ .Period }}</span>
+        </div>
+      </li>
+    {{ end }}
+    <li class="card-list-summary">
+      Total recurrent expenses
+      <span class="amount-value"
+        >{{ .recurrentExpenses | sumAmount | currency }}</span
+      >
+    </li>
+  </ul>
   {{ template "pagination" . }}
 {{ end }}

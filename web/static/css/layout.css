@@ -377,13 +377,75 @@ td form {
   opacity: 0.9;
 }
 
+.card-list {
+  display: none;
+}
+
+.card-list-item {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-3);
+  box-shadow: var(--shadow-1);
+}
+
+.card-list-item + .card-list-item {
+  margin-top: var(--space-3);
+}
+
+.card-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.card-list-label {
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.card-list-link {
+  font-weight: 600;
+}
+
+.card-list-summary {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-3);
+  margin-top: var(--space-3);
+  font-weight: 600;
+}
+
+.card-list-item form {
+  display: inline-flex;
+  margin: 0;
+  max-width: none;
+}
+
+.card-list-item .btn-toggle {
+  width: var(--size-control);
+  min-width: var(--size-control);
+  min-height: var(--size-control);
+  padding: 0;
+}
+
+.sort-mobile {
+  display: none;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
 }
 
-.filters label {
+.filters label,
+.sort-mobile label {
   display: grid;
   gap: var(--space-1);
   font-size: var(--font-size-1);
@@ -391,7 +453,8 @@ td form {
   color: var(--color-text-muted);
 }
 
-.filters select {
+.filters select,
+.sort-mobile select {
   width: 14rem;
 }
 
@@ -521,5 +584,19 @@ p[style*="color: red"] {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    display: none;
+  }
+
+  .card-list {
+    display: block;
+  }
+
+  .sort-mobile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
   }
 }
