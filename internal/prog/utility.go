@@ -77,7 +77,7 @@ func parseError(value any, fieldName string, err error) error {
 }
 
 func UnixToStringDate(date int64, format string) string {
-	normalDate := time.Unix(date, 0)
+	normalDate := time.Unix(date, 0).UTC()
 
 	return FormatTime(normalDate, format)
 }

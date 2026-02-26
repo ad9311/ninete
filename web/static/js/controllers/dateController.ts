@@ -17,18 +17,13 @@ export default class extends Controller {
       return;
     }
 
-    const parsed = new Date(localDate);
-    if (Number.isNaN(parsed.getTime())) {
-      this.valueTarget.value = "";
-      return;
-    }
-
-    this.valueTarget.value = toRFC3339WithOffset(parsed);
+    // Send as UTC midnight to preserve the calendar date regardless of timezone
+    this.valueTarget.value = localDate + "T00:00:00Z";
   }
 
   private hydrateLocalDate() {
     const setCurrentLocalDate = () => {
-      this.localTarget.value = toLocalDateTimeInput(new Date());
+      this.localTarget.value = toLocalDate(new Date());
     };
 
     if (this.localTarget.value) {
@@ -50,7 +45,7 @@ export default class extends Controller {
 
       const date = new Date(unix * 1000);
       if (!Number.isNaN(date.getTime())) {
-        this.localTarget.value = toLocalDateTimeInput(date);
+        this.localTarget.value = toUTCDate(date);
 
         return;
       }
@@ -62,7 +57,7 @@ export default class extends Controller {
 
     const parsed = new Date(rawValue);
     if (!Number.isNaN(parsed.getTime())) {
-      this.localTarget.value = toLocalDateTimeInput(parsed);
+      this.localTarget.value = toUTCDate(parsed);
 
       return;
     }
@@ -71,23 +66,20 @@ export default class extends Controller {
   }
 }
 
-function toRFC3339WithOffset(date: Date): string {
-  const offset = -date.getTimezoneOffset();
-  const sign = offset >= 0 ? "+" : "-";
-  const absOffset = Math.abs(offset);
-  const hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
-  const mins = String(absOffset % 60).padStart(2, "0");
-
-  return date.toISOString().slice(0, 19) + `${sign}${hours}:${mins}`;
-}
-
-function toLocalDateTimeInput(date: Date): string {
+// Returns the local calendar date as YYYY-MM-DD (used for defaulting to today)
+function toLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  return `${year}-${month}-${day}`;
+}
+
+// Returns the UTC calendar date as YYYY-MM-DD (used when hydrating a stored UTC timestamp)
+function toUTCDate(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }

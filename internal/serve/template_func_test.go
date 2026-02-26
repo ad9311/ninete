@@ -133,7 +133,7 @@ func TestTimeStamp(t *testing.T) {
 		}},
 		{"epoch timestamp", func(t *testing.T) {
 			result := renderTemplate(t, tmpl, int64(0))
-			expected := time.Unix(0, 0).Format(time.DateOnly)
+			expected := time.Unix(0, 0).UTC().Format(time.DateOnly)
 			require.Equal(t, expected, result)
 		}},
 	}
