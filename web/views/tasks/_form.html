@@ -21,5 +21,7 @@
     name="tags"
     value="{{ .tagsInput }}"
   />
-  <button type="submit" class="btn-primary">Submit</button>
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
 {{ end }}

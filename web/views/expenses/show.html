@@ -44,7 +44,13 @@
       <a href="/expenses/{{ .expense.ID }}/edit">Edit Expense</a>
       <form action="/expenses/{{ .expense.ID }}/delete" method="post">
         {{ template "csrf" . }}
-        <button type="submit" class="btn-danger btn-sm">Delete</button>
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
       </form>
     </div>
   </section>

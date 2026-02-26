@@ -9,9 +9,11 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/prog"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
-func templateFuncMap() template.FuncMap {
+func TemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"currency":         currency,
 		"sumAmount":        sumAmount,
@@ -27,9 +29,9 @@ func templateFuncMap() template.FuncMap {
 }
 
 func currency(v uint64) string {
-	base := float64(v) / 100.00
+	p := message.NewPrinter(language.AmericanEnglish)
 
-	return "$" + strconv.FormatFloat(base, 'f', 2, 64)
+	return p.Sprintf("$%.2f", float64(v)/100.0)
 }
 
 func timeStamp(v int64) string {

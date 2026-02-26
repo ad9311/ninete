@@ -52,7 +52,13 @@
         name="period"
         value="{{ .recurrentExpense.Period }}"
       />
-      <button type="submit" class="btn-primary">Submit</button>
+      <button
+        type="submit"
+        class="btn-primary"
+        data-turbo-submits-with="Saving..."
+      >
+        Submit
+      </button>
     </form>
   </section>
 {{ end }}

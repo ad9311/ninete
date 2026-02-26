@@ -125,7 +125,11 @@
               method="post"
             >
               {{ template "csrf" $ }}
-              <button type="submit" class="btn-toggle">
+              <button
+                type="submit"
+                class="btn-toggle"
+                data-turbo-submits-with="..."
+              >
                 {{ if .Done }}✓{{ else }}○{{ end }}
               </button>
             </form>
@@ -157,7 +161,13 @@
       <a href="/lists/{{ .list.ID }}/edit">Edit List</a>
       <form action="/lists/{{ .list.ID }}/delete" method="post">
         {{ template "csrf" . }}
-        <button type="submit" class="btn-danger btn-sm">Delete</button>
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
       </form>
     </div>
   </section>

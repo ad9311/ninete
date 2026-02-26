@@ -44,7 +44,7 @@ func parseTemplates() (map[handlers.TemplateName]*template.Template, error) {
 		return vc, ErrLayoutNotFound
 	}
 
-	base, err := template.New("layout").Funcs(templateFuncMap()).ParseGlob(layoutPath)
+	base, err := template.New("layout").Funcs(TemplateFuncMap()).ParseGlob(layoutPath)
 	if err != nil {
 		return vc, err
 	}

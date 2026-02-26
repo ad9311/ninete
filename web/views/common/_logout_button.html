@@ -1,6 +1,12 @@
 {{ define "logout_button" }}
   <form action="/logout" method="post">
     {{ template "csrf" . }}
-    <button type="submit" class="btn-danger">Logout</button>
+    <button
+      type="submit"
+      class="btn-danger"
+      data-turbo-submits-with="Logging out..."
+    >
+      Logout
+    </button>
   </form>
 {{ end }}

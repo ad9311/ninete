@@ -295,6 +295,11 @@ button.btn-danger:hover {
   background: var(--color-danger-hover);
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 table {
   width: 100%;
   border-collapse: separate;
