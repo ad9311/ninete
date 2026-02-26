@@ -40,19 +40,18 @@ func DateRangeOptions() []struct {
 }
 
 func computeDateRange(key string) (dateRange, bool) {
-	now := time.Now()
+	now := time.Now().UTC()
 	year, month, _ := now.Date()
-	loc := now.Location()
 
 	switch key {
 	case "this_month":
-		start := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+		start := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 		end := start.AddDate(0, 1, 0)
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "last_month":
-		start := time.Date(year, month-1, 1, 0, 0, 0, 0, loc)
-		end := time.Date(year, month, 1, 0, 0, 0, 0, loc)
+		start := time.Date(year, month-1, 1, 0, 0, 0, 0, time.UTC)
+		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "this_week":
@@ -61,18 +60,18 @@ func computeDateRange(key string) (dateRange, bool) {
 			weekday = 7
 		}
 		monday := now.AddDate(0, 0, -int(weekday-time.Monday))
-		start := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, loc)
+		start := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, time.UTC)
 		end := start.AddDate(0, 0, 7)
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "six_months":
-		start := time.Date(year, month-6, 1, 0, 0, 0, 0, loc)
-		end := time.Date(year, month, 1, 0, 0, 0, 0, loc).AddDate(0, 1, 0)
+		start := time.Date(year, month-6, 1, 0, 0, 0, 0, time.UTC)
+		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "this_year":
-		start := time.Date(year, 1, 1, 0, 0, 0, 0, loc)
-		end := time.Date(year+1, 1, 1, 0, 0, 0, 0, loc)
+		start := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+		end := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC)
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	default:
