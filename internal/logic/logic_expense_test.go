@@ -441,6 +441,105 @@ func TestDeleteExpense(t *testing.T) {
 	}
 }
 
+func TestFindExpensesCategoryTotals(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	categoryOne := s.CreateCategory(t, "expense category 9")
+	categoryTwo := s.CreateCategory(t, "expense category 10")
+
+	const dateJan10 int64 = 1736467200 // 2026-01-10
+	const dateJan20 int64 = 1737331200 // 2026-01-20
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_return_summed_totals_per_category_scoped_to_user",
+			fn: func(t *testing.T) {
+				user := s.CreateUser(t, repo.InsertUserParams{
+					Username:     "expense_user_14",
+					Email:        "expense_user_14@example.com",
+					PasswordHash: []byte("expense_user_hash_14"),
+				})
+				otherUser := s.CreateUser(t, repo.InsertUserParams{
+					Username:     "expense_user_15",
+					Email:        "expense_user_15@example.com",
+					PasswordHash: []byte("expense_user_hash_15"),
+				})
+
+				s.CreateExpense(t, user.ID, newExpenseParams(categoryOne.ID, "totals_exp_1", 100, dateJan10, nil))
+				s.CreateExpense(t, user.ID, newExpenseParams(categoryOne.ID, "totals_exp_2", 200, dateJan10, nil))
+				s.CreateExpense(t, user.ID, newExpenseParams(categoryTwo.ID, "totals_exp_3", 400, dateJan10, nil))
+				s.CreateExpense(t, otherUser.ID, newExpenseParams(categoryOne.ID, "totals_exp_4", 999, dateJan10, nil))
+
+				totals, err := s.Store.FindExpensesCategoryTotals(ctx, repo.Filters{
+					FilterFields: []repo.FilterField{
+						{Name: "user_id", Value: user.ID, Operator: "="},
+					},
+				})
+				require.NoError(t, err)
+				require.Len(t, totals, 2)
+
+				byCategory := map[int]uint64{}
+				for _, row := range totals {
+					byCategory[row.CategoryID] = row.Total
+				}
+				require.Equal(t, uint64(300), byCategory[categoryOne.ID])
+				require.Equal(t, uint64(400), byCategory[categoryTwo.ID])
+			},
+		},
+		{
+			name: "should_filter_by_date_range",
+			fn: func(t *testing.T) {
+				user := s.CreateUser(t, repo.InsertUserParams{
+					Username:     "expense_user_16",
+					Email:        "expense_user_16@example.com",
+					PasswordHash: []byte("expense_user_hash_16"),
+				})
+
+				s.CreateExpense(t, user.ID, newExpenseParams(categoryOne.ID, "totals_exp_5", 500, dateJan10, nil))
+				s.CreateExpense(t, user.ID, newExpenseParams(categoryOne.ID, "totals_exp_6", 600, dateJan20, nil))
+
+				totals, err := s.Store.FindExpensesCategoryTotals(ctx, repo.Filters{
+					FilterFields: []repo.FilterField{
+						{Name: "user_id", Value: user.ID, Operator: "="},
+						{Name: "date", Value: dateJan10, Operator: ">="},
+						{Name: "date", Value: dateJan20, Operator: "<"},
+					},
+					Connector: "AND",
+				})
+				require.NoError(t, err)
+				require.Len(t, totals, 1)
+				require.Equal(t, categoryOne.ID, totals[0].CategoryID)
+				require.Equal(t, uint64(500), totals[0].Total)
+			},
+		},
+		{
+			name: "should_return_empty_when_user_has_no_expenses",
+			fn: func(t *testing.T) {
+				user := s.CreateUser(t, repo.InsertUserParams{
+					Username:     "expense_user_17",
+					Email:        "expense_user_17@example.com",
+					PasswordHash: []byte("expense_user_hash_17"),
+				})
+
+				totals, err := s.Store.FindExpensesCategoryTotals(ctx, repo.Filters{
+					FilterFields: []repo.FilterField{
+						{Name: "user_id", Value: user.ID, Operator: "="},
+					},
+				})
+				require.NoError(t, err)
+				require.Empty(t, totals)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func TestExtractTagNames(t *testing.T) {
 	cases := []struct {
 		name string

@@ -354,6 +354,79 @@ func TestPostExpensesDelete(t *testing.T) {
 	}
 }
 
+func TestGetExpensesStats(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_redirect_to_login_when_unauthenticated",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/expenses/stats", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, "/login", rec.Header().Get("Location"))
+			},
+		},
+		{
+			name: "should_render_stats_page_when_authenticated",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "exp_stats_1", "exp_stats_1@example.com", "exp_password_1")
+				cookies := s.AuthCookies(t, "exp_stats_1@example.com", "exp_password_1")
+
+				req := spec.NewGetRequest("/expenses/stats", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+			},
+		},
+		{
+			name: "should_display_category_total_in_body",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "exp_stats_2", "exp_stats_2@example.com", "exp_password_2")
+				category := s.CreateCategory(t, "exp_stats_cat_1")
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 1", 5000, 1736467200))
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 2", 3000, 1736467200))
+				cookies := s.AuthCookies(t, "exp_stats_2@example.com", "exp_password_2")
+
+				req := spec.NewGetRequest("/expenses/stats", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "$80.00")
+			},
+		},
+		{
+			name: "should_not_show_other_user_totals",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "exp_stats_3", "exp_stats_3@example.com", "exp_password_3")
+				otherUser := s.CreateAuthUser(t, "exp_stats_4", "exp_stats_4@example.com", "exp_password_4")
+				category := s.CreateCategory(t, "exp_stats_cat_2")
+				s.CreateExpense(t, otherUser.ID, newExpenseParams(category.ID, "other user expense", 9999900, 1736467200))
+				cookies := s.AuthCookies(t, "exp_stats_3@example.com", "exp_password_3")
+
+				req := spec.NewGetRequest("/expenses/stats", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "$99,999.00")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newExpenseParams(
 	categoryID int,
 	description string,
