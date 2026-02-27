@@ -116,3 +116,10 @@ func (s *Store) DeleteExpense(ctx context.Context, id, userID int) (int, error) 
 
 	return i, nil
 }
+
+func (s *Store) FindExpensesCategoryTotals(
+	ctx context.Context,
+	filters repo.Filters,
+) ([]repo.ExpenseCategoryTotal, error) {
+	return s.queries.SelectExpensesCategoryTotals(ctx, filters)
+}

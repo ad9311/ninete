@@ -1,0 +1,125 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>EXPENSE STATS</h1>
+  <nav class="page-links">
+    <a href="/expenses">Expenses</a>
+  </nav>
+  <div class="filters" data-controller="filter">
+    <label>
+      Date range
+      <select data-filter-target="dateRange" data-action="change->filter#apply">
+        <option value="">All time</option>
+        {{ range dateRangeOptions }}
+          <option
+            value="{{ .Value }}"
+            {{ if eq .Value $.pagination.DateRange }}selected{{ end }}
+          >
+            {{ .Label }}
+          </option>
+        {{ end }}
+      </select>
+    </label>
+  </div>
+  <div class="sort-mobile" data-controller="sort">
+    <label>
+      Sort by
+      <select data-sort-target="select" data-action="change->sort#apply">
+        <option
+          value="total:DESC"
+          {{ if and (eq .pagination.SortField "total") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Amount (high–low)
+        </option>
+        <option
+          value="total:ASC"
+          {{ if and (eq .pagination.SortField "total") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Amount (low–high)
+        </option>
+        <option
+          value="category:ASC"
+          {{ if and (eq .pagination.SortField "category") (eq .pagination.SortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Category (A–Z)
+        </option>
+        <option
+          value="category:DESC"
+          {{ if and (eq .pagination.SortField "category") (eq .pagination.SortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Category (Z–A)
+        </option>
+      </select>
+    </label>
+  </div>
+  <div
+    class="chart-container"
+    data-controller="chart"
+    data-chart-data-value="{{ .chartData }}"
+  >
+    <canvas data-chart-target="canvas"></canvas>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>
+          <a
+            href="{{ sortURL "/expenses/stats" "category" .pagination }}"
+            class="sort-link"
+            >Category
+            {{ if eq .pagination.SortField "category" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          <a
+            href="{{ sortURL "/expenses/stats" "total" .pagination }}"
+            class="sort-link"
+            >Total
+            {{ if eq .pagination.SortField "total" }}
+              <span class="sort-indicator"
+                >{{ if eq .pagination.SortOrder "ASC" }}
+                  ▲
+                {{ else }}
+                  ▼
+                {{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .rows }}
+        <tr>
+          <td>{{ .CategoryName }}</td>
+          <td class="amount-value">{{ .Total | currency }}</td>
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+  <ul class="card-list">
+    {{ range .rows }}
+      <li class="card-list-item">
+        <div class="card-list-row">
+          <span class="card-list-link">{{ .CategoryName }}</span>
+          <span class="amount-value">{{ .Total | currency }}</span>
+        </div>
+      </li>
+    {{ end }}
+  </ul>
+{{ end }}

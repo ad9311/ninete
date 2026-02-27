@@ -34,6 +34,7 @@ const (
 	ExpensesNew   TemplateName = "expenses/new"
 	ExpensesEdit  TemplateName = "expenses/edit"
 	ExpensesShow  TemplateName = "expenses/show"
+	ExpensesStats TemplateName = "expenses/stats"
 
 	// Recurrent expense templates.
 	RecurrentExpensesIndex TemplateName = "recurrent_expenses/index"

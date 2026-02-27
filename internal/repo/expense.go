@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 )
 
 type Expense struct {
@@ -286,6 +287,55 @@ func (q *Queries) DeleteExpense(ctx context.Context, id, userID int) (int, error
 	})
 
 	return i, err
+}
+
+const selectExpensesCategoryTotals = `
+SELECT "category_id", SUM("amount") AS "total"
+FROM "expenses"
+%s
+GROUP BY "category_id"`
+
+type ExpenseCategoryTotal struct {
+	CategoryID int
+	Total      uint64
+}
+
+func (q *Queries) SelectExpensesCategoryTotals(ctx context.Context, filters Filters) ([]ExpenseCategoryTotal, error) {
+	var totals []ExpenseCategoryTotal
+
+	filterSubQuery, err := filters.Build()
+	if err != nil {
+		return totals, err
+	}
+
+	query := fmt.Sprintf(selectExpensesCategoryTotals, filterSubQuery)
+	values := filters.Values()
+
+	err = q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var t ExpenseCategoryTotal
+
+			if err := rows.Scan(&t.CategoryID, &t.Total); err != nil {
+				return err
+			}
+
+			totals = append(totals, t)
+		}
+
+		return rows.Err()
+	})
+
+	return totals, err
 }
 
 func validExpenseFields() []string {

@@ -3,8 +3,10 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
+	"sort"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -19,6 +21,11 @@ type expenseRow struct {
 	Amount       uint64
 	Date         int64
 	Tags         []string
+}
+
+type expenseCategoryRow struct {
+	CategoryName string
+	Total        uint64
 }
 
 // ----------------------------------------------------------------------------- //
@@ -278,6 +285,99 @@ func (h *Handler) PostExpensesDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/expenses", http.StatusSeeOther)
+}
+
+func (h *Handler) GetExpensesStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := h.tmplData(r)
+	user := getCurrentUser(r)
+	q := r.URL.Query()
+
+	filters := repo.Filters{
+		FilterFields: []repo.FilterField{
+			{Name: "user_id", Value: user.ID, Operator: "="},
+		},
+		Connector: "AND",
+	}
+
+	if dr, ok := computeDateRange(q.Get("date_range")); ok {
+		filters.FilterFields = append(filters.FilterFields,
+			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
+			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
+		)
+	}
+
+	totals, err := h.store.FindExpensesCategoryTotals(ctx, filters)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesStats, err)
+
+		return
+	}
+
+	_, categoryNameByID, ok := h.findCategoriesOrErr(w, r, ExpensesStats)
+	if !ok {
+		return
+	}
+
+	sortField := q.Get("sort_field")
+	sortOrder := q.Get("sort_order")
+	if sortField == "" {
+		sortField = "total"
+	}
+	if sortOrder == "" {
+		sortOrder = "DESC"
+	}
+
+	rows := make([]expenseCategoryRow, 0, len(totals))
+	for _, t := range totals {
+		rows = append(rows, expenseCategoryRow{
+			CategoryName: categoryNameOrUnknown(categoryNameByID, t.CategoryID),
+			Total:        t.Total,
+		})
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		switch sortField {
+		case "category":
+			if sortOrder == "ASC" {
+				return rows[i].CategoryName < rows[j].CategoryName
+			}
+
+			return rows[i].CategoryName > rows[j].CategoryName
+		default:
+			if sortOrder == "ASC" {
+				return rows[i].Total < rows[j].Total
+			}
+
+			return rows[i].Total > rows[j].Total
+		}
+	})
+
+	type chartPoint struct {
+		Name  string `json:"name"`
+		Total uint64 `json:"total"`
+	}
+	chartPoints := make([]chartPoint, 0, len(rows))
+	for _, row := range rows {
+		chartPoints = append(chartPoints, chartPoint{Name: row.CategoryName, Total: row.Total})
+	}
+
+	chartDataBytes, err := json.Marshal(chartPoints)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ExpensesStats, err)
+
+		return
+	}
+
+	data["rows"] = rows
+	data["chartData"] = string(chartDataBytes)
+	data["pagination"] = PaginationData{
+		SortField: sortField,
+		SortOrder: sortOrder,
+		DateRange: q.Get("date_range"),
+	}
+
+	h.render(w, http.StatusOK, ExpensesStats, data)
 }
 
 // ----------------------------------------------------------------------------- //

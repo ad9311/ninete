@@ -3,6 +3,7 @@ import * as Turbo from "@hotwired/turbo";
 
 export default class extends Controller {
   static targets = ["categoryId", "dateRange"];
+  declare readonly hasCategoryIdTarget: boolean;
   declare readonly categoryIdTarget: HTMLSelectElement;
   declare readonly hasDateRangeTarget: boolean;
   declare readonly dateRangeTarget: HTMLSelectElement;
@@ -13,7 +14,9 @@ export default class extends Controller {
 
     params.set("page", "1");
 
-    this.setOrDelete(params, "category_id", this.categoryIdTarget.value);
+    if (this.hasCategoryIdTarget) {
+      this.setOrDelete(params, "category_id", this.categoryIdTarget.value);
+    }
 
     if (this.hasDateRangeTarget) {
       this.setOrDelete(params, "date_range", this.dateRangeTarget.value);

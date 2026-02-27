@@ -25,6 +25,7 @@ func (s *Server) setUpRoutes() {
 			expenses.Get("/", s.handlers.GetExpenses)
 			expenses.Post("/", s.handlers.PostExpenses)
 			expenses.Get("/new", s.handlers.GetExpensesNew)
+			expenses.Get("/stats", s.handlers.GetExpensesStats)
 			expenses.Route("/{id}", func(expenses chi.Router) {
 				expenses.Use(s.handlers.ExpenseContext)
 
