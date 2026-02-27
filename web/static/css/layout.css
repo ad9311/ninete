@@ -251,6 +251,11 @@ textarea {
     0 1px 0 rgb(255 255 255 / 60%);
 }
 
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 textarea {
   min-height: 7rem;
   padding-top: var(--space-2);
