@@ -26,6 +26,7 @@ var dateRangeLabels = []struct { //nolint:gochecknoglobals // static lookup tabl
 	Label string
 }{
 	{"this_month", "This month"},
+	{"next_month", "Next month"},
 	{"last_month", "Last month"},
 	{"this_week", "This week"},
 	{"six_months", "Last 6 months"},
@@ -46,6 +47,11 @@ func computeDateRange(key string) (dateRange, bool) {
 	switch key {
 	case "this_month":
 		start := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		end := start.AddDate(0, 1, 0)
+
+		return dateRange{start.Unix(), end.Unix()}, true
+	case "next_month":
+		start := time.Date(year, month+1, 1, 0, 0, 0, 0, time.UTC)
 		end := start.AddDate(0, 1, 0)
 
 		return dateRange{start.Unix(), end.Unix()}, true

@@ -368,6 +368,7 @@ func TestDateRangeOptions(t *testing.T) {
 		{"returns all options", func(t *testing.T) {
 			result := renderTemplate(t, tmpl, nil)
 			require.Contains(t, result, "this_month")
+			require.Contains(t, result, "next_month")
 			require.Contains(t, result, "last_month")
 			require.Contains(t, result, "this_week")
 			require.Contains(t, result, "six_months")
