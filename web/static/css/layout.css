@@ -518,6 +518,11 @@ td form {
   padding: 0;
 }
 
+.chart-container {
+  max-width: 100%;
+  padding: var(--space-4) 0;
+}
+
 .sort-mobile {
   display: none;
 }
@@ -688,6 +693,10 @@ p[style*="color: red"] {
 
   .card-list {
     display: block;
+  }
+
+  .chart-container {
+    display: none;
   }
 
   .sort-mobile {
