@@ -211,7 +211,7 @@
             {{ if .Tags }}
               <div class="chip-list">
                 {{ range .Tags }}
-                  <span class="chip">{{ . }}</span>
+                  <span class="chip chip-tag">{{ . }}</span>
                 {{ end }}
               </div>
             {{ else }}
@@ -263,7 +263,7 @@
             {{ if .Tags }}
               <span class="chip-list">
                 {{ range .Tags }}
-                  <span class="chip">{{ . }}</span>
+                  <span class="chip chip-tag">{{ . }}</span>
                 {{ end }}
               </span>
             {{ else }}

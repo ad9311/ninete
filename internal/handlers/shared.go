@@ -24,7 +24,9 @@ type PaginationData struct {
 	Priority    int
 }
 
-func userScopedQueryOpts(r *http.Request, userID int, defaultSort repo.Sorting) repo.QueryOptions {
+func userScopedQueryOpts(
+	r *http.Request, userID int, defaultSort repo.Sorting, defaultDateRange string,
+) repo.QueryOptions {
 	q := r.URL.Query()
 
 	sorting := repo.Sorting{
@@ -67,7 +69,11 @@ func userScopedQueryOpts(r *http.Request, userID int, defaultSort repo.Sorting) 
 		})
 	}
 
-	if dr, ok := computeDateRange(q.Get("date_range")); ok {
+	dateRangeKey := q.Get("date_range")
+	if dateRangeKey == "" {
+		dateRangeKey = defaultDateRange
+	}
+	if dr, ok := computeDateRange(dateRangeKey); ok {
 		opts.Filters.FilterFields = append(opts.Filters.FilterFields,
 			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
 			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
@@ -77,7 +83,7 @@ func userScopedQueryOpts(r *http.Request, userID int, defaultSort repo.Sorting) 
 	return opts
 }
 
-func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) PaginationData {
+func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, defaultDateRange string) PaginationData { //nolint:lll
 	totalPages := 0
 	if opts.Pagination.PerPage > 0 {
 		totalPages = (totalCount + opts.Pagination.PerPage - 1) / opts.Pagination.PerPage
@@ -86,6 +92,11 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) 
 	q := r.URL.Query()
 	categoryID, _ := strconv.Atoi(q.Get("category_id"))
 	priority, _ := strconv.Atoi(q.Get("priority"))
+
+	dateRange := q.Get("date_range")
+	if dateRange == "" {
+		dateRange = defaultDateRange
+	}
 
 	return PaginationData{
 		CurrentPage: opts.Pagination.Page,
@@ -97,7 +108,7 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) 
 		SortField:   opts.Sorting.Field,
 		SortOrder:   opts.Sorting.Order,
 		CategoryID:  categoryID,
-		DateRange:   q.Get("date_range"),
+		DateRange:   dateRange,
 		Done:        q.Get("done"),
 		Priority:    priority,
 	}

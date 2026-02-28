@@ -8,7 +8,12 @@
     <label>
       Date range
       <select data-filter-target="dateRange" data-action="change->filter#apply">
-        <option value="">All time</option>
+        <option
+          value="all_time"
+          {{ if eq $.pagination.DateRange "all_time" }}selected{{ end }}
+        >
+          All time
+        </option>
         {{ range dateRangeOptions }}
           <option
             value="{{ .Value }}"

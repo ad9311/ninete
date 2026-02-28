@@ -6,13 +6,29 @@
       {{ template "form_error" . }}
       <form action="/register" method="post" class="form-stack">
         {{ template "csrf" . }}
-        <input type="text" placeholder="Username" name="username" />
-        <input type="email" placeholder="Email" name="email" />
-        <input type="password" placeholder="Password" name="password" />
+        <input
+          type="text"
+          placeholder="Username"
+          name="username"
+          autocomplete="username"
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          name="email"
+          autocomplete="email"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          name="password"
+          autocomplete="new-password"
+        />
         <input
           type="password"
           placeholder="Password Confirmation"
           name="passwordConfirmation"
+          autocomplete="new-password"
         />
         <input
           type="text"

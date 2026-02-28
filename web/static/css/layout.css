@@ -455,6 +455,16 @@ td form {
   opacity: 0.9;
 }
 
+.chip-tag {
+  border-color: #a0b8d4;
+  background: linear-gradient(to bottom, #dce8f4 0%, #c8d8ec 100%);
+  color: #2c4e70;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 60%);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 55%);
+}
+
 .card-list {
   display: none;
 }

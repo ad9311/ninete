@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
@@ -49,7 +50,7 @@ func TestGetExpenses(t *testing.T) {
 			fn: func(t *testing.T) {
 				user := s.CreateAuthUser(t, "exp_list_2", "exp_list_2@example.com", "exp_password_2")
 				category := s.CreateCategory(t, "exp_list_cat_1")
-				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "Visible expense item", 500, 1700000000))
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "Visible expense item", 500, time.Now().Unix()))
 				cookies := s.AuthCookies(t, "exp_list_2@example.com", "exp_password_2")
 
 				req := spec.NewGetRequest("/expenses", cookies)
@@ -391,8 +392,8 @@ func TestGetExpensesStats(t *testing.T) {
 			fn: func(t *testing.T) {
 				user := s.CreateAuthUser(t, "exp_stats_2", "exp_stats_2@example.com", "exp_password_2")
 				category := s.CreateCategory(t, "exp_stats_cat_1")
-				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 1", 5000, 1736467200))
-				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 2", 3000, 1736467200))
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 1", 5000, time.Now().Unix()))
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "stats expense 2", 3000, time.Now().Unix()))
 				cookies := s.AuthCookies(t, "exp_stats_2@example.com", "exp_password_2")
 
 				req := spec.NewGetRequest("/expenses/stats", cookies)

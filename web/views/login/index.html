@@ -6,8 +6,18 @@
       {{ template "form_error" . }}
       <form action="/login" method="post" class="form-stack">
         {{ template "csrf" . }}
-        <input type="email" placeholder="Email" name="email" />
-        <input type="password" placeholder="Password" name="password" />
+        <input
+          type="email"
+          placeholder="Email"
+          name="email"
+          autocomplete="email"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          name="password"
+          autocomplete="current-password"
+        />
         <button
           type="submit"
           class="btn-primary"

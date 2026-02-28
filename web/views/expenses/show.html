@@ -29,7 +29,7 @@
           {{ if .expense.Tags }}
             <div class="chip-list">
               {{ range .expense.Tags }}
-                <span class="chip">{{ . }}</span>
+                <span class="chip chip-tag">{{ . }}</span>
               {{ end }}
             </div>
           {{ else }}
