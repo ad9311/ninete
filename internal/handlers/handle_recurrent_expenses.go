@@ -63,7 +63,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"})
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"}, "")
 
 	totalCount, err := h.store.CountRecurrentExpenses(r.Context(), opts.Filters)
 	if err != nil {
@@ -97,7 +97,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 
 	data["recurrentExpenses"] = rows
 	data["categories"] = categories
-	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["pagination"] = newPaginationData(r, opts, totalCount, "")
 	data["basePath"] = "/recurrent-expenses"
 
 	h.render(w, http.StatusOK, RecurrentExpensesIndex, data)

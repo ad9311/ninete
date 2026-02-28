@@ -61,7 +61,7 @@ func (h *Handler) GetLists(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "name", Order: "ASC"})
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "name", Order: "ASC"}, "")
 
 	totalCount, err := h.store.CountLists(r.Context(), opts.Filters)
 	if err != nil {
@@ -99,7 +99,7 @@ func (h *Handler) GetLists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data["lists"] = rows
-	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["pagination"] = newPaginationData(r, opts, totalCount, "")
 	data["basePath"] = "/lists"
 
 	h.render(w, http.StatusOK, ListsIndex, data)
@@ -142,7 +142,7 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 	list := getList(r)
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "ASC"})
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "ASC"}, "")
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
 		Name:     "list_id",
 		Value:    list.ID,
@@ -211,7 +211,7 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 
 	data["list"] = list
 	data["tasks"] = taskRows
-	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["pagination"] = newPaginationData(r, opts, totalCount, "")
 	data["basePath"] = fmt.Sprintf("/lists/%d", list.ID)
 
 	h.render(w, http.StatusOK, ListsShow, data)

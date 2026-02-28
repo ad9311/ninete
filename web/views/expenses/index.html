@@ -27,7 +27,12 @@
     <label>
       Date range
       <select data-filter-target="dateRange" data-action="change->filter#apply">
-        <option value="">All time</option>
+        <option
+          value="all_time"
+          {{ if eq $.pagination.DateRange "all_time" }}selected{{ end }}
+        >
+          All time
+        </option>
         {{ range dateRangeOptions }}
           <option
             value="{{ .Value }}"
@@ -190,7 +195,7 @@
             {{ if .Tags }}
               <div class="chip-list">
                 {{ range .Tags }}
-                  <span class="chip">{{ . }}</span>
+                  <span class="chip chip-tag">{{ . }}</span>
                 {{ end }}
               </div>
             {{ else }}
@@ -240,7 +245,7 @@
             {{ if .Tags }}
               <span class="chip-list">
                 {{ range .Tags }}
-                  <span class="chip">{{ . }}</span>
+                  <span class="chip chip-tag">{{ . }}</span>
                 {{ end }}
               </span>
             {{ else }}

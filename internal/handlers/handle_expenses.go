@@ -70,7 +70,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "date", Order: "DESC"})
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "date", Order: "DESC"}, "this_month")
 
 	totalCount, err := h.store.CountExpenses(r.Context(), opts.Filters)
 	if err != nil {
@@ -118,7 +118,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 
 	data["expenses"] = rows
 	data["categories"] = categories
-	data["pagination"] = newPaginationData(r, opts, totalCount)
+	data["pagination"] = newPaginationData(r, opts, totalCount, "this_month")
 	data["basePath"] = "/expenses"
 
 	h.render(w, http.StatusOK, ExpensesIndex, data)
@@ -300,7 +300,11 @@ func (h *Handler) GetExpensesStats(w http.ResponseWriter, r *http.Request) {
 		Connector: "AND",
 	}
 
-	if dr, ok := computeDateRange(q.Get("date_range")); ok {
+	dateRangeKey := q.Get("date_range")
+	if dateRangeKey == "" {
+		dateRangeKey = "this_month"
+	}
+	if dr, ok := computeDateRange(dateRangeKey); ok {
 		filters.FilterFields = append(filters.FilterFields,
 			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
 			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
@@ -374,7 +378,7 @@ func (h *Handler) GetExpensesStats(w http.ResponseWriter, r *http.Request) {
 	data["pagination"] = PaginationData{
 		SortField: sortField,
 		SortOrder: sortOrder,
-		DateRange: q.Get("date_range"),
+		DateRange: dateRangeKey,
 	}
 
 	h.render(w, http.StatusOK, ExpensesStats, data)
