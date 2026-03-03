@@ -17,6 +17,7 @@ func TemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"currency":         currency,
 		"sumAmount":        sumAmount,
+		"sumTotal":         sumTotal,
 		"timeStamp":        timeStamp,
 		"sortURL":          sortURL,
 		"pageURL":          pageURL,
@@ -63,6 +64,36 @@ func sumAmount(rows any) uint64 {
 		}
 
 		total += amount.Uint()
+	}
+
+	return total
+}
+
+func sumTotal(rows any) uint64 {
+	value := reflect.ValueOf(rows)
+	if !value.IsValid() || value.Kind() != reflect.Slice {
+		return 0
+	}
+
+	var total uint64
+	for i := 0; i < value.Len(); i++ {
+		item := value.Index(i)
+		if item.Kind() == reflect.Pointer {
+			if item.IsNil() {
+				continue
+			}
+			item = item.Elem()
+		}
+		if item.Kind() != reflect.Struct {
+			continue
+		}
+
+		field := item.FieldByName("Total")
+		if !field.IsValid() {
+			continue
+		}
+
+		total += field.Uint()
 	}
 
 	return total
