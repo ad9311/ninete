@@ -119,6 +119,40 @@ func TestSumAmount(t *testing.T) {
 	}
 }
 
+func TestSumTotal(t *testing.T) {
+	type row struct{ Total uint64 }
+
+	tmpl := newTestTemplate(t, `{{ . | sumTotal | currency }}`)
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{"sums and formats multiple rows", func(t *testing.T) {
+			data := []row{{Total: 100000}, {Total: 50000}, {Total: 25050}}
+			require.Equal(t, "$1,750.50", renderTemplate(t, tmpl, data))
+		}},
+		{"empty slice", func(t *testing.T) {
+			require.Equal(t, "$0.00", renderTemplate(t, tmpl, []row{}))
+		}},
+		{"nil input", func(t *testing.T) {
+			require.Equal(t, "$0.00", renderTemplate(t, tmpl, nil))
+		}},
+		{"non-slice input", func(t *testing.T) {
+			require.Equal(t, "$0.00", renderTemplate(t, tmpl, "not a slice"))
+		}},
+		{"pointer rows with nil", func(t *testing.T) {
+			r := &row{Total: 5000}
+			data := []*row{r, nil, {Total: 3000}}
+			require.Equal(t, "$80.00", renderTemplate(t, tmpl, data))
+		}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func TestTimeStamp(t *testing.T) {
 	tmpl := newTestTemplate(t, `{{ timeStamp . }}`)
 

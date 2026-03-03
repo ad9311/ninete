@@ -116,6 +116,14 @@
         </tr>
       {{ end }}
     </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="2">
+          Total expenses
+          <span class="amount-value">{{ .rows | sumTotal | currency }}</span>
+        </th>
+      </tr>
+    </tfoot>
   </table>
   <ul class="card-list">
     {{ range .rows }}
@@ -126,5 +134,9 @@
         </div>
       </li>
     {{ end }}
+    <li class="card-list-summary">
+      Total expenses
+      <span class="amount-value">{{ .rows | sumTotal | currency }}</span>
+    </li>
   </ul>
 {{ end }}
