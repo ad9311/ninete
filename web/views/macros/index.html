@@ -16,6 +16,93 @@
       />
     </label>
   </form>
+  <div class="sort-mobile" data-controller="sort">
+    <label>
+      Sort by
+      <select data-sort-target="select" data-action="change->sort#apply">
+        <option
+          value="name:ASC"
+          {{ if and (eq .sortField "name") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Name (A–Z)
+        </option>
+        <option
+          value="name:DESC"
+          {{ if and (eq .sortField "name") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Name (Z–A)
+        </option>
+        <option
+          value="kcal:DESC"
+          {{ if and (eq .sortField "kcal") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Kcal (high–low)
+        </option>
+        <option
+          value="kcal:ASC"
+          {{ if and (eq .sortField "kcal") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Kcal (low–high)
+        </option>
+        <option
+          value="protein_g:DESC"
+          {{ if and (eq .sortField "protein_g") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Protein (high–low)
+        </option>
+        <option
+          value="protein_g:ASC"
+          {{ if and (eq .sortField "protein_g") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Protein (low–high)
+        </option>
+        <option
+          value="carbs_g:DESC"
+          {{ if and (eq .sortField "carbs_g") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Carbs (high–low)
+        </option>
+        <option
+          value="carbs_g:ASC"
+          {{ if and (eq .sortField "carbs_g") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Carbs (low–high)
+        </option>
+        <option
+          value="fat_g:DESC"
+          {{ if and (eq .sortField "fat_g") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Fat (high–low)
+        </option>
+        <option
+          value="fat_g:ASC"
+          {{ if and (eq .sortField "fat_g") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Fat (low–high)
+        </option>
+      </select>
+    </label>
+  </div>
   {{ if .hasGoal }}
     <div class="macro-progress">
       <div class="macro-progress-item">
@@ -56,20 +143,102 @@
       </div>
     </div>
   {{ end }}
-  <table class="data-table">
+  <table class="data-table" data-controller="macro-select">
     <thead>
       <tr>
-        <th>Name</th>
-        <th>Kcal</th>
-        <th>Protein (g)</th>
-        <th>Carbs (g)</th>
-        <th>Fat (g)</th>
+        <th></th>
+        <th>
+          {{ $nameOrder := "ASC" }}{{ if and (eq $.sortField "name") (eq $.sortOrder "ASC") }}
+            {{ $nameOrder = "DESC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=name&sort_order={{ $nameOrder }}"
+            class="sort-link"
+            >Name
+            {{ if eq $.sortField "name" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          {{ $kcalOrder := "DESC" }}{{ if and (eq $.sortField "kcal") (eq $.sortOrder "DESC") }}
+            {{ $kcalOrder = "ASC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=kcal&sort_order={{ $kcalOrder }}"
+            class="sort-link"
+            >Kcal
+            {{ if eq $.sortField "kcal" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          {{ $proteinOrder := "DESC" }}{{ if and (eq $.sortField "protein_g") (eq $.sortOrder "DESC") }}
+            {{ $proteinOrder = "ASC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=protein_g&sort_order={{ $proteinOrder }}"
+            class="sort-link"
+            >Protein (g)
+            {{ if eq $.sortField "protein_g" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          {{ $carbsOrder := "DESC" }}{{ if and (eq $.sortField "carbs_g") (eq $.sortOrder "DESC") }}
+            {{ $carbsOrder = "ASC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=carbs_g&sort_order={{ $carbsOrder }}"
+            class="sort-link"
+            >Carbs (g)
+            {{ if eq $.sortField "carbs_g" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
+        <th>
+          {{ $fatOrder := "DESC" }}{{ if and (eq $.sortField "fat_g") (eq $.sortOrder "DESC") }}
+            {{ $fatOrder = "ASC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=fat_g&sort_order={{ $fatOrder }}"
+            class="sort-link"
+            >Fat (g)
+            {{ if eq $.sortField "fat_g" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {{ range .entries }}
         <tr>
+          <td>
+            <input
+              type="checkbox"
+              data-macro-select-target="checkbox"
+              data-action="change->macro-select#update"
+              data-kcal="{{ .Kcal }}"
+              data-protein="{{ .ProteinG }}"
+              data-carbs="{{ .CarbsG }}"
+              data-fat="{{ .FatG }}"
+            />
+          </td>
           <td>{{ .Name }}</td>
           <td>{{ .Kcal }}</td>
           <td>{{ .ProteinG }}</td>
@@ -83,20 +252,46 @@
     </tbody>
     <tfoot>
       <tr>
+        <th></th>
         <th>Totals</th>
-        <th>{{ .totals.Kcal }}</th>
-        <th>{{ .totals.ProteinG }}</th>
-        <th>{{ .totals.CarbsG }}</th>
-        <th>{{ .totals.FatG }}</th>
+        <th data-macro-select-target="kcalTotal" data-base="{{ .totals.Kcal }}">
+          {{ .totals.Kcal }}
+        </th>
+        <th
+          data-macro-select-target="proteinTotal"
+          data-base="{{ .totals.ProteinG }}"
+        >
+          {{ .totals.ProteinG }}
+        </th>
+        <th
+          data-macro-select-target="carbsTotal"
+          data-base="{{ .totals.CarbsG }}"
+        >
+          {{ .totals.CarbsG }}
+        </th>
+        <th data-macro-select-target="fatTotal" data-base="{{ .totals.FatG }}">
+          {{ .totals.FatG }}
+        </th>
         <th></th>
       </tr>
     </tfoot>
   </table>
-  <ul class="card-list">
+  <ul class="card-list" data-controller="macro-select">
     {{ range .entries }}
       <li class="card-list-item">
         <div class="card-list-row">
-          <a href="/macros/{{ .ID }}" class="card-list-link">{{ .Name }}</a>
+          <label class="card-list-link">
+            <input
+              type="checkbox"
+              data-macro-select-target="checkbox"
+              data-action="change->macro-select#update"
+              data-kcal="{{ .Kcal }}"
+              data-protein="{{ .ProteinG }}"
+              data-carbs="{{ .CarbsG }}"
+              data-fat="{{ .FatG }}"
+            />
+            <a href="/macros/{{ .ID }}">{{ .Name }}</a>
+          </label>
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Kcal</span>
@@ -117,8 +312,24 @@
       </li>
     {{ end }}
     <li class="card-list-summary">
-      Totals — {{ .totals.Kcal }} kcal / {{ .totals.ProteinG }}g protein /
-      {{ .totals.CarbsG }}g carbs / {{ .totals.FatG }}g fat
+      Totals —
+      <span data-macro-select-target="kcalTotal" data-base="{{ .totals.Kcal }}"
+        >{{ .totals.Kcal }}</span
+      >
+      kcal /
+      <span
+        data-macro-select-target="proteinTotal"
+        data-base="{{ .totals.ProteinG }}"
+        >{{ .totals.ProteinG }}</span
+      >g protein /
+      <span
+        data-macro-select-target="carbsTotal"
+        data-base="{{ .totals.CarbsG }}"
+        >{{ .totals.CarbsG }}</span
+      >g carbs /
+      <span data-macro-select-target="fatTotal" data-base="{{ .totals.FatG }}"
+        >{{ .totals.FatG }}</span
+      >g fat
     </li>
   </ul>
 {{ end }}

@@ -227,6 +227,13 @@ input[type="date"] {
   appearance: none;
 }
 
+input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-height: unset;
+  padding: 0;
+}
+
 textarea {
   min-height: 7rem;
   padding-top: var(--space-2);
