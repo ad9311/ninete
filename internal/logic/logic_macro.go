@@ -7,19 +7,19 @@ import (
 )
 
 type MacroEntryParams struct {
-	Name     string `validate:"required,min=1,max=100"`
-	Kcal     int    `validate:"gte=0"`
-	ProteinG int    `validate:"gte=0"`
-	CarbsG   int    `validate:"gte=0"`
-	FatG     int    `validate:"gte=0"`
-	Date     int64  `validate:"required,gt=0"`
+	Name     string  `validate:"required,min=1,max=100"`
+	Kcal     float64 `validate:"gte=0"`
+	ProteinG float64 `validate:"gte=0"`
+	CarbsG   float64 `validate:"gte=0"`
+	FatG     float64 `validate:"gte=0"`
+	Date     int64   `validate:"required,gt=0"`
 }
 
 type MacroGoalParams struct {
-	Kcal     int `validate:"gt=0"`
-	ProteinG int `validate:"gt=0"`
-	CarbsG   int `validate:"gt=0"`
-	FatG     int `validate:"gt=0"`
+	Kcal     float64 `validate:"gt=0"`
+	ProteinG float64 `validate:"gt=0"`
+	CarbsG   float64 `validate:"gt=0"`
+	FatG     float64 `validate:"gt=0"`
 }
 
 func (s *Store) FindMacroEntries(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroEntry, error) {

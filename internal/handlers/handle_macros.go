@@ -269,7 +269,7 @@ func (h *Handler) PostMacrosGoals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/macros/goals", http.StatusSeeOther)
+	http.Redirect(w, r, "/macros", http.StatusSeeOther)
 }
 
 // ----------------------------------------------------------------------------- //
@@ -311,22 +311,22 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 		return params, err
 	}
 
-	kcal, err := strconv.Atoi(r.FormValue("kcal"))
+	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
 	if err != nil {
 		return params, fmt.Errorf("kcal: %w", err)
 	}
 
-	proteinG, err := strconv.Atoi(r.FormValue("protein_g"))
+	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("protein_g: %w", err)
 	}
 
-	carbsG, err := strconv.Atoi(r.FormValue("carbs_g"))
+	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("carbs_g: %w", err)
 	}
 
-	fatG, err := strconv.Atoi(r.FormValue("fat_g"))
+	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("fat_g: %w", err)
 	}
@@ -348,22 +348,22 @@ func parseMacroGoalForm(r *http.Request) (logic.MacroGoalParams, error) {
 		return params, fmt.Errorf("failed to parse form, %w", err)
 	}
 
-	kcal, err := strconv.Atoi(r.FormValue("kcal"))
+	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
 	if err != nil {
 		return params, fmt.Errorf("kcal: %w", err)
 	}
 
-	proteinG, err := strconv.Atoi(r.FormValue("protein_g"))
+	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("protein_g: %w", err)
 	}
 
-	carbsG, err := strconv.Atoi(r.FormValue("carbs_g"))
+	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("carbs_g: %w", err)
 	}
 
-	fatG, err := strconv.Atoi(r.FormValue("fat_g"))
+	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
 	if err != nil {
 		return params, fmt.Errorf("fat_g: %w", err)
 	}
@@ -377,12 +377,12 @@ func parseMacroGoalForm(r *http.Request) (logic.MacroGoalParams, error) {
 }
 
 func computeMacroProgress(totals repo.MacroDayTotals, goal repo.MacroGoal) macroProgressData {
-	pct := func(total, g int) int {
+	pct := func(total, g float64) int {
 		if g <= 0 {
 			return 0
 		}
 
-		v := total * 100 / g
+		v := int(total * 100 / g)
 		if v > 100 {
 			return 100
 		}

@@ -8,10 +8,10 @@ type MacroEntry struct {
 	ID        int
 	UserID    int
 	Name      string
-	Kcal      int
-	ProteinG  int
-	CarbsG    int
-	FatG      int
+	Kcal      float64
+	ProteinG  float64
+	CarbsG    float64
+	FatG      float64
 	Date      int64
 	CreatedAt int64
 	UpdatedAt int64
@@ -20,28 +20,28 @@ type MacroEntry struct {
 type InsertMacroEntryParams struct {
 	UserID   int
 	Name     string
-	Kcal     int
-	ProteinG int
-	CarbsG   int
-	FatG     int
+	Kcal     float64
+	ProteinG float64
+	CarbsG   float64
+	FatG     float64
 	Date     int64
 }
 
 type UpdateMacroEntryParams struct {
 	ID       int
 	Name     string
-	Kcal     int
-	ProteinG int
-	CarbsG   int
-	FatG     int
+	Kcal     float64
+	ProteinG float64
+	CarbsG   float64
+	FatG     float64
 	Date     int64
 }
 
 type MacroDayTotals struct {
-	Kcal     int
-	ProteinG int
-	CarbsG   int
-	FatG     int
+	Kcal     float64
+	ProteinG float64
+	CarbsG   float64
+	FatG     float64
 }
 
 const selectMacroEntries = `SELECT * FROM "macro_entries"`
