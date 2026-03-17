@@ -1,0 +1,41 @@
+{{ define "macro_entry_form" }}
+  <input type="text" placeholder="Name" name="name" value="{{ .entry.Name }}" />
+  <input
+    type="number"
+    min="0"
+    placeholder="Kcal"
+    name="kcal"
+    value="{{ .entry.Kcal }}"
+  />
+  <input
+    type="number"
+    min="0"
+    placeholder="Protein (g)"
+    name="protein_g"
+    value="{{ .entry.ProteinG }}"
+  />
+  <input
+    type="number"
+    min="0"
+    placeholder="Carbs (g)"
+    name="carbs_g"
+    value="{{ .entry.CarbsG }}"
+  />
+  <input
+    type="number"
+    min="0"
+    placeholder="Fat (g)"
+    name="fat_g"
+    value="{{ .entry.FatG }}"
+  />
+  <input type="date" placeholder="Date" data-date-target="local" />
+  <input
+    type="hidden"
+    name="date"
+    data-date-target="value"
+    value="{{ .entry.Date }}"
+  />
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
+{{ end }}

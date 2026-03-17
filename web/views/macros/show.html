@@ -1,0 +1,50 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>MACRO ENTRY</h1>
+  <nav class="page-links">
+    <a href="/macros">Macros</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Name</th>
+        <td>{{ .entry.Name }}</td>
+      </tr>
+      <tr>
+        <th>Kcal</th>
+        <td>{{ .entry.Kcal }}</td>
+      </tr>
+      <tr>
+        <th>Protein</th>
+        <td>{{ .entry.ProteinG }}g</td>
+      </tr>
+      <tr>
+        <th>Carbs</th>
+        <td>{{ .entry.CarbsG }}g</td>
+      </tr>
+      <tr>
+        <th>Fat</th>
+        <td>{{ .entry.FatG }}g</td>
+      </tr>
+      <tr>
+        <th>Date</th>
+        <td>{{ .entry.Date | timeStamp }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/macros/{{ .entry.ID }}/edit">Edit Entry</a>
+      <form action="/macros/{{ .entry.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
+      </form>
+    </div>
+  </section>
+{{ end }}

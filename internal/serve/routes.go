@@ -50,6 +50,21 @@ func (s *Server) setUpRoutes() {
 			})
 		})
 
+		root.Route("/macros", func(r chi.Router) {
+			r.Get("/", s.handlers.GetMacros)
+			r.Post("/", s.handlers.PostMacros)
+			r.Get("/new", s.handlers.GetMacrosNew)
+			r.Get("/goals", s.handlers.GetMacrosGoals)
+			r.Post("/goals", s.handlers.PostMacrosGoals)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Use(s.handlers.MacroEntryContext)
+				r.Get("/", s.handlers.GetMacroEntry)
+				r.Post("/", s.handlers.PostMacroEntryUpdate)
+				r.Get("/edit", s.handlers.GetMacroEntryEdit)
+				r.Post("/delete", s.handlers.PostMacroEntryDelete)
+			})
+		})
+
 		root.Route("/lists", func(lists chi.Router) {
 			lists.Get("/", s.handlers.GetLists)
 			lists.Post("/", s.handlers.PostLists)

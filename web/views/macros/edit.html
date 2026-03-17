@@ -1,0 +1,20 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>EDIT MACRO ENTRY</h1>
+  <nav class="page-links">
+    <a href="/macros/{{ .entry.ID }}">Visit Entry</a>
+    <a href="/macros">Macros</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form
+      action="/macros/{{ .entry.ID }}"
+      method="post"
+      data-controller="date"
+      data-action="submit->date#prepare"
+    >
+      {{ template "csrf" . }}
+      {{ template "macro_entry_form" . }}
+    </form>
+  </section>
+{{ end }}
