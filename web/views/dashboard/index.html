@@ -1,4 +1,177 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>DASHBOARD</h1>
+  <h1>Dashboard</h1>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <span class="summary-card-label">This month's spending</span>
+      <span class="summary-card-value amount-value"
+        >{{ .summary.ThisMonthTotal | currency }}</span
+      >
+      <span class="summary-card-delta">
+        {{ if .summary.MonthChangeSign }}
+          {{ .summary.MonthChangeSign }}{{ .summary.MonthChangePct }}% vs last
+          month ({{ .summary.LastMonthTotal | currency }})
+        {{ else }}
+          No data for last month
+        {{ end }}
+      </span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-card-label">Top categories this month</span>
+      {{ if .summary.TopCategories }}
+        <ul class="summary-list">
+          {{ range .summary.TopCategories }}
+            <li class="summary-list-item">
+              <span>{{ .CategoryName }}</span>
+              <span class="amount-value">{{ .Total | currency }}</span>
+            </li>
+          {{ end }}
+        </ul>
+      {{ else }}
+        <p>No expenses this month.</p>
+      {{ end }}
+    </div>
+  </div>
+  <div class="summary-card" style="margin-top: var(--space-4);">
+    <span class="summary-card-label">Recent expenses</span>
+    <a href="/expenses">View expenses</a>
+    {{ if .summary.RecentExpenses }}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .summary.RecentExpenses }}
+            <tr>
+              <td>{{ .CategoryName }}</td>
+              <td>{{ .Description }}</td>
+              <td class="amount-value">{{ .Amount | currency }}</td>
+              <td>{{ .Date | timeStamp }}</td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+      <ul class="card-list">
+        {{ range .summary.RecentExpenses }}
+          <li class="card-list-item">
+            <div class="card-list-row">
+              <span class="card-list-link">{{ .Description }}</span>
+            </div>
+            <div class="card-list-row">
+              <span class="card-list-label">Category</span>
+              <span>{{ .CategoryName }}</span>
+            </div>
+            <div class="card-list-row">
+              <span class="card-list-label">Amount</span>
+              <span class="amount-value">{{ .Amount | currency }}</span>
+            </div>
+            <div class="card-list-row">
+              <span class="card-list-label">Date</span>
+              <span>{{ .Date | timeStamp }}</span>
+            </div>
+          </li>
+        {{ end }}
+      </ul>
+    {{ else }}
+      <p>No expenses this month.</p>
+    {{ end }}
+  </div>
+  <div class="summary-card" style="margin-top: var(--space-4);">
+    <span class="summary-card-label">Today's nutrition</span>
+    <a href="/macros">View macros</a>
+    {{ if .macros.HasGoal }}
+      <div class="macro-progress">
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Kcal</span>
+            <span class="macro-progress-value"
+              >{{ .macros.TodayTotals.Kcal }} / {{ .macros.Goal.Kcal }}</span
+            >
+          </div>
+          <progress
+            max="100"
+            value="{{ .macros.TodayProgress.KcalPct }}"
+          ></progress>
+        </div>
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Protein</span>
+            <span class="macro-progress-value"
+              >{{ .macros.TodayTotals.ProteinG }}g /
+              {{ .macros.Goal.ProteinG }}g</span
+            >
+          </div>
+          <progress
+            max="100"
+            value="{{ .macros.TodayProgress.ProteinPct }}"
+          ></progress>
+        </div>
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Carbs</span>
+            <span class="macro-progress-value"
+              >{{ .macros.TodayTotals.CarbsG }}g /
+              {{ .macros.Goal.CarbsG }}g</span
+            >
+          </div>
+          <progress
+            max="100"
+            value="{{ .macros.TodayProgress.CarbsPct }}"
+          ></progress>
+        </div>
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Fat</span>
+            <span class="macro-progress-value"
+              >{{ .macros.TodayTotals.FatG }}g / {{ .macros.Goal.FatG }}g</span
+            >
+          </div>
+          <progress
+            max="100"
+            value="{{ .macros.TodayProgress.FatPct }}"
+          ></progress>
+        </div>
+      </div>
+      <ul class="summary-list" style="margin-top: var(--space-2);">
+        <li class="summary-list-item">
+          <span class="summary-card-label">Yesterday</span>
+        </li>
+        <li class="summary-list-item">
+          <span>Kcal</span>
+          <span
+            >{{ .macros.YesterdayTotals.Kcal }} / {{ .macros.Goal.Kcal }}</span
+          >
+        </li>
+        <li class="summary-list-item">
+          <span>Protein</span>
+          <span
+            >{{ .macros.YesterdayTotals.ProteinG }}g /
+            {{ .macros.Goal.ProteinG }}g</span
+          >
+        </li>
+        <li class="summary-list-item">
+          <span>Carbs</span>
+          <span
+            >{{ .macros.YesterdayTotals.CarbsG }}g /
+            {{ .macros.Goal.CarbsG }}g</span
+          >
+        </li>
+        <li class="summary-list-item">
+          <span>Fat</span>
+          <span
+            >{{ .macros.YesterdayTotals.FatG }}g /
+            {{ .macros.Goal.FatG }}g</span
+          >
+        </li>
+      </ul>
+    {{ else }}
+      <p>No macro goals set.</p>
+      <a href="/macros/goals">Set goals</a>
+    {{ end }}
+  </div>
 {{ end }}

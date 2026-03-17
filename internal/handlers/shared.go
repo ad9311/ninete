@@ -114,6 +114,15 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, 
 	}
 }
 
+func safeUint64ToInt(v uint64) int {
+	const maxInt = uint64(^uint(0) >> 1)
+	if v > maxInt {
+		return int(maxInt)
+	}
+
+	return int(v)
+}
+
 func tagNamesByTargetID(rows []repo.TagRow) map[int][]string {
 	m := map[int][]string{}
 	for _, row := range rows {
