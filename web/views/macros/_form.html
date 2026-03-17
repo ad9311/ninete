@@ -1,34 +1,33 @@
 {{ define "macro_entry_form" }}
-  <input type="text" placeholder="Name" name="name" value="{{ .entry.Name }}" />
-  <input
-    type="number"
-    min="0"
-    placeholder="Kcal"
-    name="kcal"
-    value="{{ .entry.Kcal }}"
-  />
-  <input
-    type="number"
-    min="0"
-    placeholder="Protein (g)"
-    name="protein_g"
-    value="{{ .entry.ProteinG }}"
-  />
-  <input
-    type="number"
-    min="0"
-    placeholder="Carbs (g)"
-    name="carbs_g"
-    value="{{ .entry.CarbsG }}"
-  />
-  <input
-    type="number"
-    min="0"
-    placeholder="Fat (g)"
-    name="fat_g"
-    value="{{ .entry.FatG }}"
-  />
-  <input type="date" placeholder="Date" data-date-target="local" />
+  <label>
+    Name
+    <input type="text" name="name" value="{{ .entry.Name }}" />
+  </label>
+  <label>
+    Kcal
+    <input type="number" min="0" name="kcal" value="{{ .entry.Kcal }}" />
+  </label>
+  <label>
+    Protein (g)
+    <input
+      type="number"
+      min="0"
+      name="protein_g"
+      value="{{ .entry.ProteinG }}"
+    />
+  </label>
+  <label>
+    Carbs (g)
+    <input type="number" min="0" name="carbs_g" value="{{ .entry.CarbsG }}" />
+  </label>
+  <label>
+    Fat (g)
+    <input type="number" min="0" name="fat_g" value="{{ .entry.FatG }}" />
+  </label>
+  <label>
+    Date
+    <input type="date" data-date-target="local" />
+  </label>
   <input
     type="hidden"
     name="date"

@@ -19,19 +19,39 @@
   {{ if .hasGoal }}
     <div class="macro-progress">
       <div class="macro-progress-item">
-        <span>Kcal {{ .totals.Kcal }} / {{ .goal.Kcal }}</span>
+        <div class="macro-progress-header">
+          <span class="macro-progress-label">Kcal</span>
+          <span class="macro-progress-value"
+            >{{ .totals.Kcal }} / {{ .goal.Kcal }}</span
+          >
+        </div>
         <progress max="100" value="{{ .progress.KcalPct }}"></progress>
       </div>
       <div class="macro-progress-item">
-        <span>Protein {{ .totals.ProteinG }}g / {{ .goal.ProteinG }}g</span>
+        <div class="macro-progress-header">
+          <span class="macro-progress-label">Protein</span>
+          <span class="macro-progress-value"
+            >{{ .totals.ProteinG }}g / {{ .goal.ProteinG }}g</span
+          >
+        </div>
         <progress max="100" value="{{ .progress.ProteinPct }}"></progress>
       </div>
       <div class="macro-progress-item">
-        <span>Carbs {{ .totals.CarbsG }}g / {{ .goal.CarbsG }}g</span>
+        <div class="macro-progress-header">
+          <span class="macro-progress-label">Carbs</span>
+          <span class="macro-progress-value"
+            >{{ .totals.CarbsG }}g / {{ .goal.CarbsG }}g</span
+          >
+        </div>
         <progress max="100" value="{{ .progress.CarbsPct }}"></progress>
       </div>
       <div class="macro-progress-item">
-        <span>Fat {{ .totals.FatG }}g / {{ .goal.FatG }}g</span>
+        <div class="macro-progress-header">
+          <span class="macro-progress-label">Fat</span>
+          <span class="macro-progress-value"
+            >{{ .totals.FatG }}g / {{ .goal.FatG }}g</span
+          >
+        </div>
         <progress max="100" value="{{ .progress.FatPct }}"></progress>
       </div>
     </div>

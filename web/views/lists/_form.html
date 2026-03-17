@@ -1,11 +1,8 @@
 {{ define "list_form" }}
-  <input
-    type="text"
-    placeholder="List name"
-    name="name"
-    value="{{ .list.Name }}"
-    autofocus
-  />
+  <label>
+    Name
+    <input type="text" name="name" value="{{ .list.Name }}" autofocus />
+  </label>
   <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
     Submit
   </button>
