@@ -7,20 +7,20 @@ import (
 type MacroGoal struct {
 	ID        int
 	UserID    int
-	Kcal      int
-	ProteinG  int
-	CarbsG    int
-	FatG      int
+	Kcal      float64
+	ProteinG  float64
+	CarbsG    float64
+	FatG      float64
 	CreatedAt int64
 	UpdatedAt int64
 }
 
 type UpsertMacroGoalParams struct {
 	UserID   int
-	Kcal     int
-	ProteinG int
-	CarbsG   int
-	FatG     int
+	Kcal     float64
+	ProteinG float64
+	CarbsG   float64
+	FatG     float64
 }
 
 const selectMacroGoal = `SELECT * FROM "macro_goals" WHERE "user_id" = ? LIMIT 1`

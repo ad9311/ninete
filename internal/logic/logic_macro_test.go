@@ -32,8 +32,20 @@ func TestCreateMacroEntry(t *testing.T) {
 				require.Positive(t, entry.ID)
 				require.Equal(t, user.ID, entry.UserID)
 				require.Equal(t, "chicken breast", entry.Name)
-				require.Equal(t, 165, entry.Kcal)
-				require.Equal(t, 31, entry.ProteinG)
+				require.Equal(t, 165.0, entry.Kcal)
+				require.Equal(t, 31.0, entry.ProteinG)
+			},
+		},
+		{
+			name: "should_create_macro_entry_with_decimal_values",
+			fn: func(t *testing.T) {
+				params := newMacroEntryParams("greek yogurt", 133.22, 12.5, 8.75, 3.33, 1742083200)
+				entry, err := s.Store.CreateMacroEntry(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, 133.22, entry.Kcal)
+				require.Equal(t, 12.5, entry.ProteinG)
+				require.Equal(t, 8.75, entry.CarbsG)
+				require.Equal(t, 3.33, entry.FatG)
 			},
 		},
 		{
@@ -76,7 +88,7 @@ func TestUpdateMacroEntry(t *testing.T) {
 				updated, err := s.Store.UpdateMacroEntry(ctx, entry.ID, user.ID, updParams)
 				require.NoError(t, err)
 				require.Equal(t, "oats updated", updated.Name)
-				require.Equal(t, 160, updated.Kcal)
+				require.Equal(t, 160.0, updated.Kcal)
 			},
 		},
 		{
@@ -162,10 +174,10 @@ func TestFindMacroDayTotals(t *testing.T) {
 
 				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, dayStart, nextDayStart)
 				require.NoError(t, err)
-				require.Equal(t, 300, totals.Kcal)
-				require.Equal(t, 30, totals.ProteinG)
-				require.Equal(t, 50, totals.CarbsG)
-				require.Equal(t, 15, totals.FatG)
+				require.Equal(t, 300.0, totals.Kcal)
+				require.Equal(t, 30.0, totals.ProteinG)
+				require.Equal(t, 50.0, totals.CarbsG)
+				require.Equal(t, 15.0, totals.FatG)
 			},
 		},
 		{
@@ -173,10 +185,10 @@ func TestFindMacroDayTotals(t *testing.T) {
 			fn: func(t *testing.T) {
 				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, nextDayStart, nextDayStart+86400)
 				require.NoError(t, err)
-				require.Equal(t, 0, totals.Kcal)
-				require.Equal(t, 0, totals.ProteinG)
-				require.Equal(t, 0, totals.CarbsG)
-				require.Equal(t, 0, totals.FatG)
+				require.Zero(t, totals.Kcal)
+				require.Zero(t, totals.ProteinG)
+				require.Zero(t, totals.CarbsG)
+				require.Zero(t, totals.FatG)
 			},
 		},
 	}
@@ -206,14 +218,40 @@ func TestSaveMacroGoal(t *testing.T) {
 					logic.MacroGoalParams{Kcal: 2000, ProteinG: 150, CarbsG: 200, FatG: 70})
 				require.NoError(t, err)
 				require.Positive(t, goal.ID)
-				require.Equal(t, 2000, goal.Kcal)
+				require.Equal(t, 2000.0, goal.Kcal)
 
 				updated, err := s.Store.SaveMacroGoal(ctx, user.ID,
 					logic.MacroGoalParams{Kcal: 2200, ProteinG: 160, CarbsG: 220, FatG: 80})
 				require.NoError(t, err)
 				require.Equal(t, goal.ID, updated.ID)
-				require.Equal(t, 2200, updated.Kcal)
-				require.Equal(t, 160, updated.ProteinG)
+				require.Equal(t, 2200.0, updated.Kcal)
+				require.Equal(t, 160.0, updated.ProteinG)
+			},
+		},
+		{
+			name: "should_save_goal_with_decimal_values",
+			fn: func(t *testing.T) {
+				goal, err := s.Store.SaveMacroGoal(ctx, user.ID,
+					logic.MacroGoalParams{Kcal: 1950.5, ProteinG: 147.25, CarbsG: 195.75, FatG: 65.5})
+				require.NoError(t, err)
+				require.Equal(t, 1950.5, goal.Kcal)
+				require.Equal(t, 147.25, goal.ProteinG)
+			},
+		},
+		{
+			name: "should_fail_validation_when_any_value_is_zero",
+			fn: func(t *testing.T) {
+				_, err := s.Store.SaveMacroGoal(ctx, user.ID,
+					logic.MacroGoalParams{Kcal: 0, ProteinG: 150, CarbsG: 200, FatG: 70})
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			name: "should_fail_validation_when_any_value_is_negative",
+			fn: func(t *testing.T) {
+				_, err := s.Store.SaveMacroGoal(ctx, user.ID,
+					logic.MacroGoalParams{Kcal: 2000, ProteinG: -1, CarbsG: 200, FatG: 70})
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
 			},
 		},
 	}
@@ -249,7 +287,7 @@ func TestFindMacroGoal(t *testing.T) {
 				s.SaveMacroGoal(t, user.ID, logic.MacroGoalParams{Kcal: 1800, ProteinG: 130, CarbsG: 180, FatG: 60})
 				goal, err := s.Store.FindMacroGoal(ctx, user.ID)
 				require.NoError(t, err)
-				require.Equal(t, 1800, goal.Kcal)
+				require.Equal(t, 1800.0, goal.Kcal)
 				require.Equal(t, user.ID, goal.UserID)
 			},
 		},
@@ -260,7 +298,7 @@ func TestFindMacroGoal(t *testing.T) {
 	}
 }
 
-func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG int, date int64) logic.MacroEntryParams {
+func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date int64) logic.MacroEntryParams {
 	return logic.MacroEntryParams{
 		Name:     name,
 		Kcal:     kcal,

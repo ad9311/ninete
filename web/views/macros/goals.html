@@ -10,13 +10,20 @@
       {{ template "csrf" . }}
       <label>
         Kcal
-        <input type="number" min="1" name="kcal" value="{{ .goal.Kcal }}" />
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          name="kcal"
+          value="{{ .goal.Kcal }}"
+        />
       </label>
       <label>
         Protein (g)
         <input
           type="number"
-          min="1"
+          min="0.01"
+          step="0.01"
           name="protein_g"
           value="{{ .goal.ProteinG }}"
         />
@@ -25,14 +32,21 @@
         Carbs (g)
         <input
           type="number"
-          min="1"
+          min="0.01"
+          step="0.01"
           name="carbs_g"
           value="{{ .goal.CarbsG }}"
         />
       </label>
       <label>
         Fat (g)
-        <input type="number" min="1" name="fat_g" value="{{ .goal.FatG }}" />
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          name="fat_g"
+          value="{{ .goal.FatG }}"
+        />
       </label>
       <button
         type="submit"

@@ -5,24 +5,43 @@
   </label>
   <label>
     Kcal
-    <input type="number" min="0" name="kcal" value="{{ .entry.Kcal }}" />
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="kcal"
+      value="{{ .entry.Kcal }}"
+    />
   </label>
   <label>
     Protein (g)
     <input
       type="number"
       min="0"
+      step="0.01"
       name="protein_g"
       value="{{ .entry.ProteinG }}"
     />
   </label>
   <label>
     Carbs (g)
-    <input type="number" min="0" name="carbs_g" value="{{ .entry.CarbsG }}" />
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="carbs_g"
+      value="{{ .entry.CarbsG }}"
+    />
   </label>
   <label>
     Fat (g)
-    <input type="number" min="0" name="fat_g" value="{{ .entry.FatG }}" />
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="fat_g"
+      value="{{ .entry.FatG }}"
+    />
   </label>
   <label>
     Date
