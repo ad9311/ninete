@@ -16,10 +16,10 @@ type MacroEntryParams struct {
 }
 
 type MacroGoalParams struct {
-	Kcal     int `validate:"gte=0"`
-	ProteinG int `validate:"gte=0"`
-	CarbsG   int `validate:"gte=0"`
-	FatG     int `validate:"gte=0"`
+	Kcal     int `validate:"gt=0"`
+	ProteinG int `validate:"gt=0"`
+	CarbsG   int `validate:"gt=0"`
+	FatG     int `validate:"gt=0"`
 }
 
 func (s *Store) FindMacroEntries(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroEntry, error) {

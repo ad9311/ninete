@@ -8,34 +8,32 @@
     {{ template "form_error" . }}
     <form action="/macros/goals" method="post">
       {{ template "csrf" . }}
-      <input
-        type="number"
-        min="0"
-        placeholder="Kcal goal"
-        name="kcal"
-        value="{{ .goal.Kcal }}"
-      />
-      <input
-        type="number"
-        min="0"
-        placeholder="Protein goal (g)"
-        name="protein_g"
-        value="{{ .goal.ProteinG }}"
-      />
-      <input
-        type="number"
-        min="0"
-        placeholder="Carbs goal (g)"
-        name="carbs_g"
-        value="{{ .goal.CarbsG }}"
-      />
-      <input
-        type="number"
-        min="0"
-        placeholder="Fat goal (g)"
-        name="fat_g"
-        value="{{ .goal.FatG }}"
-      />
+      <label>
+        Kcal
+        <input type="number" min="1" name="kcal" value="{{ .goal.Kcal }}" />
+      </label>
+      <label>
+        Protein (g)
+        <input
+          type="number"
+          min="1"
+          name="protein_g"
+          value="{{ .goal.ProteinG }}"
+        />
+      </label>
+      <label>
+        Carbs (g)
+        <input
+          type="number"
+          min="1"
+          name="carbs_g"
+          value="{{ .goal.CarbsG }}"
+        />
+      </label>
+      <label>
+        Fat (g)
+        <input type="number" min="1" name="fat_g" value="{{ .goal.FatG }}" />
+      </label>
       <button
         type="submit"
         class="btn-primary"

@@ -1,41 +1,50 @@
 {{ define "expense_form" }}
-  <select name="category_id">
-    {{ range .categories }}
-      <option
-        value="{{ .ID }}"
-        {{ if eq .ID $.expense.CategoryID }}selected{{ end }}
-      >
-        {{ .Name }}
-      </option>
-    {{ end }}
-  </select>
-  <input
-    type="text"
-    placeholder="Description"
-    name="description"
-    value="{{ .expense.Description }}"
-  />
-  <input
-    type="number"
-    min="0"
-    step="0.01"
-    placeholder="Amount"
-    data-amount-target="local"
-    data-action="input->amount#sync"
-  />
+  <label>
+    Category
+    <select name="category_id">
+      {{ range .categories }}
+        <option
+          value="{{ .ID }}"
+          {{ if eq .ID $.expense.CategoryID }}selected{{ end }}
+        >
+          {{ .Name }}
+        </option>
+      {{ end }}
+    </select>
+  </label>
+  <label>
+    Description
+    <input type="text" name="description" value="{{ .expense.Description }}" />
+  </label>
+  <label>
+    Amount
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      data-amount-target="local"
+      data-action="input->amount#sync"
+    />
+  </label>
   <input
     type="hidden"
     name="amount"
     data-amount-target="value"
     value="{{ .expense.Amount }}"
   />
-  <input
-    type="text"
-    placeholder="Tags (; separated)"
-    name="tags"
-    value="{{ .tagsInput }}"
-  />
-  <input type="date" placeholder="Date" data-date-target="local" />
+  <label>
+    Tags
+    <input
+      type="text"
+      placeholder="Semicolon separated"
+      name="tags"
+      value="{{ .tagsInput }}"
+    />
+  </label>
+  <label>
+    Date
+    <input type="date" data-date-target="local" />
+  </label>
   <input
     type="hidden"
     name="date"

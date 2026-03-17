@@ -1,26 +1,36 @@
 {{ define "task_form" }}
-  <input
-    type="text"
-    placeholder="Description"
-    name="description"
-    value="{{ .task.Description }}"
-    autofocus
-  />
-  <select name="priority">
-    <option value="1" {{ if eq .task.Priority 1 }}selected{{ end }}>Low</option>
-    <option value="2" {{ if eq .task.Priority 2 }}selected{{ end }}>
-      Medium
-    </option>
-    <option value="3" {{ if eq .task.Priority 3 }}selected{{ end }}>
-      High
-    </option>
-  </select>
-  <input
-    type="text"
-    placeholder="Tags (; separated)"
-    name="tags"
-    value="{{ .tagsInput }}"
-  />
+  <label>
+    Description
+    <input
+      type="text"
+      name="description"
+      value="{{ .task.Description }}"
+      autofocus
+    />
+  </label>
+  <label>
+    Priority
+    <select name="priority">
+      <option value="1" {{ if eq .task.Priority 1 }}selected{{ end }}>
+        Low
+      </option>
+      <option value="2" {{ if eq .task.Priority 2 }}selected{{ end }}>
+        Medium
+      </option>
+      <option value="3" {{ if eq .task.Priority 3 }}selected{{ end }}>
+        High
+      </option>
+    </select>
+  </label>
+  <label>
+    Tags
+    <input
+      type="text"
+      placeholder="Semicolon separated"
+      name="tags"
+      value="{{ .tagsInput }}"
+    />
+  </label>
   <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
     Submit
   </button>
