@@ -65,7 +65,17 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
-	dayStart, nextDayStart, selectedDate := computeDayWindow(r.URL.Query().Get("date"))
+	q := r.URL.Query()
+	dayStart, nextDayStart, selectedDate := computeDayWindow(q.Get("date"))
+
+	sortField := q.Get("sort_field")
+	sortOrder := q.Get("sort_order")
+	if sortField == "" {
+		sortField = "name"
+	}
+	if sortOrder == "" {
+		sortOrder = "ASC"
+	}
 
 	opts := repo.QueryOptions{
 		Filters: repo.Filters{
@@ -76,7 +86,7 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 			},
 			Connector: "AND",
 		},
-		Sorting: repo.Sorting{Field: "id", Order: "ASC"},
+		Sorting: repo.Sorting{Field: sortField, Order: sortOrder},
 	}
 
 	entries, err := h.store.FindMacroEntries(ctx, opts)
@@ -105,6 +115,8 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 	data["totals"] = totals
 	data["selectedDate"] = selectedDate
 	data["hasGoal"] = hasGoal
+	data["sortField"] = sortField
+	data["sortOrder"] = sortOrder
 
 	if hasGoal {
 		data["goal"] = goal
