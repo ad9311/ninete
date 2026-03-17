@@ -83,6 +83,7 @@
   </div>
   <div class="summary-card" style="margin-top: var(--space-4);">
     <span class="summary-card-label">Today's nutrition</span>
+    <a href="/macros">View macros</a>
     {{ if .macros.HasGoal }}
       <div class="macro-progress">
         <div class="macro-progress-item">
@@ -168,7 +169,6 @@
           >
         </li>
       </ul>
-      <a href="/macros">View macros</a>
     {{ else }}
       <p>No macro goals set.</p>
       <a href="/macros/goals">Set goals</a>
