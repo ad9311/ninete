@@ -2,16 +2,34 @@
   <header class="site-header">
     <a href="/" class="site-brand">NINETE</a>
     {{ if ne .currentUser nil }}
-      <nav class="site-nav">
-        <a href="/expenses">Expenses</a>
-        <a href="/recurrent-expenses">Recurrent Expenses</a>
-        <a href="/macros">Macros</a>
-        <a href="/lists">Lists</a>
+      <nav class="site-nav" data-controller="nav">
+        <button
+          class="site-nav-toggle"
+          data-action="click->nav#toggle"
+          aria-haspopup="true"
+        >
+          {{ .currentUser.Username }} <span class="site-nav-caret">▾</span>
+        </button>
+        <ul class="site-nav-dropdown" data-nav-target="dropdown">
+          <li><a href="/expenses">Expenses</a></li>
+          <li><a href="/recurrent-expenses">Recurrent Expenses</a></li>
+          <li><a href="/macros">Macros</a></li>
+          <li><a href="/lists">Lists</a></li>
+          <li class="site-nav-divider"></li>
+          <li>
+            <form action="/logout" method="post" class="site-nav-logout">
+              {{ template "csrf" . }}
+              <button
+                type="submit"
+                class="site-nav-logout-btn"
+                data-turbo-submits-with="Logging out..."
+              >
+                Logout
+              </button>
+            </form>
+          </li>
+        </ul>
       </nav>
-      <div class="site-header-actions">
-        <p class="site-user">{{ .currentUser.Username }}</p>
-        {{ template "logout_button" . }}
-      </div>
     {{ end }}
   </header>
 {{ end }}
