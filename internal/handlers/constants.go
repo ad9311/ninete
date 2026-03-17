@@ -10,6 +10,7 @@ const (
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
 	KeyList             = ContextKey("listID")
 	KeyTask             = ContextKey("taskID")
+	KeyMacroEntry       = ContextKey("macroEntryID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
@@ -52,6 +53,13 @@ const (
 	TasksNew  TemplateName = "tasks/new"
 	TasksEdit TemplateName = "tasks/edit"
 	TasksShow TemplateName = "tasks/show"
+
+	// Macro templates.
+	MacrosIndex TemplateName = "macros/index"
+	MacrosNew   TemplateName = "macros/new"
+	MacrosEdit  TemplateName = "macros/edit"
+	MacrosShow  TemplateName = "macros/show"
+	MacrosGoals TemplateName = "macros/goals"
 
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"

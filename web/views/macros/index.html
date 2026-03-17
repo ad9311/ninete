@@ -1,0 +1,104 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>MACROS</h1>
+  <nav class="page-links">
+    <a href="/macros/new">New Entry</a>
+    <a href="/macros/goals">Goals</a>
+  </nav>
+  <form method="get" action="/macros" class="filters">
+    <label>
+      Date
+      <input
+        type="date"
+        name="date"
+        value="{{ .selectedDate }}"
+        onchange="this.form.submit()"
+      />
+    </label>
+  </form>
+  {{ if .hasGoal }}
+    <div class="macro-progress">
+      <div class="macro-progress-item">
+        <span>Kcal {{ .totals.Kcal }} / {{ .goal.Kcal }}</span>
+        <progress max="100" value="{{ .progress.KcalPct }}"></progress>
+      </div>
+      <div class="macro-progress-item">
+        <span>Protein {{ .totals.ProteinG }}g / {{ .goal.ProteinG }}g</span>
+        <progress max="100" value="{{ .progress.ProteinPct }}"></progress>
+      </div>
+      <div class="macro-progress-item">
+        <span>Carbs {{ .totals.CarbsG }}g / {{ .goal.CarbsG }}g</span>
+        <progress max="100" value="{{ .progress.CarbsPct }}"></progress>
+      </div>
+      <div class="macro-progress-item">
+        <span>Fat {{ .totals.FatG }}g / {{ .goal.FatG }}g</span>
+        <progress max="100" value="{{ .progress.FatPct }}"></progress>
+      </div>
+    </div>
+  {{ end }}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Kcal</th>
+        <th>Protein (g)</th>
+        <th>Carbs (g)</th>
+        <th>Fat (g)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .entries }}
+        <tr>
+          <td>{{ .Name }}</td>
+          <td>{{ .Kcal }}</td>
+          <td>{{ .ProteinG }}</td>
+          <td>{{ .CarbsG }}</td>
+          <td>{{ .FatG }}</td>
+          <td>
+            <a href="/macros/{{ .ID }}">Visit</a>
+          </td>
+        </tr>
+      {{ end }}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Totals</th>
+        <th>{{ .totals.Kcal }}</th>
+        <th>{{ .totals.ProteinG }}</th>
+        <th>{{ .totals.CarbsG }}</th>
+        <th>{{ .totals.FatG }}</th>
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+  <ul class="card-list">
+    {{ range .entries }}
+      <li class="card-list-item">
+        <div class="card-list-row">
+          <a href="/macros/{{ .ID }}" class="card-list-link">{{ .Name }}</a>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Kcal</span>
+          <span>{{ .Kcal }}</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Protein</span>
+          <span>{{ .ProteinG }}g</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Carbs</span>
+          <span>{{ .CarbsG }}g</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Fat</span>
+          <span>{{ .FatG }}g</span>
+        </div>
+      </li>
+    {{ end }}
+    <li class="card-list-summary">
+      Totals — {{ .totals.Kcal }} kcal / {{ .totals.ProteinG }}g protein /
+      {{ .totals.CarbsG }}g carbs / {{ .totals.FatG }}g fat
+    </li>
+  </ul>
+{{ end }}
