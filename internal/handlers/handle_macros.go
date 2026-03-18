@@ -103,7 +103,7 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totals, err := h.store.FindMacroDayTotals(ctx, user.ID, dayStart, nextDayStart)
+	totals, err := h.store.FindMacroDayTotals(ctx, user.ID, dayStart, nextDayStart, mealType)
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, MacrosIndex, err)
 

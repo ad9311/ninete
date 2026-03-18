@@ -127,8 +127,9 @@ func (s *Store) FindMacroDayTotals(
 	ctx context.Context,
 	userID int,
 	dayStart, nextDayStart int64,
+	mealType string,
 ) (repo.MacroDayTotals, error) {
-	return s.queries.SelectMacroDayTotals(ctx, userID, dayStart, nextDayStart)
+	return s.queries.SelectMacroDayTotals(ctx, userID, dayStart, nextDayStart, mealType)
 }
 
 func (s *Store) FindMacroGoal(ctx context.Context, userID int) (repo.MacroGoal, error) {

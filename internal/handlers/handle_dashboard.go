@@ -181,7 +181,7 @@ func (h *Handler) buildDashboardMacros(w http.ResponseWriter, r *http.Request, u
 
 	dayStart, nextDay, _ := computeDayWindow("")
 
-	todayTotals, err := h.store.FindMacroDayTotals(ctx, userID, dayStart, nextDay)
+	todayTotals, err := h.store.FindMacroDayTotals(ctx, userID, dayStart, nextDay, "")
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
 
@@ -189,7 +189,7 @@ func (h *Handler) buildDashboardMacros(w http.ResponseWriter, r *http.Request, u
 	}
 
 	ystStart := dayStart - 86400
-	yesterdayTotals, err := h.store.FindMacroDayTotals(ctx, userID, ystStart, dayStart)
+	yesterdayTotals, err := h.store.FindMacroDayTotals(ctx, userID, ystStart, dayStart, "")
 	if err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
 

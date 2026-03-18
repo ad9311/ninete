@@ -136,6 +136,22 @@
         >
           Fat (low–high)
         </option>
+        <option
+          value="meal_type:ASC"
+          {{ if and (eq .sortField "meal_type") (eq .sortOrder "ASC") }}
+            selected
+          {{ end }}
+        >
+          Meal (A–Z)
+        </option>
+        <option
+          value="meal_type:DESC"
+          {{ if and (eq .sortField "meal_type") (eq .sortOrder "DESC") }}
+            selected
+          {{ end }}
+        >
+          Meal (Z–A)
+        </option>
       </select>
     </label>
   </div>
@@ -268,7 +284,23 @@
             {{ end }}
           </a>
         </th>
-        <th>Meal</th>
+        <th>
+          {{ $mealTypeOrder := "ASC" }}{{ if and (eq $.sortField "meal_type") (eq $.sortOrder "ASC") }}
+            {{ $mealTypeOrder = "DESC" }}
+          {{ end }}
+          <a
+            href="/macros?date={{ $.selectedDate }}&sort_field=meal_type&sort_order={{ $mealTypeOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
+            class="sort-link"
+            >Meal
+            {{ if eq $.sortField "meal_type" }}
+              <span class="sort-indicator"
+                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+              >
+            {{ end }}
+          </a>
+        </th>
         <th>Actions</th>
       </tr>
     </thead>

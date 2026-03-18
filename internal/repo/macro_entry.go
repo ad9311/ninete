@@ -273,15 +273,26 @@ SELECT COALESCE(SUM("kcal"),0), COALESCE(SUM("protein_g"),0),
        COALESCE(SUM("carbs_g"),0), COALESCE(SUM("fat_g"),0)
 FROM "macro_entries" WHERE "user_id"=? AND "date">=? AND "date"<?`
 
+const selectMacroDayTotalsByMealType = selectMacroDayTotals + ` AND "meal_type"=?`
+
 func (q *Queries) SelectMacroDayTotals(
 	ctx context.Context,
 	userID int,
 	dayStart, nextDayStart int64,
+	mealType string,
 ) (MacroDayTotals, error) {
 	var t MacroDayTotals
 
-	err := q.wrapQuery(selectMacroDayTotals, func() error {
-		row := q.db.QueryRowContext(ctx, selectMacroDayTotals, userID, dayStart, nextDayStart)
+	query := selectMacroDayTotals
+	args := []any{userID, dayStart, nextDayStart}
+
+	if mealType != "" {
+		query = selectMacroDayTotalsByMealType
+		args = append(args, mealType)
+	}
+
+	err := q.wrapQuery(query, func() error {
+		row := q.db.QueryRowContext(ctx, query, args...)
 
 		return row.Scan(&t.Kcal, &t.ProteinG, &t.CarbsG, &t.FatG)
 	})

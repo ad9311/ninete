@@ -172,7 +172,7 @@ func TestFindMacroDayTotals(t *testing.T) {
 				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("food_a", 100, 10, 20, 5, dayStart))
 				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("food_b", 200, 20, 30, 10, dayStart+3600))
 
-				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, dayStart, nextDayStart)
+				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, dayStart, nextDayStart, "")
 				require.NoError(t, err)
 				require.Equal(t, 300.0, totals.Kcal)
 				require.Equal(t, 30.0, totals.ProteinG)
@@ -183,7 +183,7 @@ func TestFindMacroDayTotals(t *testing.T) {
 		{
 			name: "should_return_zeros_for_empty_window",
 			fn: func(t *testing.T) {
-				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, nextDayStart, nextDayStart+86400)
+				totals, err := s.Store.FindMacroDayTotals(ctx, user.ID, nextDayStart, nextDayStart+86400, "")
 				require.NoError(t, err)
 				require.Zero(t, totals.Kcal)
 				require.Zero(t, totals.ProteinG)
