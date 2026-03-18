@@ -306,5 +306,6 @@ func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date
 		CarbsG:   carbsG,
 		FatG:     fatG,
 		Date:     date,
+		MealType: "other",
 	}
 }

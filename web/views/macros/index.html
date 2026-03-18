@@ -15,6 +15,42 @@
         onchange="this.form.submit()"
       />
     </label>
+    <label>
+      Meal
+      <select name="meal_type" onchange="this.form.submit()">
+        <option value="">All meals</option>
+        <option
+          value="breakfast"
+          {{ if eq $.selectedMealType "breakfast" }}selected{{ end }}
+        >
+          Breakfast
+        </option>
+        <option
+          value="lunch"
+          {{ if eq $.selectedMealType "lunch" }}selected{{ end }}
+        >
+          Lunch
+        </option>
+        <option
+          value="dinner"
+          {{ if eq $.selectedMealType "dinner" }}selected{{ end }}
+        >
+          Dinner
+        </option>
+        <option
+          value="snack"
+          {{ if eq $.selectedMealType "snack" }}selected{{ end }}
+        >
+          Snack
+        </option>
+        <option
+          value="other"
+          {{ if eq $.selectedMealType "other" }}selected{{ end }}
+        >
+          Other
+        </option>
+      </select>
+    </label>
   </form>
   <div class="sort-mobile" data-controller="sort">
     <label>
@@ -152,7 +188,9 @@
             {{ $nameOrder = "DESC" }}
           {{ end }}
           <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=name&sort_order={{ $nameOrder }}"
+            href="/macros?date={{ $.selectedDate }}&sort_field=name&sort_order={{ $nameOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
             class="sort-link"
             >Name
             {{ if eq $.sortField "name" }}
@@ -167,7 +205,9 @@
             {{ $kcalOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=kcal&sort_order={{ $kcalOrder }}"
+            href="/macros?date={{ $.selectedDate }}&sort_field=kcal&sort_order={{ $kcalOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
             class="sort-link"
             >Kcal
             {{ if eq $.sortField "kcal" }}
@@ -182,7 +222,9 @@
             {{ $proteinOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=protein_g&sort_order={{ $proteinOrder }}"
+            href="/macros?date={{ $.selectedDate }}&sort_field=protein_g&sort_order={{ $proteinOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
             class="sort-link"
             >Protein (g)
             {{ if eq $.sortField "protein_g" }}
@@ -197,7 +239,9 @@
             {{ $carbsOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=carbs_g&sort_order={{ $carbsOrder }}"
+            href="/macros?date={{ $.selectedDate }}&sort_field=carbs_g&sort_order={{ $carbsOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
             class="sort-link"
             >Carbs (g)
             {{ if eq $.sortField "carbs_g" }}
@@ -212,7 +256,9 @@
             {{ $fatOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=fat_g&sort_order={{ $fatOrder }}"
+            href="/macros?date={{ $.selectedDate }}&sort_field=fat_g&sort_order={{ $fatOrder }}{{ if $.selectedMealType }}
+              &meal_type={{ $.selectedMealType }}
+            {{ end }}"
             class="sort-link"
             >Fat (g)
             {{ if eq $.sortField "fat_g" }}
@@ -222,6 +268,7 @@
             {{ end }}
           </a>
         </th>
+        <th>Meal</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -244,6 +291,7 @@
           <td>{{ .ProteinG }}</td>
           <td>{{ .CarbsG }}</td>
           <td>{{ .FatG }}</td>
+          <td>{{ .MealType }}</td>
           <td>
             <a href="/macros/{{ .ID }}">Visit</a>
           </td>
@@ -272,6 +320,7 @@
         <th data-macro-select-target="fatTotal" data-base="{{ .totals.FatG }}">
           {{ .totals.FatG }}
         </th>
+        <th></th>
         <th></th>
       </tr>
     </tfoot>
@@ -308,6 +357,10 @@
         <div class="card-list-row">
           <span class="card-list-label">Fat</span>
           <span>{{ .FatG }}g</span>
+        </div>
+        <div class="card-list-row">
+          <span class="card-list-label">Meal</span>
+          <span>{{ .MealType }}</span>
         </div>
       </li>
     {{ end }}

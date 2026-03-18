@@ -1,5 +1,40 @@
 {{ define "macro_entry_form" }}
   <label>
+    Meal
+    <select name="meal_type">
+      <option
+        value="breakfast"
+        {{ if eq .entry.MealType "breakfast" }}selected{{ end }}
+      >
+        Breakfast
+      </option>
+      <option
+        value="lunch"
+        {{ if eq .entry.MealType "lunch" }}selected{{ end }}
+      >
+        Lunch
+      </option>
+      <option
+        value="dinner"
+        {{ if eq .entry.MealType "dinner" }}selected{{ end }}
+      >
+        Dinner
+      </option>
+      <option
+        value="snack"
+        {{ if eq .entry.MealType "snack" }}selected{{ end }}
+      >
+        Snack
+      </option>
+      <option
+        value="other"
+        {{ if eq .entry.MealType "other" }}selected{{ end }}
+      >
+        Other
+      </option>
+    </select>
+  </label>
+  <label>
     Name
     <input type="text" name="name" value="{{ .entry.Name }}" />
   </label>

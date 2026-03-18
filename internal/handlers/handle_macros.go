@@ -77,14 +77,21 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 		sortOrder = "ASC"
 	}
 
+	mealType := q.Get("meal_type")
+
+	filterFields := []repo.FilterField{
+		{Name: "user_id", Value: user.ID, Operator: "="},
+		{Name: "date", Value: dayStart, Operator: ">="},
+		{Name: "date", Value: nextDayStart, Operator: "<"},
+	}
+	if mealType != "" {
+		filterFields = append(filterFields, repo.FilterField{Name: "meal_type", Value: mealType, Operator: "="})
+	}
+
 	opts := repo.QueryOptions{
 		Filters: repo.Filters{
-			FilterFields: []repo.FilterField{
-				{Name: "user_id", Value: user.ID, Operator: "="},
-				{Name: "date", Value: dayStart, Operator: ">="},
-				{Name: "date", Value: nextDayStart, Operator: "<"},
-			},
-			Connector: "AND",
+			FilterFields: filterFields,
+			Connector:    "AND",
 		},
 		Sorting: repo.Sorting{Field: sortField, Order: sortOrder},
 	}
@@ -117,6 +124,8 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 	data["hasGoal"] = hasGoal
 	data["sortField"] = sortField
 	data["sortOrder"] = sortOrder
+	data["selectedMealType"] = mealType
+	data["mealTypeOptions"] = macroMealTypeOptions()
 
 	if hasGoal {
 		data["goal"] = goal
@@ -156,6 +165,7 @@ func (h *Handler) PostMacros(w http.ResponseWriter, r *http.Request) {
 			CarbsG:   params.CarbsG,
 			FatG:     params.FatG,
 			Date:     params.Date,
+			MealType: params.MealType,
 		}
 		h.renderErr(w, r, http.StatusBadRequest, MacrosNew, err)
 
@@ -201,6 +211,7 @@ func (h *Handler) PostMacroEntryUpdate(w http.ResponseWriter, r *http.Request) {
 		entry.CarbsG = params.CarbsG
 		entry.FatG = params.FatG
 		entry.Date = params.Date
+		entry.MealType = params.MealType
 		data["entry"] = entry
 		h.renderErr(w, r, http.StatusBadRequest, MacrosEdit, err)
 
@@ -349,6 +360,7 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 	params.CarbsG = carbsG
 	params.FatG = fatG
 	params.Date = date
+	params.MealType = r.FormValue("meal_type")
 
 	return params, nil
 }

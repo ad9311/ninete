@@ -114,6 +114,7 @@ func TestGetDashboard(t *testing.T) {
 					CarbsG:   80,
 					FatG:     20,
 					Date:     time.Now().Unix(),
+					MealType: "other",
 				})
 				cookies := s.AuthCookies(t, "dash_user_5@example.com", "dash_password_5")
 
