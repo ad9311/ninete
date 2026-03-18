@@ -169,6 +169,17 @@ This document gives high-level context so agents can navigate the codebase quick
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
 
 
+## Features Implemented
+- Auth (login, register, invitation codes)
+- Categories
+- Expenses (one-off, with tags)
+- Recurrent expenses
+- Tags/Taggings (polymorphic; currently used for expenses and tasks)
+- Lists (user-scoped, name-unique per user)
+- Tasks (belong to lists; description, priority, done flag, tags)
+- Macros (daily nutrition entries + per-user goals; full CRUD at `/macros`, goals at `/macros/goals`)
+- Dashboard (`/dashboard`): expense summary (current vs. previous month, top categories, recent expenses) and today's macro progress toward goals
+
 ## UI/Assets Structure
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
 - Shared layout lives in `web/views/layout.html`.
@@ -186,3 +197,7 @@ This document gives high-level context so agents can navigate the codebase quick
 - `recurrent_expenses`: recurring templates with period and copy-tracking metadata.
 - `tags`: user-scoped labels (unique per user, case-insensitive by normalized name).
 - `taggings`: polymorphic join records between tags and taggable entities (`taggable_type`, `taggable_id`), currently used for expense tagging.
+- `lists`: user-scoped task lists (name unique per user).
+- `tasks`: items belonging to lists with description, priority, done flag, and tags.
+- `macro_entries`: daily nutrition log entries per user (`kcal`, `protein_g`, `carbs_g`, `fat_g`, `date`).
+- `macro_goals`: one-per-user nutrition targets (unique on `user_id`; same macro columns as entries).

@@ -13,6 +13,7 @@ type MacroEntryParams struct {
 	CarbsG   float64 `validate:"gte=0"`
 	FatG     float64 `validate:"gte=0"`
 	Date     int64   `validate:"required,gt=0"`
+	MealType string  `validate:"required,oneof=breakfast lunch dinner snack other"`
 }
 
 type MacroGoalParams struct {
@@ -67,6 +68,7 @@ func (s *Store) CreateMacroEntry(ctx context.Context, userID int, params MacroEn
 			CarbsG:   params.CarbsG,
 			FatG:     params.FatG,
 			Date:     params.Date,
+			MealType: params.MealType,
 		})
 
 		return txErr
@@ -100,6 +102,7 @@ func (s *Store) UpdateMacroEntry(
 			CarbsG:   params.CarbsG,
 			FatG:     params.FatG,
 			Date:     params.Date,
+			MealType: params.MealType,
 		})
 
 		return txErr

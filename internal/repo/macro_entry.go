@@ -4,6 +4,14 @@ import (
 	"context"
 )
 
+const (
+	MacroEntryMealTypeBreakfast = "breakfast"
+	MacroEntryMealTypeLunch     = "lunch"
+	MacroEntryMealTypeDinner    = "dinner"
+	MacroEntryMealTypeSnack     = "snack"
+	MacroEntryMealTypeOther     = "other"
+)
+
 type MacroEntry struct {
 	ID        int
 	UserID    int
@@ -15,6 +23,7 @@ type MacroEntry struct {
 	Date      int64
 	CreatedAt int64
 	UpdatedAt int64
+	MealType  string
 }
 
 type InsertMacroEntryParams struct {
@@ -25,6 +34,7 @@ type InsertMacroEntryParams struct {
 	CarbsG   float64
 	FatG     float64
 	Date     int64
+	MealType string
 }
 
 type UpdateMacroEntryParams struct {
@@ -35,6 +45,7 @@ type UpdateMacroEntryParams struct {
 	CarbsG   float64
 	FatG     float64
 	Date     int64
+	MealType string
 }
 
 type MacroDayTotals struct {
@@ -86,6 +97,7 @@ func (q *Queries) SelectMacroEntries(ctx context.Context, opts QueryOptions) ([]
 				&e.Date,
 				&e.CreatedAt,
 				&e.UpdatedAt,
+				&e.MealType,
 			); err != nil {
 				return err
 			}
@@ -140,6 +152,7 @@ func (q *Queries) SelectMacroEntry(ctx context.Context, id, userID int) (MacroEn
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.MealType,
 		)
 	})
 
@@ -147,8 +160,8 @@ func (q *Queries) SelectMacroEntry(ctx context.Context, id, userID int) (MacroEn
 }
 
 const insertMacroEntry = `
-INSERT INTO "macro_entries" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date")
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO "macro_entries" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date", "meal_type")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *`
 
 func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntryParams) (MacroEntry, error) {
@@ -165,6 +178,7 @@ func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntr
 			params.CarbsG,
 			params.FatG,
 			params.Date,
+			params.MealType,
 		)
 
 		return row.Scan(
@@ -178,6 +192,7 @@ func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntr
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.MealType,
 		)
 	})
 
@@ -192,6 +207,7 @@ SET "name"       = ?,
     "carbs_g"    = ?,
     "fat_g"      = ?,
     "date"       = ?,
+    "meal_type"  = ?,
     "updated_at" = ?
 WHERE "id" = ?
   AND "user_id" = ?
@@ -214,6 +230,7 @@ func (q *TxQueries) UpdateMacroEntry(
 			params.CarbsG,
 			params.FatG,
 			params.Date,
+			params.MealType,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -230,6 +247,7 @@ func (q *TxQueries) UpdateMacroEntry(
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.MealType,
 		)
 	})
 
@@ -283,5 +301,6 @@ func validMacroEntryFields() []string {
 		"date",
 		"created_at",
 		"updated_at",
+		"meal_type",
 	}
 }

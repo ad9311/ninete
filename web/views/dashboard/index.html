@@ -137,38 +137,43 @@
           ></progress>
         </div>
       </div>
-      <ul class="summary-list" style="margin-top: var(--space-2);">
-        <li class="summary-list-item">
+      <div class="macro-yesterday">
+        <div class="macro-yesterday-header">
           <span class="summary-card-label">Yesterday</span>
-        </li>
-        <li class="summary-list-item">
+        </div>
+        <div class="macro-yesterday-row">
           <span>Kcal</span>
-          <span
-            >{{ .macros.YesterdayTotals.Kcal }} / {{ .macros.Goal.Kcal }}</span
+          <span class="macro-col-actual"
+            >{{ .macros.YesterdayTotals.Kcal }}</span
           >
-        </li>
-        <li class="summary-list-item">
+          <span class="macro-col-sep">/</span>
+          <span>{{ .macros.Goal.Kcal }}</span>
+        </div>
+        <div class="macro-yesterday-row">
           <span>Protein</span>
-          <span
-            >{{ .macros.YesterdayTotals.ProteinG }}g /
-            {{ .macros.Goal.ProteinG }}g</span
+          <span class="macro-col-actual"
+            >{{ .macros.YesterdayTotals.ProteinG }}g</span
           >
-        </li>
-        <li class="summary-list-item">
+          <span class="macro-col-sep">/</span>
+          <span>{{ .macros.Goal.ProteinG }}g</span>
+        </div>
+        <div class="macro-yesterday-row">
           <span>Carbs</span>
-          <span
-            >{{ .macros.YesterdayTotals.CarbsG }}g /
-            {{ .macros.Goal.CarbsG }}g</span
+          <span class="macro-col-actual"
+            >{{ .macros.YesterdayTotals.CarbsG }}g</span
           >
-        </li>
-        <li class="summary-list-item">
+          <span class="macro-col-sep">/</span>
+          <span>{{ .macros.Goal.CarbsG }}g</span>
+        </div>
+        <div class="macro-yesterday-row">
           <span>Fat</span>
-          <span
-            >{{ .macros.YesterdayTotals.FatG }}g /
-            {{ .macros.Goal.FatG }}g</span
+          <span class="macro-col-actual"
+            >{{ .macros.YesterdayTotals.FatG }}g</span
           >
-        </li>
-      </ul>
+          <span class="macro-col-sep">/</span>
+          <span>{{ .macros.Goal.FatG }}g</span>
+        </div>
+      </div>
     {{ else }}
       <p>No macro goals set.</p>
       <a href="/macros/goals">Set goals</a>
