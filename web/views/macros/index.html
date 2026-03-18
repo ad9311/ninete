@@ -5,7 +5,12 @@
     <a href="/macros/new">New Entry</a>
     <a href="/macros/goals">Goals</a>
   </nav>
-  <form method="get" action="/macros" class="filters">
+  <form
+    method="get"
+    action="/macros"
+    class="filters"
+    data-controller="macro-date"
+  >
     <label>
       Date
       <input
@@ -323,7 +328,7 @@
           <td>{{ .ProteinG }}</td>
           <td>{{ .CarbsG }}</td>
           <td>{{ .FatG }}</td>
-          <td>{{ .MealType }}</td>
+          <td>{{ titleize .MealType }}</td>
           <td>
             <a href="/macros/{{ .ID }}">Visit</a>
           </td>
@@ -392,7 +397,7 @@
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Meal</span>
-          <span>{{ .MealType }}</span>
+          <span>{{ titleize .MealType }}</span>
         </div>
       </li>
     {{ end }}
