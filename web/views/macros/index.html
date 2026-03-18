@@ -328,7 +328,7 @@
           <td>{{ .ProteinG }}</td>
           <td>{{ .CarbsG }}</td>
           <td>{{ .FatG }}</td>
-          <td>{{ title .MealType }}</td>
+          <td>{{ titleize .MealType }}</td>
           <td>
             <a href="/macros/{{ .ID }}">Visit</a>
           </td>
@@ -397,7 +397,7 @@
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Meal</span>
-          <span>{{ title .MealType }}</span>
+          <span>{{ titleize .MealType }}</span>
         </div>
       </li>
     {{ end }}

@@ -27,7 +27,7 @@ func TemplateFuncMap() template.FuncMap {
 		"dateRangeOptions": handlers.DateRangeOptions,
 		"add":              func(a, b int) int { return a + b },
 		"sub":              func(a, b int) int { return a - b },
-		"title":            cases.Title(language.English).String,
+		"titleize":         cases.Title(language.English).String,
 	}
 }
 
