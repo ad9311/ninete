@@ -45,7 +45,7 @@ func start(app *prog.App) (int, error) {
 
 	store := logic.New(app, queries)
 
-	server := serve.New(app, store)
+	server := serve.New(app, store, sqlDB)
 
 	err = server.LoadTemplates()
 	if err != nil {

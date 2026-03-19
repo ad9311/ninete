@@ -2,6 +2,7 @@ package serve
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"html/template"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
+	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 )
@@ -28,7 +30,7 @@ type Server struct {
 	port      string
 }
 
-func New(app *prog.App, store *logic.Store) *Server {
+func New(app *prog.App, store *logic.Store, db *sql.DB) *Server {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -41,6 +43,8 @@ func New(app *prog.App, store *logic.Store) *Server {
 		store:   store,
 		port:    port,
 	}
+
+	s.Session.Store = sqlite3store.New(db)
 
 	s.handlers = handlers.New(handlers.Deps{
 		App:            app,
