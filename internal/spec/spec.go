@@ -38,7 +38,7 @@ func New(t *testing.T) Spec {
 
 	store := logic.New(app, queries)
 
-	server := serve.New(app, store)
+	server := serve.New(app, store, sqlDB)
 	if err := server.LoadTemplates(); err != nil {
 		t.Fatalf("failed to load templates, %v", err)
 	}

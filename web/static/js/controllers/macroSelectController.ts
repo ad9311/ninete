@@ -32,13 +32,13 @@ export default class extends Controller {
     const sum = (key: string) =>
       checked.reduce((acc, cb) => acc + parseFloat(cb.dataset[key] ?? "0"), 0);
 
-    this.kcalTotalTarget.textContent = round(sum("kcal")).toString();
-    this.proteinTotalTarget.textContent = round(sum("protein")).toString();
-    this.carbsTotalTarget.textContent = round(sum("carbs")).toString();
-    this.fatTotalTarget.textContent = round(sum("fat")).toString();
+    this.kcalTotalTarget.textContent = truncate(sum("kcal")).toString();
+    this.proteinTotalTarget.textContent = truncate(sum("protein")).toString();
+    this.carbsTotalTarget.textContent = truncate(sum("carbs")).toString();
+    this.fatTotalTarget.textContent = truncate(sum("fat")).toString();
   }
 }
 
-function round(n: number): number {
-  return Math.round(n * 100) / 100;
+function truncate(n: number): number {
+  return Math.trunc(n * 10) / 10;
 }

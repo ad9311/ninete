@@ -90,7 +90,8 @@
           <div class="macro-progress-header">
             <span class="macro-progress-label">Kcal</span>
             <span class="macro-progress-value"
-              >{{ .macros.TodayTotals.Kcal }} / {{ .macros.Goal.Kcal }}</span
+              >{{ truncateFloat .macros.TodayTotals.Kcal }} /
+              {{ truncateFloat .macros.Goal.Kcal }}</span
             >
           </div>
           <progress
@@ -102,8 +103,8 @@
           <div class="macro-progress-header">
             <span class="macro-progress-label">Protein</span>
             <span class="macro-progress-value"
-              >{{ .macros.TodayTotals.ProteinG }}g /
-              {{ .macros.Goal.ProteinG }}g</span
+              >{{ truncateFloat .macros.TodayTotals.ProteinG }}g /
+              {{ truncateFloat .macros.Goal.ProteinG }}g</span
             >
           </div>
           <progress
@@ -115,8 +116,8 @@
           <div class="macro-progress-header">
             <span class="macro-progress-label">Carbs</span>
             <span class="macro-progress-value"
-              >{{ .macros.TodayTotals.CarbsG }}g /
-              {{ .macros.Goal.CarbsG }}g</span
+              >{{ truncateFloat .macros.TodayTotals.CarbsG }}g /
+              {{ truncateFloat .macros.Goal.CarbsG }}g</span
             >
           </div>
           <progress
@@ -128,7 +129,8 @@
           <div class="macro-progress-header">
             <span class="macro-progress-label">Fat</span>
             <span class="macro-progress-value"
-              >{{ .macros.TodayTotals.FatG }}g / {{ .macros.Goal.FatG }}g</span
+              >{{ truncateFloat .macros.TodayTotals.FatG }}g /
+              {{ truncateFloat .macros.Goal.FatG }}g</span
             >
           </div>
           <progress
@@ -144,34 +146,34 @@
         <div class="macro-yesterday-row">
           <span>Kcal</span>
           <span class="macro-col-actual"
-            >{{ .macros.YesterdayTotals.Kcal }}</span
+            >{{ truncateFloat .macros.YesterdayTotals.Kcal }}</span
           >
           <span class="macro-col-sep">/</span>
-          <span>{{ .macros.Goal.Kcal }}</span>
+          <span>{{ truncateFloat .macros.Goal.Kcal }}</span>
         </div>
         <div class="macro-yesterday-row">
           <span>Protein</span>
           <span class="macro-col-actual"
-            >{{ .macros.YesterdayTotals.ProteinG }}g</span
+            >{{ truncateFloat .macros.YesterdayTotals.ProteinG }}g</span
           >
           <span class="macro-col-sep">/</span>
-          <span>{{ .macros.Goal.ProteinG }}g</span>
+          <span>{{ truncateFloat .macros.Goal.ProteinG }}g</span>
         </div>
         <div class="macro-yesterday-row">
           <span>Carbs</span>
           <span class="macro-col-actual"
-            >{{ .macros.YesterdayTotals.CarbsG }}g</span
+            >{{ truncateFloat .macros.YesterdayTotals.CarbsG }}g</span
           >
           <span class="macro-col-sep">/</span>
-          <span>{{ .macros.Goal.CarbsG }}g</span>
+          <span>{{ truncateFloat .macros.Goal.CarbsG }}g</span>
         </div>
         <div class="macro-yesterday-row">
           <span>Fat</span>
           <span class="macro-col-actual"
-            >{{ .macros.YesterdayTotals.FatG }}g</span
+            >{{ truncateFloat .macros.YesterdayTotals.FatG }}g</span
           >
           <span class="macro-col-sep">/</span>
-          <span>{{ .macros.Goal.FatG }}g</span>
+          <span>{{ truncateFloat .macros.Goal.FatG }}g</span>
         </div>
       </div>
     {{ else }}

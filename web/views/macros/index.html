@@ -166,7 +166,8 @@
         <div class="macro-progress-header">
           <span class="macro-progress-label">Kcal</span>
           <span class="macro-progress-value"
-            >{{ .totals.Kcal }} / {{ .goal.Kcal }}</span
+            >{{ truncateFloat .totals.Kcal }} /
+            {{ truncateFloat .goal.Kcal }}</span
           >
         </div>
         <progress max="100" value="{{ .progress.KcalPct }}"></progress>
@@ -175,7 +176,8 @@
         <div class="macro-progress-header">
           <span class="macro-progress-label">Protein</span>
           <span class="macro-progress-value"
-            >{{ .totals.ProteinG }}g / {{ .goal.ProteinG }}g</span
+            >{{ truncateFloat .totals.ProteinG }}g /
+            {{ truncateFloat .goal.ProteinG }}g</span
           >
         </div>
         <progress max="100" value="{{ .progress.ProteinPct }}"></progress>
@@ -184,7 +186,8 @@
         <div class="macro-progress-header">
           <span class="macro-progress-label">Carbs</span>
           <span class="macro-progress-value"
-            >{{ .totals.CarbsG }}g / {{ .goal.CarbsG }}g</span
+            >{{ truncateFloat .totals.CarbsG }}g /
+            {{ truncateFloat .goal.CarbsG }}g</span
           >
         </div>
         <progress max="100" value="{{ .progress.CarbsPct }}"></progress>
@@ -193,7 +196,8 @@
         <div class="macro-progress-header">
           <span class="macro-progress-label">Fat</span>
           <span class="macro-progress-value"
-            >{{ .totals.FatG }}g / {{ .goal.FatG }}g</span
+            >{{ truncateFloat .totals.FatG }}g /
+            {{ truncateFloat .goal.FatG }}g</span
           >
         </div>
         <progress max="100" value="{{ .progress.FatPct }}"></progress>
@@ -339,23 +343,29 @@
       <tr>
         <th></th>
         <th>Totals</th>
-        <th data-macro-select-target="kcalTotal" data-base="{{ .totals.Kcal }}">
-          {{ .totals.Kcal }}
+        <th
+          data-macro-select-target="kcalTotal"
+          data-base="{{ truncateFloat .totals.Kcal }}"
+        >
+          {{ truncateFloat .totals.Kcal }}
         </th>
         <th
           data-macro-select-target="proteinTotal"
-          data-base="{{ .totals.ProteinG }}"
+          data-base="{{ truncateFloat .totals.ProteinG }}"
         >
-          {{ .totals.ProteinG }}
+          {{ truncateFloat .totals.ProteinG }}
         </th>
         <th
           data-macro-select-target="carbsTotal"
-          data-base="{{ .totals.CarbsG }}"
+          data-base="{{ truncateFloat .totals.CarbsG }}"
         >
-          {{ .totals.CarbsG }}
+          {{ truncateFloat .totals.CarbsG }}
         </th>
-        <th data-macro-select-target="fatTotal" data-base="{{ .totals.FatG }}">
-          {{ .totals.FatG }}
+        <th
+          data-macro-select-target="fatTotal"
+          data-base="{{ truncateFloat .totals.FatG }}"
+        >
+          {{ truncateFloat .totals.FatG }}
         </th>
         <th></th>
         <th></th>
@@ -403,22 +413,26 @@
     {{ end }}
     <li class="card-list-summary">
       Totals —
-      <span data-macro-select-target="kcalTotal" data-base="{{ .totals.Kcal }}"
-        >{{ .totals.Kcal }}</span
+      <span
+        data-macro-select-target="kcalTotal"
+        data-base="{{ truncateFloat .totals.Kcal }}"
+        >{{ truncateFloat .totals.Kcal }}</span
       >
       kcal /
       <span
         data-macro-select-target="proteinTotal"
-        data-base="{{ .totals.ProteinG }}"
-        >{{ .totals.ProteinG }}</span
+        data-base="{{ truncateFloat .totals.ProteinG }}"
+        >{{ truncateFloat .totals.ProteinG }}</span
       >g protein /
       <span
         data-macro-select-target="carbsTotal"
-        data-base="{{ .totals.CarbsG }}"
-        >{{ .totals.CarbsG }}</span
+        data-base="{{ truncateFloat .totals.CarbsG }}"
+        >{{ truncateFloat .totals.CarbsG }}</span
       >g carbs /
-      <span data-macro-select-target="fatTotal" data-base="{{ .totals.FatG }}"
-        >{{ .totals.FatG }}</span
+      <span
+        data-macro-select-target="fatTotal"
+        data-base="{{ truncateFloat .totals.FatG }}"
+        >{{ truncateFloat .totals.FatG }}</span
       >g fat
     </li>
   </ul>

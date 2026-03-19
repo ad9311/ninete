@@ -102,7 +102,6 @@ func setUpFileServer(root chi.Router) {
 
 func (s *Server) setUpSession() {
 	s.Session.Lifetime = 7 * 24 * time.Hour
-	s.Session.IdleTimeout = 2 * time.Hour
 	s.Session.Cookie.Secure = s.app.IsProduction()
 	s.Session.Cookie.HttpOnly = true
 	s.Session.Cookie.Persist = true
