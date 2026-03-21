@@ -298,6 +298,205 @@ func TestFindMacroGoal(t *testing.T) {
 	}
 }
 
+func TestCreateMacroTemplate(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_1",
+		Email:        "macro_tmpl_user_1@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_1"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_create_macro_template",
+			fn: func(t *testing.T) {
+				params := newMacroTemplateParams("chicken breast", 165, 31, 0, 4, 100)
+				tmpl, err := s.Store.CreateMacroTemplate(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Positive(t, tmpl.ID)
+				require.Equal(t, user.ID, tmpl.UserID)
+				require.Equal(t, "chicken breast", tmpl.Name)
+				require.Equal(t, 165.0, tmpl.Kcal)
+				require.Equal(t, 31.0, tmpl.ProteinG)
+				require.Equal(t, 100.0, tmpl.AmountG)
+			},
+		},
+		{
+			name: "should_create_macro_template_with_decimal_values",
+			fn: func(t *testing.T) {
+				params := newMacroTemplateParams("greek yogurt", 133.22, 12.5, 8.75, 3.33, 170.5)
+				tmpl, err := s.Store.CreateMacroTemplate(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, 133.22, tmpl.Kcal)
+				require.Equal(t, 12.5, tmpl.ProteinG)
+				require.Equal(t, 8.75, tmpl.CarbsG)
+				require.Equal(t, 3.33, tmpl.FatG)
+				require.Equal(t, 170.5, tmpl.AmountG)
+			},
+		},
+		{
+			name: "should_fail_validation_for_empty_name",
+			fn: func(t *testing.T) {
+				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("", 0, 0, 0, 0, 100))
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			name: "should_fail_validation_for_zero_amount",
+			fn: func(t *testing.T) {
+				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("food", 100, 10, 20, 5, 0))
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestUpdateMacroTemplate(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_2",
+		Email:        "macro_tmpl_user_2@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_2"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_3",
+		Email:        "macro_tmpl_user_3@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_3"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_update_macro_template",
+			fn: func(t *testing.T) {
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("oats", 150, 5, 27, 3, 80))
+				updParams := newMacroTemplateParams("oats updated", 160, 6, 28, 3, 85)
+				updated, err := s.Store.UpdateMacroTemplate(ctx, tmpl.ID, user.ID, updParams)
+				require.NoError(t, err)
+				require.Equal(t, "oats updated", updated.Name)
+				require.Equal(t, 160.0, updated.Kcal)
+				require.Equal(t, 85.0, updated.AmountG)
+			},
+		},
+		{
+			name: "should_fail_when_template_does_not_belong_to_user",
+			fn: func(t *testing.T) {
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("rice", 200, 4, 44, 1, 150))
+				updParams := newMacroTemplateParams("rice updated", 210, 4, 45, 1, 155)
+				_, err := s.Store.UpdateMacroTemplate(ctx, tmpl.ID, otherUser.ID, updParams)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestDeleteMacroTemplate(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_4",
+		Email:        "macro_tmpl_user_4@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_4"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_5",
+		Email:        "macro_tmpl_user_5@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_5"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_delete_macro_template_for_owner",
+			fn: func(t *testing.T) {
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("banana shake", 250, 8, 40, 5, 300))
+				deletedID, err := s.Store.DeleteMacroTemplate(ctx, tmpl.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, tmpl.ID, deletedID)
+			},
+		},
+		{
+			name: "should_fail_when_deleting_template_of_another_user",
+			fn: func(t *testing.T) {
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("protein bar", 200, 20, 25, 8, 60))
+				_, err := s.Store.DeleteMacroTemplate(ctx, tmpl.ID, otherUser.ID)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestFindMacroTemplate(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_6",
+		Email:        "macro_tmpl_user_6@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_6"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_tmpl_user_7",
+		Email:        "macro_tmpl_user_7@example.com",
+		PasswordHash: []byte("macro_tmpl_hash_7"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_find_template_for_owner",
+			fn: func(t *testing.T) {
+				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("eggs", 155, 13, 1, 11, 100))
+				found, err := s.Store.FindMacroTemplate(ctx, created.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, created.ID, found.ID)
+				require.Equal(t, "eggs", found.Name)
+			},
+		},
+		{
+			name: "should_fail_when_template_belongs_to_another_user",
+			fn: func(t *testing.T) {
+				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("milk", 42, 3, 5, 1, 100))
+				_, err := s.Store.FindMacroTemplate(ctx, created.ID, otherUser.ID)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+			},
+		},
+		{
+			name: "should_fail_when_template_does_not_exist",
+			fn: func(t *testing.T) {
+				_, err := s.Store.FindMacroTemplate(ctx, 999999, user.ID)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date int64) logic.MacroEntryParams {
 	return logic.MacroEntryParams{
 		Name:     name,
@@ -307,5 +506,19 @@ func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date
 		FatG:     fatG,
 		Date:     date,
 		MealType: "other",
+	}
+}
+
+func newMacroTemplateParams(
+	name string,
+	kcal, proteinG, carbsG, fatG, amountG float64,
+) logic.MacroTemplateParams {
+	return logic.MacroTemplateParams{
+		Name:     name,
+		Kcal:     kcal,
+		ProteinG: proteinG,
+		CarbsG:   carbsG,
+		FatG:     fatG,
+		AmountG:  amountG,
 	}
 }

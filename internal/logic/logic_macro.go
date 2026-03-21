@@ -162,3 +162,109 @@ func (s *Store) SaveMacroGoal(ctx context.Context, userID int, params MacroGoalP
 
 	return goal, nil
 }
+
+// ----------------------------------------------------------------------------- //
+// Macro Templates
+// ----------------------------------------------------------------------------- //
+
+type MacroTemplateParams struct {
+	Name     string  `validate:"required,min=1,max=100"`
+	Kcal     float64 `validate:"gte=0"`
+	ProteinG float64 `validate:"gte=0"`
+	CarbsG   float64 `validate:"gte=0"`
+	FatG     float64 `validate:"gte=0"`
+	AmountG  float64 `validate:"gt=0"`
+}
+
+func (s *Store) FindMacroTemplates(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroTemplate, error) {
+	templates, err := s.queries.SelectMacroTemplates(ctx, opts)
+	if err != nil {
+		return templates, err
+	}
+
+	return templates, nil
+}
+
+func (s *Store) FindMacroTemplate(ctx context.Context, id, userID int) (repo.MacroTemplate, error) {
+	tmpl, err := s.queries.SelectMacroTemplate(ctx, id, userID)
+	if err != nil {
+		return tmpl, err
+	}
+
+	return tmpl, nil
+}
+
+func (s *Store) CreateMacroTemplate(
+	ctx context.Context,
+	userID int,
+	params MacroTemplateParams,
+) (repo.MacroTemplate, error) {
+	var tmpl repo.MacroTemplate
+
+	if err := s.ValidateStruct(params); err != nil {
+		return tmpl, err
+	}
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		tmpl, txErr = tq.InsertMacroTemplate(ctx, repo.InsertMacroTemplateParams{
+			UserID:   userID,
+			Name:     params.Name,
+			Kcal:     params.Kcal,
+			ProteinG: params.ProteinG,
+			CarbsG:   params.CarbsG,
+			FatG:     params.FatG,
+			AmountG:  params.AmountG,
+		})
+
+		return txErr
+	})
+	if err != nil {
+		return tmpl, err
+	}
+
+	return tmpl, nil
+}
+
+func (s *Store) UpdateMacroTemplate(
+	ctx context.Context,
+	id, userID int,
+	params MacroTemplateParams,
+) (repo.MacroTemplate, error) {
+	var tmpl repo.MacroTemplate
+
+	if err := s.ValidateStruct(params); err != nil {
+		return tmpl, err
+	}
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		tmpl, txErr = tq.UpdateMacroTemplate(ctx, userID, repo.UpdateMacroTemplateParams{
+			ID:       id,
+			Name:     params.Name,
+			Kcal:     params.Kcal,
+			ProteinG: params.ProteinG,
+			CarbsG:   params.CarbsG,
+			FatG:     params.FatG,
+			AmountG:  params.AmountG,
+		})
+
+		return txErr
+	})
+	if err != nil {
+		return tmpl, err
+	}
+
+	return tmpl, nil
+}
+
+func (s *Store) DeleteMacroTemplate(ctx context.Context, id, userID int) (int, error) {
+	i, err := s.queries.DeleteMacroTemplate(ctx, id, userID)
+	if err != nil {
+		return 0, err
+	}
+
+	return i, nil
+}
