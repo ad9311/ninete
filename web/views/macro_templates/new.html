@@ -1,0 +1,14 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW MACRO TEMPLATE</h1>
+  <nav class="page-links">
+    <a href="/macros/templates">Templates</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form action="/macros/templates" method="post">
+      {{ template "csrf" . }}
+      {{ template "macro_template_form" . }}
+    </form>
+  </section>
+{{ end }}

@@ -14,6 +14,10 @@
     >
       {{ template "csrf" . }}
       {{ template "macro_entry_form" . }}
+      <label>
+        Save as template
+        <input type="checkbox" name="save_as_template" value="on" />
+      </label>
     </form>
   </section>
 {{ end }}

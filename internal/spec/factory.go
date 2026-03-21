@@ -139,3 +139,16 @@ func (s *Spec) SaveMacroGoal(t *testing.T, userID int, params logic.MacroGoalPar
 
 	return goal
 }
+
+func (s *Spec) CreateMacroTemplate(
+	t *testing.T,
+	userID int,
+	params logic.MacroTemplateParams,
+) repo.MacroTemplate {
+	t.Helper()
+
+	tmpl, err := s.Store.CreateMacroTemplate(t.Context(), userID, params)
+	require.NoError(t, err)
+
+	return tmpl
+}

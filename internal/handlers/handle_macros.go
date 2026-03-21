@@ -136,8 +136,27 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetMacrosNew(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	data := h.tmplData(r)
-	data["entry"] = repo.MacroEntry{}
+	user := getCurrentUser(r)
+
+	entry := repo.MacroEntry{}
+
+	if fromTemplateStr := r.URL.Query().Get("from_template"); fromTemplateStr != "" {
+		tmplID, err := prog.ParseID(fromTemplateStr, "MacroTemplate")
+		if err == nil {
+			tmpl, err := h.store.FindMacroTemplate(ctx, tmplID, user.ID)
+			if err == nil {
+				entry.Name = tmpl.Name
+				entry.Kcal = tmpl.Kcal
+				entry.ProteinG = tmpl.ProteinG
+				entry.CarbsG = tmpl.CarbsG
+				entry.FatG = tmpl.FatG
+			}
+		}
+	}
+
+	data["entry"] = entry
 	data["selectedDate"] = time.Now().UTC().Format("2006-01-02")
 
 	h.render(w, http.StatusOK, MacrosNew, data)
@@ -156,7 +175,7 @@ func (h *Handler) PostMacros(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.store.CreateMacroEntry(ctx, user.ID, params)
+	newEntry, err := h.store.CreateMacroEntry(ctx, user.ID, params)
 	if err != nil {
 		data["entry"] = repo.MacroEntry{
 			Name:     params.Name,
@@ -168,6 +187,12 @@ func (h *Handler) PostMacros(w http.ResponseWriter, r *http.Request) {
 			MealType: params.MealType,
 		}
 		h.renderErr(w, r, http.StatusBadRequest, MacrosNew, err)
+
+		return
+	}
+
+	if r.FormValue("save_as_template") == "on" {
+		http.Redirect(w, r, fmt.Sprintf("/macros/templates/new?from_entry=%d", newEntry.ID), http.StatusSeeOther)
 
 		return
 	}

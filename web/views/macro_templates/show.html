@@ -1,0 +1,51 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>MACRO TEMPLATE</h1>
+  <nav class="page-links">
+    <a href="/macros/templates">Templates</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Name</th>
+        <td>{{ .template.Name }}</td>
+      </tr>
+      <tr>
+        <th>Kcal</th>
+        <td>{{ .template.Kcal }}</td>
+      </tr>
+      <tr>
+        <th>Protein</th>
+        <td>{{ .template.ProteinG }}g</td>
+      </tr>
+      <tr>
+        <th>Carbs</th>
+        <td>{{ .template.CarbsG }}g</td>
+      </tr>
+      <tr>
+        <th>Fat</th>
+        <td>{{ .template.FatG }}g</td>
+      </tr>
+      <tr>
+        <th>Amount</th>
+        <td>{{ .template.AmountG }}g</td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/macros/new?from_template={{ .template.ID }}">Use Template</a>
+      <a href="/macros/templates/{{ .template.ID }}/edit">Edit Template</a>
+      <form action="/macros/templates/{{ .template.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
+      </form>
+    </div>
+  </section>
+{{ end }}

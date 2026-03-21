@@ -1,0 +1,59 @@
+{{ define "macro_template_form" }}
+  <label>
+    Name
+    <input type="text" name="name" value="{{ .template.Name }}" />
+  </label>
+  <label>
+    Kcal
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="kcal"
+      value="{{ .template.Kcal }}"
+    />
+  </label>
+  <label>
+    Protein (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="protein_g"
+      value="{{ .template.ProteinG }}"
+    />
+  </label>
+  <label>
+    Carbs (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="carbs_g"
+      value="{{ .template.CarbsG }}"
+    />
+  </label>
+  <label>
+    Fat (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="fat_g"
+      value="{{ .template.FatG }}"
+    />
+  </label>
+  <label>
+    Amount (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="amount_g"
+      value="{{ .template.AmountG }}"
+    />
+  </label>
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
+{{ end }}
