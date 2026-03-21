@@ -9,10 +9,12 @@ import TaskFilterController from "./controllers/taskFilterController";
 import SortController from "./controllers/sortController";
 import ChartController from "./controllers/chartController";
 import MacroDateController from "./controllers/macroDateController";
+import DashboardDateController from "./controllers/dashboardDateController";
 
 window.Stimulus = Application.start();
 window.Stimulus.register("date", DateController);
 window.Stimulus.register("macro-date", MacroDateController);
+window.Stimulus.register("dashboard-date", DashboardDateController);
 window.Stimulus.register("amount", AmountController);
 window.Stimulus.register("filter", FilterController);
 window.Stimulus.register("macro-select", MacroSelectController);

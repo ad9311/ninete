@@ -81,7 +81,11 @@
       <p>No expenses this month.</p>
     {{ end }}
   </div>
-  <div class="summary-card" style="margin-top: var(--space-4);">
+  <div
+    class="summary-card"
+    style="margin-top: var(--space-4);"
+    data-controller="dashboard-date"
+  >
     <span class="summary-card-label">Today's nutrition</span>
     <a href="/macros">View macros</a>
     {{ if .macros.HasGoal }}
