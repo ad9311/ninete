@@ -107,13 +107,15 @@ func TestGetDashboard(t *testing.T) {
 					CarbsG:   200,
 					FatG:     70,
 				})
+				y, m, d := time.Now().Date()
+				todayUTC := time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Unix()
 				s.CreateMacroEntry(t, user.ID, logic.MacroEntryParams{
 					Name:     "Dash lunch",
 					Kcal:     600,
 					ProteinG: 40,
 					CarbsG:   80,
 					FatG:     20,
-					Date:     time.Now().Unix(),
+					Date:     todayUTC,
 					MealType: "other",
 				})
 				cookies := s.AuthCookies(t, "dash_user_5@example.com", "dash_password_5")
@@ -147,7 +149,8 @@ func TestGetMacros(t *testing.T) {
 			name: "should_filter_totals_by_meal_type",
 			fn: func(t *testing.T) {
 				user := s.CreateAuthUser(t, "macros_user_1", "macros_user_1@example.com", "macros_password_1")
-				today := time.Now().Unix()
+				y, m, d := time.Now().Date()
+				today := time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Unix()
 				s.CreateMacroEntry(t, user.ID, logic.MacroEntryParams{
 					Name: "Morning oats", Kcal: 300, ProteinG: 10, CarbsG: 50, FatG: 5,
 					Date: today, MealType: "breakfast",
