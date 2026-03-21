@@ -3,6 +3,7 @@ module github.com/ad9311/ninete
 go 1.25.6
 
 require (
+	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-playground/validator/v10 v10.30.1
@@ -16,7 +17,6 @@ require (
 )
 
 require (
-	github.com/alexedwards/scs/sqlite3store v0.0.0-20251002162104-209de6e426de // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

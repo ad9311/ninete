@@ -35,7 +35,7 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	macros, ok := h.buildDashboardMacros(w, r, user.ID)
+	macros, ok := h.buildDashboardMacros(w, r, user.ID, r.URL.Query().Get("date"))
 	if !ok {
 		return
 	}
@@ -166,7 +166,9 @@ func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, 
 	}, true
 }
 
-func (h *Handler) buildDashboardMacros(w http.ResponseWriter, r *http.Request, userID int) (dashboardMacros, bool) {
+func (h *Handler) buildDashboardMacros(
+	w http.ResponseWriter, r *http.Request, userID int, dateStr string,
+) (dashboardMacros, bool) {
 	ctx := r.Context()
 
 	goal, err := h.store.FindMacroGoal(ctx, userID)
@@ -179,7 +181,7 @@ func (h *Handler) buildDashboardMacros(w http.ResponseWriter, r *http.Request, u
 		return dashboardMacros{}, false
 	}
 
-	dayStart, nextDay, _ := computeDayWindow("")
+	dayStart, nextDay, _ := computeDayWindow(dateStr)
 
 	todayTotals, err := h.store.FindMacroDayTotals(ctx, userID, dayStart, nextDay, "")
 	if err != nil {
