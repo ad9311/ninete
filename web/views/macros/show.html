@@ -28,7 +28,13 @@
       </tr>
       <tr>
         <th>Date</th>
-        <td>{{ .entry.Date | timeStamp }}</td>
+        <td>
+          <span
+            data-controller="local-date"
+            data-local-date-unix-value="{{ .entry.Date }}"
+            >{{ .entry.Date | timeStamp }}</span
+          >
+        </td>
       </tr>
       <tr>
         <th>Meal</th>

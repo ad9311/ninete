@@ -218,7 +218,14 @@
               <span class="chip chip-empty">No tags</span>
             {{ end }}
           </td>
-          <td>{{ .CreatedAt | timeStamp }}</td>
+          <td>
+            <span
+              data-controller="local-date"
+              data-local-date-unix-value="{{ .CreatedAt }}"
+              data-local-date-datetime-value="true"
+              >{{ .CreatedAt | timeStamp }}</span
+            >
+          </td>
           <td>
             <a href="/lists/{{ $.list.ID }}/tasks/{{ .ID }}">Visit</a>
           </td>
@@ -255,7 +262,12 @@
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Created At</span>
-          <span>{{ .CreatedAt | timeStamp }}</span>
+          <span
+            data-controller="local-date"
+            data-local-date-unix-value="{{ .CreatedAt }}"
+            data-local-date-datetime-value="true"
+            >{{ .CreatedAt | timeStamp }}</span
+          >
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Tags</span>
