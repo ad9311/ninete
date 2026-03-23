@@ -20,8 +20,25 @@
         <td class="amount-value">{{ .expense.Amount | currency }}</td>
       </tr>
       <tr>
-        <th>Date</th>
-        <td>{{ .expense.Date | timeStamp }}</td>
+        <th>Billed</th>
+        <td>
+          <span
+            data-controller="local-date"
+            data-local-date-unix-value="{{ .expense.Date }}"
+            >{{ .expense.Date | timeStamp }}</span
+          >
+        </td>
+      </tr>
+      <tr>
+        <th>Created</th>
+        <td>
+          <span
+            data-controller="local-date"
+            data-local-date-unix-value="{{ .expense.CreatedAt }}"
+            data-local-date-datetime-value="true"
+            >{{ .expense.CreatedAt | timeStamp }}</span
+          >
+        </td>
       </tr>
       <tr>
         <th>Tags</th>

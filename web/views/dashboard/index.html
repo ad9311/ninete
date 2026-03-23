@@ -42,7 +42,8 @@
             <th>Category</th>
             <th>Description</th>
             <th>Amount</th>
-            <th>Date</th>
+            <th>Billed</th>
+            <th>Created</th>
           </tr>
         </thead>
         <tbody>
@@ -51,7 +52,21 @@
               <td>{{ .CategoryName }}</td>
               <td>{{ .Description }}</td>
               <td class="amount-value">{{ .Amount | currency }}</td>
-              <td>{{ .Date | timeStamp }}</td>
+              <td>
+                <span
+                  data-controller="local-date"
+                  data-local-date-unix-value="{{ .Date }}"
+                  >{{ .Date | timeStamp }}</span
+                >
+              </td>
+              <td>
+                <span
+                  data-controller="local-date"
+                  data-local-date-unix-value="{{ .CreatedAt }}"
+                  data-local-date-datetime-value="true"
+                  >{{ .CreatedAt | timeStamp }}</span
+                >
+              </td>
             </tr>
           {{ end }}
         </tbody>
@@ -71,8 +86,21 @@
               <span class="amount-value">{{ .Amount | currency }}</span>
             </div>
             <div class="card-list-row">
-              <span class="card-list-label">Date</span>
-              <span>{{ .Date | timeStamp }}</span>
+              <span class="card-list-label">Billed</span>
+              <span
+                data-controller="local-date"
+                data-local-date-unix-value="{{ .Date }}"
+                >{{ .Date | timeStamp }}</span
+              >
+            </div>
+            <div class="card-list-row">
+              <span class="card-list-label">Created</span>
+              <span
+                data-controller="local-date"
+                data-local-date-unix-value="{{ .CreatedAt }}"
+                data-local-date-datetime-value="true"
+                >{{ .CreatedAt | timeStamp }}</span
+              >
             </div>
           </li>
         {{ end }}

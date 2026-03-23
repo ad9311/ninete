@@ -153,6 +153,7 @@ func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, 
 			Description:  e.Description,
 			Amount:       e.Amount,
 			Date:         e.Date,
+			CreatedAt:    e.CreatedAt,
 		})
 	}
 
