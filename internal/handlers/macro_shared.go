@@ -9,3 +9,12 @@ func macroMealTypeOptions() map[string]string {
 		"other":     "Other",
 	}
 }
+
+func macroAmountUnitOptions() map[string]string {
+	return map[string]string{
+		"g":    "Grams",
+		"ml":   "Milliliters",
+		"unit": "Unit (piece)",
+		"oz":   "Ounces",
+	}
+}

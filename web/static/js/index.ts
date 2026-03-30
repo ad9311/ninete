@@ -11,6 +11,7 @@ import ChartController from "./controllers/chartController";
 import MacroDateController from "./controllers/macroDateController";
 import DashboardDateController from "./controllers/dashboardDateController";
 import LocalDateController from "./controllers/localDateController";
+import MacroCalcController from "./controllers/macroCalcController";
 
 window.Stimulus = Application.start();
 window.Stimulus.register("date", DateController);
@@ -24,3 +25,4 @@ window.Stimulus.register("task-filter", TaskFilterController);
 window.Stimulus.register("sort", SortController);
 window.Stimulus.register("chart", ChartController);
 window.Stimulus.register("local-date", LocalDateController);
+window.Stimulus.register("macro-calc", MacroCalcController);

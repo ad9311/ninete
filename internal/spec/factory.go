@@ -140,6 +140,19 @@ func (s *Spec) SaveMacroGoal(t *testing.T, userID int, params logic.MacroGoalPar
 	return goal
 }
 
+func (s *Spec) CreateFood(
+	t *testing.T,
+	userID int,
+	params logic.FoodParams,
+) repo.Food {
+	t.Helper()
+
+	food, err := s.Store.CreateFood(t.Context(), userID, params)
+	require.NoError(t, err)
+
+	return food
+}
+
 func (s *Spec) CreateMacroTemplate(
 	t *testing.T,
 	userID int,

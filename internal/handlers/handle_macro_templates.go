@@ -113,6 +113,7 @@ func (h *Handler) GetMacroTemplatesNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data["template"] = tmpl
+	data["amountUnitOptions"] = macroAmountUnitOptions()
 
 	h.render(w, http.StatusOK, MacroTemplatesNew, data)
 }
@@ -125,6 +126,7 @@ func (h *Handler) PostMacroTemplates(w http.ResponseWriter, r *http.Request) {
 	params, err := parseMacroTemplateForm(r)
 	if err != nil {
 		data["template"] = repo.MacroTemplate{}
+		data["amountUnitOptions"] = macroAmountUnitOptions()
 		h.renderErr(w, r, http.StatusBadRequest, MacroTemplatesNew, err)
 
 		return
@@ -133,13 +135,15 @@ func (h *Handler) PostMacroTemplates(w http.ResponseWriter, r *http.Request) {
 	tmpl, err := h.store.CreateMacroTemplate(ctx, user.ID, params)
 	if err != nil {
 		data["template"] = repo.MacroTemplate{
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			AmountG:  params.AmountG,
+			Name:       params.Name,
+			Kcal:       params.Kcal,
+			ProteinG:   params.ProteinG,
+			CarbsG:     params.CarbsG,
+			FatG:       params.FatG,
+			Amount:     params.Amount,
+			AmountUnit: params.AmountUnit,
 		}
+		data["amountUnitOptions"] = macroAmountUnitOptions()
 		h.renderErr(w, r, http.StatusBadRequest, MacroTemplatesNew, err)
 
 		return
@@ -158,6 +162,7 @@ func (h *Handler) GetMacroTemplate(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetMacroTemplateEdit(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	data["template"] = getMacroTemplate(r)
+	data["amountUnitOptions"] = macroAmountUnitOptions()
 
 	h.render(w, http.StatusOK, MacroTemplatesEdit, data)
 }
@@ -171,6 +176,7 @@ func (h *Handler) PostMacroTemplateUpdate(w http.ResponseWriter, r *http.Request
 	params, err := parseMacroTemplateForm(r)
 	if err != nil {
 		data["template"] = tmpl
+		data["amountUnitOptions"] = macroAmountUnitOptions()
 		h.renderErr(w, r, http.StatusBadRequest, MacroTemplatesEdit, err)
 
 		return
@@ -189,8 +195,10 @@ func (h *Handler) PostMacroTemplateUpdate(w http.ResponseWriter, r *http.Request
 		tmpl.ProteinG = params.ProteinG
 		tmpl.CarbsG = params.CarbsG
 		tmpl.FatG = params.FatG
-		tmpl.AmountG = params.AmountG
+		tmpl.Amount = params.Amount
+		tmpl.AmountUnit = params.AmountUnit
 		data["template"] = tmpl
+		data["amountUnitOptions"] = macroAmountUnitOptions()
 		h.renderErr(w, r, http.StatusBadRequest, MacroTemplatesEdit, err)
 
 		return
@@ -250,9 +258,9 @@ func parseMacroTemplateForm(r *http.Request) (logic.MacroTemplateParams, error) 
 		return params, fmt.Errorf("fat_g: %w", err)
 	}
 
-	amountG, err := strconv.ParseFloat(r.FormValue("amount_g"), 64)
+	amount, err := strconv.ParseFloat(r.FormValue("amount"), 64)
 	if err != nil {
-		return params, fmt.Errorf("amount_g: %w", err)
+		return params, fmt.Errorf("amount: %w", err)
 	}
 
 	params.Name = r.FormValue("name")
@@ -260,7 +268,8 @@ func parseMacroTemplateForm(r *http.Request) (logic.MacroTemplateParams, error) 
 	params.ProteinG = proteinG
 	params.CarbsG = carbsG
 	params.FatG = fatG
-	params.AmountG = amountG
+	params.Amount = amount
+	params.AmountUnit = r.FormValue("amount_unit")
 
 	return params, nil
 }

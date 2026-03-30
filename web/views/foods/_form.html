@@ -1,0 +1,50 @@
+{{ define "food_form" }}
+  <label>
+    Name
+    <input type="text" name="name" value="{{ .food.Name }}" />
+  </label>
+  <p class="form-hint">All values are per 100g</p>
+  <label>
+    Kcal
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="kcal"
+      value="{{ .food.Kcal }}"
+    />
+  </label>
+  <label>
+    Protein (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="protein_g"
+      value="{{ .food.ProteinG }}"
+    />
+  </label>
+  <label>
+    Carbs (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="carbs_g"
+      value="{{ .food.CarbsG }}"
+    />
+  </label>
+  <label>
+    Fat (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="fat_g"
+      value="{{ .food.FatG }}"
+    />
+  </label>
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
+{{ end }}

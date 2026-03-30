@@ -142,6 +142,15 @@ func (h *Handler) GetMacrosNew(w http.ResponseWriter, r *http.Request) {
 
 	entry := repo.MacroEntry{}
 
+	if r.URL.Query().Get("from_food") != "" {
+		q := r.URL.Query()
+		entry.Name = q.Get("name")
+		entry.Kcal, _ = strconv.ParseFloat(q.Get("kcal"), 64)
+		entry.ProteinG, _ = strconv.ParseFloat(q.Get("protein_g"), 64)
+		entry.CarbsG, _ = strconv.ParseFloat(q.Get("carbs_g"), 64)
+		entry.FatG, _ = strconv.ParseFloat(q.Get("fat_g"), 64)
+	}
+
 	if fromTemplateStr := r.URL.Query().Get("from_template"); fromTemplateStr != "" {
 		tmplID, err := prog.ParseID(fromTemplateStr, "MacroTemplate")
 		if err == nil {
@@ -152,6 +161,7 @@ func (h *Handler) GetMacrosNew(w http.ResponseWriter, r *http.Request) {
 				entry.ProteinG = tmpl.ProteinG
 				entry.CarbsG = tmpl.CarbsG
 				entry.FatG = tmpl.FatG
+				data["template"] = tmpl
 			}
 		}
 	}

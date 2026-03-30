@@ -1,0 +1,99 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>FOOD</h1>
+  <nav class="page-links">
+    <a href="/foods">Food Directory</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Name</th>
+        <td>{{ .food.Name }}</td>
+      </tr>
+      <tr>
+        <th>Kcal</th>
+        <td>{{ .food.Kcal }}</td>
+      </tr>
+      <tr>
+        <th>Protein</th>
+        <td>{{ .food.ProteinG }}g</td>
+      </tr>
+      <tr>
+        <th>Carbs</th>
+        <td>{{ .food.CarbsG }}g</td>
+      </tr>
+      <tr>
+        <th>Fat</th>
+        <td>{{ .food.FatG }}g</td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <fieldset
+      data-controller="macro-calc"
+      data-macro-calc-base-kcal-value="{{ .food.Kcal }}"
+      data-macro-calc-base-protein-value="{{ .food.ProteinG }}"
+      data-macro-calc-base-carbs-value="{{ .food.CarbsG }}"
+      data-macro-calc-base-fat-value="{{ .food.FatG }}"
+      data-macro-calc-base-amount-value="100"
+      data-macro-calc-food-name-value="{{ .food.Name }}"
+      data-macro-calc-food-id-value="{{ .food.ID }}"
+    >
+      <legend>Calculate for actual amount</legend>
+      <label>
+        Amount (g)
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value="100"
+          data-macro-calc-target="amount"
+          data-action="input->macro-calc#calculate"
+        />
+      </label>
+      <table>
+        <tbody>
+          <tr>
+            <th>Kcal</th>
+            <td data-macro-calc-target="kcal">{{ .food.Kcal }}</td>
+          </tr>
+          <tr>
+            <th>Protein</th>
+            <td data-macro-calc-target="protein">{{ .food.ProteinG }}g</td>
+          </tr>
+          <tr>
+            <th>Carbs</th>
+            <td data-macro-calc-target="carbs">{{ .food.CarbsG }}g</td>
+          </tr>
+          <tr>
+            <th>Fat</th>
+            <td data-macro-calc-target="fat">{{ .food.FatG }}g</td>
+          </tr>
+        </tbody>
+      </table>
+      <a
+        href="#"
+        class="btn-primary"
+        data-macro-calc-target="useLink"
+        data-action="click->macro-calc#use"
+      >
+        Use for Macro Entry
+      </a>
+    </fieldset>
+  </section>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/foods/{{ .food.ID }}/edit">Edit Food</a>
+      <form action="/foods/{{ .food.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
+      </form>
+    </div>
+  </section>
+{{ end }}

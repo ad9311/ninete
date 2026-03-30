@@ -160,7 +160,7 @@ func TestPostMacroTemplates(t *testing.T) {
 				cookies := s.AuthCookies(t, "mt_post_1@example.com", "mt_password_1")
 				csrfToken, cookies := s.CSRFFrom(t, "/macros/templates/new", cookies)
 
-				form := macroTemplateFormValues("Post template", "200", "15", "30", "8", "100")
+				form := macroTemplateFormValues("Post template", "200", "15", "30", "8", "100", "g")
 				req := spec.NewPostRequest("/macros/templates", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -176,7 +176,7 @@ func TestPostMacroTemplates(t *testing.T) {
 				cookies := s.AuthCookies(t, "mt_post_2@example.com", "mt_password_2")
 				csrfToken, cookies := s.CSRFFrom(t, "/macros/templates/new", cookies)
 
-				form := macroTemplateFormValues("", "200", "15", "30", "8", "100")
+				form := macroTemplateFormValues("", "200", "15", "30", "8", "100", "g")
 				req := spec.NewPostRequest("/macros/templates", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -257,7 +257,7 @@ func TestPostMacroTemplateUpdate(t *testing.T) {
 				tmplURL := fmt.Sprintf("/macros/templates/%d", tmpl.ID)
 				csrfToken, cookies := s.CSRFFrom(t, tmplURL+"/edit", cookies)
 
-				form := macroTemplateFormValues("After update", "300", "25", "40", "12", "150")
+				form := macroTemplateFormValues("After update", "300", "25", "40", "12", "150", "ml")
 				req := spec.NewPostRequest(tmplURL, form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -328,24 +328,26 @@ func TestPostMacroTemplateDelete(t *testing.T) {
 
 func newMacroTemplateParams(name string) logic.MacroTemplateParams {
 	return logic.MacroTemplateParams{
-		Name:     name,
-		Kcal:     200,
-		ProteinG: 15,
-		CarbsG:   30,
-		FatG:     8,
-		AmountG:  100,
+		Name:       name,
+		Kcal:       200,
+		ProteinG:   15,
+		CarbsG:     30,
+		FatG:       8,
+		Amount:     100,
+		AmountUnit: "g",
 	}
 }
 
 func macroTemplateFormValues(
-	name, kcal, proteinG, carbsG, fatG, amountG string,
+	name, kcal, proteinG, carbsG, fatG, amount, amountUnit string,
 ) url.Values {
 	return url.Values{
-		"name":      {name},
-		"kcal":      {kcal},
-		"protein_g": {proteinG},
-		"carbs_g":   {carbsG},
-		"fat_g":     {fatG},
-		"amount_g":  {amountG},
+		"name":        {name},
+		"kcal":        {kcal},
+		"protein_g":   {proteinG},
+		"carbs_g":     {carbsG},
+		"fat_g":       {fatG},
+		"amount":      {amount},
+		"amount_unit": {amountUnit},
 	}
 }

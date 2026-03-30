@@ -6,18 +6,57 @@
   </nav>
   <section class="form-card">
     {{ template "form_error" . }}
-    <form
-      action="/macros"
-      method="post"
-      data-controller="date"
-      data-action="submit->date#prepare"
-    >
-      {{ template "csrf" . }}
-      {{ template "macro_entry_form" . }}
-      <label>
-        Save as template
-        <input type="checkbox" name="save_as_template" value="on" />
-      </label>
-    </form>
+    {{ if .template }}
+      <form
+        action="/macros"
+        method="post"
+        data-controller="date macro-calc"
+        data-action="submit->date#prepare"
+        data-macro-calc-base-kcal-value="{{ .template.Kcal }}"
+        data-macro-calc-base-protein-value="{{ .template.ProteinG }}"
+        data-macro-calc-base-carbs-value="{{ .template.CarbsG }}"
+        data-macro-calc-base-fat-value="{{ .template.FatG }}"
+        data-macro-calc-base-amount-value="{{ .template.Amount }}"
+      >
+        {{ template "csrf" . }}
+        <fieldset>
+          <legend>
+            {{ .template.Name }}
+            ({{ .template.Amount }}
+            {{ .template.AmountUnit }})
+          </legend>
+          <label>
+            Actual amount ({{ .template.AmountUnit }})
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value="{{ .template.Amount }}"
+              data-macro-calc-target="amount"
+              data-action="input->macro-calc#calculate"
+            />
+          </label>
+        </fieldset>
+        {{ template "macro_entry_form" . }}
+        <label>
+          Save as template
+          <input type="checkbox" name="save_as_template" value="on" />
+        </label>
+      </form>
+    {{ else }}
+      <form
+        action="/macros"
+        method="post"
+        data-controller="date"
+        data-action="submit->date#prepare"
+      >
+        {{ template "csrf" . }}
+        {{ template "macro_entry_form" . }}
+        <label>
+          Save as template
+          <input type="checkbox" name="save_as_template" value="on" />
+        </label>
+      </form>
+    {{ end }}
   </section>
 {{ end }}
