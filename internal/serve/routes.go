@@ -77,6 +77,20 @@ func (s *Server) setUpRoutes() {
 			})
 		})
 
+		root.Route("/foods", func(foods chi.Router) {
+			foods.Get("/", s.handlers.GetFoods)
+			foods.Post("/", s.handlers.PostFoods)
+			foods.Get("/new", s.handlers.GetFoodsNew)
+			foods.Route("/{food_id}", func(foods chi.Router) {
+				foods.Use(s.handlers.FoodContext)
+
+				foods.Get("/", s.handlers.GetFood)
+				foods.Post("/", s.handlers.PostFoodUpdate)
+				foods.Get("/edit", s.handlers.GetFoodEdit)
+				foods.Post("/delete", s.handlers.PostFoodDelete)
+			})
+		})
+
 		root.Route("/lists", func(lists chi.Router) {
 			lists.Get("/", s.handlers.GetLists)
 			lists.Post("/", s.handlers.PostLists)

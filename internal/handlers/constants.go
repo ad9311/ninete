@@ -12,6 +12,7 @@ const (
 	KeyTask             = ContextKey("taskID")
 	KeyMacroEntry       = ContextKey("macroEntryID")
 	KeyMacroTemplate    = ContextKey("macroTemplateID")
+	KeyFood             = ContextKey("foodID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
@@ -67,6 +68,12 @@ const (
 	MacroTemplatesNew   TemplateName = "macro_templates/new"
 	MacroTemplatesEdit  TemplateName = "macro_templates/edit"
 	MacroTemplatesShow  TemplateName = "macro_templates/show"
+
+	// Food templates.
+	FoodsIndex TemplateName = "foods/index"
+	FoodsNew   TemplateName = "foods/new"
+	FoodsEdit  TemplateName = "foods/edit"
+	FoodsShow  TemplateName = "foods/show"
 
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"

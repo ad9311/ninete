@@ -1,0 +1,14 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW FOOD</h1>
+  <nav class="page-links">
+    <a href="/foods">Food Directory</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form action="/foods" method="post">
+      {{ template "csrf" . }}
+      {{ template "food_form" . }}
+    </form>
+  </section>
+{{ end }}

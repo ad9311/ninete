@@ -5,36 +5,39 @@ import (
 )
 
 type MacroTemplate struct {
-	ID        int
-	UserID    int
-	Name      string
-	Kcal      float64
-	ProteinG  float64
-	CarbsG    float64
-	FatG      float64
-	AmountG   float64
-	CreatedAt int64
-	UpdatedAt int64
+	ID         int
+	UserID     int
+	Name       string
+	Kcal       float64
+	ProteinG   float64
+	CarbsG     float64
+	FatG       float64
+	Amount     float64
+	AmountUnit string
+	CreatedAt  int64
+	UpdatedAt  int64
 }
 
 type InsertMacroTemplateParams struct {
-	UserID   int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
-	AmountG  float64
+	UserID     int
+	Name       string
+	Kcal       float64
+	ProteinG   float64
+	CarbsG     float64
+	FatG       float64
+	Amount     float64
+	AmountUnit string
 }
 
 type UpdateMacroTemplateParams struct {
-	ID       int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
-	AmountG  float64
+	ID         int
+	Name       string
+	Kcal       float64
+	ProteinG   float64
+	CarbsG     float64
+	FatG       float64
+	Amount     float64
+	AmountUnit string
 }
 
 const selectMacroTemplates = `SELECT * FROM "macro_templates"`
@@ -76,7 +79,8 @@ func (q *Queries) SelectMacroTemplates(ctx context.Context, opts QueryOptions) (
 				&t.ProteinG,
 				&t.CarbsG,
 				&t.FatG,
-				&t.AmountG,
+				&t.Amount,
+				&t.AmountUnit,
 				&t.CreatedAt,
 				&t.UpdatedAt,
 			); err != nil {
@@ -108,7 +112,8 @@ func (q *Queries) SelectMacroTemplate(ctx context.Context, id, userID int) (Macr
 			&t.ProteinG,
 			&t.CarbsG,
 			&t.FatG,
-			&t.AmountG,
+			&t.Amount,
+			&t.AmountUnit,
 			&t.CreatedAt,
 			&t.UpdatedAt,
 		)
@@ -118,8 +123,8 @@ func (q *Queries) SelectMacroTemplate(ctx context.Context, id, userID int) (Macr
 }
 
 const insertMacroTemplate = `
-INSERT INTO "macro_templates" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "amount_g")
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO "macro_templates" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "amount", "amount_unit")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *`
 
 func (q *TxQueries) InsertMacroTemplate(ctx context.Context, params InsertMacroTemplateParams) (MacroTemplate, error) {
@@ -135,7 +140,8 @@ func (q *TxQueries) InsertMacroTemplate(ctx context.Context, params InsertMacroT
 			params.ProteinG,
 			params.CarbsG,
 			params.FatG,
-			params.AmountG,
+			params.Amount,
+			params.AmountUnit,
 		)
 
 		return row.Scan(
@@ -146,7 +152,8 @@ func (q *TxQueries) InsertMacroTemplate(ctx context.Context, params InsertMacroT
 			&t.ProteinG,
 			&t.CarbsG,
 			&t.FatG,
-			&t.AmountG,
+			&t.Amount,
+			&t.AmountUnit,
 			&t.CreatedAt,
 			&t.UpdatedAt,
 		)
@@ -157,13 +164,14 @@ func (q *TxQueries) InsertMacroTemplate(ctx context.Context, params InsertMacroT
 
 const updateMacroTemplate = `
 UPDATE "macro_templates"
-SET "name"       = ?,
-    "kcal"       = ?,
-    "protein_g"  = ?,
-    "carbs_g"    = ?,
-    "fat_g"      = ?,
-    "amount_g"   = ?,
-    "updated_at" = ?
+SET "name"        = ?,
+    "kcal"        = ?,
+    "protein_g"   = ?,
+    "carbs_g"     = ?,
+    "fat_g"       = ?,
+    "amount"      = ?,
+    "amount_unit" = ?,
+    "updated_at"  = ?
 WHERE "id" = ?
   AND "user_id" = ?
 RETURNING *`
@@ -184,7 +192,8 @@ func (q *TxQueries) UpdateMacroTemplate(
 			params.ProteinG,
 			params.CarbsG,
 			params.FatG,
-			params.AmountG,
+			params.Amount,
+			params.AmountUnit,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -198,7 +207,8 @@ func (q *TxQueries) UpdateMacroTemplate(
 			&t.ProteinG,
 			&t.CarbsG,
 			&t.FatG,
-			&t.AmountG,
+			&t.Amount,
+			&t.AmountUnit,
 			&t.CreatedAt,
 			&t.UpdatedAt,
 		)
@@ -230,7 +240,8 @@ func validMacroTemplateFields() []string {
 		"protein_g",
 		"carbs_g",
 		"fat_g",
-		"amount_g",
+		"amount",
+		"amount_unit",
 		"created_at",
 		"updated_at",
 	}

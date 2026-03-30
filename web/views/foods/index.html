@@ -1,8 +1,8 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MACRO TEMPLATES</h1>
+  <h1>FOOD DIRECTORY</h1>
   <nav class="page-links">
-    <a href="/macros/templates/new">New Template</a>
+    <a href="/foods/new">New Food</a>
     <a href="/macros">Macros</a>
   </nav>
   <div class="sort-mobile" data-controller="sort">
@@ -89,22 +89,6 @@
         >
           Fat (low–high)
         </option>
-        <option
-          value="amount:DESC"
-          {{ if and (eq .sortField "amount") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Amount (high–low)
-        </option>
-        <option
-          value="amount:ASC"
-          {{ if and (eq .sortField "amount") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Amount (low–high)
-        </option>
       </select>
     </label>
   </div>
@@ -116,7 +100,7 @@
             {{ $nameOrder = "DESC" }}
           {{ end }}
           <a
-            href="/macros/templates?sort_field=name&sort_order={{ $nameOrder }}"
+            href="/foods?sort_field=name&sort_order={{ $nameOrder }}"
             class="sort-link"
             >Name
             {{ if eq $.sortField "name" }}
@@ -131,7 +115,7 @@
             {{ $kcalOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros/templates?sort_field=kcal&sort_order={{ $kcalOrder }}"
+            href="/foods?sort_field=kcal&sort_order={{ $kcalOrder }}"
             class="sort-link"
             >Kcal
             {{ if eq $.sortField "kcal" }}
@@ -146,7 +130,7 @@
             {{ $proteinOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros/templates?sort_field=protein_g&sort_order={{ $proteinOrder }}"
+            href="/foods?sort_field=protein_g&sort_order={{ $proteinOrder }}"
             class="sort-link"
             >Protein (g)
             {{ if eq $.sortField "protein_g" }}
@@ -161,7 +145,7 @@
             {{ $carbsOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros/templates?sort_field=carbs_g&sort_order={{ $carbsOrder }}"
+            href="/foods?sort_field=carbs_g&sort_order={{ $carbsOrder }}"
             class="sort-link"
             >Carbs (g)
             {{ if eq $.sortField "carbs_g" }}
@@ -176,25 +160,10 @@
             {{ $fatOrder = "ASC" }}
           {{ end }}
           <a
-            href="/macros/templates?sort_field=fat_g&sort_order={{ $fatOrder }}"
+            href="/foods?sort_field=fat_g&sort_order={{ $fatOrder }}"
             class="sort-link"
             >Fat (g)
             {{ if eq $.sortField "fat_g" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $amountOrder := "DESC" }}{{ if and (eq $.sortField "amount") (eq $.sortOrder "DESC") }}
-            {{ $amountOrder = "ASC" }}
-          {{ end }}
-          <a
-            href="/macros/templates?sort_field=amount&sort_order={{ $amountOrder }}"
-            class="sort-link"
-            >Amount
-            {{ if eq $.sortField "amount" }}
               <span class="sort-indicator"
                 >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
               >
@@ -205,28 +174,25 @@
       </tr>
     </thead>
     <tbody>
-      {{ range .templates }}
+      {{ range .foods }}
         <tr>
           <td>{{ .Name }}</td>
           <td>{{ .Kcal }}</td>
           <td>{{ .ProteinG }}</td>
           <td>{{ .CarbsG }}</td>
           <td>{{ .FatG }}</td>
-          <td>{{ .Amount }} {{ .AmountUnit }}</td>
           <td>
-            <a href="/macros/templates/{{ .ID }}">Visit</a>
+            <a href="/foods/{{ .ID }}">Visit</a>
           </td>
         </tr>
       {{ end }}
     </tbody>
   </table>
   <ul class="card-list">
-    {{ range .templates }}
+    {{ range .foods }}
       <li class="card-list-item">
         <div class="card-list-row">
-          <a href="/macros/templates/{{ .ID }}" class="card-list-link"
-            >{{ .Name }}</a
-          >
+          <a href="/foods/{{ .ID }}" class="card-list-link">{{ .Name }}</a>
         </div>
         <div class="card-list-row">
           <span class="card-list-label">Kcal</span>
@@ -243,10 +209,6 @@
         <div class="card-list-row">
           <span class="card-list-label">Fat</span>
           <span>{{ .FatG }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Amount</span>
-          <span>{{ .Amount }} {{ .AmountUnit }}</span>
         </div>
       </li>
     {{ end }}

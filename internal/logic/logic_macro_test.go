@@ -314,7 +314,7 @@ func TestCreateMacroTemplate(t *testing.T) {
 		{
 			name: "should_create_macro_template",
 			fn: func(t *testing.T) {
-				params := newMacroTemplateParams("chicken breast", 165, 31, 0, 4, 100)
+				params := newMacroTemplateParams("chicken breast", 165, 31, 0, 4, 100, "g")
 				tmpl, err := s.Store.CreateMacroTemplate(ctx, user.ID, params)
 				require.NoError(t, err)
 				require.Positive(t, tmpl.ID)
@@ -322,33 +322,51 @@ func TestCreateMacroTemplate(t *testing.T) {
 				require.Equal(t, "chicken breast", tmpl.Name)
 				require.Equal(t, 165.0, tmpl.Kcal)
 				require.Equal(t, 31.0, tmpl.ProteinG)
-				require.Equal(t, 100.0, tmpl.AmountG)
+				require.Equal(t, 100.0, tmpl.Amount)
+				require.Equal(t, "g", tmpl.AmountUnit)
 			},
 		},
 		{
 			name: "should_create_macro_template_with_decimal_values",
 			fn: func(t *testing.T) {
-				params := newMacroTemplateParams("greek yogurt", 133.22, 12.5, 8.75, 3.33, 170.5)
+				params := newMacroTemplateParams("greek yogurt", 133.22, 12.5, 8.75, 3.33, 170.5, "g")
 				tmpl, err := s.Store.CreateMacroTemplate(ctx, user.ID, params)
 				require.NoError(t, err)
 				require.Equal(t, 133.22, tmpl.Kcal)
 				require.Equal(t, 12.5, tmpl.ProteinG)
 				require.Equal(t, 8.75, tmpl.CarbsG)
 				require.Equal(t, 3.33, tmpl.FatG)
-				require.Equal(t, 170.5, tmpl.AmountG)
+				require.Equal(t, 170.5, tmpl.Amount)
 			},
 		},
 		{
 			name: "should_fail_validation_for_empty_name",
 			fn: func(t *testing.T) {
-				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("", 0, 0, 0, 0, 100))
+				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("", 0, 0, 0, 0, 100, "g"))
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			name: "should_create_macro_template_with_ml_unit",
+			fn: func(t *testing.T) {
+				params := newMacroTemplateParams("olive oil", 120, 0, 0, 14, 15, "ml")
+				tmpl, err := s.Store.CreateMacroTemplate(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, "ml", tmpl.AmountUnit)
+				require.Equal(t, 15.0, tmpl.Amount)
 			},
 		},
 		{
 			name: "should_fail_validation_for_zero_amount",
 			fn: func(t *testing.T) {
-				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("food", 100, 10, 20, 5, 0))
+				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("food", 100, 10, 20, 5, 0, "g"))
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			name: "should_fail_validation_for_invalid_unit",
+			fn: func(t *testing.T) {
+				_, err := s.Store.CreateMacroTemplate(ctx, user.ID, newMacroTemplateParams("food", 100, 10, 20, 5, 100, "kg"))
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
 			},
 		},
@@ -380,20 +398,21 @@ func TestUpdateMacroTemplate(t *testing.T) {
 		{
 			name: "should_update_macro_template",
 			fn: func(t *testing.T) {
-				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("oats", 150, 5, 27, 3, 80))
-				updParams := newMacroTemplateParams("oats updated", 160, 6, 28, 3, 85)
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("oats", 150, 5, 27, 3, 80, "g"))
+				updParams := newMacroTemplateParams("oats updated", 160, 6, 28, 3, 85, "ml")
 				updated, err := s.Store.UpdateMacroTemplate(ctx, tmpl.ID, user.ID, updParams)
 				require.NoError(t, err)
 				require.Equal(t, "oats updated", updated.Name)
 				require.Equal(t, 160.0, updated.Kcal)
-				require.Equal(t, 85.0, updated.AmountG)
+				require.Equal(t, 85.0, updated.Amount)
+				require.Equal(t, "ml", updated.AmountUnit)
 			},
 		},
 		{
 			name: "should_fail_when_template_does_not_belong_to_user",
 			fn: func(t *testing.T) {
-				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("rice", 200, 4, 44, 1, 150))
-				updParams := newMacroTemplateParams("rice updated", 210, 4, 45, 1, 155)
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("rice", 200, 4, 44, 1, 150, "g"))
+				updParams := newMacroTemplateParams("rice updated", 210, 4, 45, 1, 155, "g")
 				_, err := s.Store.UpdateMacroTemplate(ctx, tmpl.ID, otherUser.ID, updParams)
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			},
@@ -426,7 +445,7 @@ func TestDeleteMacroTemplate(t *testing.T) {
 		{
 			name: "should_delete_macro_template_for_owner",
 			fn: func(t *testing.T) {
-				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("banana shake", 250, 8, 40, 5, 300))
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("banana shake", 250, 8, 40, 5, 300, "g"))
 				deletedID, err := s.Store.DeleteMacroTemplate(ctx, tmpl.ID, user.ID)
 				require.NoError(t, err)
 				require.Equal(t, tmpl.ID, deletedID)
@@ -435,7 +454,7 @@ func TestDeleteMacroTemplate(t *testing.T) {
 		{
 			name: "should_fail_when_deleting_template_of_another_user",
 			fn: func(t *testing.T) {
-				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("protein bar", 200, 20, 25, 8, 60))
+				tmpl := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("protein bar", 200, 20, 25, 8, 60, "g"))
 				_, err := s.Store.DeleteMacroTemplate(ctx, tmpl.ID, otherUser.ID)
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			},
@@ -468,7 +487,7 @@ func TestFindMacroTemplate(t *testing.T) {
 		{
 			name: "should_find_template_for_owner",
 			fn: func(t *testing.T) {
-				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("eggs", 155, 13, 1, 11, 100))
+				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("eggs", 155, 13, 1, 11, 100, "g"))
 				found, err := s.Store.FindMacroTemplate(ctx, created.ID, user.ID)
 				require.NoError(t, err)
 				require.Equal(t, created.ID, found.ID)
@@ -478,7 +497,7 @@ func TestFindMacroTemplate(t *testing.T) {
 		{
 			name: "should_fail_when_template_belongs_to_another_user",
 			fn: func(t *testing.T) {
-				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("milk", 42, 3, 5, 1, 100))
+				created := s.CreateMacroTemplate(t, user.ID, newMacroTemplateParams("milk", 42, 3, 5, 1, 100, "g"))
 				_, err := s.Store.FindMacroTemplate(ctx, created.ID, otherUser.ID)
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			},
@@ -511,14 +530,16 @@ func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date
 
 func newMacroTemplateParams(
 	name string,
-	kcal, proteinG, carbsG, fatG, amountG float64,
+	kcal, proteinG, carbsG, fatG, amount float64,
+	amountUnit string,
 ) logic.MacroTemplateParams {
 	return logic.MacroTemplateParams{
-		Name:     name,
-		Kcal:     kcal,
-		ProteinG: proteinG,
-		CarbsG:   carbsG,
-		FatG:     fatG,
-		AmountG:  amountG,
+		Name:       name,
+		Kcal:       kcal,
+		ProteinG:   proteinG,
+		CarbsG:     carbsG,
+		FatG:       fatG,
+		Amount:     amount,
+		AmountUnit: amountUnit,
 	}
 }

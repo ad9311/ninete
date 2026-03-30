@@ -168,12 +168,13 @@ func (s *Store) SaveMacroGoal(ctx context.Context, userID int, params MacroGoalP
 // ----------------------------------------------------------------------------- //
 
 type MacroTemplateParams struct {
-	Name     string  `validate:"required,min=1,max=100"`
-	Kcal     float64 `validate:"gte=0"`
-	ProteinG float64 `validate:"gte=0"`
-	CarbsG   float64 `validate:"gte=0"`
-	FatG     float64 `validate:"gte=0"`
-	AmountG  float64 `validate:"gt=0"`
+	Name       string  `validate:"required,min=1,max=100"`
+	Kcal       float64 `validate:"gte=0"`
+	ProteinG   float64 `validate:"gte=0"`
+	CarbsG     float64 `validate:"gte=0"`
+	FatG       float64 `validate:"gte=0"`
+	Amount     float64 `validate:"gt=0"`
+	AmountUnit string  `validate:"required,oneof=g ml unit oz"`
 }
 
 func (s *Store) FindMacroTemplates(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroTemplate, error) {
@@ -209,13 +210,14 @@ func (s *Store) CreateMacroTemplate(
 		var txErr error
 
 		tmpl, txErr = tq.InsertMacroTemplate(ctx, repo.InsertMacroTemplateParams{
-			UserID:   userID,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			AmountG:  params.AmountG,
+			UserID:     userID,
+			Name:       params.Name,
+			Kcal:       params.Kcal,
+			ProteinG:   params.ProteinG,
+			CarbsG:     params.CarbsG,
+			FatG:       params.FatG,
+			Amount:     params.Amount,
+			AmountUnit: params.AmountUnit,
 		})
 
 		return txErr
@@ -242,13 +244,14 @@ func (s *Store) UpdateMacroTemplate(
 		var txErr error
 
 		tmpl, txErr = tq.UpdateMacroTemplate(ctx, userID, repo.UpdateMacroTemplateParams{
-			ID:       id,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			AmountG:  params.AmountG,
+			ID:         id,
+			Name:       params.Name,
+			Kcal:       params.Kcal,
+			ProteinG:   params.ProteinG,
+			CarbsG:     params.CarbsG,
+			FatG:       params.FatG,
+			Amount:     params.Amount,
+			AmountUnit: params.AmountUnit,
 		})
 
 		return txErr

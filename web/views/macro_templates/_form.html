@@ -44,14 +44,25 @@
     />
   </label>
   <label>
-    Amount (g)
+    Amount
     <input
       type="number"
       min="0"
       step="0.01"
-      name="amount_g"
-      value="{{ .template.AmountG }}"
+      name="amount"
+      value="{{ .template.Amount }}"
     />
+  </label>
+  <label>
+    Unit
+    <select name="amount_unit">
+      {{ $selected := .template.AmountUnit }}
+      {{ range $key, $label := .amountUnitOptions }}
+        <option value="{{ $key }}" {{ if eq $key $selected }}selected{{ end }}>
+          {{ $label }}
+        </option>
+      {{ end }}
+    </select>
   </label>
   <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
     Submit
