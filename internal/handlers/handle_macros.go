@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -455,6 +456,133 @@ func computeMacroProgress(totals repo.MacroDayTotals, goal repo.MacroGoal) macro
 		CarbsPct:   pct(totals.CarbsG, goal.CarbsG),
 		FatPct:     pct(totals.FatG, goal.FatG),
 	}
+}
+
+type macroTrendSummary struct {
+	ActiveDays   int
+	TotalKcal    float64
+	AvgKcal      float64
+	TotalProtein float64
+	AvgProtein   float64
+	TotalCarbs   float64
+	AvgCarbs     float64
+	TotalFat     float64
+	AvgFat       float64
+}
+
+func computeMacroTrendSummary(dailyTotals []repo.MacroDailyTotal) macroTrendSummary {
+	var s macroTrendSummary
+	s.ActiveDays = len(dailyTotals)
+
+	for _, t := range dailyTotals {
+		s.TotalKcal += t.Kcal
+		s.TotalProtein += t.ProteinG
+		s.TotalCarbs += t.CarbsG
+		s.TotalFat += t.FatG
+	}
+
+	if s.ActiveDays > 0 {
+		n := float64(s.ActiveDays)
+		s.AvgKcal = s.TotalKcal / n
+		s.AvgProtein = s.TotalProtein / n
+		s.AvgCarbs = s.TotalCarbs / n
+		s.AvgFat = s.TotalFat / n
+	}
+
+	return s
+}
+
+type macroTrendDataset struct {
+	Label string    `json:"label"`
+	Data  []float64 `json:"data"`
+}
+
+type macroTrendChartData struct {
+	Labels   []string            `json:"labels"`
+	Datasets []macroTrendDataset `json:"datasets"`
+}
+
+func (h *Handler) GetMacrosStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	data := h.tmplData(r)
+	user := getCurrentUser(r)
+
+	period := r.URL.Query().Get("period")
+
+	var days int
+	switch period {
+	case "week":
+		days = 7
+	case "six_months":
+		days = 180
+	default:
+		period = "month"
+		days = 30
+	}
+
+	now := time.Now().UTC()
+	y, m, d := now.Date()
+	todayMidnight := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	start := todayMidnight.AddDate(0, 0, -(days - 1))
+	end := todayMidnight.Add(24 * time.Hour)
+
+	dailyTotals, err := h.store.FindMacroDailyTotals(ctx, user.ID, start.Unix(), end.Unix())
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, MacrosStats, err)
+
+		return
+	}
+
+	totalsMap := make(map[int64]repo.MacroDailyTotal, len(dailyTotals))
+	for _, t := range dailyTotals {
+		totalsMap[t.Date] = t
+	}
+
+	labels := make([]string, 0, days)
+	kcalData := make([]float64, 0, days)
+	proteinData := make([]float64, 0, days)
+	carbsData := make([]float64, 0, days)
+	fatData := make([]float64, 0, days)
+
+	for i := 0; i < days; i++ {
+		day := start.AddDate(0, 0, i)
+		labels = append(labels, day.Format("Jan 2"))
+
+		if t, ok := totalsMap[day.Unix()]; ok {
+			kcalData = append(kcalData, t.Kcal)
+			proteinData = append(proteinData, t.ProteinG)
+			carbsData = append(carbsData, t.CarbsG)
+			fatData = append(fatData, t.FatG)
+		} else {
+			kcalData = append(kcalData, 0)
+			proteinData = append(proteinData, 0)
+			carbsData = append(carbsData, 0)
+			fatData = append(fatData, 0)
+		}
+	}
+
+	chartData := macroTrendChartData{
+		Labels: labels,
+		Datasets: []macroTrendDataset{
+			{Label: "Kcal", Data: kcalData},
+			{Label: "Protein (g)", Data: proteinData},
+			{Label: "Carbs (g)", Data: carbsData},
+			{Label: "Fat (g)", Data: fatData},
+		},
+	}
+
+	chartDataBytes, err := json.Marshal(chartData)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, MacrosStats, err)
+
+		return
+	}
+
+	data["chartData"] = string(chartDataBytes)
+	data["period"] = period
+	data["summary"] = computeMacroTrendSummary(dailyTotals)
+
+	h.render(w, http.StatusOK, MacrosStats, data)
 }
 
 func getMacroEntry(r *http.Request) *repo.MacroEntry {

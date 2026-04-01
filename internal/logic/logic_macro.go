@@ -50,6 +50,12 @@ func (s *Store) FindMacroEntry(ctx context.Context, id, userID int) (repo.MacroE
 	return entry, nil
 }
 
+func (s *Store) FindMacroDailyTotals(
+	ctx context.Context, userID int, start, end int64,
+) ([]repo.MacroDailyTotal, error) {
+	return s.queries.SelectMacroDailyTotals(ctx, userID, start, end)
+}
+
 func (s *Store) CreateMacroEntry(ctx context.Context, userID int, params MacroEntryParams) (repo.MacroEntry, error) {
 	var entry repo.MacroEntry
 

@@ -56,6 +56,7 @@ func (s *Server) setUpRoutes() {
 			r.Get("/new", s.handlers.GetMacrosNew)
 			r.Get("/goals", s.handlers.GetMacrosGoals)
 			r.Post("/goals", s.handlers.PostMacrosGoals)
+			r.Get("/stats", s.handlers.GetMacrosStats)
 			r.Route("/templates", func(r chi.Router) {
 				r.Get("/", s.handlers.GetMacroTemplates)
 				r.Post("/", s.handlers.PostMacroTemplates)

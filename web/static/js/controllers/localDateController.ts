@@ -9,10 +9,12 @@ export default class extends Controller {
     if (!this.unixValue) return;
 
     const date = new Date(this.unixValue * 1000);
-    this.element.textContent = formatDate(date);
 
     if (this.datetimeValue) {
+      this.element.textContent = formatDate(date);
       (this.element as HTMLElement).title = formatDateTime(date);
+    } else {
+      this.element.textContent = formatDateUTC(date);
     }
   }
 }
@@ -36,6 +38,14 @@ function formatDate(date: Date): string {
   const month = MONTHS[date.getMonth()];
   const day = date.getDate();
   const year = date.getFullYear();
+
+  return `${month} ${day}, ${year}`;
+}
+
+function formatDateUTC(date: Date): string {
+  const month = MONTHS[date.getUTCMonth()];
+  const day = date.getUTCDate();
+  const year = date.getUTCFullYear();
 
   return `${month} ${day}, ${year}`;
 }

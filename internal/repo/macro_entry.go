@@ -300,6 +300,53 @@ func (q *Queries) SelectMacroDayTotals(
 	return t, err
 }
 
+const selectMacroDailyTotals = `
+SELECT "date",
+       COALESCE(SUM("kcal"), 0),
+       COALESCE(SUM("protein_g"), 0),
+       COALESCE(SUM("carbs_g"), 0),
+       COALESCE(SUM("fat_g"), 0)
+FROM "macro_entries"
+WHERE "user_id" = ? AND "date" >= ? AND "date" < ?
+GROUP BY "date"
+ORDER BY "date" ASC`
+
+type MacroDailyTotal struct {
+	Date     int64
+	Kcal     float64
+	ProteinG float64
+	CarbsG   float64
+	FatG     float64
+}
+
+func (q *Queries) SelectMacroDailyTotals(ctx context.Context, userID int, start, end int64) ([]MacroDailyTotal, error) {
+	var totals []MacroDailyTotal
+
+	err := q.wrapQuery(selectMacroDailyTotals, func() error {
+		rows, err := q.db.QueryContext(ctx, selectMacroDailyTotals, userID, start, end)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var t MacroDailyTotal
+			if err := rows.Scan(&t.Date, &t.Kcal, &t.ProteinG, &t.CarbsG, &t.FatG); err != nil {
+				return err
+			}
+			totals = append(totals, t)
+		}
+
+		return rows.Err()
+	})
+
+	return totals, err
+}
+
 func validMacroEntryFields() []string {
 	return []string{
 		"id",
