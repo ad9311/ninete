@@ -1,5 +1,13 @@
 import "@hotwired/turbo";
 import { Application } from "@hotwired/stimulus";
+
+document.addEventListener("turbo:before-fetch-request", (event: Event) => {
+  const detail = (event as CustomEvent).detail;
+  const url = detail.url as URL;
+  if (!url.searchParams.has("tz_offset")) {
+    url.searchParams.set("tz_offset", String(new Date().getTimezoneOffset()));
+  }
+});
 import DateController from "./controllers/dateController";
 import AmountController from "./controllers/amountController";
 import FilterController from "./controllers/filterController";
