@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ad9311/ninete/internal/prog"
@@ -19,6 +20,12 @@ type expenseFormBase struct {
 type dateRange struct {
 	start int64
 	end   int64
+}
+
+func parseTZOffset(r *http.Request) int {
+	offset, _ := strconv.Atoi(r.URL.Query().Get("tz_offset"))
+
+	return offset
 }
 
 var dateRangeLabels = []struct { //nolint:gochecknoglobals // static lookup table
@@ -40,8 +47,9 @@ func DateRangeOptions() []struct {
 	return dateRangeLabels
 }
 
-func computeDateRange(key string) (dateRange, bool) {
-	now := time.Now().UTC()
+func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
+	loc := time.FixedZone("client", -tzOffsetMinutes*60)
+	now := time.Now().In(loc)
 	year, month, _ := now.Date()
 
 	switch key {

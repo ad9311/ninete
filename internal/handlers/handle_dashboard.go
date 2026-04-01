@@ -49,8 +49,9 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, userID int) (dashboardSummary, bool) {
 	ctx := r.Context()
 
-	thisDR, _ := computeDateRange("this_month")
-	lastDR, _ := computeDateRange("last_month")
+	tzOffset := parseTZOffset(r)
+	thisDR, _ := computeDateRange("this_month", tzOffset)
+	lastDR, _ := computeDateRange("last_month", tzOffset)
 
 	thisFilters := repo.Filters{
 		FilterFields: []repo.FilterField{

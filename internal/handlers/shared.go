@@ -73,7 +73,7 @@ func userScopedQueryOpts(
 	if dateRangeKey == "" {
 		dateRangeKey = defaultDateRange
 	}
-	if dr, ok := computeDateRange(dateRangeKey); ok {
+	if dr, ok := computeDateRange(dateRangeKey, parseTZOffset(r)); ok {
 		opts.Filters.FilterFields = append(opts.Filters.FilterFields,
 			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
 			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},

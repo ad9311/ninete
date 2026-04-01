@@ -307,7 +307,7 @@ func (h *Handler) GetExpensesStats(w http.ResponseWriter, r *http.Request) {
 	if dateRangeKey == "" {
 		dateRangeKey = "this_month"
 	}
-	if dr, ok := computeDateRange(dateRangeKey); ok {
+	if dr, ok := computeDateRange(dateRangeKey, parseTZOffset(r)); ok {
 		filters.FilterFields = append(filters.FilterFields,
 			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
 			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
