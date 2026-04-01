@@ -516,6 +516,92 @@ func TestFindMacroTemplate(t *testing.T) {
 	}
 }
 
+func TestFindMacroDailyTotals(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_daily_user_1",
+		Email:        "macro_daily_user_1@example.com",
+		PasswordHash: []byte("macro_daily_hash_1"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "macro_daily_user_2",
+		Email:        "macro_daily_user_2@example.com",
+		PasswordHash: []byte("macro_daily_hash_2"),
+	})
+
+	// 2026-03-01 00:00:00 UTC
+	const day1 int64 = 1740787200
+	const day2 int64 = day1 + 86400
+	const day3 int64 = day1 + 2*86400
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_return_one_row_per_day_with_summed_values",
+			fn: func(t *testing.T) {
+				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("food_a", 300, 20, 40, 10, day1))
+				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("food_b", 200, 15, 30, 8, day1))
+				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("food_c", 400, 30, 50, 12, day2))
+
+				totals, err := s.Store.FindMacroDailyTotals(ctx, user.ID, day1, day3)
+				require.NoError(t, err)
+				require.Len(t, totals, 2)
+
+				require.Equal(t, day1, totals[0].Date)
+				require.Equal(t, 500.0, totals[0].Kcal)
+				require.Equal(t, 35.0, totals[0].ProteinG)
+				require.Equal(t, 70.0, totals[0].CarbsG)
+				require.Equal(t, 18.0, totals[0].FatG)
+
+				require.Equal(t, day2, totals[1].Date)
+				require.Equal(t, 400.0, totals[1].Kcal)
+			},
+		},
+		{
+			name: "should_return_empty_slice_when_no_entries_in_range",
+			fn: func(t *testing.T) {
+				totals, err := s.Store.FindMacroDailyTotals(ctx, user.ID, day3+86400, day3+2*86400)
+				require.NoError(t, err)
+				require.Empty(t, totals)
+			},
+		},
+		{
+			name: "should_exclude_entries_outside_the_range",
+			fn: func(t *testing.T) {
+				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("before_range", 999, 50, 80, 30, day1-86400))
+				s.CreateMacroEntry(t, user.ID, newMacroEntryParams("in_range", 100, 10, 20, 5, day1))
+
+				totals, err := s.Store.FindMacroDailyTotals(ctx, user.ID, day1, day2)
+				require.NoError(t, err)
+
+				for _, t2 := range totals {
+					require.NotEqual(t, 999.0, t2.Kcal)
+				}
+			},
+		},
+		{
+			name: "should_not_include_entries_from_other_users",
+			fn: func(t *testing.T) {
+				s.CreateMacroEntry(t, otherUser.ID, newMacroEntryParams("other_user_food", 888, 60, 90, 40, day1))
+
+				totals, err := s.Store.FindMacroDailyTotals(ctx, user.ID, day1, day2)
+				require.NoError(t, err)
+
+				for _, t2 := range totals {
+					require.NotEqual(t, 888.0, t2.Kcal)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newMacroEntryParams(name string, kcal, proteinG, carbsG, fatG float64, date int64) logic.MacroEntryParams {
 	return logic.MacroEntryParams{
 		Name:     name,

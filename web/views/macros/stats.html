@@ -1,0 +1,76 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>MACRO TRENDS</h1>
+  <nav class="page-links">
+    <a href="/macros">Macros</a>
+    <a href="/macros/goals">Goals</a>
+    <a href="/macros/templates">Templates</a>
+    <a href="/foods">Foods</a>
+  </nav>
+  <div class="filters">
+    <label>
+      Period
+      <select onchange="window.location='/macros/stats?period='+this.value">
+        <option value="week" {{ if eq .period "week" }}selected{{ end }}>
+          Last 7 days
+        </option>
+        <option value="month" {{ if eq .period "month" }}selected{{ end }}>
+          Last 30 days
+        </option>
+        <option
+          value="six_months"
+          {{ if eq .period "six_months" }}selected{{ end }}
+        >
+          Last 6 months
+        </option>
+      </select>
+    </label>
+  </div>
+  <div
+    class="chart-container"
+    data-controller="macro-trend"
+    data-macro-trend-data-value="{{ .chartData }}"
+  >
+    <canvas data-macro-trend-target="canvas"></canvas>
+  </div>
+  <ul class="card-list">
+    <li class="card-list-item">
+      <div class="card-list-row">
+        <span class="card-list-label">Days tracked</span>
+        <span>{{ .summary.ActiveDays }}</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Avg kcal / day</span>
+        <span>{{ truncateFloat .summary.AvgKcal }}</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Total kcal</span>
+        <span>{{ truncateFloat .summary.TotalKcal }}</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Avg protein / day</span>
+        <span>{{ truncateFloat .summary.AvgProtein }}g</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Total protein</span>
+        <span>{{ truncateFloat .summary.TotalProtein }}g</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Avg carbs / day</span>
+        <span>{{ truncateFloat .summary.AvgCarbs }}g</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Total carbs</span>
+        <span>{{ truncateFloat .summary.TotalCarbs }}g</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Avg fat / day</span>
+        <span>{{ truncateFloat .summary.AvgFat }}g</span>
+      </div>
+      <div class="card-list-row">
+        <span class="card-list-label">Total fat</span>
+        <span>{{ truncateFloat .summary.TotalFat }}g</span>
+      </div>
+    </li>
+  </ul>
+{{ end }}

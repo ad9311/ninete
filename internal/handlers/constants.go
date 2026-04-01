@@ -62,6 +62,7 @@ const (
 	MacrosEdit  TemplateName = "macros/edit"
 	MacrosShow  TemplateName = "macros/show"
 	MacrosGoals TemplateName = "macros/goals"
+	MacrosStats TemplateName = "macros/stats"
 
 	// Macro template templates.
 	MacroTemplatesIndex TemplateName = "macro_templates/index"
