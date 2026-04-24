@@ -92,6 +92,21 @@ func (s *Server) setUpRoutes() {
 			})
 		})
 
+		root.Route("/moods", func(moods chi.Router) {
+			moods.Get("/", s.handlers.GetMoodEntries)
+			moods.Post("/", s.handlers.PostMoodEntries)
+			moods.Get("/new", s.handlers.GetMoodEntriesNew)
+			moods.Get("/stats", s.handlers.GetMoodEntriesStats)
+			moods.Route("/{id}", func(moods chi.Router) {
+				moods.Use(s.handlers.MoodEntryContext)
+
+				moods.Get("/", s.handlers.GetMoodEntry)
+				moods.Post("/", s.handlers.PostMoodEntriesUpdate)
+				moods.Get("/edit", s.handlers.GetMoodEntriesEdit)
+				moods.Post("/delete", s.handlers.PostMoodEntriesDelete)
+			})
+		})
+
 		root.Route("/lists", func(lists chi.Router) {
 			lists.Get("/", s.handlers.GetLists)
 			lists.Post("/", s.handlers.PostLists)

@@ -1,0 +1,41 @@
+{{ define "mood_entry_form" }}
+  <label>
+    Mood
+    <select name="mood">
+      {{ range .moods }}
+        <option
+          value="{{ . }}"
+          {{ if eq . $.moodEntry.Mood }}selected{{ end }}
+        >
+          {{ . }}
+        </option>
+      {{ end }}
+    </select>
+  </label>
+  <label>
+    Notes
+    <textarea name="notes">{{ .moodEntry.Notes }}</textarea>
+  </label>
+  <label>
+    Tags
+    <input
+      type="text"
+      placeholder="Semicolon separated"
+      name="tags"
+      value="{{ .tagsInput }}"
+    />
+  </label>
+  <label>
+    Date
+    <input type="date" data-date-target="local" />
+  </label>
+  <input
+    type="hidden"
+    name="logged_at"
+    data-date-target="value"
+    value="{{ .moodEntry.LoggedAt }}"
+  />
+  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+    Submit
+  </button>
+{{ end }}

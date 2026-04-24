@@ -1,0 +1,19 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>NEW MOOD ENTRY</h1>
+  <nav class="page-links">
+    <a href="/moods">Moods</a>
+  </nav>
+  <section class="form-card">
+    {{ template "form_error" . }}
+    <form
+      action="/moods"
+      method="post"
+      data-controller="date"
+      data-action="submit->date#prepare"
+    >
+      {{ template "csrf" . }}
+      {{ template "mood_entry_form" . }}
+    </form>
+  </section>
+{{ end }}
