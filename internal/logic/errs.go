@@ -14,4 +14,6 @@ var (
 	ErrValidationFailed    = errors.New("validation failed")
 
 	ErrTagResolutionFailed = errors.New("failed to resolve tags")
+
+	ErrInvalidMood = errors.New("invalid mood selection")
 )

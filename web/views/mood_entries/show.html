@@ -1,0 +1,58 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>MOOD ENTRY</h1>
+  <nav class="page-links">
+    <a href="/moods">Moods</a>
+  </nav>
+  <table>
+    <tbody>
+      <tr>
+        <th>Mood</th>
+        <td>{{ .moodEntry.Mood }}</td>
+      </tr>
+      <tr>
+        <th>Notes</th>
+        <td>{{ .moodEntry.Notes }}</td>
+      </tr>
+      <tr>
+        <th>Date</th>
+        <td>
+          <span
+            data-controller="local-date"
+            data-local-date-unix-value="{{ .moodEntry.LoggedAt }}"
+            >{{ .moodEntry.LoggedAt | timeStamp }}</span
+          >
+        </td>
+      </tr>
+      <tr>
+        <th>Tags</th>
+        <td>
+          {{ if .moodEntry.Tags }}
+            <div class="chip-list">
+              {{ range .moodEntry.Tags }}
+                <span class="chip chip-tag">{{ . }}</span>
+              {{ end }}
+            </div>
+          {{ else }}
+            <span class="chip chip-empty">No tags</span>
+          {{ end }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <section class="form-card">
+    <div class="resource-actions">
+      <a href="/moods/{{ .moodEntry.ID }}/edit">Edit Mood Entry</a>
+      <form action="/moods/{{ .moodEntry.ID }}/delete" method="post">
+        {{ template "csrf" . }}
+        <button
+          type="submit"
+          class="btn-danger btn-sm"
+          data-turbo-submits-with="Deleting..."
+        >
+          Delete
+        </button>
+      </form>
+    </div>
+  </section>
+{{ end }}

@@ -13,6 +13,7 @@ const (
 	KeyMacroEntry       = ContextKey("macroEntryID")
 	KeyMacroTemplate    = ContextKey("macroTemplateID")
 	KeyFood             = ContextKey("foodID")
+	KeyMoodEntry        = ContextKey("moodEntryID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
@@ -75,6 +76,13 @@ const (
 	FoodsNew   TemplateName = "foods/new"
 	FoodsEdit  TemplateName = "foods/edit"
 	FoodsShow  TemplateName = "foods/show"
+
+	// Mood entry templates.
+	MoodEntriesIndex TemplateName = "mood_entries/index"
+	MoodEntriesNew   TemplateName = "mood_entries/new"
+	MoodEntriesEdit  TemplateName = "mood_entries/edit"
+	MoodEntriesShow  TemplateName = "mood_entries/show"
+	MoodEntriesStats TemplateName = "mood_entries/stats"
 
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"

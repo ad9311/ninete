@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	TaggableTypeExpense = "expense"
-	TaggableTypeTask    = "task"
+	TaggableTypeExpense   = "expense"
+	TaggableTypeTask      = "task"
+	TaggableTypeMoodEntry = "mood_entry"
 )
 
 type Tagging struct {
@@ -179,6 +180,42 @@ func (q *Queries) SelectTaskTags(ctx context.Context, taskID, userID int) ([]Tag
 
 	err := q.wrapQuery(selectTaskTags, func() error {
 		rows, err := q.db.QueryContext(ctx, selectTaskTags, TaggableTypeTask, taskID, userID)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		ts, err = scanTagRows(rows)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return ts, err
+}
+
+const selectMoodEntryTags = `
+SELECT t.*
+FROM "taggings" tg
+INNER JOIN "tags" t ON t."id" = tg."tag_id"
+INNER JOIN "mood_entries" me ON me."id" = tg."taggable_id"
+WHERE tg."taggable_type" = ?
+  AND tg."taggable_id" = ?
+  AND me."user_id" = ?
+ORDER BY t."name" ASC
+`
+
+func (q *Queries) SelectMoodEntryTags(ctx context.Context, entryID, userID int) ([]Tag, error) {
+	var ts []Tag
+
+	err := q.wrapQuery(selectMoodEntryTags, func() error {
+		rows, err := q.db.QueryContext(ctx, selectMoodEntryTags, TaggableTypeMoodEntry, entryID, userID)
 		if err != nil {
 			return err
 		}

@@ -153,6 +153,15 @@ func (s *Spec) CreateFood(
 	return food
 }
 
+func (s *Spec) CreateMoodEntry(t *testing.T, userID int, params logic.MoodEntryParams) repo.MoodEntry {
+	t.Helper()
+
+	entry, err := s.Store.CreateMoodEntry(t.Context(), userID, params)
+	require.NoError(t, err)
+
+	return entry
+}
+
 func (s *Spec) CreateMacroTemplate(
 	t *testing.T,
 	userID int,
