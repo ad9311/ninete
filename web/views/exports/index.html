@@ -1,0 +1,18 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <h1>Exports</h1>
+  <div class="summary-card">
+    <span class="summary-card-label">Expenses</span>
+    <p>
+      Download all your expenses as a JSON file. Includes category and tag
+      names. All dates are Unix timestamps in UTC.
+    </p>
+    <a
+      href="/exports/expenses.json"
+      class="btn btn-primary"
+      data-turbo="false"
+      download
+      >Download expenses (JSON)</a
+    >
+  </div>
+{{ end }}

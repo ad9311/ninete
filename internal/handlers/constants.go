@@ -28,6 +28,9 @@ const (
 	// Dashboard templates.
 	DashboardIndex TemplateName = "dashboard/index"
 
+	// Exports templates.
+	ExportsIndex TemplateName = "exports/index"
+
 	// Auth templates.
 	LoginIndex    TemplateName = "login/index"
 	RegisterIndex TemplateName = "register/index"
