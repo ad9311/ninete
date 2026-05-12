@@ -21,6 +21,11 @@ func (s *Server) setUpRoutes() {
 
 		root.Get("/dashboard", s.handlers.GetDashboard)
 
+		root.Route("/exports", func(exports chi.Router) {
+			exports.Get("/", s.handlers.GetExports)
+			exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
+		})
+
 		root.Route("/expenses", func(expenses chi.Router) {
 			expenses.Get("/", s.handlers.GetExpenses)
 			expenses.Post("/", s.handlers.PostExpenses)
