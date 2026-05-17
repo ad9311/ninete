@@ -104,7 +104,7 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	expenseTagNames := tagNamesByTargetID(expenseTagRows)
+	expenseTagNames := repo.TagNamesByTargetID(expenseTagRows)
 
 	for _, expense := range expenses {
 		rows = append(rows, expenseRow{

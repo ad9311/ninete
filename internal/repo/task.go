@@ -36,12 +36,12 @@ const selectTasks = `SELECT * FROM "tasks"`
 func (q *Queries) SelectTasks(ctx context.Context, opts QueryOptions) ([]Task, error) {
 	var ts []Task
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validTaskFields()); err != nil {
 		return ts, err
 	}
 
-	if err := opts.Validate(validTaskFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return ts, err
 	}
 

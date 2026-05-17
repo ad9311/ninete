@@ -27,12 +27,12 @@ const selectLists = `SELECT * FROM "lists"`
 func (q *Queries) SelectLists(ctx context.Context, opts QueryOptions) ([]List, error) {
 	var ls []List
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validListFields()); err != nil {
 		return ls, err
 	}
 
-	if err := opts.Validate(validListFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return ls, err
 	}
 

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -22,9 +21,7 @@ func (h *Handler) MacroTemplateContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		user := getCurrentUser(r)
-		templateID := chi.URLParam(r, "template_id")
-
-		id, err := prog.ParseID(templateID, "MacroTemplate")
+		id, err := prog.ParseID(chi.URLParam(r, "id"), "MacroTemplate")
 		if err != nil {
 			h.NotFound(w, r)
 
@@ -235,32 +232,32 @@ func parseMacroTemplateForm(r *http.Request) (logic.MacroTemplateParams, error) 
 	var params logic.MacroTemplateParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form, %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
-	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
+	kcal, err := parseFloatField(r, "kcal")
 	if err != nil {
-		return params, fmt.Errorf("kcal: %w", err)
+		return params, err
 	}
 
-	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
+	proteinG, err := parseFloatField(r, "protein_g")
 	if err != nil {
-		return params, fmt.Errorf("protein_g: %w", err)
+		return params, err
 	}
 
-	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
+	carbsG, err := parseFloatField(r, "carbs_g")
 	if err != nil {
-		return params, fmt.Errorf("carbs_g: %w", err)
+		return params, err
 	}
 
-	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
+	fatG, err := parseFloatField(r, "fat_g")
 	if err != nil {
-		return params, fmt.Errorf("fat_g: %w", err)
+		return params, err
 	}
 
-	amount, err := strconv.ParseFloat(r.FormValue("amount"), 64)
+	amount, err := parseFloatField(r, "amount")
 	if err != nil {
-		return params, fmt.Errorf("amount: %w", err)
+		return params, err
 	}
 
 	params.Name = r.FormValue("name")

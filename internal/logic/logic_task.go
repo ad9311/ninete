@@ -41,7 +41,7 @@ func (s *Store) FindTask(ctx context.Context, id, userID int) (repo.Task, error)
 }
 
 func (s *Store) FindTaskTags(ctx context.Context, taskID, userID int) ([]repo.Tag, error) {
-	tags, err := s.queries.SelectTaskTags(ctx, taskID, userID)
+	tags, err := s.queries.SelectTagsForTaggable(ctx, repo.TaggableTypeTask, "tasks", taskID, userID)
 	if err != nil {
 		return tags, err
 	}

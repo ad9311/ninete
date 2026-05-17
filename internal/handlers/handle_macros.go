@@ -126,7 +126,6 @@ func (h *Handler) GetMacros(w http.ResponseWriter, r *http.Request) {
 	data["sortField"] = sortField
 	data["sortOrder"] = sortOrder
 	data["selectedMealType"] = mealType
-	data["mealTypeOptions"] = macroMealTypeOptions()
 
 	if hasGoal {
 		data["goal"] = goal
@@ -143,13 +142,25 @@ func (h *Handler) GetMacrosNew(w http.ResponseWriter, r *http.Request) {
 
 	entry := repo.MacroEntry{}
 
-	if r.URL.Query().Get("from_food") != "" {
-		q := r.URL.Query()
-		entry.Name = q.Get("name")
-		entry.Kcal, _ = strconv.ParseFloat(q.Get("kcal"), 64)
-		entry.ProteinG, _ = strconv.ParseFloat(q.Get("protein_g"), 64)
-		entry.CarbsG, _ = strconv.ParseFloat(q.Get("carbs_g"), 64)
-		entry.FatG, _ = strconv.ParseFloat(q.Get("fat_g"), 64)
+	if fromFoodStr := r.URL.Query().Get("from_food"); fromFoodStr != "" {
+		foodID, err := prog.ParseID(fromFoodStr, "Food")
+		if err == nil {
+			food, err := h.store.FindFood(ctx, foodID, user.ID)
+			if err == nil {
+				scale := 1.0
+				if amountStr := r.URL.Query().Get("amount"); amountStr != "" {
+					if amount, err := strconv.ParseFloat(amountStr, 64); err == nil && amount > 0 {
+						scale = amount / foodBaseAmountG
+					}
+				}
+
+				entry.Name = food.Name
+				entry.Kcal = roundMacro(food.Kcal * scale)
+				entry.ProteinG = roundMacro(food.ProteinG * scale)
+				entry.CarbsG = roundMacro(food.CarbsG * scale)
+				entry.FatG = roundMacro(food.FatG * scale)
+			}
+		}
 	}
 
 	if fromTemplateStr := r.URL.Query().Get("from_template"); fromTemplateStr != "" {
@@ -362,7 +373,7 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 	var params logic.MacroEntryParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form, %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
 	date, err := prog.StringToUnixDate(r.FormValue("date"))
@@ -370,24 +381,24 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 		return params, err
 	}
 
-	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
+	kcal, err := parseFloatField(r, "kcal")
 	if err != nil {
-		return params, fmt.Errorf("kcal: %w", err)
+		return params, err
 	}
 
-	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
+	proteinG, err := parseFloatField(r, "protein_g")
 	if err != nil {
-		return params, fmt.Errorf("protein_g: %w", err)
+		return params, err
 	}
 
-	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
+	carbsG, err := parseFloatField(r, "carbs_g")
 	if err != nil {
-		return params, fmt.Errorf("carbs_g: %w", err)
+		return params, err
 	}
 
-	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
+	fatG, err := parseFloatField(r, "fat_g")
 	if err != nil {
-		return params, fmt.Errorf("fat_g: %w", err)
+		return params, err
 	}
 
 	params.Name = r.FormValue("name")
@@ -405,27 +416,27 @@ func parseMacroGoalForm(r *http.Request) (logic.MacroGoalParams, error) {
 	var params logic.MacroGoalParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form, %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
-	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
+	kcal, err := parseFloatField(r, "kcal")
 	if err != nil {
-		return params, fmt.Errorf("kcal: %w", err)
+		return params, err
 	}
 
-	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
+	proteinG, err := parseFloatField(r, "protein_g")
 	if err != nil {
-		return params, fmt.Errorf("protein_g: %w", err)
+		return params, err
 	}
 
-	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
+	carbsG, err := parseFloatField(r, "carbs_g")
 	if err != nil {
-		return params, fmt.Errorf("carbs_g: %w", err)
+		return params, err
 	}
 
-	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
+	fatG, err := parseFloatField(r, "fat_g")
 	if err != nil {
-		return params, fmt.Errorf("fat_g: %w", err)
+		return params, err
 	}
 
 	params.Kcal = kcal

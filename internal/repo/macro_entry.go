@@ -60,12 +60,12 @@ const selectMacroEntries = `SELECT * FROM "macro_entries"`
 func (q *Queries) SelectMacroEntries(ctx context.Context, opts QueryOptions) ([]MacroEntry, error) {
 	var es []MacroEntry
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validMacroEntryFields()); err != nil {
 		return es, err
 	}
 
-	if err := opts.Validate(validMacroEntryFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return es, err
 	}
 

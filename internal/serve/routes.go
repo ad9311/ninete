@@ -66,7 +66,7 @@ func (s *Server) setUpRoutes() {
 				r.Get("/", s.handlers.GetMacroTemplates)
 				r.Post("/", s.handlers.PostMacroTemplates)
 				r.Get("/new", s.handlers.GetMacroTemplatesNew)
-				r.Route("/{template_id}", func(r chi.Router) {
+				r.Route("/{id}", func(r chi.Router) {
 					r.Use(s.handlers.MacroTemplateContext)
 					r.Get("/", s.handlers.GetMacroTemplate)
 					r.Post("/", s.handlers.PostMacroTemplateUpdate)
@@ -87,7 +87,7 @@ func (s *Server) setUpRoutes() {
 			foods.Get("/", s.handlers.GetFoods)
 			foods.Post("/", s.handlers.PostFoods)
 			foods.Get("/new", s.handlers.GetFoodsNew)
-			foods.Route("/{food_id}", func(foods chi.Router) {
+			foods.Route("/{id}", func(foods chi.Router) {
 				foods.Use(s.handlers.FoodContext)
 
 				foods.Get("/", s.handlers.GetFood)

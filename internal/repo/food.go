@@ -39,12 +39,12 @@ const selectFoods = `SELECT * FROM "foods"`
 func (q *Queries) SelectFoods(ctx context.Context, opts QueryOptions) ([]Food, error) {
 	var fs []Food
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validFoodFields()); err != nil {
 		return fs, err
 	}
 
-	if err := opts.Validate(validFoodFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return fs, err
 	}
 

@@ -24,12 +24,12 @@ const selectTags = `SELECT * FROM "tags"`
 func (q *Queries) SelectTags(ctx context.Context, opts QueryOptions) ([]Tag, error) {
 	var ts []Tag
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validTagFields()); err != nil {
 		return ts, err
 	}
 
-	if err := opts.Validate(validTagFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return ts, err
 	}
 

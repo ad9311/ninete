@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -30,6 +31,21 @@ type InsertTaggingParams struct {
 type TagRow struct {
 	TargetID int
 	TagName  string
+}
+
+// TagNamesByTargetID groups TagRow values by target ID and returns each group
+// sorted alphabetically so JSON/HTML output is stable.
+func TagNamesByTargetID(rows []TagRow) map[int][]string {
+	m := map[int][]string{}
+	for _, row := range rows {
+		m[row.TargetID] = append(m[row.TargetID], row.TagName)
+	}
+
+	for id := range m {
+		sort.Strings(m[id])
+	}
+
+	return m
 }
 
 const insertOrIgnoreTagging = `
@@ -63,22 +79,30 @@ func (q *TxQueries) DeleteTaggingsByTarget(ctx context.Context, taggableType str
 	})
 }
 
-const selectExpenseTags = `
+const selectTagsForTaggableBase = `
 SELECT t.*
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "expenses" e ON e."id" = tg."taggable_id"
+INNER JOIN "%s" o ON o."id" = tg."taggable_id"
 WHERE tg."taggable_type" = ?
   AND tg."taggable_id" = ?
-  AND e."user_id" = ?
+  AND o."user_id" = ?
 ORDER BY t."name" ASC
 `
 
-func (q *Queries) SelectExpenseTags(ctx context.Context, expenseID, userID int) ([]Tag, error) {
+// SelectTagsForTaggable returns the tags attached to a single taggable record,
+// scoped to the owning user via ownerTable.
+func (q *Queries) SelectTagsForTaggable(
+	ctx context.Context,
+	taggableType, ownerTable string,
+	taggableID, userID int,
+) ([]Tag, error) {
 	var ts []Tag
 
-	err := q.wrapQuery(selectExpenseTags, func() error {
-		rows, err := q.db.QueryContext(ctx, selectExpenseTags, TaggableTypeExpense, expenseID, userID)
+	query := fmt.Sprintf(selectTagsForTaggableBase, ownerTable)
+
+	err := q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, taggableType, taggableID, userID)
 		if err != nil {
 			return err
 		}
@@ -162,76 +186,4 @@ func selectTagRowsQuery(taggableType, joinTable string, targetIDs []int, userID 
 	}
 
 	return query, values
-}
-
-const selectTaskTags = `
-SELECT t.*
-FROM "taggings" tg
-INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "tasks" tk ON tk."id" = tg."taggable_id"
-WHERE tg."taggable_type" = ?
-  AND tg."taggable_id" = ?
-  AND tk."user_id" = ?
-ORDER BY t."name" ASC
-`
-
-func (q *Queries) SelectTaskTags(ctx context.Context, taskID, userID int) ([]Tag, error) {
-	var ts []Tag
-
-	err := q.wrapQuery(selectTaskTags, func() error {
-		rows, err := q.db.QueryContext(ctx, selectTaskTags, TaggableTypeTask, taskID, userID)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if closeErr := rows.Close(); closeErr != nil {
-				q.app.Logger.Error(closeErr)
-			}
-		}()
-
-		ts, err = scanTagRows(rows)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return ts, err
-}
-
-const selectMoodEntryTags = `
-SELECT t.*
-FROM "taggings" tg
-INNER JOIN "tags" t ON t."id" = tg."tag_id"
-INNER JOIN "mood_entries" me ON me."id" = tg."taggable_id"
-WHERE tg."taggable_type" = ?
-  AND tg."taggable_id" = ?
-  AND me."user_id" = ?
-ORDER BY t."name" ASC
-`
-
-func (q *Queries) SelectMoodEntryTags(ctx context.Context, entryID, userID int) ([]Tag, error) {
-	var ts []Tag
-
-	err := q.wrapQuery(selectMoodEntryTags, func() error {
-		rows, err := q.db.QueryContext(ctx, selectMoodEntryTags, TaggableTypeMoodEntry, entryID, userID)
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if closeErr := rows.Close(); closeErr != nil {
-				q.app.Logger.Error(closeErr)
-			}
-		}()
-
-		ts, err = scanTagRows(rows)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return ts, err
 }

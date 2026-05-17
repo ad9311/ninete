@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,13 +28,20 @@ func (h *Handler) GetExportsExpenses(w http.ResponseWriter, r *http.Request) {
 		"expenses":    expenses,
 	}
 
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(payload); err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
+
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="expenses-%d.json"`, now))
 	w.WriteHeader(http.StatusOK)
 
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(payload); err != nil {
-		h.app.Logger.Errorf("failed to encode expenses export: %v", err)
+	if _, err := buf.WriteTo(w); err != nil {
+		h.app.Logger.Errorf("failed to write expenses export: %v", err)
 	}
 }

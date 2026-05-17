@@ -247,12 +247,12 @@ func parseTaskForm(r *http.Request) (logic.TaskParams, error) {
 	var params logic.TaskParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form: %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
 	priority, err := strconv.Atoi(r.FormValue("priority"))
 	if err != nil {
-		return params, fmt.Errorf("invalid priority value: %w", err)
+		return params, fmt.Errorf("%w %q: %w", ErrParseField, "priority", err)
 	}
 
 	params.Description = r.FormValue("description")
