@@ -7,7 +7,7 @@ import (
 )
 
 type MoodEntryParams struct {
-	Mood     string   `validate:"required"`
+	Mood     string   `validate:"required,max=64"`
 	Notes    string   `validate:"max=500"`
 	LoggedAt int64    `validate:"required,gt=0"`
 	Tags     []string `validate:"-"`
@@ -41,7 +41,7 @@ func (s *Store) FindMoodEntry(ctx context.Context, id, userID int) (repo.MoodEnt
 }
 
 func (s *Store) FindMoodEntryTags(ctx context.Context, entryID, userID int) ([]repo.Tag, error) {
-	tags, err := s.queries.SelectMoodEntryTags(ctx, entryID, userID)
+	tags, err := s.queries.SelectTagsForTaggable(ctx, repo.TaggableTypeMoodEntry, "mood_entries", entryID, userID)
 	if err != nil {
 		return tags, err
 	}

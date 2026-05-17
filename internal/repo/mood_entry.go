@@ -35,12 +35,12 @@ const selectMoodEntries = `SELECT * FROM "mood_entries"`
 func (q *Queries) SelectMoodEntries(ctx context.Context, opts QueryOptions) ([]MoodEntry, error) {
 	var es []MoodEntry
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validMoodEntryFields()); err != nil {
 		return es, err
 	}
 
-	if err := opts.Validate(validMoodEntryFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return es, err
 	}
 

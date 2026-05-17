@@ -37,12 +37,12 @@ const selectExpenses = `SELECT * FROM "expenses"`
 func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expense, error) {
 	var es []Expense
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validExpenseFields()); err != nil {
 		return es, err
 	}
 
-	if err := opts.Validate(validExpenseFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return es, err
 	}
 

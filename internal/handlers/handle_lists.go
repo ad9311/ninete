@@ -193,7 +193,7 @@ func (h *Handler) GetList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taskTagNames := tagNamesByTargetID(taskTagRows)
+	taskTagNames := repo.TagNamesByTargetID(taskTagRows)
 
 	taskRows := make([]taskRow, 0, len(tasks))
 	for _, t := range tasks {
@@ -285,7 +285,7 @@ func parseListForm(r *http.Request) (logic.ListParams, error) {
 	var params logic.ListParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form: %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
 	params.Name = r.FormValue("name")

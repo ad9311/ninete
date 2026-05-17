@@ -57,9 +57,9 @@
     Unit
     <select name="amount_unit">
       {{ $selected := .template.AmountUnit }}
-      {{ range $key, $label := .amountUnitOptions }}
-        <option value="{{ $key }}" {{ if eq $key $selected }}selected{{ end }}>
-          {{ $label }}
+      {{ range .amountUnitOptions }}
+        <option value="{{ .Key }}" {{ if eq .Key $selected }}selected{{ end }}>
+          {{ .Label }}
         </option>
       {{ end }}
     </select>

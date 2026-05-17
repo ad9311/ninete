@@ -97,7 +97,7 @@ func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {
 	var base expenseFormBase
 
 	if err := r.ParseForm(); err != nil {
-		return base, fmt.Errorf("failed to parse form, %w", err)
+		return base, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
 	categoryID, err := prog.ParseID(r.FormValue("category_id"), "Category ID")

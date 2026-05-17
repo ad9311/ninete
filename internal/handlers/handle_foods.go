@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -22,9 +21,7 @@ func (h *Handler) FoodContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		user := getCurrentUser(r)
-		foodID := chi.URLParam(r, "food_id")
-
-		id, err := prog.ParseID(foodID, "Food")
+		id, err := prog.ParseID(chi.URLParam(r, "id"), "Food")
 		if err != nil {
 			h.NotFound(w, r)
 
@@ -206,27 +203,27 @@ func parseFoodForm(r *http.Request) (logic.FoodParams, error) {
 	var params logic.FoodParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form, %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
-	kcal, err := strconv.ParseFloat(r.FormValue("kcal"), 64)
+	kcal, err := parseFloatField(r, "kcal")
 	if err != nil {
-		return params, fmt.Errorf("kcal: %w", err)
+		return params, err
 	}
 
-	proteinG, err := strconv.ParseFloat(r.FormValue("protein_g"), 64)
+	proteinG, err := parseFloatField(r, "protein_g")
 	if err != nil {
-		return params, fmt.Errorf("protein_g: %w", err)
+		return params, err
 	}
 
-	carbsG, err := strconv.ParseFloat(r.FormValue("carbs_g"), 64)
+	carbsG, err := parseFloatField(r, "carbs_g")
 	if err != nil {
-		return params, fmt.Errorf("carbs_g: %w", err)
+		return params, err
 	}
 
-	fatG, err := strconv.ParseFloat(r.FormValue("fat_g"), 64)
+	fatG, err := parseFloatField(r, "fat_g")
 	if err != nil {
-		return params, fmt.Errorf("fat_g: %w", err)
+		return params, err
 	}
 
 	params.Name = r.FormValue("name")

@@ -7,7 +7,6 @@ export default class extends Controller {
     baseCarbs: Number,
     baseFat: Number,
     baseAmount: Number,
-    foodName: String,
     foodId: Number,
   };
 
@@ -18,7 +17,6 @@ export default class extends Controller {
   declare readonly baseCarbsValue: number;
   declare readonly baseFatValue: number;
   declare readonly baseAmountValue: number;
-  declare readonly foodNameValue: string;
   declare readonly foodIdValue: number;
 
   declare readonly amountTarget: HTMLInputElement;
@@ -52,11 +50,7 @@ export default class extends Controller {
     if (this.hasUseLinkTarget) {
       const params = new URLSearchParams({
         from_food: this.foodIdValue.toString(),
-        name: this.foodNameValue,
-        kcal: kcal.toString(),
-        protein_g: protein.toString(),
-        carbs_g: carbs.toString(),
-        fat_g: fat.toString(),
+        amount: actual.toString(),
       });
       this.useLinkTarget.href = `/macros/new?${params.toString()}`;
     }

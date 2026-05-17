@@ -1,20 +1,23 @@
 package handlers
 
-func macroMealTypeOptions() map[string]string {
-	return map[string]string{
-		"breakfast": "Breakfast",
-		"lunch":     "Lunch",
-		"dinner":    "Dinner",
-		"snack":     "Snack",
-		"other":     "Other",
-	}
+import "math"
+
+const foodBaseAmountG = 100.0
+
+type selectOption struct {
+	Key   string
+	Label string
 }
 
-func macroAmountUnitOptions() map[string]string {
-	return map[string]string{
-		"g":    "Grams",
-		"ml":   "Milliliters",
-		"unit": "Unit (piece)",
-		"oz":   "Ounces",
+func roundMacro(v float64) float64 {
+	return math.Round(v*100) / 100
+}
+
+func macroAmountUnitOptions() []selectOption {
+	return []selectOption{
+		{Key: "g", Label: "Grams"},
+		{Key: "ml", Label: "Milliliters"},
+		{Key: "unit", Label: "Unit (piece)"},
+		{Key: "oz", Label: "Ounces"},
 	}
 }

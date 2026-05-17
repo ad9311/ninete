@@ -45,12 +45,12 @@ const selectMacroTemplates = `SELECT * FROM "macro_templates"`
 func (q *Queries) SelectMacroTemplates(ctx context.Context, opts QueryOptions) ([]MacroTemplate, error) {
 	var ts []MacroTemplate
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validMacroTemplateFields()); err != nil {
 		return ts, err
 	}
 
-	if err := opts.Validate(validMacroTemplateFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return ts, err
 	}
 

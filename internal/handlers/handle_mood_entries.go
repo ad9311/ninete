@@ -120,7 +120,7 @@ func (h *Handler) GetMoodEntries(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
-	tagsByEntryID := tagNamesByTargetID(tagRows)
+	tagsByEntryID := repo.TagNamesByTargetID(tagRows)
 
 	rows := make([]moodEntryRow, 0, len(entries))
 	for _, e := range entries {
@@ -292,7 +292,7 @@ func parseMoodEntryForm(r *http.Request) (logic.MoodEntryParams, error) {
 	var params logic.MoodEntryParams
 
 	if err := r.ParseForm(); err != nil {
-		return params, fmt.Errorf("failed to parse form: %w", err)
+		return params, fmt.Errorf("%w: %w", ErrParseForm, err)
 	}
 
 	loggedAt, err := prog.StringToUnixDate(r.FormValue("logged_at"))
@@ -388,15 +388,8 @@ func (h *Handler) GetMoodEntriesStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	moodSortOrder := "ASC"
-	if sortField == "mood" && sortOrder == "ASC" {
-		moodSortOrder = "DESC"
-	}
-
-	countSortOrder := "DESC"
-	if sortField == "count" && sortOrder == "DESC" {
-		countSortOrder = "ASC"
-	}
+	moodSortOrder := nextSortOrder(sortField, sortOrder, "mood", "ASC")
+	countSortOrder := nextSortOrder(sortField, sortOrder, "count", "DESC")
 
 	baseURL := fmt.Sprintf("/moods/stats?from_date=%s&to_date=%s", fromDate, toDate)
 

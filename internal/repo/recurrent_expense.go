@@ -85,12 +85,12 @@ const selectRecurrentExpenses = `SELECT * FROM "recurrent_expenses"`
 func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions) ([]RecurrentExpense, error) {
 	var res []RecurrentExpense
 
-	subQuery, err := opts.Build()
-	if err != nil {
+	if err := opts.Validate(validRecurrentExpenseFields()); err != nil {
 		return res, err
 	}
 
-	if err := opts.Validate(validRecurrentExpenseFields()); err != nil {
+	subQuery, err := opts.Build()
+	if err != nil {
 		return res, err
 	}
 

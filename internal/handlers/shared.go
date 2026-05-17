@@ -1,11 +1,21 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
+
+func parseFloatField(r *http.Request, field string) (float64, error) {
+	v, err := strconv.ParseFloat(r.FormValue(field), 64)
+	if err != nil {
+		return 0, fmt.Errorf("%w %q: %w", ErrParseField, field, err)
+	}
+
+	return v, nil
+}
 
 const defaultPerPage = 10
 
@@ -123,11 +133,14 @@ func safeUint64ToInt(v uint64) int {
 	return int(v)
 }
 
-func tagNamesByTargetID(rows []repo.TagRow) map[int][]string {
-	m := map[int][]string{}
-	for _, row := range rows {
-		m[row.TargetID] = append(m[row.TargetID], row.TagName)
+func nextSortOrder(currentField, currentOrder, column, columnDefault string) string {
+	if currentField != column {
+		return columnDefault
 	}
 
-	return m
+	if currentOrder == "ASC" {
+		return "DESC"
+	}
+
+	return "ASC"
 }

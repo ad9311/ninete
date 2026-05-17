@@ -2,7 +2,6 @@ package logic
 
 import (
 	"context"
-	"sort"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
@@ -58,13 +57,7 @@ func (s *Store) ExportExpenses(ctx context.Context, userID int) ([]ExportExpense
 		return nil, err
 	}
 
-	tagsByExpenseID := map[int][]string{}
-	for _, row := range tagRows {
-		tagsByExpenseID[row.TargetID] = append(tagsByExpenseID[row.TargetID], row.TagName)
-	}
-	for id := range tagsByExpenseID {
-		sort.Strings(tagsByExpenseID[id])
-	}
+	tagsByExpenseID := repo.TagNamesByTargetID(tagRows)
 
 	out := make([]ExportExpense, 0, len(expenses))
 	for _, e := range expenses {

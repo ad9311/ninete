@@ -40,7 +40,7 @@ func (s *Store) FindExpense(ctx context.Context, id, userID int) (repo.Expense, 
 }
 
 func (s *Store) FindExpenseTags(ctx context.Context, expenseID, userID int) ([]repo.Tag, error) {
-	tags, err := s.queries.SelectExpenseTags(ctx, expenseID, userID)
+	tags, err := s.queries.SelectTagsForTaggable(ctx, repo.TaggableTypeExpense, "expenses", expenseID, userID)
 	if err != nil {
 		return tags, err
 	}
