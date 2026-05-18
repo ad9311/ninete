@@ -44,6 +44,36 @@
       value="{{ .food.FatG }}"
     />
   </label>
+  <label>
+    Saturated Fat (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="saturated_fat_g"
+      value="{{ .food.SaturatedFatG }}"
+    />
+  </label>
+  <label>
+    Fiber (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="fiber_g"
+      value="{{ .food.FiberG }}"
+    />
+  </label>
+  <label>
+    Sodium (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="sodium_g"
+      value="{{ .food.SodiumG }}"
+    />
+  </label>
   <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
     Submit
   </button>

@@ -7,11 +7,14 @@ import (
 )
 
 type FoodParams struct {
-	Name     string  `validate:"required,min=1,max=100"`
-	Kcal     float64 `validate:"gte=0"`
-	ProteinG float64 `validate:"gte=0"`
-	CarbsG   float64 `validate:"gte=0"`
-	FatG     float64 `validate:"gte=0"`
+	Name          string  `validate:"required,min=1,max=100"`
+	Kcal          float64 `validate:"gte=0"`
+	ProteinG      float64 `validate:"gte=0"`
+	CarbsG        float64 `validate:"gte=0"`
+	FatG          float64 `validate:"gte=0"`
+	FiberG        float64 `validate:"gte=0"`
+	SodiumG       float64 `validate:"gte=0"`
+	SaturatedFatG float64 `validate:"gte=0"`
 }
 
 func (s *Store) FindFoods(ctx context.Context, opts repo.QueryOptions) ([]repo.Food, error) {
@@ -43,12 +46,15 @@ func (s *Store) CreateFood(ctx context.Context, userID int, params FoodParams) (
 		var txErr error
 
 		food, txErr = tq.InsertFood(ctx, repo.InsertFoodParams{
-			UserID:   userID,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
+			UserID:        userID,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		})
 
 		return txErr
@@ -75,12 +81,15 @@ func (s *Store) UpdateFood(
 		var txErr error
 
 		food, txErr = tq.UpdateFood(ctx, userID, repo.UpdateFoodParams{
-			ID:       id,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
+			ID:            id,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		})
 
 		return txErr

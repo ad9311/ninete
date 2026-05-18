@@ -13,46 +13,58 @@ const (
 )
 
 type MacroEntry struct {
-	ID        int
-	UserID    int
-	Name      string
-	Kcal      float64
-	ProteinG  float64
-	CarbsG    float64
-	FatG      float64
-	Date      int64
-	CreatedAt int64
-	UpdatedAt int64
-	MealType  string
+	ID            int
+	UserID        int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	Date          int64
+	CreatedAt     int64
+	UpdatedAt     int64
+	MealType      string
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 type InsertMacroEntryParams struct {
-	UserID   int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
-	Date     int64
-	MealType string
+	UserID        int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	Date          int64
+	MealType      string
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 type UpdateMacroEntryParams struct {
-	ID       int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
-	Date     int64
-	MealType string
+	ID            int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	Date          int64
+	MealType      string
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 type MacroDayTotals struct {
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 const selectMacroEntries = `SELECT * FROM "macro_entries"`
@@ -98,6 +110,9 @@ func (q *Queries) SelectMacroEntries(ctx context.Context, opts QueryOptions) ([]
 				&e.CreatedAt,
 				&e.UpdatedAt,
 				&e.MealType,
+				&e.FiberG,
+				&e.SodiumG,
+				&e.SaturatedFatG,
 			); err != nil {
 				return err
 			}
@@ -153,6 +168,9 @@ func (q *Queries) SelectMacroEntry(ctx context.Context, id, userID int) (MacroEn
 			&e.CreatedAt,
 			&e.UpdatedAt,
 			&e.MealType,
+			&e.FiberG,
+			&e.SodiumG,
+			&e.SaturatedFatG,
 		)
 	})
 
@@ -160,8 +178,10 @@ func (q *Queries) SelectMacroEntry(ctx context.Context, id, userID int) (MacroEn
 }
 
 const insertMacroEntry = `
-INSERT INTO "macro_entries" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date", "meal_type")
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO "macro_entries"
+  ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date", "meal_type",
+   "fiber_g", "sodium_g", "saturated_fat_g")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *`
 
 func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntryParams) (MacroEntry, error) {
@@ -179,6 +199,9 @@ func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntr
 			params.FatG,
 			params.Date,
 			params.MealType,
+			params.FiberG,
+			params.SodiumG,
+			params.SaturatedFatG,
 		)
 
 		return row.Scan(
@@ -193,6 +216,9 @@ func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntr
 			&e.CreatedAt,
 			&e.UpdatedAt,
 			&e.MealType,
+			&e.FiberG,
+			&e.SodiumG,
+			&e.SaturatedFatG,
 		)
 	})
 
@@ -201,14 +227,17 @@ func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntr
 
 const updateMacroEntry = `
 UPDATE "macro_entries"
-SET "name"       = ?,
-    "kcal"       = ?,
-    "protein_g"  = ?,
-    "carbs_g"    = ?,
-    "fat_g"      = ?,
-    "date"       = ?,
-    "meal_type"  = ?,
-    "updated_at" = ?
+SET "name"            = ?,
+    "kcal"            = ?,
+    "protein_g"       = ?,
+    "carbs_g"         = ?,
+    "fat_g"           = ?,
+    "date"            = ?,
+    "meal_type"       = ?,
+    "fiber_g"         = ?,
+    "sodium_g"        = ?,
+    "saturated_fat_g" = ?,
+    "updated_at"      = ?
 WHERE "id" = ?
   AND "user_id" = ?
 RETURNING *`
@@ -231,6 +260,9 @@ func (q *TxQueries) UpdateMacroEntry(
 			params.FatG,
 			params.Date,
 			params.MealType,
+			params.FiberG,
+			params.SodiumG,
+			params.SaturatedFatG,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -248,6 +280,9 @@ func (q *TxQueries) UpdateMacroEntry(
 			&e.CreatedAt,
 			&e.UpdatedAt,
 			&e.MealType,
+			&e.FiberG,
+			&e.SodiumG,
+			&e.SaturatedFatG,
 		)
 	})
 
@@ -270,7 +305,9 @@ func (q *Queries) DeleteMacroEntry(ctx context.Context, id, userID int) (int, er
 
 const selectMacroDayTotals = `
 SELECT COALESCE(SUM("kcal"),0), COALESCE(SUM("protein_g"),0),
-       COALESCE(SUM("carbs_g"),0), COALESCE(SUM("fat_g"),0)
+       COALESCE(SUM("carbs_g"),0), COALESCE(SUM("fat_g"),0),
+       COALESCE(SUM("fiber_g"),0), COALESCE(SUM("sodium_g"),0),
+       COALESCE(SUM("saturated_fat_g"),0)
 FROM "macro_entries" WHERE "user_id"=? AND "date">=? AND "date"<?`
 
 const selectMacroDayTotalsByMealType = selectMacroDayTotals + ` AND "meal_type"=?`
@@ -294,7 +331,8 @@ func (q *Queries) SelectMacroDayTotals(
 	err := q.wrapQuery(query, func() error {
 		row := q.db.QueryRowContext(ctx, query, args...)
 
-		return row.Scan(&t.Kcal, &t.ProteinG, &t.CarbsG, &t.FatG)
+		return row.Scan(&t.Kcal, &t.ProteinG, &t.CarbsG, &t.FatG,
+			&t.FiberG, &t.SodiumG, &t.SaturatedFatG)
 	})
 
 	return t, err
@@ -360,5 +398,8 @@ func validMacroEntryFields() []string {
 		"created_at",
 		"updated_at",
 		"meal_type",
+		"fiber_g",
+		"sodium_g",
+		"saturated_fat_g",
 	}
 }

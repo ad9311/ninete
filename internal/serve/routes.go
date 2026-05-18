@@ -62,18 +62,6 @@ func (s *Server) setUpRoutes() {
 			r.Get("/goals", s.handlers.GetMacrosGoals)
 			r.Post("/goals", s.handlers.PostMacrosGoals)
 			r.Get("/stats", s.handlers.GetMacrosStats)
-			r.Route("/templates", func(r chi.Router) {
-				r.Get("/", s.handlers.GetMacroTemplates)
-				r.Post("/", s.handlers.PostMacroTemplates)
-				r.Get("/new", s.handlers.GetMacroTemplatesNew)
-				r.Route("/{id}", func(r chi.Router) {
-					r.Use(s.handlers.MacroTemplateContext)
-					r.Get("/", s.handlers.GetMacroTemplate)
-					r.Post("/", s.handlers.PostMacroTemplateUpdate)
-					r.Get("/edit", s.handlers.GetMacroTemplateEdit)
-					r.Post("/delete", s.handlers.PostMacroTemplateDelete)
-				})
-			})
 			r.Route("/{id}", func(r chi.Router) {
 				r.Use(s.handlers.MacroEntryContext)
 				r.Get("/", s.handlers.GetMacroEntry)

@@ -5,33 +5,42 @@ import (
 )
 
 type Food struct {
-	ID        int
-	UserID    int
-	Name      string
-	Kcal      float64
-	ProteinG  float64
-	CarbsG    float64
-	FatG      float64
-	CreatedAt int64
-	UpdatedAt int64
+	ID            int
+	UserID        int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	CreatedAt     int64
+	UpdatedAt     int64
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 type InsertFoodParams struct {
-	UserID   int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
+	UserID        int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 type UpdateFoodParams struct {
-	ID       int
-	Name     string
-	Kcal     float64
-	ProteinG float64
-	CarbsG   float64
-	FatG     float64
+	ID            int
+	Name          string
+	Kcal          float64
+	ProteinG      float64
+	CarbsG        float64
+	FatG          float64
+	FiberG        float64
+	SodiumG       float64
+	SaturatedFatG float64
 }
 
 const selectFoods = `SELECT * FROM "foods"`
@@ -75,6 +84,9 @@ func (q *Queries) SelectFoods(ctx context.Context, opts QueryOptions) ([]Food, e
 				&f.FatG,
 				&f.CreatedAt,
 				&f.UpdatedAt,
+				&f.FiberG,
+				&f.SodiumG,
+				&f.SaturatedFatG,
 			); err != nil {
 				return err
 			}
@@ -106,6 +118,9 @@ func (q *Queries) SelectFood(ctx context.Context, id, userID int) (Food, error) 
 			&f.FatG,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.FiberG,
+			&f.SodiumG,
+			&f.SaturatedFatG,
 		)
 	})
 
@@ -113,8 +128,10 @@ func (q *Queries) SelectFood(ctx context.Context, id, userID int) (Food, error) 
 }
 
 const insertFood = `
-INSERT INTO "foods" ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g")
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO "foods"
+  ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g",
+   "fiber_g", "sodium_g", "saturated_fat_g")
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 RETURNING *`
 
 func (q *TxQueries) InsertFood(ctx context.Context, params InsertFoodParams) (Food, error) {
@@ -130,6 +147,9 @@ func (q *TxQueries) InsertFood(ctx context.Context, params InsertFoodParams) (Fo
 			params.ProteinG,
 			params.CarbsG,
 			params.FatG,
+			params.FiberG,
+			params.SodiumG,
+			params.SaturatedFatG,
 		)
 
 		return row.Scan(
@@ -142,6 +162,9 @@ func (q *TxQueries) InsertFood(ctx context.Context, params InsertFoodParams) (Fo
 			&f.FatG,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.FiberG,
+			&f.SodiumG,
+			&f.SaturatedFatG,
 		)
 	})
 
@@ -150,12 +173,15 @@ func (q *TxQueries) InsertFood(ctx context.Context, params InsertFoodParams) (Fo
 
 const updateFood = `
 UPDATE "foods"
-SET "name"       = ?,
-    "kcal"       = ?,
-    "protein_g"  = ?,
-    "carbs_g"    = ?,
-    "fat_g"      = ?,
-    "updated_at" = ?
+SET "name"            = ?,
+    "kcal"            = ?,
+    "protein_g"       = ?,
+    "carbs_g"         = ?,
+    "fat_g"           = ?,
+    "fiber_g"         = ?,
+    "sodium_g"        = ?,
+    "saturated_fat_g" = ?,
+    "updated_at"      = ?
 WHERE "id" = ?
   AND "user_id" = ?
 RETURNING *`
@@ -176,6 +202,9 @@ func (q *TxQueries) UpdateFood(
 			params.ProteinG,
 			params.CarbsG,
 			params.FatG,
+			params.FiberG,
+			params.SodiumG,
+			params.SaturatedFatG,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -191,6 +220,9 @@ func (q *TxQueries) UpdateFood(
 			&f.FatG,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&f.FiberG,
+			&f.SodiumG,
+			&f.SaturatedFatG,
 		)
 	})
 
@@ -222,5 +254,8 @@ func validFoodFields() []string {
 		"fat_g",
 		"created_at",
 		"updated_at",
+		"fiber_g",
+		"sodium_g",
+		"saturated_fat_g",
 	}
 }
