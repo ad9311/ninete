@@ -57,6 +57,45 @@ func TestCreateFood(t *testing.T) {
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
 			},
 		},
+		{
+			name: "should_fail_for_duplicate_name_same_user",
+			fn: func(t *testing.T) {
+				_, err := s.Store.CreateFood(ctx, user.ID, newFoodParams("oats", 380, 13, 67, 7))
+				require.NoError(t, err)
+
+				_, err = s.Store.CreateFood(ctx, user.ID, newFoodParams("oats", 100, 1, 1, 1))
+				require.Error(t, err)
+			},
+		},
+		{
+			name: "should_fail_for_duplicate_name_case_insensitive",
+			fn: func(t *testing.T) {
+				_, err := s.Store.CreateFood(ctx, user.ID, newFoodParams("Banana", 89, 1.1, 23, 0.3))
+				require.NoError(t, err)
+
+				_, err = s.Store.CreateFood(ctx, user.ID, newFoodParams("banana", 89, 1.1, 23, 0.3))
+				require.Error(t, err)
+
+				_, err = s.Store.CreateFood(ctx, user.ID, newFoodParams("BANANA", 89, 1.1, 23, 0.3))
+				require.Error(t, err)
+			},
+		},
+		{
+			name: "should_allow_same_name_for_different_users",
+			fn: func(t *testing.T) {
+				otherUser := s.CreateUser(t, repo.InsertUserParams{
+					Username:     "food_user_1b",
+					Email:        "food_user_1b@example.com",
+					PasswordHash: []byte("food_user_hash_1b"),
+				})
+
+				_, err := s.Store.CreateFood(ctx, user.ID, newFoodParams("rice", 130, 2.7, 28, 0.3))
+				require.NoError(t, err)
+
+				_, err = s.Store.CreateFood(ctx, otherUser.ID, newFoodParams("rice", 130, 2.7, 28, 0.3))
+				require.NoError(t, err)
+			},
+		},
 	}
 
 	for _, tc := range cases {

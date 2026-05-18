@@ -227,6 +227,117 @@ func TestDeleteMoodEntry(t *testing.T) {
 	}
 }
 
+func TestFindMoodEntryCounts(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "mood_user_8",
+		Email:        "mood_user_8@example.com",
+		PasswordHash: []byte("mood_user_hash_8"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "mood_user_9",
+		Email:        "mood_user_9@example.com",
+		PasswordHash: []byte("mood_user_hash_9"),
+	})
+
+	dayOne := int64(1735689600)   // 2025-01-01
+	dayTwo := int64(1735776000)   // 2025-01-02
+	dayThree := int64(1735862400) // 2025-01-03
+
+	s.CreateMoodEntry(t, user.ID, newMoodEntryParams("Happy", "", dayOne, nil))
+	s.CreateMoodEntry(t, user.ID, newMoodEntryParams("Happy", "", dayTwo, nil))
+	s.CreateMoodEntry(t, user.ID, newMoodEntryParams("Calm", "", dayTwo, nil))
+	s.CreateMoodEntry(t, user.ID, newMoodEntryParams("Sad", "", dayThree, nil))
+	s.CreateMoodEntry(t, otherUser.ID, newMoodEntryParams("Happy", "", dayTwo, nil))
+
+	userFilter := repo.Filters{
+		FilterFields: []repo.FilterField{
+			{Name: "user_id", Value: user.ID, Operator: "="},
+		},
+		Connector: "AND",
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_group_by_mood_for_user",
+			fn: func(t *testing.T) {
+				counts, err := s.Store.FindMoodEntryCounts(ctx, userFilter)
+				require.NoError(t, err)
+
+				byMood := make(map[string]int, len(counts))
+				for _, c := range counts {
+					byMood[c.Mood] = c.Count
+				}
+				require.Equal(t, 2, byMood["Happy"])
+				require.Equal(t, 1, byMood["Calm"])
+				require.Equal(t, 1, byMood["Sad"])
+			},
+		},
+		{
+			name: "should_exclude_other_users_entries",
+			fn: func(t *testing.T) {
+				counts, err := s.Store.FindMoodEntryCounts(ctx, userFilter)
+				require.NoError(t, err)
+
+				total := 0
+				for _, c := range counts {
+					total += c.Count
+				}
+				require.Equal(t, 4, total)
+			},
+		},
+		{
+			name: "should_filter_by_date_range_inclusive_of_from",
+			fn: func(t *testing.T) {
+				filters := repo.Filters{
+					FilterFields: []repo.FilterField{
+						{Name: "user_id", Value: user.ID, Operator: "="},
+						{Name: "logged_at", Value: dayTwo, Operator: ">="},
+						{Name: "logged_at", Value: dayThree + 86400, Operator: "<"},
+					},
+					Connector: "AND",
+				}
+
+				counts, err := s.Store.FindMoodEntryCounts(ctx, filters)
+				require.NoError(t, err)
+
+				byMood := make(map[string]int, len(counts))
+				for _, c := range counts {
+					byMood[c.Mood] = c.Count
+				}
+				require.Equal(t, 1, byMood["Happy"])
+				require.Equal(t, 1, byMood["Calm"])
+				require.Equal(t, 1, byMood["Sad"])
+				require.Len(t, counts, 3)
+			},
+		},
+		{
+			name: "should_return_empty_when_no_entries_match",
+			fn: func(t *testing.T) {
+				filters := repo.Filters{
+					FilterFields: []repo.FilterField{
+						{Name: "user_id", Value: user.ID, Operator: "="},
+						{Name: "logged_at", Value: int64(2000000000), Operator: ">="},
+					},
+					Connector: "AND",
+				}
+
+				counts, err := s.Store.FindMoodEntryCounts(ctx, filters)
+				require.NoError(t, err)
+				require.Empty(t, counts)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newMoodEntryParams(mood, notes string, loggedAt int64, tags []string) logic.MoodEntryParams {
 	return logic.MoodEntryParams{
 		Mood:     mood,
