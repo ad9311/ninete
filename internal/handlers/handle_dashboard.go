@@ -15,15 +15,13 @@ type dashboardSummary struct {
 	MonthChangeSign string
 	MonthChangePct  int
 	TopCategories   []expenseCategoryRow
-	RecentExpenses  []expenseRow
 }
 
 type dashboardMacros struct {
-	HasGoal         bool
-	Goal            repo.MacroGoal
-	TodayTotals     repo.MacroDayTotals
-	TodayProgress   macroProgressData
-	YesterdayTotals repo.MacroDayTotals
+	HasGoal       bool
+	Goal          repo.MacroGoal
+	TodayTotals   repo.MacroDayTotals
+	TodayProgress macroProgressData
 }
 
 func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
@@ -125,46 +123,12 @@ func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, 
 		catRows = catRows[:5]
 	}
 
-	recentOpts := repo.QueryOptions{
-		Sorting: repo.Sorting{Field: "date", Order: "DESC"},
-		Pagination: repo.Pagination{
-			Page:    1,
-			PerPage: 5,
-		},
-		Filters: repo.Filters{
-			FilterFields: []repo.FilterField{
-				{Name: "user_id", Value: userID, Operator: "="},
-			},
-			Connector: "AND",
-		},
-	}
-
-	recentExpenses, err := h.store.FindExpenses(ctx, recentOpts)
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
-
-		return dashboardSummary{}, false
-	}
-
-	recentRows := make([]expenseRow, 0, len(recentExpenses))
-	for _, e := range recentExpenses {
-		recentRows = append(recentRows, expenseRow{
-			ID:           e.ID,
-			CategoryName: categoryNameOrUnknown(nameByID, e.CategoryID),
-			Description:  e.Description,
-			Amount:       e.Amount,
-			Date:         e.Date,
-			CreatedAt:    e.CreatedAt,
-		})
-	}
-
 	return dashboardSummary{
 		ThisMonthTotal:  thisMonthTotal,
 		LastMonthTotal:  lastMonthTotal,
 		MonthChangeSign: sign,
 		MonthChangePct:  pct,
 		TopCategories:   catRows,
-		RecentExpenses:  recentRows,
 	}, true
 }
 
@@ -192,19 +156,10 @@ func (h *Handler) buildDashboardMacros(
 		return dashboardMacros{}, false
 	}
 
-	ystStart := dayStart - 86400
-	yesterdayTotals, err := h.store.FindMacroDayTotals(ctx, userID, ystStart, dayStart, "")
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
-
-		return dashboardMacros{}, false
-	}
-
 	return dashboardMacros{
-		HasGoal:         true,
-		Goal:            goal,
-		TodayTotals:     todayTotals,
-		TodayProgress:   computeMacroProgress(todayTotals, goal),
-		YesterdayTotals: yesterdayTotals,
+		HasGoal:       true,
+		Goal:          goal,
+		TodayTotals:   todayTotals,
+		TodayProgress: computeMacroProgress(todayTotals, goal),
 	}, true
 }

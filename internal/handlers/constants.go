@@ -8,8 +8,6 @@ const (
 	KeyTemplateData     = ContextKey("templateData")
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
-	KeyList             = ContextKey("listID")
-	KeyTask             = ContextKey("taskID")
 	KeyMacroEntry       = ContextKey("macroEntryID")
 	KeyMacroTemplate    = ContextKey("macroTemplateID")
 	KeyFood             = ContextKey("foodID")
@@ -48,17 +46,6 @@ const (
 	RecurrentExpensesNew   TemplateName = "recurrent_expenses/new"
 	RecurrentExpensesEdit  TemplateName = "recurrent_expenses/edit"
 	RecurrentExpensesShow  TemplateName = "recurrent_expenses/show"
-
-	// List templates.
-	ListsIndex TemplateName = "lists/index"
-	ListsNew   TemplateName = "lists/new"
-	ListsEdit  TemplateName = "lists/edit"
-	ListsShow  TemplateName = "lists/show"
-
-	// Task templates.
-	TasksNew  TemplateName = "tasks/new"
-	TasksEdit TemplateName = "tasks/edit"
-	TasksShow TemplateName = "tasks/show"
 
 	// Macro templates.
 	MacrosIndex TemplateName = "macros/index"
