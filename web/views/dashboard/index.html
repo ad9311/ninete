@@ -32,83 +32,6 @@
       {{ end }}
     </div>
   </div>
-  <div class="summary-card" style="margin-top: var(--space-4);">
-    <span class="summary-card-label">Recent expenses</span>
-    <a href="/expenses">View expenses</a>
-    {{ if .summary.RecentExpenses }}
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Description</th>
-            <th>Amount</th>
-            <th>Billed</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {{ range .summary.RecentExpenses }}
-            <tr>
-              <td>{{ .CategoryName }}</td>
-              <td>{{ .Description }}</td>
-              <td class="amount-value">{{ .Amount | currency }}</td>
-              <td>
-                <span
-                  data-controller="local-date"
-                  data-local-date-unix-value="{{ .Date }}"
-                  >{{ .Date | timeStamp }}</span
-                >
-              </td>
-              <td>
-                <span
-                  data-controller="local-date"
-                  data-local-date-unix-value="{{ .CreatedAt }}"
-                  data-local-date-datetime-value="true"
-                  >{{ .CreatedAt | timeStamp }}</span
-                >
-              </td>
-            </tr>
-          {{ end }}
-        </tbody>
-      </table>
-      <ul class="card-list">
-        {{ range .summary.RecentExpenses }}
-          <li class="card-list-item">
-            <div class="card-list-row">
-              <span class="card-list-link">{{ .Description }}</span>
-            </div>
-            <div class="card-list-row">
-              <span class="card-list-label">Category</span>
-              <span>{{ .CategoryName }}</span>
-            </div>
-            <div class="card-list-row">
-              <span class="card-list-label">Amount</span>
-              <span class="amount-value">{{ .Amount | currency }}</span>
-            </div>
-            <div class="card-list-row">
-              <span class="card-list-label">Billed</span>
-              <span
-                data-controller="local-date"
-                data-local-date-unix-value="{{ .Date }}"
-                >{{ .Date | timeStamp }}</span
-              >
-            </div>
-            <div class="card-list-row">
-              <span class="card-list-label">Created</span>
-              <span
-                data-controller="local-date"
-                data-local-date-unix-value="{{ .CreatedAt }}"
-                data-local-date-datetime-value="true"
-                >{{ .CreatedAt | timeStamp }}</span
-              >
-            </div>
-          </li>
-        {{ end }}
-      </ul>
-    {{ else }}
-      <p>No expenses this month.</p>
-    {{ end }}
-  </div>
   <div
     class="summary-card"
     style="margin-top: var(--space-4);"
@@ -169,43 +92,6 @@
             max="100"
             value="{{ .macros.TodayProgress.FatPct }}"
           ></progress>
-        </div>
-      </div>
-      <div class="macro-yesterday">
-        <div class="macro-yesterday-header">
-          <span class="summary-card-label">Yesterday</span>
-        </div>
-        <div class="macro-yesterday-row">
-          <span>Kcal</span>
-          <span class="macro-col-actual"
-            >{{ truncateFloat .macros.YesterdayTotals.Kcal }}</span
-          >
-          <span class="macro-col-sep">/</span>
-          <span>{{ truncateFloat .macros.Goal.Kcal }}</span>
-        </div>
-        <div class="macro-yesterday-row">
-          <span>Protein</span>
-          <span class="macro-col-actual"
-            >{{ truncateFloat .macros.YesterdayTotals.ProteinG }}g</span
-          >
-          <span class="macro-col-sep">/</span>
-          <span>{{ truncateFloat .macros.Goal.ProteinG }}g</span>
-        </div>
-        <div class="macro-yesterday-row">
-          <span>Carbs</span>
-          <span class="macro-col-actual"
-            >{{ truncateFloat .macros.YesterdayTotals.CarbsG }}g</span
-          >
-          <span class="macro-col-sep">/</span>
-          <span>{{ truncateFloat .macros.Goal.CarbsG }}g</span>
-        </div>
-        <div class="macro-yesterday-row">
-          <span>Fat</span>
-          <span class="macro-col-actual"
-            >{{ truncateFloat .macros.YesterdayTotals.FatG }}g</span
-          >
-          <span class="macro-col-sep">/</span>
-          <span>{{ truncateFloat .macros.Goal.FatG }}g</span>
         </div>
       </div>
     {{ else }}

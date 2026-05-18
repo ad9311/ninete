@@ -56,7 +56,7 @@ func TestGetDashboard(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), "Dash expense")
+				require.Contains(t, rec.Body.String(), "$25.00")
 			},
 		},
 		{

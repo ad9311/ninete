@@ -153,11 +153,7 @@ func seedAdmin(s *logic.Store, q repo.Queries) error {
 		return fmt.Errorf("failed to get admin user for seeding: %w", err)
 	}
 
-	if err := seedExpenses(s, adminUser.ID); err != nil {
-		return err
-	}
-
-	return seedListWithTasks(s, adminUser.ID)
+	return seedExpenses(s, adminUser.ID)
 }
 
 func seedExpenses(s *logic.Store, userID int) error {
@@ -218,78 +214,6 @@ func seedExpenses(s *logic.Store, userID int) error {
 			Tags: tags,
 		}); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-func seedListWithTasks(s *logic.Store, userID int) error {
-	ctx, cancel := newContext()
-	defer cancel()
-
-	filters := repo.Filters{
-		FilterFields: []repo.FilterField{
-			{Name: "user_id", Value: userID, Operator: "="},
-		},
-	}
-
-	count, err := s.CountLists(ctx, filters)
-	if err != nil {
-		return err
-	}
-
-	if count > 0 {
-		return nil
-	}
-
-	list, err := s.CreateList(ctx, userID, logic.ListParams{Name: "Testing List"})
-	if err != nil {
-		return err
-	}
-
-	taskDescriptions := []string{
-		"Write unit tests", "Fix login bug", "Update README", "Review pull request",
-		"Deploy to staging", "Set up CI pipeline", "Refactor auth module",
-		"Design database schema", "Add pagination", "Implement search",
-		"Write API docs", "Optimize queries", "Add error handling", "Create seed data",
-		"Set up monitoring", "Configure alerts", "Write integration tests",
-		"Update dependencies", "Add rate limiting", "Implement caching",
-		"Buy groceries", "Call the dentist", "Pay electricity bill", "Schedule car service",
-		"Renew passport", "Book flight", "Plan birthday party", "Organize closet",
-		"Back up laptop", "Cancel unused subscriptions",
-		"Read Clean Code", "Watch Go tutorial", "Practice Spanish", "Meditate daily",
-		"Go for a run", "Cook new recipe", "Journal entry", "Water the plants",
-		"Clean the kitchen", "Call mom",
-		"Submit expense report", "Prepare presentation", "Send weekly update",
-		"Schedule team meeting", "Review sprint backlog", "Update project timeline",
-		"Write post-mortem", "Document new feature", "Onboard new teammate",
-		"Archive old projects",
-	}
-
-	tagPool := []string{"urgent", "low-priority", "personal", "work", "blocked"}
-
-	for i := range 50 {
-		priority := (i % 3) + 1
-
-		var tags []string
-		if i%3 == 0 {
-			tags = []string{tagPool[i%5], tagPool[(i+1)%5]}
-		}
-
-		task, err := s.CreateTask(ctx, list.ID, userID, logic.TaskParams{
-			Description: taskDescriptions[i%len(taskDescriptions)],
-			Priority:    priority,
-			Tags:        tags,
-		})
-		if err != nil {
-			return err
-		}
-
-		if i%4 == 0 {
-			if _, err := s.ToggleTaskDone(ctx, task.ID, userID); err != nil {
-				return err
-			}
 		}
 	}
 

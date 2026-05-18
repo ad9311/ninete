@@ -221,15 +221,11 @@ func TestSortURL(t *testing.T) {
 					PerPage:    10,
 					CategoryID: 5,
 					DateRange:  "this_month",
-					Done:       "true",
-					Priority:   2,
 				},
 			}
 			result := renderTextTemplate(t, tmpl, data)
 			require.Contains(t, result, "&category_id=5")
 			require.Contains(t, result, "&date_range=this_month")
-			require.Contains(t, result, "&done=true")
-			require.Contains(t, result, "&priority=2")
 		}},
 	}
 
@@ -256,20 +252,20 @@ func TestPageURL(t *testing.T) {
 		}},
 		{"preserves filter params", func(t *testing.T) {
 			data := map[string]any{
-				"basePath": "/lists/1",
+				"basePath": "/expenses",
 				"page":     2,
 				"pg": handlers.PaginationData{
-					SortField: "created_at",
-					SortOrder: "ASC",
-					PerPage:   10,
-					Done:      "false",
-					Priority:  3,
+					SortField:  "created_at",
+					SortOrder:  "ASC",
+					PerPage:    10,
+					CategoryID: 4,
+					DateRange:  "this_month",
 				},
 			}
 			result := renderTextTemplate(t, tmpl, data)
 			require.Contains(t, result, "page=2")
-			require.Contains(t, result, "&done=false")
-			require.Contains(t, result, "&priority=3")
+			require.Contains(t, result, "&category_id=4")
+			require.Contains(t, result, "&date_range=this_month")
 		}},
 	}
 
@@ -325,8 +321,6 @@ func TestFilterURL(t *testing.T) {
 		PerPage:    10,
 		CategoryID: 2,
 		DateRange:  "this_month",
-		Done:       "true",
-		Priority:   1,
 	}
 
 	cases := []struct {
@@ -350,24 +344,6 @@ func TestFilterURL(t *testing.T) {
 			result := renderTextTemplate(t, tmpl, data)
 			require.Contains(t, result, "&date_range=this_year")
 			require.NotContains(t, result, "&date_range=this_month")
-		}},
-		{"overrides done", func(t *testing.T) {
-			data := map[string]any{
-				"basePath": "/lists/1", "pg": basePg,
-				"key": "done", "value": "false",
-			}
-			result := renderTextTemplate(t, tmpl, data)
-			require.Contains(t, result, "&done=false")
-			require.NotContains(t, result, "&done=true")
-		}},
-		{"overrides priority", func(t *testing.T) {
-			data := map[string]any{
-				"basePath": "/lists/1", "pg": basePg,
-				"key": "priority", "value": "3",
-			}
-			result := renderTextTemplate(t, tmpl, data)
-			require.Contains(t, result, "&priority=3")
-			require.NotContains(t, result, "&priority=1")
 		}},
 		{"clears category_id when zero", func(t *testing.T) {
 			data := map[string]any{
