@@ -17,10 +17,13 @@ import (
 )
 
 type macroProgressData struct {
-	KcalPct    int
-	ProteinPct int
-	CarbsPct   int
-	FatPct     int
+	KcalPct         int
+	ProteinPct      int
+	CarbsPct        int
+	FatPct          int
+	FiberPct        int
+	SodiumPct       int
+	SaturatedFatPct int
 }
 
 // ----------------------------------------------------------------------------- //
@@ -159,21 +162,9 @@ func (h *Handler) GetMacrosNew(w http.ResponseWriter, r *http.Request) {
 				entry.ProteinG = roundMacro(food.ProteinG * scale)
 				entry.CarbsG = roundMacro(food.CarbsG * scale)
 				entry.FatG = roundMacro(food.FatG * scale)
-			}
-		}
-	}
-
-	if fromTemplateStr := r.URL.Query().Get("from_template"); fromTemplateStr != "" {
-		tmplID, err := prog.ParseID(fromTemplateStr, "MacroTemplate")
-		if err == nil {
-			tmpl, err := h.store.FindMacroTemplate(ctx, tmplID, user.ID)
-			if err == nil {
-				entry.Name = tmpl.Name
-				entry.Kcal = tmpl.Kcal
-				entry.ProteinG = tmpl.ProteinG
-				entry.CarbsG = tmpl.CarbsG
-				entry.FatG = tmpl.FatG
-				data["template"] = tmpl
+				entry.FiberG = roundMacro(food.FiberG * scale)
+				entry.SodiumG = roundMacro(food.SodiumG * scale)
+				entry.SaturatedFatG = roundMacro(food.SaturatedFatG * scale)
 			}
 		}
 	}
@@ -197,24 +188,21 @@ func (h *Handler) PostMacros(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newEntry, err := h.store.CreateMacroEntry(ctx, user.ID, params)
+	_, err = h.store.CreateMacroEntry(ctx, user.ID, params)
 	if err != nil {
 		data["entry"] = repo.MacroEntry{
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			Date:     params.Date,
-			MealType: params.MealType,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			Date:          params.Date,
+			MealType:      params.MealType,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		}
 		h.renderErr(w, r, http.StatusBadRequest, MacrosNew, err)
-
-		return
-	}
-
-	if r.FormValue("save_as_template") == "on" {
-		http.Redirect(w, r, fmt.Sprintf("/macros/templates/new?from_entry=%d", newEntry.ID), http.StatusSeeOther)
 
 		return
 	}
@@ -259,6 +247,9 @@ func (h *Handler) PostMacroEntryUpdate(w http.ResponseWriter, r *http.Request) {
 		entry.FatG = params.FatG
 		entry.Date = params.Date
 		entry.MealType = params.MealType
+		entry.FiberG = params.FiberG
+		entry.SodiumG = params.SodiumG
+		entry.SaturatedFatG = params.SaturatedFatG
 		data["entry"] = entry
 		h.renderErr(w, r, http.StatusBadRequest, MacrosEdit, err)
 
@@ -329,10 +320,13 @@ func (h *Handler) PostMacrosGoals(w http.ResponseWriter, r *http.Request) {
 	_, err = h.store.SaveMacroGoal(ctx, user.ID, params)
 	if err != nil {
 		data["goal"] = repo.MacroGoal{
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		}
 		h.renderErr(w, r, http.StatusBadRequest, MacrosGoals, err)
 
@@ -401,6 +395,21 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 		return params, err
 	}
 
+	fiberG, err := parseFloatFieldDefault(r, "fiber_g")
+	if err != nil {
+		return params, err
+	}
+
+	sodiumG, err := parseFloatFieldDefault(r, "sodium_g")
+	if err != nil {
+		return params, err
+	}
+
+	saturatedFatG, err := parseFloatFieldDefault(r, "saturated_fat_g")
+	if err != nil {
+		return params, err
+	}
+
 	params.Name = r.FormValue("name")
 	params.Kcal = kcal
 	params.ProteinG = proteinG
@@ -408,6 +417,9 @@ func parseMacroEntryForm(r *http.Request) (logic.MacroEntryParams, error) {
 	params.FatG = fatG
 	params.Date = date
 	params.MealType = r.FormValue("meal_type")
+	params.FiberG = fiberG
+	params.SodiumG = sodiumG
+	params.SaturatedFatG = saturatedFatG
 
 	return params, nil
 }
@@ -439,10 +451,28 @@ func parseMacroGoalForm(r *http.Request) (logic.MacroGoalParams, error) {
 		return params, err
 	}
 
+	fiberG, err := parseFloatFieldDefault(r, "fiber_g")
+	if err != nil {
+		return params, err
+	}
+
+	sodiumG, err := parseFloatFieldDefault(r, "sodium_g")
+	if err != nil {
+		return params, err
+	}
+
+	saturatedFatG, err := parseFloatFieldDefault(r, "saturated_fat_g")
+	if err != nil {
+		return params, err
+	}
+
 	params.Kcal = kcal
 	params.ProteinG = proteinG
 	params.CarbsG = carbsG
 	params.FatG = fatG
+	params.FiberG = fiberG
+	params.SodiumG = sodiumG
+	params.SaturatedFatG = saturatedFatG
 
 	return params, nil
 }
@@ -462,10 +492,13 @@ func computeMacroProgress(totals repo.MacroDayTotals, goal repo.MacroGoal) macro
 	}
 
 	return macroProgressData{
-		KcalPct:    pct(totals.Kcal, goal.Kcal),
-		ProteinPct: pct(totals.ProteinG, goal.ProteinG),
-		CarbsPct:   pct(totals.CarbsG, goal.CarbsG),
-		FatPct:     pct(totals.FatG, goal.FatG),
+		KcalPct:         pct(totals.Kcal, goal.Kcal),
+		ProteinPct:      pct(totals.ProteinG, goal.ProteinG),
+		CarbsPct:        pct(totals.CarbsG, goal.CarbsG),
+		FatPct:          pct(totals.FatG, goal.FatG),
+		FiberPct:        pct(totals.FiberG, goal.FiberG),
+		SodiumPct:       pct(totals.SodiumG, goal.SodiumG),
+		SaturatedFatPct: pct(totals.SaturatedFatG, goal.SaturatedFatG),
 	}
 }
 

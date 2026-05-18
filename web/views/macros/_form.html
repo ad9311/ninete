@@ -46,7 +46,6 @@
       step="0.01"
       name="kcal"
       value="{{ .entry.Kcal }}"
-      data-macro-calc-target="kcal"
     />
   </label>
   <label>
@@ -57,7 +56,6 @@
       step="0.01"
       name="protein_g"
       value="{{ .entry.ProteinG }}"
-      data-macro-calc-target="protein"
     />
   </label>
   <label>
@@ -68,7 +66,6 @@
       step="0.01"
       name="carbs_g"
       value="{{ .entry.CarbsG }}"
-      data-macro-calc-target="carbs"
     />
   </label>
   <label>
@@ -79,7 +76,36 @@
       step="0.01"
       name="fat_g"
       value="{{ .entry.FatG }}"
-      data-macro-calc-target="fat"
+    />
+  </label>
+  <label>
+    Saturated Fat (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="saturated_fat_g"
+      value="{{ .entry.SaturatedFatG }}"
+    />
+  </label>
+  <label>
+    Fiber (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="fiber_g"
+      value="{{ .entry.FiberG }}"
+    />
+  </label>
+  <label>
+    Sodium (g)
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      name="sodium_g"
+      value="{{ .entry.SodiumG }}"
     />
   </label>
   <label>

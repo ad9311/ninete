@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -136,20 +137,33 @@ func TestPostMacros(t *testing.T) {
 			},
 		},
 		{
-			name: "should_redirect_to_template_creation_when_save_as_template_is_set",
+			name: "should_persist_micro_fields_from_form",
 			fn: func(t *testing.T) {
-				s.CreateAuthUser(t, "macros_post_2", "macros_post_2@example.com", "macros_pw_2")
-				cookies := s.AuthCookies(t, "macros_post_2@example.com", "macros_pw_2")
+				user := s.CreateAuthUser(t, "macros_post_micros", "macros_post_micros@example.com", "macros_pw_micros")
+				cookies := s.AuthCookies(t, "macros_post_micros@example.com", "macros_pw_micros")
 				csrfToken, cookies := s.CSRFFrom(t, "/macros/new", cookies)
 
-				form := macroEntryFormValues("Oats", "380", "13", "67", "7", "2026-03-01T00:00:00Z", "breakfast")
-				form.Set("save_as_template", "on")
+				form := macroEntryFormValues("Lentils", "230", "18", "40", "0.8", "2026-03-01T00:00:00Z", "lunch")
+				form.Set("fiber_g", "15.6")
+				form.Set("sodium_g", "0.004")
+				form.Set("saturated_fat_g", "0.1")
+
 				req := spec.NewPostRequest("/macros", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
-
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Contains(t, rec.Header().Get("Location"), "/macros/templates/new?from_entry=")
+
+				entries, err := s.Store.FindMacroEntries(t.Context(), repo.QueryOptions{
+					Filters: repo.Filters{
+						FilterFields: []repo.FilterField{{Name: "user_id", Value: user.ID, Operator: "="}},
+						Connector:    "AND",
+					},
+				})
+				require.NoError(t, err)
+				require.Len(t, entries, 1)
+				require.Equal(t, 15.6, entries[0].FiberG)
+				require.Equal(t, 0.004, entries[0].SodiumG)
+				require.Equal(t, 0.1, entries[0].SaturatedFatG)
 			},
 		},
 		{
@@ -410,6 +424,34 @@ func TestPostMacrosGoals(t *testing.T) {
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
 				require.Equal(t, "/macros", rec.Header().Get("Location"))
+			},
+		},
+		{
+			name: "should_persist_goal_micro_fields_from_form",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "macros_pgoals_micros", "macros_pgoals_micros@example.com", "macros_pw_micros")
+				cookies := s.AuthCookies(t, "macros_pgoals_micros@example.com", "macros_pw_micros")
+				csrfToken, cookies := s.CSRFFrom(t, "/macros/goals", cookies)
+
+				form := url.Values{
+					"kcal":            {"2400"},
+					"protein_g":       {"180"},
+					"carbs_g":         {"240"},
+					"fat_g":           {"80"},
+					"fiber_g":         {"35"},
+					"sodium_g":        {"2.3"},
+					"saturated_fat_g": {"22"},
+				}
+				req := spec.NewPostRequest("/macros/goals", form.Encode(), cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+
+				goal, err := s.Store.FindMacroGoal(t.Context(), user.ID)
+				require.NoError(t, err)
+				require.Equal(t, 35.0, goal.FiberG)
+				require.Equal(t, 2.3, goal.SodiumG)
+				require.Equal(t, 22.0, goal.SaturatedFatG)
 			},
 		},
 		{

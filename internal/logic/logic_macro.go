@@ -7,20 +7,26 @@ import (
 )
 
 type MacroEntryParams struct {
-	Name     string  `validate:"required,min=1,max=100"`
-	Kcal     float64 `validate:"gte=0"`
-	ProteinG float64 `validate:"gte=0"`
-	CarbsG   float64 `validate:"gte=0"`
-	FatG     float64 `validate:"gte=0"`
-	Date     int64   `validate:"required,gt=0"`
-	MealType string  `validate:"required,oneof=breakfast lunch dinner snack other"`
+	Name          string  `validate:"required,min=1,max=100"`
+	Kcal          float64 `validate:"gte=0"`
+	ProteinG      float64 `validate:"gte=0"`
+	CarbsG        float64 `validate:"gte=0"`
+	FatG          float64 `validate:"gte=0"`
+	Date          int64   `validate:"required,gt=0"`
+	MealType      string  `validate:"required,oneof=breakfast lunch dinner snack other"`
+	FiberG        float64 `validate:"gte=0"`
+	SodiumG       float64 `validate:"gte=0"`
+	SaturatedFatG float64 `validate:"gte=0"`
 }
 
 type MacroGoalParams struct {
-	Kcal     float64 `validate:"gt=0"`
-	ProteinG float64 `validate:"gt=0"`
-	CarbsG   float64 `validate:"gt=0"`
-	FatG     float64 `validate:"gt=0"`
+	Kcal          float64 `validate:"gt=0"`
+	ProteinG      float64 `validate:"gt=0"`
+	CarbsG        float64 `validate:"gt=0"`
+	FatG          float64 `validate:"gt=0"`
+	FiberG        float64 `validate:"gte=0"`
+	SodiumG       float64 `validate:"gte=0"`
+	SaturatedFatG float64 `validate:"gte=0"`
 }
 
 func (s *Store) FindMacroEntries(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroEntry, error) {
@@ -67,14 +73,17 @@ func (s *Store) CreateMacroEntry(ctx context.Context, userID int, params MacroEn
 		var txErr error
 
 		entry, txErr = tq.InsertMacroEntry(ctx, repo.InsertMacroEntryParams{
-			UserID:   userID,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			Date:     params.Date,
-			MealType: params.MealType,
+			UserID:        userID,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			Date:          params.Date,
+			MealType:      params.MealType,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		})
 
 		return txErr
@@ -101,14 +110,17 @@ func (s *Store) UpdateMacroEntry(
 		var txErr error
 
 		entry, txErr = tq.UpdateMacroEntry(ctx, userID, repo.UpdateMacroEntryParams{
-			ID:       id,
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
-			Date:     params.Date,
-			MealType: params.MealType,
+			ID:            id,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			Date:          params.Date,
+			MealType:      params.MealType,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		})
 
 		return txErr
@@ -153,11 +165,14 @@ func (s *Store) SaveMacroGoal(ctx context.Context, userID int, params MacroGoalP
 		var txErr error
 
 		goal, txErr = tq.UpsertMacroGoal(ctx, repo.UpsertMacroGoalParams{
-			UserID:   userID,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
+			UserID:        userID,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		})
 
 		return txErr
@@ -167,113 +182,4 @@ func (s *Store) SaveMacroGoal(ctx context.Context, userID int, params MacroGoalP
 	}
 
 	return goal, nil
-}
-
-// ----------------------------------------------------------------------------- //
-// Macro Templates
-// ----------------------------------------------------------------------------- //
-
-type MacroTemplateParams struct {
-	Name       string  `validate:"required,min=1,max=100"`
-	Kcal       float64 `validate:"gte=0"`
-	ProteinG   float64 `validate:"gte=0"`
-	CarbsG     float64 `validate:"gte=0"`
-	FatG       float64 `validate:"gte=0"`
-	Amount     float64 `validate:"gt=0"`
-	AmountUnit string  `validate:"required,oneof=g ml unit oz"`
-}
-
-func (s *Store) FindMacroTemplates(ctx context.Context, opts repo.QueryOptions) ([]repo.MacroTemplate, error) {
-	templates, err := s.queries.SelectMacroTemplates(ctx, opts)
-	if err != nil {
-		return templates, err
-	}
-
-	return templates, nil
-}
-
-func (s *Store) FindMacroTemplate(ctx context.Context, id, userID int) (repo.MacroTemplate, error) {
-	tmpl, err := s.queries.SelectMacroTemplate(ctx, id, userID)
-	if err != nil {
-		return tmpl, err
-	}
-
-	return tmpl, nil
-}
-
-func (s *Store) CreateMacroTemplate(
-	ctx context.Context,
-	userID int,
-	params MacroTemplateParams,
-) (repo.MacroTemplate, error) {
-	var tmpl repo.MacroTemplate
-
-	if err := s.ValidateStruct(params); err != nil {
-		return tmpl, err
-	}
-
-	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
-		var txErr error
-
-		tmpl, txErr = tq.InsertMacroTemplate(ctx, repo.InsertMacroTemplateParams{
-			UserID:     userID,
-			Name:       params.Name,
-			Kcal:       params.Kcal,
-			ProteinG:   params.ProteinG,
-			CarbsG:     params.CarbsG,
-			FatG:       params.FatG,
-			Amount:     params.Amount,
-			AmountUnit: params.AmountUnit,
-		})
-
-		return txErr
-	})
-	if err != nil {
-		return tmpl, err
-	}
-
-	return tmpl, nil
-}
-
-func (s *Store) UpdateMacroTemplate(
-	ctx context.Context,
-	id, userID int,
-	params MacroTemplateParams,
-) (repo.MacroTemplate, error) {
-	var tmpl repo.MacroTemplate
-
-	if err := s.ValidateStruct(params); err != nil {
-		return tmpl, err
-	}
-
-	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
-		var txErr error
-
-		tmpl, txErr = tq.UpdateMacroTemplate(ctx, userID, repo.UpdateMacroTemplateParams{
-			ID:         id,
-			Name:       params.Name,
-			Kcal:       params.Kcal,
-			ProteinG:   params.ProteinG,
-			CarbsG:     params.CarbsG,
-			FatG:       params.FatG,
-			Amount:     params.Amount,
-			AmountUnit: params.AmountUnit,
-		})
-
-		return txErr
-	})
-	if err != nil {
-		return tmpl, err
-	}
-
-	return tmpl, nil
-}
-
-func (s *Store) DeleteMacroTemplate(ctx context.Context, id, userID int) (int, error) {
-	i, err := s.queries.DeleteMacroTemplate(ctx, id, userID)
-	if err != nil {
-		return 0, err
-	}
-
-	return i, nil
 }

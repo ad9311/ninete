@@ -48,6 +48,36 @@
           value="{{ .goal.FatG }}"
         />
       </label>
+      <label>
+        Saturated Fat (g)
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          name="saturated_fat_g"
+          value="{{ .goal.SaturatedFatG }}"
+        />
+      </label>
+      <label>
+        Fiber (g)
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          name="fiber_g"
+          value="{{ .goal.FiberG }}"
+        />
+      </label>
+      <label>
+        Sodium (g)
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          name="sodium_g"
+          value="{{ .goal.SodiumG }}"
+        />
+      </label>
       <button
         type="submit"
         class="btn-primary"

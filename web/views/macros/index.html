@@ -4,7 +4,6 @@
   <nav class="page-links">
     <a href="/macros/new">New Entry</a>
     <a href="/macros/goals">Goals</a>
-    <a href="/macros/templates">Templates</a>
     <a href="/macros/stats">Stats</a>
     <a href="/foods">Foods</a>
   </nav>
@@ -205,6 +204,45 @@
         </div>
         <progress max="100" value="{{ .progress.FatPct }}"></progress>
       </div>
+      {{ if gt .goal.SaturatedFatG 0.0 }}
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Saturated Fat</span>
+            <span class="macro-progress-value"
+              >{{ truncateFloat .totals.SaturatedFatG }}g /
+              {{ truncateFloat .goal.SaturatedFatG }}g</span
+            >
+          </div>
+          <progress
+            max="100"
+            value="{{ .progress.SaturatedFatPct }}"
+          ></progress>
+        </div>
+      {{ end }}
+      {{ if gt .goal.FiberG 0.0 }}
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Fiber</span>
+            <span class="macro-progress-value"
+              >{{ truncateFloat .totals.FiberG }}g /
+              {{ truncateFloat .goal.FiberG }}g</span
+            >
+          </div>
+          <progress max="100" value="{{ .progress.FiberPct }}"></progress>
+        </div>
+      {{ end }}
+      {{ if gt .goal.SodiumG 0.0 }}
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Sodium</span>
+            <span class="macro-progress-value"
+              >{{ truncateFloat .totals.SodiumG }}g /
+              {{ truncateFloat .goal.SodiumG }}g</span
+            >
+          </div>
+          <progress max="100" value="{{ .progress.SodiumPct }}"></progress>
+        </div>
+      {{ end }}
     </div>
   {{ end }}
   <table class="data-table" data-controller="macro-select">

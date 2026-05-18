@@ -9,7 +9,6 @@ const (
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
 	KeyMacroEntry       = ContextKey("macroEntryID")
-	KeyMacroTemplate    = ContextKey("macroTemplateID")
 	KeyFood             = ContextKey("foodID")
 	KeyMoodEntry        = ContextKey("moodEntryID")
 
@@ -54,12 +53,6 @@ const (
 	MacrosShow  TemplateName = "macros/show"
 	MacrosGoals TemplateName = "macros/goals"
 	MacrosStats TemplateName = "macros/stats"
-
-	// Macro template templates.
-	MacroTemplatesIndex TemplateName = "macro_templates/index"
-	MacroTemplatesNew   TemplateName = "macro_templates/new"
-	MacroTemplatesEdit  TemplateName = "macro_templates/edit"
-	MacroTemplatesShow  TemplateName = "macro_templates/show"
 
 	// Food templates.
 	FoodsIndex TemplateName = "foods/index"

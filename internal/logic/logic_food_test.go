@@ -240,6 +240,80 @@ func TestFindFood(t *testing.T) {
 	}
 }
 
+func TestCreateFoodWithMicros(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "food_user_micros_1",
+		Email:        "food_user_micros_1@example.com",
+		PasswordHash: []byte("food_user_hash_micros_1"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_persist_fiber_sodium_and_saturated_fat",
+			fn: func(t *testing.T) {
+				params := logic.FoodParams{
+					Name:          "almonds",
+					Kcal:          579,
+					ProteinG:      21.2,
+					CarbsG:        21.6,
+					FatG:          49.9,
+					FiberG:        12.5,
+					SodiumG:       0.001,
+					SaturatedFatG: 3.8,
+				}
+				food, err := s.Store.CreateFood(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, 12.5, food.FiberG)
+				require.Equal(t, 0.001, food.SodiumG)
+				require.Equal(t, 3.8, food.SaturatedFatG)
+
+				found, err := s.Store.FindFood(ctx, food.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, 12.5, found.FiberG)
+				require.Equal(t, 0.001, found.SodiumG)
+				require.Equal(t, 3.8, found.SaturatedFatG)
+			},
+		},
+		{
+			name: "should_default_micros_to_zero_when_unset",
+			fn: func(t *testing.T) {
+				food, err := s.Store.CreateFood(ctx, user.ID,
+					logic.FoodParams{Name: "plain water", Kcal: 0, ProteinG: 0, CarbsG: 0, FatG: 0})
+				require.NoError(t, err)
+				require.Zero(t, food.FiberG)
+				require.Zero(t, food.SodiumG)
+				require.Zero(t, food.SaturatedFatG)
+			},
+		},
+		{
+			name: "should_update_micros",
+			fn: func(t *testing.T) {
+				food := s.CreateFood(t, user.ID, logic.FoodParams{
+					Name: "peanut butter", Kcal: 588, ProteinG: 25, CarbsG: 20, FatG: 50,
+				})
+
+				updated, err := s.Store.UpdateFood(ctx, food.ID, user.ID, logic.FoodParams{
+					Name: "peanut butter", Kcal: 588, ProteinG: 25, CarbsG: 20, FatG: 50,
+					FiberG: 6.0, SodiumG: 0.476, SaturatedFatG: 10.0,
+				})
+				require.NoError(t, err)
+				require.Equal(t, 6.0, updated.FiberG)
+				require.Equal(t, 0.476, updated.SodiumG)
+				require.Equal(t, 10.0, updated.SaturatedFatG)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
 func newFoodParams(name string, kcal, proteinG, carbsG, fatG float64) logic.FoodParams {
 	return logic.FoodParams{
 		Name:     name,

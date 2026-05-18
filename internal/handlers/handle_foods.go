@@ -111,11 +111,14 @@ func (h *Handler) PostFoods(w http.ResponseWriter, r *http.Request) {
 	food, err := h.store.CreateFood(ctx, user.ID, params)
 	if err != nil {
 		data["food"] = repo.Food{
-			Name:     params.Name,
-			Kcal:     params.Kcal,
-			ProteinG: params.ProteinG,
-			CarbsG:   params.CarbsG,
-			FatG:     params.FatG,
+			Name:          params.Name,
+			Kcal:          params.Kcal,
+			ProteinG:      params.ProteinG,
+			CarbsG:        params.CarbsG,
+			FatG:          params.FatG,
+			FiberG:        params.FiberG,
+			SodiumG:       params.SodiumG,
+			SaturatedFatG: params.SaturatedFatG,
 		}
 		h.renderErr(w, r, http.StatusBadRequest, FoodsNew, err)
 
@@ -166,6 +169,9 @@ func (h *Handler) PostFoodUpdate(w http.ResponseWriter, r *http.Request) {
 		food.ProteinG = params.ProteinG
 		food.CarbsG = params.CarbsG
 		food.FatG = params.FatG
+		food.FiberG = params.FiberG
+		food.SodiumG = params.SodiumG
+		food.SaturatedFatG = params.SaturatedFatG
 		data["food"] = food
 		h.renderErr(w, r, http.StatusBadRequest, FoodsEdit, err)
 
@@ -226,11 +232,29 @@ func parseFoodForm(r *http.Request) (logic.FoodParams, error) {
 		return params, err
 	}
 
+	fiberG, err := parseFloatFieldDefault(r, "fiber_g")
+	if err != nil {
+		return params, err
+	}
+
+	sodiumG, err := parseFloatFieldDefault(r, "sodium_g")
+	if err != nil {
+		return params, err
+	}
+
+	saturatedFatG, err := parseFloatFieldDefault(r, "saturated_fat_g")
+	if err != nil {
+		return params, err
+	}
+
 	params.Name = r.FormValue("name")
 	params.Kcal = kcal
 	params.ProteinG = proteinG
 	params.CarbsG = carbsG
 	params.FatG = fatG
+	params.FiberG = fiberG
+	params.SodiumG = sodiumG
+	params.SaturatedFatG = saturatedFatG
 
 	return params, nil
 }

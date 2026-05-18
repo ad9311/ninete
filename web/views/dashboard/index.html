@@ -93,6 +93,51 @@
             value="{{ .macros.TodayProgress.FatPct }}"
           ></progress>
         </div>
+        {{ if gt .macros.Goal.SaturatedFatG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Saturated Fat</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .macros.TodayTotals.SaturatedFatG }}g /
+                {{ truncateFloat .macros.Goal.SaturatedFatG }}g</span
+              >
+            </div>
+            <progress
+              max="100"
+              value="{{ .macros.TodayProgress.SaturatedFatPct }}"
+            ></progress>
+          </div>
+        {{ end }}
+        {{ if gt .macros.Goal.FiberG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Fiber</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .macros.TodayTotals.FiberG }}g /
+                {{ truncateFloat .macros.Goal.FiberG }}g</span
+              >
+            </div>
+            <progress
+              max="100"
+              value="{{ .macros.TodayProgress.FiberPct }}"
+            ></progress>
+          </div>
+        {{ end }}
+        {{ if gt .macros.Goal.SodiumG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Sodium</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .macros.TodayTotals.SodiumG }}g /
+                {{ truncateFloat .macros.Goal.SodiumG }}g</span
+              >
+            </div>
+            <progress
+              max="100"
+              value="{{ .macros.TodayProgress.SodiumPct }}"
+            ></progress>
+          </div>
+        {{ end }}
       </div>
     {{ else }}
       <p>No macro goals set.</p>
