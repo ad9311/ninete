@@ -1,10 +1,21 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW MACRO ENTRY</h1>
-  <nav class="page-links">
-    <a href="/macros">Macros</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="new-macro-entry-card-title">
+    <header class="card-header">
+      <h1 id="new-macro-entry-card-title" class="card-title">
+        New macro entry
+      </h1>
+      <nav class="card-actions" aria-label="Macro navigation">
+        <a
+          href="/macros"
+          class="card-action-link"
+          aria-label="Macros"
+          title="Macros"
+        >
+          <i data-lucide="salad" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/macros"

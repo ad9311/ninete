@@ -42,7 +42,7 @@ func TestGetFoods(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), "FOOD DIRECTORY")
+				require.Contains(t, rec.Body.String(), "Food directory")
 			},
 		},
 		{
@@ -113,7 +113,7 @@ func TestGetFoodsNew(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), "NEW FOOD")
+				require.Contains(t, rec.Body.String(), "New food")
 			},
 		},
 	}

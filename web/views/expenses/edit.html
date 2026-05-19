@@ -1,12 +1,35 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>EDIT EXPENSE</h1>
-  <nav class="page-links">
-    <a href="/expenses/{{ .expense.ID }}">Visit Expense</a>
-    <a href="/expenses">Expenses</a>
-    <a href="/recurrent-expenses">Recurrent Expenses</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="edit-expense-card-title">
+    <header class="card-header">
+      <h1 id="edit-expense-card-title" class="card-title">Edit expense</h1>
+      <nav class="card-actions" aria-label="Expense navigation">
+        <a
+          href="/expenses/{{ .expense.ID }}"
+          class="card-action-link"
+          aria-label="View expense"
+          title="View expense"
+        >
+          <i data-lucide="eye" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
+        >
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/recurrent-expenses"
+          class="card-action-link"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
+        >
+          <i data-lucide="repeat" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/expenses/{{ .expense.ID }}"

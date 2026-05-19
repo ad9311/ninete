@@ -1,222 +1,145 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>RECURRENT EXPENSES</h1>
-  <nav class="page-links">
-    <a href="/recurrent-expenses/new">New Recurrent Expense</a>
-    <a href="/expenses">Expenses</a>
-  </nav>
-  <div class="filters" data-controller="filter">
-    <label>
-      Category
-      <select
-        data-filter-target="categoryId"
-        data-action="change->filter#apply"
-      >
-        <option value="">All categories</option>
-        {{ range .categories }}
-          <option
-            value="{{ .ID }}"
-            {{ if eq .ID $.pagination.CategoryID }}selected{{ end }}
-          >
-            {{ .Name }}
-          </option>
-        {{ end }}
-      </select>
-    </label>
-  </div>
-  <div class="sort-mobile" data-controller="sort">
-    <label>
-      Sort by
-      <select data-sort-target="select" data-action="change->sort#apply">
-        <option
-          value="description:ASC"
-          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "ASC") }}
-            selected
-          {{ end }}
+  <section class="card" aria-labelledby="recurrent-expenses-card-title">
+    <header class="card-header">
+      <h1 id="recurrent-expenses-card-title" class="card-title">
+        Recurrent expenses
+      </h1>
+      <nav class="card-actions" aria-label="Recurrent expense actions">
+        <a
+          href="/recurrent-expenses/new"
+          class="card-action-link"
+          aria-label="New recurrent expense"
+          title="New recurrent expense"
         >
-          Description (A–Z)
-        </option>
-        <option
-          value="description:DESC"
-          {{ if and (eq .pagination.SortField "description") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
+          <i data-lucide="plus" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
         >
-          Description (Z–A)
-        </option>
-        <option
-          value="amount:DESC"
-          {{ if and (eq .pagination.SortField "amount") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <div class="filters" data-controller="filter">
+      <label>
+        <span class="sr-only">Category</span>
+        <i data-lucide="tag" class="filter-icon" aria-hidden="true"></i>
+        <select
+          data-filter-target="categoryId"
+          data-action="change->filter#apply"
         >
-          Amount (high–low)
-        </option>
-        <option
-          value="amount:ASC"
-          {{ if and (eq .pagination.SortField "amount") (eq .pagination.SortOrder "ASC") }}
-            selected
+          <option value="">All categories</option>
+          {{ range .categories }}
+            <option
+              value="{{ .ID }}"
+              {{ if eq .ID $.pagination.CategoryID }}selected{{ end }}
+            >
+              {{ .Name }}
+            </option>
           {{ end }}
-        >
-          Amount (low–high)
-        </option>
-        <option
-          value="period:ASC"
-          {{ if and (eq .pagination.SortField "period") (eq .pagination.SortOrder "ASC") }}
-            selected
+        </select>
+      </label>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <a
+                href="{{ sortURL .basePath "category_id" .pagination }}"
+                class="sort-link"
+                >Category
+                {{ if eq .pagination.SortField "category_id" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              <a
+                href="{{ sortURL .basePath "description" .pagination }}"
+                class="sort-link"
+                >Description
+                {{ if eq .pagination.SortField "description" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              <a
+                href="{{ sortURL .basePath "amount" .pagination }}"
+                class="sort-link"
+                >Amount
+                {{ if eq .pagination.SortField "amount" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              <a
+                href="{{ sortURL .basePath "period" .pagination }}"
+                class="sort-link"
+                >Period (months)
+                {{ if eq .pagination.SortField "period" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .recurrentExpenses }}
+            <tr>
+              <td>{{ .CategoryName }}</td>
+              <td>{{ .Description }}</td>
+              <td class="amount-value">{{ .Amount | currency }}</td>
+              <td>{{ .Period }}</td>
+              <td>
+                <a href="/recurrent-expenses/{{ .ID }}">Visit</a>
+              </td>
+            </tr>
           {{ end }}
-        >
-          Period (low–high)
-        </option>
-        <option
-          value="period:DESC"
-          {{ if and (eq .pagination.SortField "period") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Period (high–low)
-        </option>
-        <option
-          value="category_id:ASC"
-          {{ if and (eq .pagination.SortField "category_id") (eq .pagination.SortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Category (A–Z)
-        </option>
-        <option
-          value="category_id:DESC"
-          {{ if and (eq .pagination.SortField "category_id") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Category (Z–A)
-        </option>
-      </select>
-    </label>
-  </div>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>
-          <a
-            href="{{ sortURL .basePath "category_id" .pagination }}"
-            class="sort-link"
-            >Category
-            {{ if eq .pagination.SortField "category_id" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          <a
-            href="{{ sortURL .basePath "description" .pagination }}"
-            class="sort-link"
-            >Description
-            {{ if eq .pagination.SortField "description" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          <a
-            href="{{ sortURL .basePath "amount" .pagination }}"
-            class="sort-link"
-            >Amount
-            {{ if eq .pagination.SortField "amount" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          <a
-            href="{{ sortURL .basePath "period" .pagination }}"
-            class="sort-link"
-            >Period (months)
-            {{ if eq .pagination.SortField "period" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range .recurrentExpenses }}
-        <tr>
-          <td>{{ .CategoryName }}</td>
-          <td>{{ .Description }}</td>
-          <td class="amount-value">{{ .Amount | currency }}</td>
-          <td>{{ .Period }}</td>
-          <td>
-            <a href="/recurrent-expenses/{{ .ID }}">Visit</a>
-          </td>
-        </tr>
-      {{ end }}
-    </tbody>
-    <tfoot>
-      <tr>
-        <th colspan="5">
-          Total recurrent expenses
-          <span class="amount-value">
-            {{ .recurrentExpenses | sumAmount | currency }}
-          </span>
-        </th>
-      </tr>
-    </tfoot>
-  </table>
-  <ul class="card-list">
-    {{ range .recurrentExpenses }}
-      <li class="card-list-item">
-        <div class="card-list-row">
-          <a href="/recurrent-expenses/{{ .ID }}" class="card-list-link"
-            >{{ .Description }}</a
-          >
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Category</span>
-          <span>{{ .CategoryName }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Amount</span>
-          <span class="amount-value">{{ .Amount | currency }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Period (months)</span>
-          <span>{{ .Period }}</span>
-        </div>
-      </li>
-    {{ end }}
-    <li class="card-list-summary">
-      Total recurrent expenses
-      <span class="amount-value"
-        >{{ .recurrentExpenses | sumAmount | currency }}</span
-      >
-    </li>
-  </ul>
-  {{ template "pagination" . }}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="5">
+              Total recurrent expenses
+              <span class="amount-value">
+                {{ .recurrentExpenses | sumAmount | currency }}
+              </span>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {{ template "pagination" . }}
+  </section>
 {{ end }}

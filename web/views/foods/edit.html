@@ -1,11 +1,27 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>EDIT FOOD</h1>
-  <nav class="page-links">
-    <a href="/foods/{{ .food.ID }}">Food</a>
-    <a href="/foods">Food Directory</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="edit-food-card-title">
+    <header class="card-header">
+      <h1 id="edit-food-card-title" class="card-title">Edit food</h1>
+      <nav class="card-actions" aria-label="Food navigation">
+        <a
+          href="/foods/{{ .food.ID }}"
+          class="card-action-link"
+          aria-label="View food"
+          title="View food"
+        >
+          <i data-lucide="eye" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/foods"
+          class="card-action-link"
+          aria-label="Food directory"
+          title="Food directory"
+        >
+          <i data-lucide="apple" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form action="/foods/{{ .food.ID }}" method="post">
       {{ template "csrf" . }}

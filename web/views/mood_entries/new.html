@@ -1,10 +1,19 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW MOOD ENTRY</h1>
-  <nav class="page-links">
-    <a href="/moods">Moods</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="new-mood-entry-card-title">
+    <header class="card-header">
+      <h1 id="new-mood-entry-card-title" class="card-title">New mood entry</h1>
+      <nav class="card-actions" aria-label="Mood navigation">
+        <a
+          href="/moods"
+          class="card-action-link"
+          aria-label="Moods"
+          title="Moods"
+        >
+          <i data-lucide="smile" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/moods"

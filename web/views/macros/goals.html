@@ -1,10 +1,19 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MACRO GOALS</h1>
-  <nav class="page-links">
-    <a href="/macros">Macros</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="macro-goals-card-title">
+    <header class="card-header">
+      <h1 id="macro-goals-card-title" class="card-title">Macro goals</h1>
+      <nav class="card-actions" aria-label="Macro navigation">
+        <a
+          href="/macros"
+          class="card-action-link"
+          aria-label="Macros"
+          title="Macros"
+        >
+          <i data-lucide="salad" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form action="/macros/goals" method="post">
       {{ template "csrf" . }}
@@ -80,7 +89,7 @@
       </label>
       <button
         type="submit"
-        class="btn-primary"
+        class="btn-primary form-submit"
         data-turbo-submits-with="Saving..."
       >
         Save Goals

@@ -1,46 +1,63 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>FOOD</h1>
-  <nav class="page-links">
-    <a href="/foods">Food Directory</a>
-  </nav>
-  <table>
-    <tbody>
-      <tr>
-        <th>Name</th>
-        <td>{{ .food.Name }}</td>
-      </tr>
-      <tr>
-        <th>Kcal</th>
-        <td>{{ .food.Kcal }}</td>
-      </tr>
-      <tr>
-        <th>Protein</th>
-        <td>{{ .food.ProteinG }}g</td>
-      </tr>
-      <tr>
-        <th>Carbs</th>
-        <td>{{ .food.CarbsG }}g</td>
-      </tr>
-      <tr>
-        <th>Fat</th>
-        <td>{{ .food.FatG }}g</td>
-      </tr>
-      <tr>
-        <th>Saturated Fat</th>
-        <td>{{ .food.SaturatedFatG }}g</td>
-      </tr>
-      <tr>
-        <th>Fiber</th>
-        <td>{{ .food.FiberG }}g</td>
-      </tr>
-      <tr>
-        <th>Sodium</th>
-        <td>{{ .food.SodiumG }}g</td>
-      </tr>
-    </tbody>
-  </table>
-  <section class="form-card">
+  <section class="card" aria-labelledby="food-card-title">
+    <header class="card-header">
+      <h1 id="food-card-title" class="card-title">Food</h1>
+      <nav class="card-actions" aria-label="Food navigation">
+        <a
+          href="/foods/{{ .food.ID }}/edit"
+          class="card-action-link"
+          aria-label="Edit food"
+          title="Edit food"
+        >
+          <i data-lucide="square-pen" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/foods"
+          class="card-action-link"
+          aria-label="Food directory"
+          title="Food directory"
+        >
+          <i data-lucide="apple" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <table>
+      <tbody>
+        <tr>
+          <th>Name</th>
+          <td>{{ .food.Name }}</td>
+        </tr>
+        <tr>
+          <th>Kcal</th>
+          <td>{{ .food.Kcal }}</td>
+        </tr>
+        <tr>
+          <th>Protein</th>
+          <td>{{ .food.ProteinG }}g</td>
+        </tr>
+        <tr>
+          <th>Carbs</th>
+          <td>{{ .food.CarbsG }}g</td>
+        </tr>
+        <tr>
+          <th>Fat</th>
+          <td>{{ .food.FatG }}g</td>
+        </tr>
+        <tr>
+          <th>Saturated Fat</th>
+          <td>{{ .food.SaturatedFatG }}g</td>
+        </tr>
+        <tr>
+          <th>Fiber</th>
+          <td>{{ .food.FiberG }}g</td>
+        </tr>
+        <tr>
+          <th>Sodium</th>
+          <td>{{ .food.SodiumG }}g</td>
+        </tr>
+      </tbody>
+    </table>
     <fieldset
       data-controller="macro-calc"
       data-macro-calc-base-kcal-value="{{ .food.Kcal }}"
@@ -91,20 +108,19 @@
         Use for Macro Entry
       </a>
     </fieldset>
-  </section>
-  <section class="form-card">
-    <div class="resource-actions">
-      <a href="/foods/{{ .food.ID }}/edit">Edit Food</a>
-      <form action="/foods/{{ .food.ID }}/delete" method="post">
-        {{ template "csrf" . }}
-        <button
-          type="submit"
-          class="btn-danger btn-sm"
-          data-turbo-submits-with="Deleting..."
-        >
-          Delete
-        </button>
-      </form>
-    </div>
+    <form
+      action="/foods/{{ .food.ID }}/delete"
+      method="post"
+      data-turbo-confirm="Delete this food?"
+    >
+      {{ template "csrf" . }}
+      <button
+        type="submit"
+        class="btn-danger form-submit"
+        data-turbo-submits-with="Deleting..."
+      >
+        Delete
+      </button>
+    </form>
   </section>
 {{ end }}

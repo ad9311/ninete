@@ -1,18 +1,24 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>Exports</h1>
-  <div class="summary-card">
-    <span class="summary-card-label">Expenses</span>
+  <section class="card" aria-labelledby="exports-card-title">
+    <header class="card-header">
+      <h1 id="exports-card-title" class="card-title">Exports</h1>
+      <nav class="card-actions" aria-label="Export actions">
+        <a
+          href="/exports/expenses.json"
+          class="card-action-link"
+          aria-label="Download expenses"
+          title="Download expenses"
+          data-turbo="false"
+          download
+        >
+          <i data-lucide="download" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     <p>
       Download all your expenses as a JSON file. Includes category and tag
       names. All dates are Unix timestamps in UTC.
     </p>
-    <a
-      href="/exports/expenses.json"
-      class="btn btn-primary"
-      data-turbo="false"
-      download
-      >Download expenses (JSON)</a
-    >
-  </div>
+  </section>
 {{ end }}

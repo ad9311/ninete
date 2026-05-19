@@ -1,13 +1,29 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>Dashboard</h1>
-  <div class="summary-grid">
-    <div class="summary-card">
-      <span class="summary-card-label">This month's spending</span>
-      <span class="summary-card-value amount-value"
+  <div class="card-grid">
+    <section class="card" aria-labelledby="month-spending-card-title">
+      <header class="card-header">
+        <h2 id="month-spending-card-title" class="card-title">
+          This month's spending
+        </h2>
+        <div class="card-actions">
+          <a
+            href="/expenses"
+            class="card-action-link"
+            aria-label="View expenses"
+            title="View expenses"
+          >
+            <i
+              data-lucide="square-arrow-out-up-right"
+              class="card-action-icon"
+            ></i>
+          </a>
+        </div>
+      </header>
+      <span class="card-value amount-value"
         >{{ .summary.ThisMonthTotal | currency }}</span
       >
-      <span class="summary-card-delta">
+      <span class="card-delta">
         {{ if .summary.MonthChangeSign }}
           {{ .summary.MonthChangeSign }}{{ .summary.MonthChangePct }}% vs last
           month ({{ .summary.LastMonthTotal | currency }})
@@ -15,9 +31,13 @@
           No data for last month
         {{ end }}
       </span>
-    </div>
-    <div class="summary-card">
-      <span class="summary-card-label">Top categories this month</span>
+    </section>
+    <section class="card" aria-labelledby="top-categories-card-title">
+      <header class="card-header">
+        <h2 id="top-categories-card-title" class="card-title">
+          Top categories this month
+        </h2>
+      </header>
       {{ if .summary.TopCategories }}
         <ul class="summary-list">
           {{ range .summary.TopCategories }}
@@ -28,17 +48,31 @@
           {{ end }}
         </ul>
       {{ else }}
-        <p>No expenses this month.</p>
+        <p class="card-empty">No expenses this month</p>
       {{ end }}
-    </div>
+    </section>
   </div>
-  <div
-    class="summary-card"
-    style="margin-top: var(--space-4);"
+  <section
+    class="card dashboard-nutrition-card"
     data-controller="dashboard-date"
+    aria-labelledby="macros-card-title"
   >
-    <span class="summary-card-label">Today's nutrition</span>
-    <a href="/macros">View macros</a>
+    <header class="card-header">
+      <h2 id="macros-card-title" class="card-title">Today's nutrition</h2>
+      <div class="card-actions">
+        <a
+          href="/macros"
+          class="card-action-link"
+          aria-label="View macros"
+          title="View macros"
+        >
+          <i
+            data-lucide="square-arrow-out-up-right"
+            class="card-action-icon"
+          ></i>
+        </a>
+      </div>
+    </header>
     {{ if .macros.HasGoal }}
       <div class="macro-progress">
         <div class="macro-progress-item">
@@ -143,5 +177,5 @@
       <p>No macro goals set.</p>
       <a href="/macros/goals">Set goals</a>
     {{ end }}
-  </div>
+  </section>
 {{ end }}

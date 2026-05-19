@@ -1,11 +1,29 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW RECURRENT EXPENSE</h1>
-  <nav class="page-links">
-    <a href="/recurrent-expenses">Recurrent Expenses</a>
-    <a href="/expenses">Expenses</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="new-recurrent-expense-card-title">
+    <header class="card-header">
+      <h1 id="new-recurrent-expense-card-title" class="card-title">
+        New recurrent expense
+      </h1>
+      <nav class="card-actions" aria-label="Recurrent expense navigation">
+        <a
+          href="/recurrent-expenses"
+          class="card-action-link"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
+        >
+          <i data-lucide="repeat" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
+        >
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/recurrent-expenses"
@@ -14,60 +32,7 @@
       data-action="submit->amount#prepare"
     >
       {{ template "csrf" . }}
-      <label>
-        Category
-        <select name="category_id">
-          {{ range .categories }}
-            <option
-              value="{{ .ID }}"
-              {{ if eq .ID $.recurrentExpense.CategoryID }}selected{{ end }}
-            >
-              {{ .Name }}
-            </option>
-          {{ end }}
-        </select>
-      </label>
-      <label>
-        Description
-        <input
-          type="text"
-          name="description"
-          value="{{ .recurrentExpense.Description }}"
-        />
-      </label>
-      <label>
-        Amount
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          data-amount-target="local"
-          data-action="input->amount#sync"
-        />
-      </label>
-      <input
-        type="hidden"
-        name="amount"
-        data-amount-target="value"
-        value="{{ .recurrentExpense.Amount }}"
-      />
-      <label>
-        Period (months)
-        <input
-          type="number"
-          min="1"
-          step="1"
-          name="period"
-          value="{{ .recurrentExpense.Period }}"
-        />
-      </label>
-      <button
-        type="submit"
-        class="btn-primary"
-        data-turbo-submits-with="Saving..."
-      >
-        Submit
-      </button>
+      {{ template "recurrent_expense_form" . }}
     </form>
   </section>
 {{ end }}

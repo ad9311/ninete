@@ -1,11 +1,29 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>EDIT MOOD ENTRY</h1>
-  <nav class="page-links">
-    <a href="/moods/{{ .moodEntry.ID }}">Visit Mood Entry</a>
-    <a href="/moods">Moods</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="edit-mood-entry-card-title">
+    <header class="card-header">
+      <h1 id="edit-mood-entry-card-title" class="card-title">
+        Edit mood entry
+      </h1>
+      <nav class="card-actions" aria-label="Mood navigation">
+        <a
+          href="/moods/{{ .moodEntry.ID }}"
+          class="card-action-link"
+          aria-label="View mood entry"
+          title="View mood entry"
+        >
+          <i data-lucide="eye" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/moods"
+          class="card-action-link"
+          aria-label="Moods"
+          title="Moods"
+        >
+          <i data-lucide="smile" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/moods/{{ .moodEntry.ID }}"

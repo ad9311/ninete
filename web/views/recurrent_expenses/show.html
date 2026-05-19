@@ -1,48 +1,72 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>RECURRENT EXPENSE</h1>
-  <nav class="page-links">
-    <a href="/recurrent-expenses">Recurrent Expenses</a>
-    <a href="/expenses">Expenses</a>
-  </nav>
-  <table>
-    <tbody>
-      <tr>
-        <th>Category</th>
-        <td>{{ .recurrentExpense.CategoryName }}</td>
-      </tr>
-      <tr>
-        <th>Description</th>
-        <td>{{ .recurrentExpense.Description }}</td>
-      </tr>
-      <tr>
-        <th>Amount</th>
-        <td class="amount-value">{{ .recurrentExpense.Amount | currency }}</td>
-      </tr>
-      <tr>
-        <th>Period (months)</th>
-        <td>{{ .recurrentExpense.Period }}</td>
-      </tr>
-    </tbody>
-  </table>
-  <section class="form-card">
-    <div class="resource-actions">
-      <a href="/recurrent-expenses/{{ .recurrentExpense.ID }}/edit">
-        Edit Recurrent Expense
-      </a>
-      <form
-        action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
-        method="post"
-      >
-        {{ template "csrf" . }}
-        <button
-          type="submit"
-          class="btn-danger btn-sm"
-          data-turbo-submits-with="Deleting..."
+  <section class="card" aria-labelledby="recurrent-expense-card-title">
+    <header class="card-header">
+      <h1 id="recurrent-expense-card-title" class="card-title">
+        Recurrent expense
+      </h1>
+      <nav class="card-actions" aria-label="Recurrent expense navigation">
+        <a
+          href="/recurrent-expenses/{{ .recurrentExpense.ID }}/edit"
+          class="card-action-link"
+          aria-label="Edit recurrent expense"
+          title="Edit recurrent expense"
         >
-          Delete
-        </button>
-      </form>
-    </div>
+          <i data-lucide="square-pen" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/recurrent-expenses"
+          class="card-action-link"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
+        >
+          <i data-lucide="repeat" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
+        >
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <table>
+      <tbody>
+        <tr>
+          <th>Category</th>
+          <td>{{ .recurrentExpense.CategoryName }}</td>
+        </tr>
+        <tr>
+          <th>Description</th>
+          <td>{{ .recurrentExpense.Description }}</td>
+        </tr>
+        <tr>
+          <th>Amount</th>
+          <td class="amount-value">
+            {{ .recurrentExpense.Amount | currency }}
+          </td>
+        </tr>
+        <tr>
+          <th>Period (months)</th>
+          <td>{{ .recurrentExpense.Period }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <form
+      action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
+      method="post"
+      data-turbo-confirm="Delete this recurrent expense?"
+    >
+      {{ template "csrf" . }}
+      <button
+        type="submit"
+        class="btn-danger form-submit"
+        data-turbo-submits-with="Deleting..."
+      >
+        Delete
+      </button>
+    </form>
   </section>
 {{ end }}
