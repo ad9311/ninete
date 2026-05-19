@@ -1,112 +1,78 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MOOD STATS</h1>
-  <nav class="page-links">
-    <a href="/moods">Moods</a>
-  </nav>
-  <form class="filters" method="GET" action="/moods/stats">
-    <input type="hidden" name="sort_field" value="{{ .sortField }}" />
-    <input type="hidden" name="sort_order" value="{{ .sortOrder }}" />
-    <label>
-      From
-      <input type="date" name="from_date" value="{{ .fromDate }}" />
-    </label>
-    <label>
-      To
-      <input type="date" name="to_date" value="{{ .toDate }}" />
-    </label>
-    <button type="submit" class="btn-primary" style="align-self: flex-end">
-      Apply
-    </button>
-  </form>
-  <div class="sort-mobile" data-controller="sort">
-    <label>
-      Sort by
-      <select data-sort-target="select" data-action="change->sort#apply">
-        <option
-          value="count:DESC"
-          {{ if and (eq .sortField "count") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
+  <section class="card" aria-labelledby="mood-stats-card-title">
+    <header class="card-header">
+      <h1 id="mood-stats-card-title" class="card-title">Mood stats</h1>
+      <nav class="card-actions" aria-label="Mood navigation">
+        <a
+          href="/moods"
+          class="card-action-link"
+          aria-label="Moods"
+          title="Moods"
         >
-          Count (high–low)
-        </option>
-        <option
-          value="count:ASC"
-          {{ if and (eq .sortField "count") (eq .sortOrder "ASC") }}
-            selected
+          <i data-lucide="smile" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <form class="filters" method="GET" action="/moods/stats">
+      <input type="hidden" name="sort_field" value="{{ .sortField }}" />
+      <input type="hidden" name="sort_order" value="{{ .sortOrder }}" />
+      <label>
+        <span class="sr-only">From</span>
+        <i data-lucide="calendar" class="filter-icon" aria-hidden="true"></i>
+        <input type="date" name="from_date" value="{{ .fromDate }}" />
+      </label>
+      <label>
+        <span class="sr-only">To</span>
+        <i data-lucide="calendar" class="filter-icon" aria-hidden="true"></i>
+        <input type="date" name="to_date" value="{{ .toDate }}" />
+      </label>
+      <button type="submit" class="btn-primary" style="align-self: flex-end">
+        Apply
+      </button>
+    </form>
+    <div
+      class="chart-container"
+      data-controller="mood-chart"
+      data-mood-chart-data-value="{{ .chartData }}"
+    >
+      <canvas data-mood-chart-target="canvas"></canvas>
+    </div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <a href="{{ .moodSortURL }}" class="sort-link"
+                >Mood
+                {{ if eq .sortField "mood" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              <a href="{{ .countSortURL }}" class="sort-link"
+                >Count
+                {{ if eq .sortField "count" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .rows }}
+            <tr>
+              <td>{{ .Mood }}</td>
+              <td>{{ .Count }}</td>
+            </tr>
           {{ end }}
-        >
-          Count (low–high)
-        </option>
-        <option
-          value="mood:ASC"
-          {{ if and (eq .sortField "mood") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Mood (A–Z)
-        </option>
-        <option
-          value="mood:DESC"
-          {{ if and (eq .sortField "mood") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Mood (Z–A)
-        </option>
-      </select>
-    </label>
-  </div>
-  <div
-    class="chart-container"
-    data-controller="mood-chart"
-    data-mood-chart-data-value="{{ .chartData }}"
-  >
-    <canvas data-mood-chart-target="canvas"></canvas>
-  </div>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>
-          <a href="{{ .moodSortURL }}" class="sort-link"
-            >Mood
-            {{ if eq .sortField "mood" }}
-              <span class="sort-indicator"
-                >{{ if eq .sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          <a href="{{ .countSortURL }}" class="sort-link"
-            >Count
-            {{ if eq .sortField "count" }}
-              <span class="sort-indicator"
-                >{{ if eq .sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range .rows }}
-        <tr>
-          <td>{{ .Mood }}</td>
-          <td>{{ .Count }}</td>
-        </tr>
-      {{ end }}
-    </tbody>
-  </table>
-  <ul class="card-list">
-    {{ range .rows }}
-      <li class="card-list-item">
-        <div class="card-list-row">
-          <span class="card-list-link">{{ .Mood }}</span>
-          <span>{{ .Count }}</span>
-        </div>
-      </li>
-    {{ end }}
-  </ul>
+        </tbody>
+      </table>
+    </div>
+  </section>
 {{ end }}

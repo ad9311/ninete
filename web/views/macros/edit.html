@@ -1,11 +1,29 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>EDIT MACRO ENTRY</h1>
-  <nav class="page-links">
-    <a href="/macros/{{ .entry.ID }}">Visit Entry</a>
-    <a href="/macros">Macros</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="edit-macro-entry-card-title">
+    <header class="card-header">
+      <h1 id="edit-macro-entry-card-title" class="card-title">
+        Edit macro entry
+      </h1>
+      <nav class="card-actions" aria-label="Macro navigation">
+        <a
+          href="/macros/{{ .entry.ID }}"
+          class="card-action-link"
+          aria-label="View macro entry"
+          title="View macro entry"
+        >
+          <i data-lucide="eye" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/macros"
+          class="card-action-link"
+          aria-label="Macros"
+          title="Macros"
+        >
+          <i data-lucide="salad" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/macros/{{ .entry.ID }}"

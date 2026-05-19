@@ -1,11 +1,27 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW EXPENSE</h1>
-  <nav class="page-links">
-    <a href="/expenses">Expenses</a>
-    <a href="/recurrent-expenses">Recurrent Expenses</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="new-expense-card-title">
+    <header class="card-header">
+      <h1 id="new-expense-card-title" class="card-title">New expense</h1>
+      <nav class="card-actions" aria-label="Expense navigation">
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
+        >
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/recurrent-expenses"
+          class="card-action-link"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
+        >
+          <i data-lucide="repeat" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form
       action="/expenses"

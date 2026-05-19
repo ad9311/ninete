@@ -118,7 +118,11 @@
     data-date-target="value"
     value="{{ .entry.Date }}"
   />
-  <button type="submit" class="btn-primary" data-turbo-submits-with="Saving...">
+  <button
+    type="submit"
+    class="btn-primary form-submit"
+    data-turbo-submits-with="Saving..."
+  >
     Submit
   </button>
 {{ end }}

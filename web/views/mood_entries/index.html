@@ -1,167 +1,99 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MOODS</h1>
-  <nav class="page-links">
-    <a href="/moods/new">New Mood Entry</a>
-    <a href="/moods/stats">Stats</a>
-  </nav>
-  <div class="sort-mobile" data-controller="sort">
-    <label>
-      Sort by
-      <select data-sort-target="select" data-action="change->sort#apply">
-        <option
-          value="logged_at:DESC"
-          {{ if and (eq .pagination.SortField "logged_at") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
+  <section class="card" aria-labelledby="moods-card-title">
+    <header class="card-header">
+      <h1 id="moods-card-title" class="card-title">Moods</h1>
+      <nav class="card-actions" aria-label="Mood actions">
+        <a
+          href="/moods/new"
+          class="card-action-link"
+          aria-label="New mood entry"
+          title="New mood entry"
         >
-          Date (newest)
-        </option>
-        <option
-          value="logged_at:ASC"
-          {{ if and (eq .pagination.SortField "logged_at") (eq .pagination.SortOrder "ASC") }}
-            selected
-          {{ end }}
+          <i data-lucide="plus" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/moods/stats"
+          class="card-action-link"
+          aria-label="Stats"
+          title="Stats"
         >
-          Date (oldest)
-        </option>
-        <option
-          value="mood:ASC"
-          {{ if and (eq .pagination.SortField "mood") (eq .pagination.SortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Mood (A–Z)
-        </option>
-        <option
-          value="mood:DESC"
-          {{ if and (eq .pagination.SortField "mood") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Mood (Z–A)
-        </option>
-        <option
-          value="created_at:DESC"
-          {{ if and (eq .pagination.SortField "created_at") (eq .pagination.SortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Created (newest)
-        </option>
-        <option
-          value="created_at:ASC"
-          {{ if and (eq .pagination.SortField "created_at") (eq .pagination.SortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Created (oldest)
-        </option>
-      </select>
-    </label>
-  </div>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>
-          <a href="{{ sortURL .basePath "mood" .pagination }}" class="sort-link"
-            >Mood
-            {{ if eq .pagination.SortField "mood" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>Notes</th>
-        <th>
-          <a
-            href="{{ sortURL .basePath "logged_at" .pagination }}"
-            class="sort-link"
-            >Date
-            {{ if eq .pagination.SortField "logged_at" }}
-              <span class="sort-indicator"
-                >{{ if eq .pagination.SortOrder "ASC" }}
-                  ▲
-                {{ else }}
-                  ▼
-                {{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>Tags</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range .moodEntries }}
-        <tr>
-          <td>{{ .Mood }}</td>
-          <td>{{ .Notes }}</td>
-          <td>
-            <span
-              data-controller="local-date"
-              data-local-date-unix-value="{{ .LoggedAt }}"
-              >{{ .LoggedAt | timeStamp }}</span
-            >
-          </td>
-          <td>
-            {{ if .Tags }}
-              <div class="chip-list">
-                {{ range .Tags }}
-                  <span class="chip chip-tag">{{ . }}</span>
+          <i data-lucide="chart-column" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>
+              <a
+                href="{{ sortURL .basePath "mood" .pagination }}"
+                class="sort-link"
+                >Mood
+                {{ if eq .pagination.SortField "mood" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
                 {{ end }}
-              </div>
-            {{ else }}
-              <span class="chip chip-empty">No tags</span>
-            {{ end }}
-          </td>
-          <td>
-            <a href="/moods/{{ .ID }}">Visit</a>
-          </td>
-        </tr>
-      {{ end }}
-    </tbody>
-  </table>
-  <ul class="card-list">
-    {{ range .moodEntries }}
-      <li class="card-list-item">
-        <div class="card-list-row">
-          <a href="/moods/{{ .ID }}" class="card-list-link">{{ .Mood }}</a>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Notes</span>
-          <span>{{ .Notes }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Date</span>
-          <span
-            data-controller="local-date"
-            data-local-date-unix-value="{{ .LoggedAt }}"
-            >{{ .LoggedAt | timeStamp }}</span
-          >
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Tags</span>
-          <span>
-            {{ if .Tags }}
-              <span class="chip-list">
-                {{ range .Tags }}
-                  <span class="chip chip-tag">{{ . }}</span>
+              </a>
+            </th>
+            <th>Notes</th>
+            <th>
+              <a
+                href="{{ sortURL .basePath "logged_at" .pagination }}"
+                class="sort-link"
+                >Date
+                {{ if eq .pagination.SortField "logged_at" }}
+                  <span class="sort-indicator"
+                    >{{ if eq .pagination.SortOrder "ASC" }}
+                      ▲
+                    {{ else }}
+                      ▼
+                    {{ end }}</span
+                  >
                 {{ end }}
-              </span>
-            {{ else }}
-              <span class="chip chip-empty">No tags</span>
-            {{ end }}
-          </span>
-        </div>
-      </li>
-    {{ end }}
-  </ul>
-  {{ template "pagination" . }}
+              </a>
+            </th>
+            <th>Tags</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .moodEntries }}
+            <tr>
+              <td>{{ .Mood }}</td>
+              <td>{{ .Notes }}</td>
+              <td>
+                <span
+                  data-controller="local-date"
+                  data-local-date-unix-value="{{ .LoggedAt }}"
+                  >{{ .LoggedAt | timeStamp }}</span
+                >
+              </td>
+              <td>
+                {{ if .Tags }}
+                  <div class="chip-list">
+                    {{ range .Tags }}
+                      <span class="chip chip-tag">{{ . }}</span>
+                    {{ end }}
+                  </div>
+                {{ else }}
+                  <span class="chip chip-empty">No tags</span>
+                {{ end }}
+              </td>
+              <td>
+                <a href="/moods/{{ .ID }}">Visit</a>
+              </td>
+            </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+    {{ template "pagination" . }}
+  </section>
 {{ end }}

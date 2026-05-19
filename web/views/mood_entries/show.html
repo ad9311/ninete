@@ -1,58 +1,78 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MOOD ENTRY</h1>
-  <nav class="page-links">
-    <a href="/moods">Moods</a>
-  </nav>
-  <table>
-    <tbody>
-      <tr>
-        <th>Mood</th>
-        <td>{{ .moodEntry.Mood }}</td>
-      </tr>
-      <tr>
-        <th>Notes</th>
-        <td>{{ .moodEntry.Notes }}</td>
-      </tr>
-      <tr>
-        <th>Date</th>
-        <td>
-          <span
-            data-controller="local-date"
-            data-local-date-unix-value="{{ .moodEntry.LoggedAt }}"
-            >{{ .moodEntry.LoggedAt | timeStamp }}</span
-          >
-        </td>
-      </tr>
-      <tr>
-        <th>Tags</th>
-        <td>
-          {{ if .moodEntry.Tags }}
-            <div class="chip-list">
-              {{ range .moodEntry.Tags }}
-                <span class="chip chip-tag">{{ . }}</span>
-              {{ end }}
-            </div>
-          {{ else }}
-            <span class="chip chip-empty">No tags</span>
-          {{ end }}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <section class="form-card">
-    <div class="resource-actions">
-      <a href="/moods/{{ .moodEntry.ID }}/edit">Edit Mood Entry</a>
-      <form action="/moods/{{ .moodEntry.ID }}/delete" method="post">
-        {{ template "csrf" . }}
-        <button
-          type="submit"
-          class="btn-danger btn-sm"
-          data-turbo-submits-with="Deleting..."
+  <section class="card" aria-labelledby="mood-entry-card-title">
+    <header class="card-header">
+      <h1 id="mood-entry-card-title" class="card-title">Mood entry</h1>
+      <nav class="card-actions" aria-label="Mood entry navigation">
+        <a
+          href="/moods/{{ .moodEntry.ID }}/edit"
+          class="card-action-link"
+          aria-label="Edit mood entry"
+          title="Edit mood entry"
         >
-          Delete
-        </button>
-      </form>
-    </div>
+          <i data-lucide="square-pen" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/moods"
+          class="card-action-link"
+          aria-label="Moods"
+          title="Moods"
+        >
+          <i data-lucide="smile" class="card-action-icon"></i>
+        </a>
+        <form
+          action="/moods/{{ .moodEntry.ID }}/delete"
+          method="post"
+          data-turbo-confirm="Delete this mood entry?"
+        >
+          {{ template "csrf" . }}
+          <button
+            type="submit"
+            class="card-action-link is-danger"
+            aria-label="Delete mood entry"
+            title="Delete mood entry"
+            data-turbo-submits-with="Deleting..."
+          >
+            <i data-lucide="trash-2" class="card-action-icon"></i>
+          </button>
+        </form>
+      </nav>
+    </header>
+    <table>
+      <tbody>
+        <tr>
+          <th>Mood</th>
+          <td>{{ .moodEntry.Mood }}</td>
+        </tr>
+        <tr>
+          <th>Notes</th>
+          <td>{{ .moodEntry.Notes }}</td>
+        </tr>
+        <tr>
+          <th>Date</th>
+          <td>
+            <span
+              data-controller="local-date"
+              data-local-date-unix-value="{{ .moodEntry.LoggedAt }}"
+              >{{ .moodEntry.LoggedAt | timeStamp }}</span
+            >
+          </td>
+        </tr>
+        <tr>
+          <th>Tags</th>
+          <td>
+            {{ if .moodEntry.Tags }}
+              <div class="chip-list">
+                {{ range .moodEntry.Tags }}
+                  <span class="chip chip-tag">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 {{ end }}

@@ -1,74 +1,101 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>EXPENSE</h1>
-  <nav class="page-links">
-    <a href="/expenses">Expenses</a>
-    <a href="/recurrent-expenses">Recurrent Expenses</a>
-  </nav>
-  <table>
-    <tbody>
-      <tr>
-        <th>Category</th>
-        <td>{{ .expense.CategoryName }}</td>
-      </tr>
-      <tr>
-        <th>Description</th>
-        <td>{{ .expense.Description }}</td>
-      </tr>
-      <tr>
-        <th>Amount</th>
-        <td class="amount-value">{{ .expense.Amount | currency }}</td>
-      </tr>
-      <tr>
-        <th>Billed</th>
-        <td>
-          <span
-            data-controller="local-date"
-            data-local-date-unix-value="{{ .expense.Date }}"
-            >{{ .expense.Date | timeStamp }}</span
-          >
-        </td>
-      </tr>
-      <tr>
-        <th>Created</th>
-        <td>
-          <span
-            data-controller="local-date"
-            data-local-date-unix-value="{{ .expense.CreatedAt }}"
-            data-local-date-datetime-value="true"
-            >{{ .expense.CreatedAt | timeStamp }}</span
-          >
-        </td>
-      </tr>
-      <tr>
-        <th>Tags</th>
-        <td>
-          {{ if .expense.Tags }}
-            <div class="chip-list">
-              {{ range .expense.Tags }}
-                <span class="chip chip-tag">{{ . }}</span>
-              {{ end }}
-            </div>
-          {{ else }}
-            <span class="chip chip-empty">No tags</span>
-          {{ end }}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  <section class="form-card">
-    <div class="resource-actions">
-      <a href="/expenses/{{ .expense.ID }}/edit">Edit Expense</a>
-      <form action="/expenses/{{ .expense.ID }}/delete" method="post">
-        {{ template "csrf" . }}
-        <button
-          type="submit"
-          class="btn-danger btn-sm"
-          data-turbo-submits-with="Deleting..."
+  <section class="card" aria-labelledby="expense-card-title">
+    <header class="card-header">
+      <h1 id="expense-card-title" class="card-title">Expense</h1>
+      <nav class="card-actions" aria-label="Expense navigation">
+        <a
+          href="/expenses/{{ .expense.ID }}/edit"
+          class="card-action-link"
+          aria-label="Edit expense"
+          title="Edit expense"
         >
-          Delete
-        </button>
-      </form>
-    </div>
+          <i data-lucide="square-pen" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/expenses"
+          class="card-action-link"
+          aria-label="Expenses"
+          title="Expenses"
+        >
+          <i data-lucide="wallet" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/recurrent-expenses"
+          class="card-action-link"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
+        >
+          <i data-lucide="repeat" class="card-action-icon"></i>
+        </a>
+        <form
+          action="/expenses/{{ .expense.ID }}/delete"
+          method="post"
+          data-turbo-confirm="Delete this expense?"
+        >
+          {{ template "csrf" . }}
+          <button
+            type="submit"
+            class="card-action-link is-danger"
+            aria-label="Delete expense"
+            title="Delete expense"
+            data-turbo-submits-with="Deleting..."
+          >
+            <i data-lucide="trash-2" class="card-action-icon"></i>
+          </button>
+        </form>
+      </nav>
+    </header>
+    <table>
+      <tbody>
+        <tr>
+          <th>Category</th>
+          <td>{{ .expense.CategoryName }}</td>
+        </tr>
+        <tr>
+          <th>Description</th>
+          <td>{{ .expense.Description }}</td>
+        </tr>
+        <tr>
+          <th>Amount</th>
+          <td class="amount-value">{{ .expense.Amount | currency }}</td>
+        </tr>
+        <tr>
+          <th>Billed</th>
+          <td>
+            <span
+              data-controller="local-date"
+              data-local-date-unix-value="{{ .expense.Date }}"
+              >{{ .expense.Date | timeStamp }}</span
+            >
+          </td>
+        </tr>
+        <tr>
+          <th>Created</th>
+          <td>
+            <span
+              data-controller="local-date"
+              data-local-date-unix-value="{{ .expense.CreatedAt }}"
+              data-local-date-datetime-value="true"
+              >{{ .expense.CreatedAt | timeStamp }}</span
+            >
+          </td>
+        </tr>
+        <tr>
+          <th>Tags</th>
+          <td>
+            {{ if .expense.Tags }}
+              <div class="chip-list">
+                {{ range .expense.Tags }}
+                  <span class="chip chip-tag">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </section>
 {{ end }}

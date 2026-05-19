@@ -1,11 +1,11 @@
-{{ define "expense_form" }}
+{{ define "recurrent_expense_form" }}
   <label>
     Category
     <select name="category_id">
       {{ range .categories }}
         <option
           value="{{ .ID }}"
-          {{ if eq .ID $.expense.CategoryID }}selected{{ end }}
+          {{ if eq .ID $.recurrentExpense.CategoryID }}selected{{ end }}
         >
           {{ .Name }}
         </option>
@@ -17,7 +17,7 @@
     <input
       type="text"
       name="description"
-      value="{{ .expense.Description }}"
+      value="{{ .recurrentExpense.Description }}"
       placeholder="New purchase..."
     />
   </label>
@@ -35,27 +35,18 @@
     type="hidden"
     name="amount"
     data-amount-target="value"
-    value="{{ .expense.Amount }}"
+    value="{{ .recurrentExpense.Amount }}"
   />
   <label>
-    Tags
+    Period (months)
     <input
-      type="text"
-      placeholder="Semicolon separated"
-      name="tags"
-      value="{{ .tagsInput }}"
+      type="number"
+      min="1"
+      step="1"
+      name="period"
+      value="{{ .recurrentExpense.Period }}"
     />
   </label>
-  <label>
-    Date
-    <input type="date" data-date-target="local" />
-  </label>
-  <input
-    type="hidden"
-    name="date"
-    data-date-target="value"
-    value="{{ .expense.Date }}"
-  />
   <button
     type="submit"
     class="btn-primary form-submit"

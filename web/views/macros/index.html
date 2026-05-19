@@ -1,480 +1,349 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>MACROS</h1>
-  <nav class="page-links">
-    <a href="/macros/new">New Entry</a>
-    <a href="/macros/goals">Goals</a>
-    <a href="/macros/stats">Stats</a>
-    <a href="/foods">Foods</a>
-  </nav>
-  <form
-    method="get"
-    action="/macros"
-    class="filters"
-    data-controller="macro-date"
-  >
-    <label>
-      Date
-      <input
-        type="date"
-        name="date"
-        value="{{ .selectedDate }}"
-        onchange="this.form.submit()"
-      />
-    </label>
-    <label>
-      Meal
-      <select name="meal_type" onchange="this.form.submit()">
-        <option value="">All meals</option>
-        <option
-          value="breakfast"
-          {{ if eq $.selectedMealType "breakfast" }}selected{{ end }}
+  <section class="card" aria-labelledby="macros-card-title">
+    <header class="card-header">
+      <h1 id="macros-card-title" class="card-title">Macros</h1>
+      <nav class="card-actions" aria-label="Macro actions">
+        <a
+          href="/macros/new"
+          class="card-action-link"
+          aria-label="New macro entry"
+          title="New macro entry"
         >
-          Breakfast
-        </option>
-        <option
-          value="lunch"
-          {{ if eq $.selectedMealType "lunch" }}selected{{ end }}
+          <i data-lucide="plus" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/macros/goals"
+          class="card-action-link"
+          aria-label="Goals"
+          title="Goals"
         >
-          Lunch
-        </option>
-        <option
-          value="dinner"
-          {{ if eq $.selectedMealType "dinner" }}selected{{ end }}
+          <i data-lucide="target" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/macros/stats"
+          class="card-action-link"
+          aria-label="Stats"
+          title="Stats"
         >
-          Dinner
-        </option>
-        <option
-          value="snack"
-          {{ if eq $.selectedMealType "snack" }}selected{{ end }}
+          <i data-lucide="chart-column" class="card-action-icon"></i>
+        </a>
+        <a
+          href="/foods"
+          class="card-action-link"
+          aria-label="Foods"
+          title="Foods"
         >
-          Snack
-        </option>
-        <option
-          value="other"
-          {{ if eq $.selectedMealType "other" }}selected{{ end }}
-        >
-          Other
-        </option>
-      </select>
-    </label>
-  </form>
-  <div class="sort-mobile" data-controller="sort">
-    <label>
-      Sort by
-      <select data-sort-target="select" data-action="change->sort#apply">
-        <option
-          value="name:ASC"
-          {{ if and (eq .sortField "name") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Name (A–Z)
-        </option>
-        <option
-          value="name:DESC"
-          {{ if and (eq .sortField "name") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Name (Z–A)
-        </option>
-        <option
-          value="kcal:DESC"
-          {{ if and (eq .sortField "kcal") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Kcal (high–low)
-        </option>
-        <option
-          value="kcal:ASC"
-          {{ if and (eq .sortField "kcal") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Kcal (low–high)
-        </option>
-        <option
-          value="protein_g:DESC"
-          {{ if and (eq .sortField "protein_g") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Protein (high–low)
-        </option>
-        <option
-          value="protein_g:ASC"
-          {{ if and (eq .sortField "protein_g") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Protein (low–high)
-        </option>
-        <option
-          value="carbs_g:DESC"
-          {{ if and (eq .sortField "carbs_g") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Carbs (high–low)
-        </option>
-        <option
-          value="carbs_g:ASC"
-          {{ if and (eq .sortField "carbs_g") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Carbs (low–high)
-        </option>
-        <option
-          value="fat_g:DESC"
-          {{ if and (eq .sortField "fat_g") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Fat (high–low)
-        </option>
-        <option
-          value="fat_g:ASC"
-          {{ if and (eq .sortField "fat_g") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Fat (low–high)
-        </option>
-        <option
-          value="meal_type:ASC"
-          {{ if and (eq .sortField "meal_type") (eq .sortOrder "ASC") }}
-            selected
-          {{ end }}
-        >
-          Meal (A–Z)
-        </option>
-        <option
-          value="meal_type:DESC"
-          {{ if and (eq .sortField "meal_type") (eq .sortOrder "DESC") }}
-            selected
-          {{ end }}
-        >
-          Meal (Z–A)
-        </option>
-      </select>
-    </label>
-  </div>
-  {{ if .hasGoal }}
-    <div class="macro-progress">
-      <div class="macro-progress-item">
-        <div class="macro-progress-header">
-          <span class="macro-progress-label">Kcal</span>
-          <span class="macro-progress-value"
-            >{{ truncateFloat .totals.Kcal }} /
-            {{ truncateFloat .goal.Kcal }}</span
+          <i data-lucide="apple" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <form
+      method="get"
+      action="/macros"
+      class="filters"
+      data-controller="macro-date"
+    >
+      <label>
+        <span class="sr-only">Date</span>
+        <i data-lucide="calendar" class="filter-icon" aria-hidden="true"></i>
+        <input
+          type="date"
+          name="date"
+          value="{{ .selectedDate }}"
+          onchange="this.form.submit()"
+        />
+      </label>
+      <label>
+        <span class="sr-only">Meal</span>
+        <i data-lucide="utensils" class="filter-icon" aria-hidden="true"></i>
+        <select name="meal_type" onchange="this.form.submit()">
+          <option value="">All meals</option>
+          <option
+            value="breakfast"
+            {{ if eq $.selectedMealType "breakfast" }}selected{{ end }}
           >
-        </div>
-        <progress max="100" value="{{ .progress.KcalPct }}"></progress>
-      </div>
-      <div class="macro-progress-item">
-        <div class="macro-progress-header">
-          <span class="macro-progress-label">Protein</span>
-          <span class="macro-progress-value"
-            >{{ truncateFloat .totals.ProteinG }}g /
-            {{ truncateFloat .goal.ProteinG }}g</span
+            Breakfast
+          </option>
+          <option
+            value="lunch"
+            {{ if eq $.selectedMealType "lunch" }}selected{{ end }}
           >
-        </div>
-        <progress max="100" value="{{ .progress.ProteinPct }}"></progress>
-      </div>
-      <div class="macro-progress-item">
-        <div class="macro-progress-header">
-          <span class="macro-progress-label">Carbs</span>
-          <span class="macro-progress-value"
-            >{{ truncateFloat .totals.CarbsG }}g /
-            {{ truncateFloat .goal.CarbsG }}g</span
+            Lunch
+          </option>
+          <option
+            value="dinner"
+            {{ if eq $.selectedMealType "dinner" }}selected{{ end }}
           >
-        </div>
-        <progress max="100" value="{{ .progress.CarbsPct }}"></progress>
-      </div>
-      <div class="macro-progress-item">
-        <div class="macro-progress-header">
-          <span class="macro-progress-label">Fat</span>
-          <span class="macro-progress-value"
-            >{{ truncateFloat .totals.FatG }}g /
-            {{ truncateFloat .goal.FatG }}g</span
+            Dinner
+          </option>
+          <option
+            value="snack"
+            {{ if eq $.selectedMealType "snack" }}selected{{ end }}
           >
-        </div>
-        <progress max="100" value="{{ .progress.FatPct }}"></progress>
-      </div>
-      {{ if gt .goal.SaturatedFatG 0.0 }}
+            Snack
+          </option>
+          <option
+            value="other"
+            {{ if eq $.selectedMealType "other" }}selected{{ end }}
+          >
+            Other
+          </option>
+        </select>
+      </label>
+    </form>
+    {{ if .hasGoal }}
+      <div class="macro-progress">
         <div class="macro-progress-item">
           <div class="macro-progress-header">
-            <span class="macro-progress-label">Saturated Fat</span>
+            <span class="macro-progress-label">Kcal</span>
             <span class="macro-progress-value"
-              >{{ truncateFloat .totals.SaturatedFatG }}g /
-              {{ truncateFloat .goal.SaturatedFatG }}g</span
+              >{{ truncateFloat .totals.Kcal }} /
+              {{ truncateFloat .goal.Kcal }}</span
             >
           </div>
-          <progress
-            max="100"
-            value="{{ .progress.SaturatedFatPct }}"
-          ></progress>
+          <progress max="100" value="{{ .progress.KcalPct }}"></progress>
         </div>
-      {{ end }}
-      {{ if gt .goal.FiberG 0.0 }}
         <div class="macro-progress-item">
           <div class="macro-progress-header">
-            <span class="macro-progress-label">Fiber</span>
+            <span class="macro-progress-label">Protein</span>
             <span class="macro-progress-value"
-              >{{ truncateFloat .totals.FiberG }}g /
-              {{ truncateFloat .goal.FiberG }}g</span
+              >{{ truncateFloat .totals.ProteinG }}g /
+              {{ truncateFloat .goal.ProteinG }}g</span
             >
           </div>
-          <progress max="100" value="{{ .progress.FiberPct }}"></progress>
+          <progress max="100" value="{{ .progress.ProteinPct }}"></progress>
         </div>
-      {{ end }}
-      {{ if gt .goal.SodiumG 0.0 }}
         <div class="macro-progress-item">
           <div class="macro-progress-header">
-            <span class="macro-progress-label">Sodium</span>
+            <span class="macro-progress-label">Carbs</span>
             <span class="macro-progress-value"
-              >{{ truncateFloat .totals.SodiumG }}g /
-              {{ truncateFloat .goal.SodiumG }}g</span
+              >{{ truncateFloat .totals.CarbsG }}g /
+              {{ truncateFloat .goal.CarbsG }}g</span
             >
           </div>
-          <progress max="100" value="{{ .progress.SodiumPct }}"></progress>
+          <progress max="100" value="{{ .progress.CarbsPct }}"></progress>
         </div>
-      {{ end }}
-    </div>
-  {{ end }}
-  <table class="data-table" data-controller="macro-select">
-    <thead>
-      <tr>
-        <th></th>
-        <th>
-          {{ $nameOrder := "ASC" }}{{ if and (eq $.sortField "name") (eq $.sortOrder "ASC") }}
-            {{ $nameOrder = "DESC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=name&sort_order={{ $nameOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Name
-            {{ if eq $.sortField "name" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+        <div class="macro-progress-item">
+          <div class="macro-progress-header">
+            <span class="macro-progress-label">Fat</span>
+            <span class="macro-progress-value"
+              >{{ truncateFloat .totals.FatG }}g /
+              {{ truncateFloat .goal.FatG }}g</span
+            >
+          </div>
+          <progress max="100" value="{{ .progress.FatPct }}"></progress>
+        </div>
+        {{ if gt .goal.SaturatedFatG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Saturated Fat</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .totals.SaturatedFatG }}g /
+                {{ truncateFloat .goal.SaturatedFatG }}g</span
               >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $kcalOrder := "DESC" }}{{ if and (eq $.sortField "kcal") (eq $.sortOrder "DESC") }}
-            {{ $kcalOrder = "ASC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=kcal&sort_order={{ $kcalOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Kcal
-            {{ if eq $.sortField "kcal" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+            </div>
+            <progress
+              max="100"
+              value="{{ .progress.SaturatedFatPct }}"
+            ></progress>
+          </div>
+        {{ end }}
+        {{ if gt .goal.FiberG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Fiber</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .totals.FiberG }}g /
+                {{ truncateFloat .goal.FiberG }}g</span
               >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $proteinOrder := "DESC" }}{{ if and (eq $.sortField "protein_g") (eq $.sortOrder "DESC") }}
-            {{ $proteinOrder = "ASC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=protein_g&sort_order={{ $proteinOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Protein (g)
-            {{ if eq $.sortField "protein_g" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+            </div>
+            <progress max="100" value="{{ .progress.FiberPct }}"></progress>
+          </div>
+        {{ end }}
+        {{ if gt .goal.SodiumG 0.0 }}
+          <div class="macro-progress-item">
+            <div class="macro-progress-header">
+              <span class="macro-progress-label">Sodium</span>
+              <span class="macro-progress-value"
+                >{{ truncateFloat .totals.SodiumG }}g /
+                {{ truncateFloat .goal.SodiumG }}g</span
               >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $carbsOrder := "DESC" }}{{ if and (eq $.sortField "carbs_g") (eq $.sortOrder "DESC") }}
-            {{ $carbsOrder = "ASC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=carbs_g&sort_order={{ $carbsOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Carbs (g)
-            {{ if eq $.sortField "carbs_g" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $fatOrder := "DESC" }}{{ if and (eq $.sortField "fat_g") (eq $.sortOrder "DESC") }}
-            {{ $fatOrder = "ASC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=fat_g&sort_order={{ $fatOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Fat (g)
-            {{ if eq $.sortField "fat_g" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>
-          {{ $mealTypeOrder := "ASC" }}{{ if and (eq $.sortField "meal_type") (eq $.sortOrder "ASC") }}
-            {{ $mealTypeOrder = "DESC" }}
-          {{ end }}
-          <a
-            href="/macros?date={{ $.selectedDate }}&sort_field=meal_type&sort_order={{ $mealTypeOrder }}{{ if $.selectedMealType }}
-              &meal_type={{ $.selectedMealType }}
-            {{ end }}"
-            class="sort-link"
-            >Meal
-            {{ if eq $.sortField "meal_type" }}
-              <span class="sort-indicator"
-                >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
-              >
-            {{ end }}
-          </a>
-        </th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{ range .entries }}
-        <tr>
-          <td>
-            <input
-              type="checkbox"
-              data-macro-select-target="checkbox"
-              data-action="change->macro-select#update"
-              data-kcal="{{ .Kcal }}"
-              data-protein="{{ .ProteinG }}"
-              data-carbs="{{ .CarbsG }}"
-              data-fat="{{ .FatG }}"
-            />
-          </td>
-          <td>{{ .Name }}</td>
-          <td>{{ .Kcal }}</td>
-          <td>{{ .ProteinG }}</td>
-          <td>{{ .CarbsG }}</td>
-          <td>{{ .FatG }}</td>
-          <td>{{ titleize .MealType }}</td>
-          <td>
-            <a href="/macros/{{ .ID }}">Visit</a>
-          </td>
-        </tr>
-      {{ end }}
-    </tbody>
-    <tfoot>
-      <tr>
-        <th></th>
-        <th>Totals</th>
-        <th
-          data-macro-select-target="kcalTotal"
-          data-base="{{ truncateFloat .totals.Kcal }}"
-        >
-          {{ truncateFloat .totals.Kcal }}
-        </th>
-        <th
-          data-macro-select-target="proteinTotal"
-          data-base="{{ truncateFloat .totals.ProteinG }}"
-        >
-          {{ truncateFloat .totals.ProteinG }}
-        </th>
-        <th
-          data-macro-select-target="carbsTotal"
-          data-base="{{ truncateFloat .totals.CarbsG }}"
-        >
-          {{ truncateFloat .totals.CarbsG }}
-        </th>
-        <th
-          data-macro-select-target="fatTotal"
-          data-base="{{ truncateFloat .totals.FatG }}"
-        >
-          {{ truncateFloat .totals.FatG }}
-        </th>
-        <th></th>
-        <th></th>
-      </tr>
-    </tfoot>
-  </table>
-  <ul class="card-list" data-controller="macro-select">
-    {{ range .entries }}
-      <li class="card-list-item">
-        <div class="card-list-row">
-          <label class="card-list-link">
-            <input
-              type="checkbox"
-              data-macro-select-target="checkbox"
-              data-action="change->macro-select#update"
-              data-kcal="{{ .Kcal }}"
-              data-protein="{{ .ProteinG }}"
-              data-carbs="{{ .CarbsG }}"
-              data-fat="{{ .FatG }}"
-            />
-            <a href="/macros/{{ .ID }}">{{ .Name }}</a>
-          </label>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Kcal</span>
-          <span>{{ .Kcal }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Protein</span>
-          <span>{{ .ProteinG }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Carbs</span>
-          <span>{{ .CarbsG }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Fat</span>
-          <span>{{ .FatG }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Meal</span>
-          <span>{{ titleize .MealType }}</span>
-        </div>
-      </li>
+            </div>
+            <progress max="100" value="{{ .progress.SodiumPct }}"></progress>
+          </div>
+        {{ end }}
+      </div>
     {{ end }}
-    <li class="card-list-summary">
-      Totals —
-      <span
-        data-macro-select-target="kcalTotal"
-        data-base="{{ truncateFloat .totals.Kcal }}"
-        >{{ truncateFloat .totals.Kcal }}</span
-      >
-      kcal /
-      <span
-        data-macro-select-target="proteinTotal"
-        data-base="{{ truncateFloat .totals.ProteinG }}"
-        >{{ truncateFloat .totals.ProteinG }}</span
-      >g protein /
-      <span
-        data-macro-select-target="carbsTotal"
-        data-base="{{ truncateFloat .totals.CarbsG }}"
-        >{{ truncateFloat .totals.CarbsG }}</span
-      >g carbs /
-      <span
-        data-macro-select-target="fatTotal"
-        data-base="{{ truncateFloat .totals.FatG }}"
-        >{{ truncateFloat .totals.FatG }}</span
-      >g fat
-    </li>
-  </ul>
+    <div class="table-scroll">
+      <table class="data-table" data-controller="macro-select">
+        <thead>
+          <tr>
+            <th></th>
+            <th>
+              {{ $nameOrder := "ASC" }}{{ if and (eq $.sortField "name") (eq $.sortOrder "ASC") }}
+                {{ $nameOrder = "DESC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=name&sort_order={{ $nameOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Name
+                {{ if eq $.sortField "name" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              {{ $kcalOrder := "DESC" }}{{ if and (eq $.sortField "kcal") (eq $.sortOrder "DESC") }}
+                {{ $kcalOrder = "ASC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=kcal&sort_order={{ $kcalOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Kcal
+                {{ if eq $.sortField "kcal" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              {{ $proteinOrder := "DESC" }}{{ if and (eq $.sortField "protein_g") (eq $.sortOrder "DESC") }}
+                {{ $proteinOrder = "ASC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=protein_g&sort_order={{ $proteinOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Protein (g)
+                {{ if eq $.sortField "protein_g" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              {{ $carbsOrder := "DESC" }}{{ if and (eq $.sortField "carbs_g") (eq $.sortOrder "DESC") }}
+                {{ $carbsOrder = "ASC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=carbs_g&sort_order={{ $carbsOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Carbs (g)
+                {{ if eq $.sortField "carbs_g" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              {{ $fatOrder := "DESC" }}{{ if and (eq $.sortField "fat_g") (eq $.sortOrder "DESC") }}
+                {{ $fatOrder = "ASC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=fat_g&sort_order={{ $fatOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Fat (g)
+                {{ if eq $.sortField "fat_g" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>
+              {{ $mealTypeOrder := "ASC" }}{{ if and (eq $.sortField "meal_type") (eq $.sortOrder "ASC") }}
+                {{ $mealTypeOrder = "DESC" }}
+              {{ end }}
+              <a
+                href="/macros?date={{ $.selectedDate }}&sort_field=meal_type&sort_order={{ $mealTypeOrder }}{{ if $.selectedMealType }}
+                  &meal_type={{ $.selectedMealType }}
+                {{ end }}"
+                class="sort-link"
+                >Meal
+                {{ if eq $.sortField "meal_type" }}
+                  <span class="sort-indicator"
+                    >{{ if eq $.sortOrder "ASC" }}▲{{ else }}▼{{ end }}</span
+                  >
+                {{ end }}
+              </a>
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .entries }}
+            <tr>
+              <td>
+                <input
+                  type="checkbox"
+                  data-macro-select-target="checkbox"
+                  data-action="change->macro-select#update"
+                  data-kcal="{{ .Kcal }}"
+                  data-protein="{{ .ProteinG }}"
+                  data-carbs="{{ .CarbsG }}"
+                  data-fat="{{ .FatG }}"
+                />
+              </td>
+              <td>{{ .Name }}</td>
+              <td>{{ .Kcal }}</td>
+              <td>{{ .ProteinG }}</td>
+              <td>{{ .CarbsG }}</td>
+              <td>{{ .FatG }}</td>
+              <td>{{ titleize .MealType }}</td>
+              <td>
+                <a href="/macros/{{ .ID }}">Visit</a>
+              </td>
+            </tr>
+          {{ end }}
+        </tbody>
+        <tfoot>
+          <tr>
+            <th></th>
+            <th>Totals</th>
+            <th
+              data-macro-select-target="kcalTotal"
+              data-base="{{ truncateFloat .totals.Kcal }}"
+            >
+              {{ truncateFloat .totals.Kcal }}
+            </th>
+            <th
+              data-macro-select-target="proteinTotal"
+              data-base="{{ truncateFloat .totals.ProteinG }}"
+            >
+              {{ truncateFloat .totals.ProteinG }}
+            </th>
+            <th
+              data-macro-select-target="carbsTotal"
+              data-base="{{ truncateFloat .totals.CarbsG }}"
+            >
+              {{ truncateFloat .totals.CarbsG }}
+            </th>
+            <th
+              data-macro-select-target="fatTotal"
+              data-base="{{ truncateFloat .totals.FatG }}"
+            >
+              {{ truncateFloat .totals.FatG }}
+            </th>
+            <th></th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
 {{ end }}

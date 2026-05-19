@@ -1,10 +1,19 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <h1>NEW FOOD</h1>
-  <nav class="page-links">
-    <a href="/foods">Food Directory</a>
-  </nav>
-  <section class="form-card">
+  <section class="card" aria-labelledby="new-food-card-title">
+    <header class="card-header">
+      <h1 id="new-food-card-title" class="card-title">New food</h1>
+      <nav class="card-actions" aria-label="Food navigation">
+        <a
+          href="/foods"
+          class="card-action-link"
+          aria-label="Food directory"
+          title="Food directory"
+        >
+          <i data-lucide="apple" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
     {{ template "form_error" . }}
     <form action="/foods" method="post">
       {{ template "csrf" . }}
