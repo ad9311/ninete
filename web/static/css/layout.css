@@ -23,8 +23,6 @@
   --size-control: 2.5rem;
   --radius-1: 0.15rem;
   --color-bg: #f4f4f5;
-  --color-bg-accent: #f1f5f9;
-  --color-bg-glow: #e2e8f0;
   --color-surface: #fff;
   --color-surface-muted: #f8fafc;
   --color-surface-hover: #f1f5f9;
@@ -164,30 +162,6 @@ p {
   gap: var(--space-3);
 }
 
-.form-card {
-  width: min(100%, var(--size-form));
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-1);
-  box-shadow: var(--shadow-1);
-}
-
-.page-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.resource-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 form {
   display: grid;
   gap: var(--space-3);
@@ -280,22 +254,11 @@ button.btn-danger {
   background: var(--color-danger-bg);
 }
 
-button.btn-sm {
-  min-width: auto;
-  min-height: 1.75rem;
-  padding: 0 var(--space-2);
-  font-size: var(--font-size-1);
-}
-
 td form button {
   width: auto;
   min-height: 1.95rem;
   min-width: auto;
   padding: 0 var(--space-2);
-}
-
-td form button.btn-sm {
-  min-height: 1.75rem;
 }
 
 button:hover {
@@ -368,11 +331,6 @@ td form {
   vertical-align: middle;
 }
 
-.resource-actions form {
-  margin: 0;
-  max-width: none;
-}
-
 .amount-value {
   font-weight: 600;
   color: var(--color-text);
@@ -408,63 +366,6 @@ td form {
   color: #15803d;
 }
 
-.card-list {
-  display: none;
-}
-
-.card-list-item {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-1);
-  box-shadow: var(--shadow-1);
-}
-
-.card-list-item + .card-list-item {
-  margin-top: var(--space-3);
-}
-
-.card-list-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-2);
-}
-
-.card-list-label {
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.card-list-link {
-  font-weight: 600;
-}
-
-.card-list-summary {
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-1);
-  margin-top: var(--space-3);
-  font-weight: 600;
-}
-
-.card-list-item form {
-  display: inline-flex;
-  margin: 0;
-  max-width: none;
-}
-
-.card-list-item .btn-toggle {
-  width: var(--size-control);
-  min-width: var(--size-control);
-  min-height: var(--size-control);
-  padding: 0;
-}
-
 .chart-container {
   max-width: 100%;
   padding: var(--space-4) 0;
@@ -479,24 +380,12 @@ td form {
   display: table;
 }
 
-.sort-mobile {
-  display: none;
-}
-
 .filters {
   margin-bottom: var(--space-3);
   display: flex;
   justify-content: end;
   flex-wrap: wrap;
   gap: var(--space-3);
-}
-
-.sort-mobile label {
-  display: grid;
-  gap: var(--space-1);
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  color: var(--color-text-muted);
 }
 
 .filters label {
@@ -512,8 +401,7 @@ td form {
   flex-shrink: 0;
 }
 
-.filters select,
-.sort-mobile select {
+.filters select {
   width: 14rem;
 }
 
@@ -701,8 +589,7 @@ button:focus-visible {
 }
 
 .theme-light .page-main > form,
-.theme-light .page-main > .form-stack,
-.theme-light .page-main > .form-card {
+.theme-light .page-main > .form-stack {
   max-width: var(--size-form);
 }
 
@@ -733,20 +620,6 @@ p[style*="color: red"] {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .data-table {
-    display: none;
-  }
-
-  .card-list {
-    display: block;
-  }
-
-  .sort-mobile {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
   }
 }
 
@@ -817,6 +690,10 @@ p[style*="color: red"] {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   gap: var(--space-4);
+}
+
+.dashboard-nutrition-card {
+  margin-top: var(--space-4);
 }
 
 .card {

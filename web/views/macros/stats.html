@@ -61,44 +61,42 @@
     >
       <canvas data-macro-trend-target="canvas"></canvas>
     </div>
-    <ul class="card-list">
-      <li class="card-list-item">
-        <div class="card-list-row">
-          <span class="card-list-label">Days tracked</span>
-          <span>{{ .summary.ActiveDays }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Avg kcal / day</span>
-          <span>{{ truncateFloat .summary.AvgKcal }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Total kcal</span>
-          <span>{{ truncateFloat .summary.TotalKcal }}</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Avg protein / day</span>
-          <span>{{ truncateFloat .summary.AvgProtein }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Total protein</span>
-          <span>{{ truncateFloat .summary.TotalProtein }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Avg carbs / day</span>
-          <span>{{ truncateFloat .summary.AvgCarbs }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Total carbs</span>
-          <span>{{ truncateFloat .summary.TotalCarbs }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Avg fat / day</span>
-          <span>{{ truncateFloat .summary.AvgFat }}g</span>
-        </div>
-        <div class="card-list-row">
-          <span class="card-list-label">Total fat</span>
-          <span>{{ truncateFloat .summary.TotalFat }}g</span>
-        </div>
+    <ul class="summary-list">
+      <li class="summary-list-item">
+        <span>Days tracked</span>
+        <span>{{ .summary.ActiveDays }}</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Avg kcal / day</span>
+        <span>{{ truncateFloat .summary.AvgKcal }}</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Total kcal</span>
+        <span>{{ truncateFloat .summary.TotalKcal }}</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Avg protein / day</span>
+        <span>{{ truncateFloat .summary.AvgProtein }}g</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Total protein</span>
+        <span>{{ truncateFloat .summary.TotalProtein }}g</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Avg carbs / day</span>
+        <span>{{ truncateFloat .summary.AvgCarbs }}g</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Total carbs</span>
+        <span>{{ truncateFloat .summary.TotalCarbs }}g</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Avg fat / day</span>
+        <span>{{ truncateFloat .summary.AvgFat }}g</span>
+      </li>
+      <li class="summary-list-item">
+        <span>Total fat</span>
+        <span>{{ truncateFloat .summary.TotalFat }}g</span>
       </li>
     </ul>
   </section>

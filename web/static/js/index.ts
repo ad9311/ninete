@@ -38,6 +38,4 @@ window.Stimulus.register("macro-calc", MacroCalcController);
 window.Stimulus.register("macro-trend", MacroTrendController);
 window.Stimulus.register("mood-chart", MoodChartController);
 
-initIcons();
 document.addEventListener("turbo:load", initIcons);
-document.addEventListener("turbo:render", initIcons);

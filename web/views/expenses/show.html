@@ -28,22 +28,6 @@
         >
           <i data-lucide="repeat" class="card-action-icon"></i>
         </a>
-        <form
-          action="/expenses/{{ .expense.ID }}/delete"
-          method="post"
-          data-turbo-confirm="Delete this expense?"
-        >
-          {{ template "csrf" . }}
-          <button
-            type="submit"
-            class="card-action-link is-danger"
-            aria-label="Delete expense"
-            title="Delete expense"
-            data-turbo-submits-with="Deleting..."
-          >
-            <i data-lucide="trash-2" class="card-action-icon"></i>
-          </button>
-        </form>
       </nav>
     </header>
     <table>
@@ -97,5 +81,19 @@
         </tr>
       </tbody>
     </table>
+    <form
+      action="/expenses/{{ .expense.ID }}/delete"
+      method="post"
+      data-turbo-confirm="Delete this expense?"
+    >
+      {{ template "csrf" . }}
+      <button
+        type="submit"
+        class="btn-danger form-submit"
+        data-turbo-submits-with="Deleting..."
+      >
+        Delete
+      </button>
+    </form>
   </section>
 {{ end }}

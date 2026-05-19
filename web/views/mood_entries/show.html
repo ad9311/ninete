@@ -20,22 +20,6 @@
         >
           <i data-lucide="smile" class="card-action-icon"></i>
         </a>
-        <form
-          action="/moods/{{ .moodEntry.ID }}/delete"
-          method="post"
-          data-turbo-confirm="Delete this mood entry?"
-        >
-          {{ template "csrf" . }}
-          <button
-            type="submit"
-            class="card-action-link is-danger"
-            aria-label="Delete mood entry"
-            title="Delete mood entry"
-            data-turbo-submits-with="Deleting..."
-          >
-            <i data-lucide="trash-2" class="card-action-icon"></i>
-          </button>
-        </form>
       </nav>
     </header>
     <table>
@@ -74,5 +58,19 @@
         </tr>
       </tbody>
     </table>
+    <form
+      action="/moods/{{ .moodEntry.ID }}/delete"
+      method="post"
+      data-turbo-confirm="Delete this mood entry?"
+    >
+      {{ template "csrf" . }}
+      <button
+        type="submit"
+        class="btn-danger form-submit"
+        data-turbo-submits-with="Deleting..."
+      >
+        Delete
+      </button>
+    </form>
   </section>
 {{ end }}
