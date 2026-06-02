@@ -35,11 +35,5 @@
     data-date-target="value"
     value="{{ .moodEntry.LoggedAt }}"
   />
-  <button
-    type="submit"
-    class="btn-primary form-submit"
-    data-turbo-submits-with="Saving..."
-  >
-    Submit
-  </button>
+  {{ template "submit_button" . }}
 {{ end }}

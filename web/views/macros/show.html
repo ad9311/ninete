@@ -78,13 +78,7 @@
       data-turbo-confirm="Delete this macro entry?"
     >
       {{ template "csrf" . }}
-      <button
-        type="submit"
-        class="btn-danger form-submit"
-        data-turbo-submits-with="Deleting..."
-      >
-        Delete
-      </button>
+      {{ template "delete_button" . }}
     </form>
   </section>
 {{ end }}
