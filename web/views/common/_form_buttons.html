@@ -1,0 +1,19 @@
+{{ define "submit_button" }}
+  <button
+    type="submit"
+    class="btn-primary form-submit"
+    data-turbo-submits-with="Saving..."
+  >
+    Submit
+  </button>
+{{ end }}
+
+{{ define "delete_button" }}
+  <button
+    type="submit"
+    class="btn-danger form-submit"
+    data-turbo-submits-with="Deleting..."
+  >
+    Delete
+  </button>
+{{ end }}
