@@ -112,6 +112,6 @@ func (s *Server) setUpSession() {
 	s.Session.Cookie.Secure = s.app.IsProduction()
 	s.Session.Cookie.HttpOnly = true
 	s.Session.Cookie.Persist = true
-	s.Session.Cookie.SameSite = http.SameSiteStrictMode
+	s.Session.Cookie.SameSite = http.SameSiteLaxMode
 	s.Session.Cookie.Name = "ninete_session"
 }
