@@ -1,6 +1,14 @@
 {{ define "header" }}
   <header class="site-header">
     <a href="/" class="site-brand">NINETE</a>
+    <label class="theme-switch" data-controller="theme">
+      <span class="sr-only">Theme</span>
+      <select data-theme-target="select" data-action="change->theme#change">
+        <option value="auto">Automatic</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
     {{ if ne .currentUser nil }}
       <nav class="site-nav" data-controller="nav">
         <button

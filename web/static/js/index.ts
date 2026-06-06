@@ -21,6 +21,7 @@ import LocalDateController from "./controllers/localDateController";
 import MacroCalcController from "./controllers/macroCalcController";
 import MacroTrendController from "./controllers/macroTrendController";
 import MoodChartController from "./controllers/moodChartController";
+import ThemeController from "./controllers/themeController";
 import { initIcons } from "./icons";
 
 window.Stimulus = Application.start();
@@ -37,5 +38,6 @@ window.Stimulus.register("local-date", LocalDateController);
 window.Stimulus.register("macro-calc", MacroCalcController);
 window.Stimulus.register("macro-trend", MacroTrendController);
 window.Stimulus.register("mood-chart", MoodChartController);
+window.Stimulus.register("theme", ThemeController);
 
 document.addEventListener("turbo:load", initIcons);

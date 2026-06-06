@@ -1,10 +1,24 @@
 {{ define "layout" }}
   <!doctype html>
-  <html lang="en">
+  <html lang="en" class="theme-light">
     <head>
       <meta charset="UTF-8" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <script>
+        (function () {
+          try {
+            var pref = localStorage.getItem("theme") || "auto";
+            var dark =
+              pref === "dark" ||
+              (pref === "auto" &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches);
+            document.documentElement.className = dark
+              ? "theme-dark"
+              : "theme-light";
+          } catch (e) {}
+        })();
+      </script>
       <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico" />
       <link
         rel="stylesheet"
@@ -18,7 +32,7 @@
       ></script>
       <title>NINETE</title>
     </head>
-    <body class="theme-light" hx-boost="true">
+    <body hx-boost="true">
       <div class="page-shell">
         {{ template "header" . }}
         <main class="page-main">
