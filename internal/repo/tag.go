@@ -173,6 +173,32 @@ func (q *Queries) DeleteTag(ctx context.Context, id, userID int) (int, error) {
 	return i, err
 }
 
+const countTagsByUser = `SELECT COUNT(*) FROM "tags" WHERE "user_id" = ?`
+
+func (q *Queries) CountTagsByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countTagsByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countTagsByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+// DeleteAllTagsByUser removes every tag owned by the user. The taggings rows
+// referencing those tags cascade automatically via the tag_id foreign key.
+const deleteAllTagsByUser = `DELETE FROM "tags" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllTagsByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllTagsByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllTagsByUser, userID)
+
+		return err
+	})
+}
+
 func validTagFields() []string {
 	return []string{
 		"id",

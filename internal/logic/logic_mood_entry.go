@@ -128,3 +128,9 @@ func (s *Store) DeleteMoodEntry(ctx context.Context, id, userID int) error {
 
 	return nil
 }
+
+func (s *Store) DeleteAllMoodEntries(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllMoodEntriesByUser(ctx, userID)
+	})
+}

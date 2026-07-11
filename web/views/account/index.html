@@ -1,0 +1,143 @@
+{{ template "layout" . }}
+{{ define "main" }}
+  <section class="card" aria-labelledby="account-card-title">
+    <header class="card-header">
+      <h1 id="account-card-title" class="card-title">Account</h1>
+    </header>
+    <p class="card-empty">
+      Permanently delete your data. Each action removes every record of that
+      type for your account and cannot be undone.
+    </p>
+  </section>
+
+  <div class="card-grid">
+    <section class="card" aria-labelledby="account-expenses-title">
+      <header class="card-header">
+        <h2 id="account-expenses-title" class="card-title">Expenses</h2>
+      </header>
+      <span class="card-delta">{{ .counts.Expenses }} record(s)</span>
+      <form
+        action="/account/expenses/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your expenses? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-recurrent-expenses-title">
+      <header class="card-header">
+        <h2 id="account-recurrent-expenses-title" class="card-title">
+          Recurrent Expenses
+        </h2>
+      </header>
+      <span class="card-delta">{{ .counts.RecurrentExpenses }} record(s)</span>
+      <form
+        action="/account/recurrent-expenses/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your recurrent expenses? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-macro-entries-title">
+      <header class="card-header">
+        <h2 id="account-macro-entries-title" class="card-title">
+          Macro Entries
+        </h2>
+      </header>
+      <span class="card-delta">{{ .counts.MacroEntries }} record(s)</span>
+      <form
+        action="/account/macro-entries/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your macro entries? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-macro-goals-title">
+      <header class="card-header">
+        <h2 id="account-macro-goals-title" class="card-title">Macro Goals</h2>
+      </header>
+      <span class="card-delta">{{ .counts.MacroGoals }} record(s)</span>
+      <form
+        action="/account/macro-goals/delete-all"
+        method="post"
+        data-turbo-confirm="Delete your macro goals? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-foods-title">
+      <header class="card-header">
+        <h2 id="account-foods-title" class="card-title">Foods</h2>
+      </header>
+      <span class="card-delta">{{ .counts.Foods }} record(s)</span>
+      <form
+        action="/account/foods/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your foods? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-moods-title">
+      <header class="card-header">
+        <h2 id="account-moods-title" class="card-title">Moods</h2>
+      </header>
+      <span class="card-delta">{{ .counts.MoodEntries }} record(s)</span>
+      <form
+        action="/account/moods/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your mood entries? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="account-tags-title">
+      <header class="card-header">
+        <h2 id="account-tags-title" class="card-title">Tags</h2>
+      </header>
+      <span class="card-delta">{{ .counts.Tags }} record(s)</span>
+      <form
+        action="/account/tags/delete-all"
+        method="post"
+        data-turbo-confirm="Delete ALL your tags? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="account-delete-all-title">
+    <header class="card-header">
+      <h2 id="account-delete-all-title" class="card-title">
+        Delete everything
+      </h2>
+    </header>
+    <p class="card-empty">
+      This removes every record across all sections above in one action. This
+      cannot be undone.
+    </p>
+    <form
+      action="/account/delete-all"
+      method="post"
+      data-turbo-confirm="Delete ALL of your data across every section? This CANNOT be undone."
+    >
+      {{ template "csrf" . }}
+      {{ template "delete_button" . }}
+    </form>
+  </section>
+{{ end }}

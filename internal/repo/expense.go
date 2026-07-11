@@ -289,6 +289,39 @@ func (q *Queries) DeleteExpense(ctx context.Context, id, userID int) (int, error
 	return i, err
 }
 
+const countExpensesByUser = `SELECT COUNT(*) FROM "expenses" WHERE "user_id" = ?`
+
+func (q *Queries) CountExpensesByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countExpensesByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countExpensesByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteExpenseTaggingsByUser = `
+DELETE FROM "taggings"
+WHERE "taggable_type" = 'expense'
+  AND "taggable_id" IN (SELECT "id" FROM "expenses" WHERE "user_id" = ?)`
+
+const deleteAllExpensesByUser = `DELETE FROM "expenses" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllExpensesByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllExpensesByUser, func() error {
+		if _, err := q.tx.ExecContext(ctx, deleteExpenseTaggingsByUser, userID); err != nil {
+			return err
+		}
+
+		_, err := q.tx.ExecContext(ctx, deleteAllExpensesByUser, userID)
+
+		return err
+	})
+}
+
 const selectExpensesCategoryTotals = `
 SELECT "category_id", SUM("amount") AS "total"
 FROM "expenses"

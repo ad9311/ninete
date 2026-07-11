@@ -49,6 +49,12 @@ func (s *Store) DeleteTag(ctx context.Context, id, userID int) (int, error) {
 	return i, nil
 }
 
+func (s *Store) DeleteAllTags(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllTagsByUser(ctx, userID)
+	})
+}
+
 func ParseTagNames(raw string) []string {
 	rawTags := strings.Split(raw, ";")
 

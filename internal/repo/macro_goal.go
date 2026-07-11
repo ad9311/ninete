@@ -104,3 +104,27 @@ func (q *TxQueries) UpsertMacroGoal(ctx context.Context, params UpsertMacroGoalP
 
 	return g, err
 }
+
+const countMacroGoalsByUser = `SELECT COUNT(*) FROM "macro_goals" WHERE "user_id" = ?`
+
+func (q *Queries) CountMacroGoalsByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countMacroGoalsByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countMacroGoalsByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteAllMacroGoalsByUser = `DELETE FROM "macro_goals" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllMacroGoalsByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllMacroGoalsByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllMacroGoalsByUser, userID)
+
+		return err
+	})
+}

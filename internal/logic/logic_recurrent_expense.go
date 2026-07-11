@@ -103,6 +103,12 @@ func (s *Store) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int
 	return i, nil
 }
 
+func (s *Store) DeleteAllRecurrentExpenses(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllRecurrentExpensesByUser(ctx, userID)
+	})
+}
+
 func (s *Store) CopyDueRecurrentExpenses(ctx context.Context, now time.Time) (int, error) {
 	nowUnix := now.Unix()
 	expenseDate := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).Unix()

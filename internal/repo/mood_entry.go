@@ -211,6 +211,39 @@ func (q *Queries) DeleteMoodEntry(ctx context.Context, id, userID int) (int, err
 	return i, err
 }
 
+const countMoodEntriesByUser = `SELECT COUNT(*) FROM "mood_entries" WHERE "user_id" = ?`
+
+func (q *Queries) CountMoodEntriesByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countMoodEntriesByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countMoodEntriesByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteMoodEntryTaggingsByUser = `
+DELETE FROM "taggings"
+WHERE "taggable_type" = 'mood_entry'
+  AND "taggable_id" IN (SELECT "id" FROM "mood_entries" WHERE "user_id" = ?)`
+
+const deleteAllMoodEntriesByUser = `DELETE FROM "mood_entries" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllMoodEntriesByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllMoodEntriesByUser, func() error {
+		if _, err := q.tx.ExecContext(ctx, deleteMoodEntryTaggingsByUser, userID); err != nil {
+			return err
+		}
+
+		_, err := q.tx.ExecContext(ctx, deleteAllMoodEntriesByUser, userID)
+
+		return err
+	})
+}
+
 type MoodCount struct {
 	Mood  string
 	Count int

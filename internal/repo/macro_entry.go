@@ -303,6 +303,30 @@ func (q *Queries) DeleteMacroEntry(ctx context.Context, id, userID int) (int, er
 	return i, err
 }
 
+const countMacroEntriesByUser = `SELECT COUNT(*) FROM "macro_entries" WHERE "user_id" = ?`
+
+func (q *Queries) CountMacroEntriesByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countMacroEntriesByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countMacroEntriesByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteAllMacroEntriesByUser = `DELETE FROM "macro_entries" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllMacroEntriesByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllMacroEntriesByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllMacroEntriesByUser, userID)
+
+		return err
+	})
+}
+
 const selectMacroDayTotals = `
 SELECT COALESCE(SUM("kcal"),0), COALESCE(SUM("protein_g"),0),
        COALESCE(SUM("carbs_g"),0), COALESCE(SUM("fat_g"),0),

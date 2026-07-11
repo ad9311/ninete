@@ -243,6 +243,30 @@ func (q *Queries) DeleteFood(ctx context.Context, id, userID int) (int, error) {
 	return i, err
 }
 
+const countFoodsByUser = `SELECT COUNT(*) FROM "foods" WHERE "user_id" = ?`
+
+func (q *Queries) CountFoodsByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countFoodsByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countFoodsByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteAllFoodsByUser = `DELETE FROM "foods" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllFoodsByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllFoodsByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllFoodsByUser, userID)
+
+		return err
+	})
+}
+
 func validFoodFields() []string {
 	return []string{
 		"id",
