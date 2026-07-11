@@ -78,6 +78,23 @@ func (q *TxQueries) DeleteTaggingsByTarget(ctx context.Context, taggableType str
 	})
 }
 
+const countTaggingsByTarget = `
+SELECT COUNT(*) FROM "taggings"
+WHERE "taggable_type" = ?
+  AND "taggable_id" = ?`
+
+func (q *Queries) CountTaggingsByTarget(ctx context.Context, taggableType string, taggableID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countTaggingsByTarget, func() error {
+		row := q.db.QueryRowContext(ctx, countTaggingsByTarget, taggableType, taggableID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
 const selectTagsForTaggableBase = `
 SELECT t.*
 FROM "taggings" tg

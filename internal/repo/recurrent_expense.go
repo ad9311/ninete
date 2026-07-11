@@ -287,6 +287,30 @@ func (q *Queries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (i
 	return i, err
 }
 
+const countRecurrentExpensesByUser = `SELECT COUNT(*) FROM "recurrent_expenses" WHERE "user_id" = ?`
+
+func (q *Queries) CountRecurrentExpensesByUser(ctx context.Context, userID int) (int, error) {
+	var c int
+
+	err := q.wrapQuery(countRecurrentExpensesByUser, func() error {
+		row := q.db.QueryRowContext(ctx, countRecurrentExpensesByUser, userID)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const deleteAllRecurrentExpensesByUser = `DELETE FROM "recurrent_expenses" WHERE "user_id" = ?`
+
+func (q *TxQueries) DeleteAllRecurrentExpensesByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllRecurrentExpensesByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllRecurrentExpensesByUser, userID)
+
+		return err
+	})
+}
+
 const selectRecurrentExpense = `
 SELECT * FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
 `

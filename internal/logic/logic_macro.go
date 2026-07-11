@@ -141,6 +141,18 @@ func (s *Store) DeleteMacroEntry(ctx context.Context, id, userID int) (int, erro
 	return i, nil
 }
 
+func (s *Store) DeleteAllMacroEntries(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllMacroEntriesByUser(ctx, userID)
+	})
+}
+
+func (s *Store) DeleteAllMacroGoals(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllMacroGoalsByUser(ctx, userID)
+	})
+}
+
 func (s *Store) FindMacroDayTotals(
 	ctx context.Context,
 	userID int,

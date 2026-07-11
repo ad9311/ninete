@@ -109,3 +109,9 @@ func (s *Store) DeleteFood(ctx context.Context, id, userID int) (int, error) {
 
 	return i, nil
 }
+
+func (s *Store) DeleteAllFoods(ctx context.Context, userID int) error {
+	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		return tq.DeleteAllFoodsByUser(ctx, userID)
+	})
+}
