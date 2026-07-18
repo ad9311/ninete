@@ -3,6 +3,9 @@
 ## Purpose
 This document gives high-level context so agents can navigate the codebase quickly and make consistent changes.
 
+## Project Scope
+NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods) that started as a single-user project. Currently, you are the primary user. However, the app is designed to support multiple users — it includes auth flows, user-scoped data ownership, and multi-user capabilities. Future enhancements should maintain this multi-user support even though single-user usage is the current norm.
+
 ## Runtime Flow (`cmd/ninete`)
 1. `cmd/ninete/main.go` loads application config using `prog.Load()`.
 2. It opens SQLite via `db.Open()`.
