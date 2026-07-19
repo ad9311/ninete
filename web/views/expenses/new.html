@@ -1,9 +1,22 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <section class="card" aria-labelledby="new-expense-card-title">
+  <section
+    class="card"
+    aria-labelledby="new-expense-card-title"
+    data-controller="quick-expense"
+    data-quick-force="{{ if .quickActive }}1{{ end }}"
+  >
     <header class="card-header">
       <h1 id="new-expense-card-title" class="card-title">New expense</h1>
       <nav class="card-actions" aria-label="Expense navigation">
+        <label class="quick-toggle" title="Quick add">
+          <input
+            type="checkbox"
+            data-quick-expense-target="switch"
+            data-action="change->quick-expense#toggle"
+          />
+          Quick
+        </label>
         <a
           href="/expenses"
           class="card-action-link"
@@ -23,14 +36,19 @@
       </nav>
     </header>
     {{ template "form_error" . }}
-    <form
-      action="/expenses"
-      method="post"
-      data-controller="date amount"
-      data-action="submit->date#prepare submit->amount#prepare"
-    >
-      {{ template "csrf" . }}
-      {{ template "expense_form" . }}
-    </form>
+    <div data-quick-expense-target="regular">
+      <form
+        action="/expenses"
+        method="post"
+        data-controller="date amount"
+        data-action="submit->date#prepare submit->amount#prepare"
+      >
+        {{ template "csrf" . }}
+        {{ template "expense_form" . }}
+      </form>
+    </div>
+    <div data-quick-expense-target="quick" hidden>
+      {{ template "quick_expense_form" . }}
+    </div>
   </section>
 {{ end }}

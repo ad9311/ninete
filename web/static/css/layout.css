@@ -565,6 +565,23 @@ button:focus-visible {
   background: var(--color-neutral-hover);
 }
 
+.quick-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.quick-hint {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-2);
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
 .site-nav-caret {
   font-size: 0.7em;
   line-height: 1;
