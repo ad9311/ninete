@@ -16,4 +16,8 @@ var (
 	ErrTagResolutionFailed = errors.New("failed to resolve tags")
 
 	ErrInvalidMood = errors.New("invalid mood selection")
+
+	ErrQuickExpenseFormat = errors.New("quick expense must be: description, amount, date")
+	ErrQuickExpenseAmount = errors.New("invalid amount")
+	ErrQuickExpenseDate   = errors.New("invalid date")
 )

@@ -1,0 +1,30 @@
+{{ define "quick_expense_form" }}
+  <form action="/expenses/quick" method="post">
+    {{ template "csrf" . }}
+    <label>
+      Quick add
+      <input
+        type="text"
+        name="quick_input"
+        value="{{ .quickInput }}"
+        placeholder="Description, amount, date"
+      />
+    </label>
+    <p class="quick-hint">Example: Uber, 3344.22, today</p>
+    {{ if .quickNeedsCategory }}
+      <label>
+        Category
+        <select name="category_id">
+          <option value="">Select a category</option>
+          {{ range .categories }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+          {{ end }}
+        </select>
+      </label>
+      <p class="quick-hint">
+        First time for this description. Pick a category to remember it.
+      </p>
+    {{ end }}
+    {{ template "submit_button" . }}
+  </form>
+{{ end }}

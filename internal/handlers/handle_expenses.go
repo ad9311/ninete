@@ -166,6 +166,7 @@ func (h *Handler) GetExpensesNew(w http.ResponseWriter, r *http.Request) {
 	}
 
 	setExpenseFormData(data, categories, repo.Expense{}, "")
+	setQuickFormData(data, categories, "", false)
 
 	h.render(w, http.StatusOK, ExpensesNew, data)
 }
@@ -198,6 +199,7 @@ func (h *Handler) PostExpenses(w http.ResponseWriter, r *http.Request) {
 
 	categories, _, categoriesErr := h.findCategories(ctx)
 	setExpenseFormData(data, categories, repo.Expense{}, rawTagsInput)
+	setQuickFormData(data, categories, "", false)
 
 	params, err := parseExpenseForm(r)
 	if err != nil {
