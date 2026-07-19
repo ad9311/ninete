@@ -101,6 +101,11 @@ func parseQuickDate(s string, tzOffsetMinutes int) (int64, error) {
 		return today.Unix(), nil
 	case "yesterday":
 		return today.AddDate(0, 0, -1).Unix(), nil
+	case "tomorrow":
+		return today.AddDate(0, 0, 1).Unix(), nil
+	case "next month":
+		// First day of the month after the client's current month.
+		return time.Date(year, month+1, 1, 0, 0, 0, 0, time.UTC).Unix(), nil
 	}
 
 	titled := titleCaseWords(s)

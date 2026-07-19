@@ -96,6 +96,26 @@ func TestParseQuickExpense(t *testing.T) {
 			},
 		},
 		{
+			name: "should_parse_tomorrow",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, tomorrow", 0)
+				require.NoError(t, err)
+				now := time.Now().UTC()
+				want := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
+				require.Equal(t, want.Unix(), parsed.Date)
+			},
+		},
+		{
+			name: "should_parse_next_month_as_first_day",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Rent, 500, next month", 0)
+				require.NoError(t, err)
+				now := time.Now().UTC()
+				want := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC)
+				require.Equal(t, want.Unix(), parsed.Date)
+			},
+		},
+		{
 			name: "should_fail_on_short_description_before_amount_or_date",
 			fn: func(t *testing.T) {
 				_, err := logic.ParseQuickExpense("ab, 10, today", 0)
