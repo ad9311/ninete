@@ -17,7 +17,8 @@ var (
 
 	ErrInvalidMood = errors.New("invalid mood selection")
 
-	ErrQuickExpenseFormat = errors.New("quick expense must be: description, amount, date")
-	ErrQuickExpenseAmount = errors.New("invalid amount")
-	ErrQuickExpenseDate   = errors.New("invalid date")
+	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, date")
+	ErrQuickExpenseDescription = errors.New("description must be between 3 and 50 characters")
+	ErrQuickExpenseAmount      = errors.New("invalid amount")
+	ErrQuickExpenseDate        = errors.New("invalid date")
 )
