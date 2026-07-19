@@ -23,6 +23,7 @@ import MacroTrendController from "./controllers/macroTrendController";
 import MoodChartController from "./controllers/moodChartController";
 import ThemeController from "./controllers/themeController";
 import QuickExpenseController from "./controllers/quickExpenseController";
+import DateHelpController from "./controllers/dateHelpController";
 import { initIcons } from "./icons";
 
 window.Stimulus = Application.start();
@@ -41,5 +42,11 @@ window.Stimulus.register("macro-trend", MacroTrendController);
 window.Stimulus.register("mood-chart", MoodChartController);
 window.Stimulus.register("theme", ThemeController);
 window.Stimulus.register("quick-expense", QuickExpenseController);
+window.Stimulus.register("date-help", DateHelpController);
 
+// turbo:load covers full-page visits; turbo:render also fires when Turbo
+// re-renders a form response (including non-2xx error re-renders), which
+// turbo:load does not — without it, freshly rendered <i data-lucide> icons
+// stay unconverted and invisible.
 document.addEventListener("turbo:load", initIcons);
+document.addEventListener("turbo:render", initIcons);

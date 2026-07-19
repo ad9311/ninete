@@ -2,7 +2,39 @@
   <form action="/expenses/quick" method="post">
     {{ template "csrf" . }}
     <label>
-      Quick add
+      <span class="quick-label-row">
+        Quick add
+        <span class="date-help" data-controller="date-help">
+          <button
+            type="button"
+            class="date-help-toggle"
+            data-date-help-target="toggle"
+            data-action="date-help#toggle"
+            aria-label="Show accepted date formats"
+            aria-expanded="false"
+          >
+            <i data-lucide="info" class="date-help-icon" aria-hidden="true"></i>
+          </button>
+          <div
+            class="date-help-panel"
+            data-date-help-target="panel"
+            role="tooltip"
+            hidden
+          >
+            <p class="date-help-title">Date can be:</p>
+            <ul>
+              <li>
+                <code>today</code>, <code>yesterday</code>,
+                <code>tomorrow</code>
+              </li>
+              <li><code>next month</code> (1st of next month)</li>
+              <li><code>12 July 2026</code> or <code>12 Jul 2026</code></li>
+              <li><code>2026-07-12</code> (ISO)</li>
+              <li><code>12/07/2026</code> (day/month/year)</li>
+            </ul>
+          </div>
+        </span>
+      </span>
       <input
         type="text"
         name="quick_input"
