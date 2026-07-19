@@ -7,8 +7,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ad9311/ninete/internal/repo"
+)
+
+// Quick-add description bounds mirror ExpenseBaseParams.Description validation
+// (min=3,max=50) so the input is rejected before any category prompt.
+const (
+	quickDescriptionMin = 3
+	quickDescriptionMax = 50
+	// quickMaxDollars caps the amount so dollars*100 stays within uint64 cents.
+	quickMaxDollars = float64(math.MaxInt64) / 100
 )
 
 // quickDateLayouts are attempted in order when parsing an explicit date.
@@ -41,6 +51,9 @@ func ParseQuickExpense(raw string, tzOffsetMinutes int) (QuickExpenseParsed, err
 	}
 
 	description := strings.TrimSpace(parts[0])
+	if length := utf8.RuneCountInString(description); length < quickDescriptionMin || length > quickDescriptionMax {
+		return parsed, ErrQuickExpenseDescription
+	}
 
 	amount, err := parseDollarsToCents(strings.TrimSpace(parts[1]))
 	if err != nil {
@@ -60,16 +73,17 @@ func ParseQuickExpense(raw string, tzOffsetMinutes int) (QuickExpenseParsed, err
 }
 
 func parseDollarsToCents(s string) (uint64, error) {
-	normalized := strings.ReplaceAll(s, ",", "")
-	if normalized == "" {
+	if s == "" {
 		return 0, ErrQuickExpenseAmount
 	}
 
-	dollars, err := strconv.ParseFloat(normalized, 64)
+	// Amounts are plain decimals (e.g. "3344.22"); no thousands separators —
+	// the comma is the field separator, so a comma here never reaches parsing.
+	dollars, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %w", ErrQuickExpenseAmount, err)
 	}
-	if dollars < 0 || math.IsInf(dollars, 0) || math.IsNaN(dollars) {
+	if dollars <= 0 || math.IsInf(dollars, 0) || math.IsNaN(dollars) || dollars > quickMaxDollars {
 		return 0, ErrQuickExpenseAmount
 	}
 
@@ -87,6 +101,11 @@ func parseQuickDate(s string, tzOffsetMinutes int) (int64, error) {
 		return today.Unix(), nil
 	case "yesterday":
 		return today.AddDate(0, 0, -1).Unix(), nil
+	case "tomorrow":
+		return today.AddDate(0, 0, 1).Unix(), nil
+	case "next month":
+		// First day of the month after the client's current month.
+		return time.Date(year, month+1, 1, 0, 0, 0, 0, time.UTC).Unix(), nil
 	}
 
 	titled := titleCaseWords(s)
