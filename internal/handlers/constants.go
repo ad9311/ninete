@@ -6,6 +6,7 @@ type ContextKey string
 const (
 	KeyCurrentUser      = ContextKey("userID")
 	KeyTemplateData     = ContextKey("templateData")
+	KeyCSPNonce         = ContextKey("cspNonce")
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
 	KeyMacroEntry       = ContextKey("macroEntryID")

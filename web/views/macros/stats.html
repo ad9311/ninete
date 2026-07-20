@@ -30,7 +30,7 @@
         </a>
       </nav>
     </header>
-    <div class="filters">
+    <form method="get" action="/macros/stats" class="filters">
       <label>
         <span class="sr-only">Period</span>
         <i
@@ -38,7 +38,11 @@
           class="filter-icon"
           aria-hidden="true"
         ></i>
-        <select onchange="window.location='/macros/stats?period='+this.value">
+        <select
+          name="period"
+          data-controller="submit-on-change"
+          data-action="change->submit-on-change#submit"
+        >
           <option value="week" {{ if eq .period "week" }}selected{{ end }}>
             Last 7 days
           </option>
@@ -53,7 +57,7 @@
           </option>
         </select>
       </label>
-    </div>
+    </form>
     <div
       class="chart-container"
       data-controller="macro-trend"

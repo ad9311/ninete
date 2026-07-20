@@ -735,8 +735,12 @@ button:focus-visible {
   max-width: var(--size-form);
 }
 
-p[style*="color: red"] {
-  color: var(--color-danger) !important;
+.form-error-text {
+  color: var(--color-danger);
+}
+
+.btn-align-end {
+  align-self: flex-end;
 }
 
 @media (width <= 48rem) {

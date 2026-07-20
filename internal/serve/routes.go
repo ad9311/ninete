@@ -13,6 +13,8 @@ func (s *Server) setUpRoutes() {
 
 		root.Get("/", s.handlers.GetRoot)
 
+		root.Post(cspReportPath, s.handlers.PostCSPReport)
+
 		root.Get("/login", s.handlers.GetLogin)
 		root.Post("/login", s.handlers.PostLogin)
 		root.Get("/register", s.handlers.GetRegister)

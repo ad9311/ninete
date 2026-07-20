@@ -24,6 +24,7 @@ import MoodChartController from "./controllers/moodChartController";
 import ThemeController from "./controllers/themeController";
 import QuickExpenseController from "./controllers/quickExpenseController";
 import DateHelpController from "./controllers/dateHelpController";
+import SubmitOnChangeController from "./controllers/submitOnChangeController";
 import { initIcons } from "./icons";
 
 window.Stimulus = Application.start();
@@ -43,6 +44,7 @@ window.Stimulus.register("mood-chart", MoodChartController);
 window.Stimulus.register("theme", ThemeController);
 window.Stimulus.register("quick-expense", QuickExpenseController);
 window.Stimulus.register("date-help", DateHelpController);
+window.Stimulus.register("submit-on-change", SubmitOnChangeController);
 
 // turbo:load covers full-page visits; turbo:render also fires when Turbo
 // re-renders a form response (including non-2xx error re-renders), which
