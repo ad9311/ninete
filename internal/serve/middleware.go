@@ -2,8 +2,11 @@ package serve
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -53,7 +56,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if strings.HasPrefix(path, "/static/") {
+		if strings.HasPrefix(path, "/static/") || path == cspReportPath {
 			next.ServeHTTP(w, r)
 
 			return
@@ -71,6 +74,8 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 
 func (s *Server) csrf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
+	// Browsers post CSP reports automatically with no CSRF token.
+	csrfHandler.ExemptPath(cspReportPath)
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
 		Path:     "/",
@@ -102,8 +107,11 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			}
 		}
 
+		nonce, _ := ctx.Value(handlers.KeyCSPNonce).(string)
+
 		templateMap := map[string]any{
 			"csrfToken":      csrf,
+			"cspNonce":       nonce,
 			"error":          "",
 			"isUserSignedIn": isUserSignedIn,
 			"currentUser":    currentUser,
@@ -124,14 +132,66 @@ func (*Server) limitRequestBody(next http.Handler) http.Handler {
 	})
 }
 
-func (*Server) securityHeaders(next http.Handler) http.Handler {
+func generateNonce() (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrNonceGeneration, err)
+	}
+
+	return base64.StdEncoding.EncodeToString(buf), nil
+}
+
+// cspReportPath receives browser CSP violation reports so a blocked inline
+// script/style produces a server-side signal instead of failing silently.
+const cspReportPath = "/csp-report"
+
+func buildCSP(nonce string) string {
+	return "default-src 'self'; " +
+		"script-src 'self' 'nonce-" + nonce + "'; " +
+		"style-src 'self' 'nonce-" + nonce + "'; " +
+		"img-src 'self' data:; " +
+		"font-src 'self'; " +
+		"connect-src 'self'; " +
+		"object-src 'none'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'; " +
+		"frame-ancestors 'none'; " +
+		"report-uri " + cspReportPath + "; " +
+		"report-to csp"
+}
+
+func (s *Server) securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
+
+		if s.app.IsProduction() {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
+
+		// Static assets carry no nonce'd markup — skip the per-request nonce
+		// generation and CSP on the asset hot path.
+		if strings.HasPrefix(r.URL.Path, "/static/") {
+			next.ServeHTTP(w, r)
+
+			return
+		}
+
+		nonce, err := generateNonce()
+		if err != nil {
+			s.app.Logger.Errorf("%v", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+			return
+		}
+
+		w.Header().Set("Reporting-Endpoints", `csp="`+cspReportPath+`"`)
+		w.Header().Set("Content-Security-Policy", buildCSP(nonce))
+		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), handlers.KeyCSPNonce, nonce)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

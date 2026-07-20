@@ -51,13 +51,18 @@
           type="date"
           name="date"
           value="{{ .selectedDate }}"
-          onchange="this.form.submit()"
+          data-controller="submit-on-change"
+          data-action="change->submit-on-change#submit"
         />
       </label>
       <label>
         <span class="sr-only">Meal</span>
         <i data-lucide="utensils" class="filter-icon" aria-hidden="true"></i>
-        <select name="meal_type" onchange="this.form.submit()">
+        <select
+          name="meal_type"
+          data-controller="submit-on-change"
+          data-action="change->submit-on-change#submit"
+        >
           <option value="">All meals</option>
           <option
             value="breakfast"
