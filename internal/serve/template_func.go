@@ -28,6 +28,7 @@ func TemplateFuncMap() template.FuncMap {
 		"pageRange":        pageRange,
 		"filterURL":        filterURL,
 		"dateRangeOptions": handlers.DateRangeOptions,
+		"perPageChoices":   handlers.PerPageChoices,
 		"add":              func(a, b int) int { return a + b },
 		"sub":              func(a, b int) int { return a - b },
 		"titleize":         cases.Title(language.English).String,

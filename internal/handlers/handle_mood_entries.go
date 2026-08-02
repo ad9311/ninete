@@ -91,7 +91,7 @@ func (h *Handler) GetMoodEntries(w http.ResponseWriter, r *http.Request) {
 		Sorting: repo.Sorting{Field: sortField, Order: sortOrder},
 		Pagination: repo.Pagination{
 			Page:    page,
-			PerPage: defaultPerPage,
+			PerPage: normalizePerPage(q.Get("per_page")),
 		},
 	}
 

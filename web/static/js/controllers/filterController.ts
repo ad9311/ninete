@@ -7,6 +7,7 @@ export default class extends Controller {
   static targets = [
     "categoryId",
     "dateRange",
+    "perPage",
     "search",
     "tag",
     "dateFrom",
@@ -16,6 +17,8 @@ export default class extends Controller {
   declare readonly categoryIdTarget: HTMLSelectElement;
   declare readonly hasDateRangeTarget: boolean;
   declare readonly dateRangeTarget: HTMLSelectElement;
+  declare readonly hasPerPageTarget: boolean;
+  declare readonly perPageTarget: HTMLSelectElement;
   declare readonly hasSearchTarget: boolean;
   declare readonly searchTarget: HTMLInputElement;
   declare readonly hasTagTarget: boolean;
@@ -37,6 +40,10 @@ export default class extends Controller {
 
     if (this.hasDateRangeTarget) {
       this.setOrDelete(params, "date_range", this.dateRangeTarget.value);
+    }
+
+    if (this.hasPerPageTarget) {
+      this.setOrDelete(params, "per_page", this.perPageTarget.value);
     }
 
     // The search form is a separate controller instance, so carry its current

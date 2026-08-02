@@ -537,8 +537,33 @@ td form {
   border: 0;
 }
 
-.pagination {
+.pagination-footer {
   margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.per-page {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+}
+
+.per-page .filter-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.per-page select {
+  width: 9rem;
+}
+
+.pagination {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
