@@ -1,6 +1,7 @@
 package logic_test
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -144,6 +145,71 @@ func TestParseQuickExpense(t *testing.T) {
 				require.ErrorIs(t, err, logic.ErrQuickExpenseAmount)
 			},
 		},
+		{
+			name: "should_parse_no_tags_when_field_absent",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, today", 0)
+				require.NoError(t, err)
+				require.Empty(t, parsed.Tags)
+			},
+		},
+		{
+			name: "should_parse_semicolon_separated_tags",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, today, MyTag1; mytag2 ", 0)
+				require.NoError(t, err)
+				require.Equal(t, []string{"mytag1", "mytag2"}, parsed.Tags)
+			},
+		},
+		{
+			name: "should_parse_single_tag",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, today, travel", 0)
+				require.NoError(t, err)
+				require.Equal(t, []string{"travel"}, parsed.Tags)
+			},
+		},
+		{
+			name: "should_drop_empty_and_duplicate_tags",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, today, travel;;TRAVEL; work", 0)
+				require.NoError(t, err)
+				require.Equal(t, []string{"travel", "work"}, parsed.Tags)
+			},
+		},
+		{
+			name: "should_parse_empty_tag_field_as_no_tags",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, today,   ", 0)
+				require.NoError(t, err)
+				require.Empty(t, parsed.Tags)
+			},
+		},
+		{
+			name: "should_fail_on_too_many_fields",
+			fn: func(t *testing.T) {
+				_, err := logic.ParseQuickExpense("Uber, 10, today, tag, extra", 0)
+				require.ErrorIs(t, err, logic.ErrQuickExpenseFormat)
+			},
+		},
+		{
+			name: "should_fail_on_too_many_tags",
+			fn: func(t *testing.T) {
+				tags := make([]string, 11)
+				for i := range tags {
+					tags[i] = "tag" + strconv.Itoa(i)
+				}
+				_, err := logic.ParseQuickExpense("Uber, 10, today, "+strings.Join(tags, ";"), 0)
+				require.ErrorIs(t, err, logic.ErrQuickExpenseTags)
+			},
+		},
+		{
+			name: "should_fail_on_long_tag_name",
+			fn: func(t *testing.T) {
+				_, err := logic.ParseQuickExpense("Uber, 10, today, "+strings.Repeat("a", 21), 0)
+				require.ErrorIs(t, err, logic.ErrQuickExpenseTagName)
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -211,6 +277,23 @@ func TestQuickExpenseCategoryMapping(t *testing.T) {
 				require.NoError(t, err)
 				require.True(t, found)
 				require.Equal(t, other.ID, id)
+			},
+		},
+		{
+			name: "should_attach_parsed_tags_to_expense",
+			fn: func(t *testing.T) {
+				parsed := logic.QuickExpenseParsed{
+					Description: "Disney Plus",
+					Amount:      1299,
+					Date:        1735689600,
+					Tags:        []string{"streaming", "monthly"},
+				}
+				expense, err := s.Store.CreateQuickExpense(ctx, user.ID, category.ID, parsed)
+				require.NoError(t, err)
+
+				tags, err := s.Store.FindExpenseTags(ctx, expense.ID, user.ID)
+				require.NoError(t, err)
+				require.ElementsMatch(t, []string{"streaming", "monthly"}, logic.ExtractTagNames(tags))
 			},
 		},
 		{

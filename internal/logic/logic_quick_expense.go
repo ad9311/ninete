@@ -19,6 +19,14 @@ const (
 	quickDescriptionMax = 50
 	// quickMaxDollars caps the amount so dollars*100 stays within uint64 cents.
 	quickMaxDollars = float64(math.MaxInt64) / 100
+	// quickTagNameMax mirrors TagParams.Name validation (max=20).
+	quickTagNameMax = 20
+	// quickTagsMax bounds how many tags a single quick-add can attach.
+	quickTagsMax = 10
+	// quickFieldsMin/Max are the accepted comma-separated field counts:
+	// "description, amount, date" with an optional trailing tag list.
+	quickFieldsMin = 3
+	quickFieldsMax = 4
 )
 
 // quickDateLayouts are attempted in order when parsing an explicit date.
@@ -37,16 +45,19 @@ type QuickExpenseParsed struct {
 	Description string
 	Amount      uint64
 	Date        int64
+	Tags        []string
 }
 
-// ParseQuickExpense parses a "description, amount, date" input into structured
-// fields. tzOffsetMinutes is the client's Date.getTimezoneOffset() value, used
-// to resolve relative dates ("today"/"yesterday") to the client's calendar day.
+// ParseQuickExpense parses a "description, amount, date[, tags]" input into
+// structured fields. The optional trailing field is a semicolon-separated tag
+// list ("mytag1; mytag2"), so tag names cannot contain ";" or ",".
+// tzOffsetMinutes is the client's Date.getTimezoneOffset() value, used to
+// resolve relative dates ("today"/"yesterday") to the client's calendar day.
 func ParseQuickExpense(raw string, tzOffsetMinutes int) (QuickExpenseParsed, error) {
 	var parsed QuickExpenseParsed
 
 	parts := strings.Split(raw, ",")
-	if len(parts) != 3 {
+	if len(parts) < quickFieldsMin || len(parts) > quickFieldsMax {
 		return parsed, ErrQuickExpenseFormat
 	}
 
@@ -65,11 +76,37 @@ func ParseQuickExpense(raw string, tzOffsetMinutes int) (QuickExpenseParsed, err
 		return parsed, err
 	}
 
+	var tags []string
+	if len(parts) == quickFieldsMax {
+		tags, err = parseQuickTags(parts[quickFieldsMax-1])
+		if err != nil {
+			return parsed, err
+		}
+	}
+
 	parsed.Description = description
 	parsed.Amount = amount
 	parsed.Date = date
+	parsed.Tags = tags
 
 	return parsed, nil
+}
+
+// parseQuickTags splits the trailing semicolon-separated tag list and validates
+// it up front, so a bad tag is reported before the category prompt.
+func parseQuickTags(s string) ([]string, error) {
+	tags := ParseTagNames(s)
+	if len(tags) > quickTagsMax {
+		return nil, ErrQuickExpenseTags
+	}
+
+	for _, tag := range tags {
+		if utf8.RuneCountInString(tag) > quickTagNameMax {
+			return nil, ErrQuickExpenseTagName
+		}
+	}
+
+	return tags, nil
 }
 
 func parseDollarsToCents(s string) (uint64, error) {
@@ -165,6 +202,7 @@ func (s *Store) CreateQuickExpense(
 			Amount:      parsed.Amount,
 		},
 		Date: parsed.Date,
+		Tags: parsed.Tags,
 	}
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
@@ -189,8 +227,11 @@ func (s *Store) CreateQuickExpense(
 			CategoryID:     categoryID,
 			DescriptionKey: descriptionKey(parsed.Description),
 		})
+		if txErr != nil {
+			return txErr
+		}
 
-		return txErr
+		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err
