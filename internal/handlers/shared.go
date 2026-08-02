@@ -68,6 +68,7 @@ type PaginationData struct {
 	Tag         string
 	DateFrom    string
 	DateTo      string
+	DateField   string
 }
 
 func userScopedQueryOpts(

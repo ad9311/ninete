@@ -169,6 +169,7 @@ func applySearchToPagination(pagination *PaginationData, search expenseSearch) {
 	pagination.Tag = search.Tag
 	pagination.DateFrom = search.DateFrom
 	pagination.DateTo = search.DateTo
+	pagination.DateField = search.dateField()
 
 	// The search replaced the preset range; reflect that in the range select.
 	if search.clearsPresetRange() {

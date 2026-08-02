@@ -455,11 +455,17 @@ td form {
   margin-top: var(--space-2);
 }
 
+/* The group grows to take the leftover width but packs its contents to the
+   right, so the free space collects between the tag input and the toggle. That,
+   plus an internal gap tighter than the .search-bar gap, makes the toggle read
+   as part of the date cluster rather than as a trailer on the field before it. */
 .search-date-group {
   display: flex;
-  flex: 1 1 22rem;
+  flex: 1 1 30rem;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  justify-content: flex-end;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -477,8 +483,98 @@ td form {
   min-width: 0;
 }
 
+/* Fixed rather than growing: if the date inputs absorbed the spare width there
+   would be no free space for justify-content to push the cluster right. */
 .search-field-date {
-  flex: 1 1 10rem;
+  flex: 0 1 10rem;
+}
+
+/* Switch selecting which column the date bounds apply to: off is the billed
+   date, on is the created date. */
+.date-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.date-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.date-toggle .switch {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.date-toggle .switch::after {
+  position: absolute;
+  top: 50%;
+  left: 0.125rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  content: "";
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.date-toggle input:checked ~ .switch {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.date-toggle input:checked ~ .switch::after {
+  background: var(--color-on-primary);
+  transform: translate(1rem, -50%);
+}
+
+.date-toggle input:focus-visible ~ .switch {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Fixed width so flipping the switch never shifts the date inputs. */
+.date-toggle-text {
+  min-width: 4rem;
+  font-size: var(--font-size-1);
+}
+
+.date-toggle .when-on {
+  display: none;
+}
+
+.date-toggle input:checked ~ .date-toggle-text .when-on {
+  display: inline;
+}
+
+.date-toggle input:checked ~ .date-toggle-text .when-off {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .date-toggle .switch,
+  .date-toggle .switch::after {
+    transition: none;
+  }
 }
 
 .search-date-label {
@@ -901,7 +997,18 @@ button:focus-visible {
     gap: var(--space-1);
   }
 
+  /* The toggle takes its own row above the date inputs (it is already first in
+     source order) so From/To keep the full width and nothing is squeezed. The
+     stacked layout collapses the column gap, so add the breathing room back
+     between the tag input and the toggle explicitly. */
+  .date-toggle {
+    flex: 1 0 100%;
+    margin-top: var(--space-3);
+  }
+
+  /* Matches the gap above the toggle so the stacked rows breathe evenly. */
   .search-actions {
+    margin-top: var(--space-3);
     margin-left: 0;
   }
 

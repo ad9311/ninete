@@ -127,15 +127,26 @@ func filterParams(pg handlers.PaginationData) string {
 
 // searchParams carries the expense search inputs across sort/pagination links.
 func searchParams(pg handlers.PaginationData) string {
+	dateField := pg.DateField
+	// The billed date is the default, so only a non-default choice needs
+	// carrying; this keeps date_field out of every link on the common path.
+	if dateField == handlers.SearchDateFieldDefault {
+		dateField = ""
+	}
+
 	var params strings.Builder
 	for _, pair := range []struct{ key, value string }{
 		{"q", pg.Search},
 		{"tag", pg.Tag},
 		{"date_from", pg.DateFrom},
 		{"date_to", pg.DateTo},
+		{"date_field", dateField},
 	} {
 		if pair.value != "" {
-			params.WriteString("&" + pair.key + "=" + url.QueryEscape(pair.value))
+			params.WriteByte('&')
+			params.WriteString(pair.key)
+			params.WriteByte('=')
+			params.WriteString(url.QueryEscape(pair.value))
 		}
 	}
 

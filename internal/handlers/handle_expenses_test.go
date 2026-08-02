@@ -577,7 +577,8 @@ func TestGetExpensesSearch(t *testing.T) {
 				rec := get(t, "")
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), `<details class="search-panel" >`)
+				// The formatter breaks the tag across lines, so match within it.
+				require.NotRegexp(t, `search-panel#toggle"\s+open\b`, rec.Body.String())
 			},
 		},
 		{
@@ -586,7 +587,7 @@ func TestGetExpensesSearch(t *testing.T) {
 				rec := get(t, "q=taxi")
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), `<details class="search-panel" open>`)
+				require.Regexp(t, `search-panel#toggle"\s+open\b`, rec.Body.String())
 			},
 		},
 		{
@@ -611,6 +612,114 @@ func TestGetExpensesSearch(t *testing.T) {
 				require.Equal(t, http.StatusOK, rec.Code)
 				require.Contains(t, rec.Body.String(), "Taxi to airport")
 				require.NotContains(t, rec.Body.String(), "Other user trip")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestGetExpensesSearchDateField(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	user := s.CreateAuthUser(t, "exp_df_1", "exp_df_1@example.com", "exp_df_pass_1")
+	category := s.CreateCategory(t, "exp_df_cat_1")
+	cookies := s.AuthCookies(t, "exp_df_1@example.com", "exp_df_pass_1")
+
+	// Billed long ago, but created now — the two columns disagree, which is the
+	// whole point of the toggle.
+	oldBilled := time.Date(2020, time.June, 10, 0, 0, 0, 0, time.UTC).Unix()
+	s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "Backdated receipt", 700, oldBilled))
+
+	today := time.Now().UTC().Format("2006-01-02")
+
+	get := func(t *testing.T, query string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := spec.NewGetRequest("/expenses?date_range=all_time&"+query, cookies)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_bound_on_the_billed_date_by_default",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_exclude_a_backdated_expense_when_bounding_on_created_at",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_match_a_backdated_expense_by_its_creation_date",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from="+today+"&date_to="+today+"&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_fall_back_to_the_billed_date_for_an_unknown_field",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10&date_field=amount")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_carry_the_selected_field_into_sort_links",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from="+today+"&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "date_field=created_at")
+			},
+		},
+		{
+			name: "should_keep_the_default_field_out_of_links",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "date_field=date")
+			},
+		},
+		{
+			name: "should_check_the_toggle_when_bounding_on_created_at",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Regexp(t, `name="date_field"[^>]*checked`, rec.Body.String())
+			},
+		},
+		{
+			name: "should_leave_the_toggle_unchecked_by_default",
+			fn: func(t *testing.T) {
+				rec := get(t, "")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotRegexp(t, `name="date_field"[^>]*checked`, rec.Body.String())
 			},
 		},
 	}
