@@ -44,6 +44,10 @@ type PaginationData struct {
 	SortOrder   string
 	CategoryID  int
 	DateRange   string
+	Search      string
+	Tag         string
+	DateFrom    string
+	DateTo      string
 }
 
 func userScopedQueryOpts(

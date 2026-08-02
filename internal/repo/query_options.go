@@ -10,6 +10,11 @@ type FilterField struct {
 	Name     string
 	Value    any
 	Operator string
+	// Expr replaces the generated `"name" operator ?` predicate when set. It must
+	// be a repo-defined SQL fragment (never user input) whose "?" placeholders are
+	// filled, in order, by Args.
+	Expr string
+	Args []any
 }
 
 type Filters struct {
@@ -95,6 +100,12 @@ func (f *Filters) Build() (string, error) {
 	var buildFilters []string
 
 	for _, field := range f.FilterFields {
+		if field.Expr != "" {
+			buildFilters = append(buildFilters, field.Expr)
+
+			continue
+		}
+
 		if field.Name == "" || !field.validOperator() {
 			operators := strings.Join(validOperators(), ", ")
 
@@ -126,6 +137,11 @@ func (f *Filters) ValidFields(fields []string) bool {
 	}
 
 	for _, field := range f.FilterFields {
+		// Expression filters carry repo-defined SQL, not a user-supplied column.
+		if field.Expr != "" {
+			continue
+		}
+
 		if !slices.Contains(fields, field.Name) {
 			return false
 		}
@@ -142,6 +158,12 @@ func (f *Filters) Values() []any {
 	var values []any
 
 	for _, v := range f.FilterFields {
+		if v.Expr != "" {
+			values = append(values, v.Args...)
+
+			continue
+		}
+
 		values = append(values, v.Value)
 	}
 

@@ -17,8 +17,10 @@ var (
 
 	ErrInvalidMood = errors.New("invalid mood selection")
 
-	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, date")
+	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, date[, tags]")
 	ErrQuickExpenseDescription = errors.New("description must be between 3 and 50 characters")
 	ErrQuickExpenseAmount      = errors.New("invalid amount")
 	ErrQuickExpenseDate        = errors.New("invalid date")
+	ErrQuickExpenseTags        = errors.New("too many tags, 10 maximum")
+	ErrQuickExpenseTagName     = errors.New("each tag must be at most 20 characters")
 )

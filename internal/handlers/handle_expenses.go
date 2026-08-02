@@ -71,7 +71,15 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
+	search, err := parseExpenseSearch(r)
+	if err != nil {
+		h.renderExpensesSearchErr(w, r, search, err)
+
+		return
+	}
+
 	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "date", Order: "DESC"}, "this_month")
+	search.apply(&opts, user.ID)
 
 	totalCount, err := h.store.CountExpenses(r.Context(), opts.Filters)
 	if err != nil {
@@ -118,12 +126,54 @@ func (h *Handler) GetExpenses(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	pagination := newPaginationData(r, opts, totalCount, "this_month")
+	applySearchToPagination(&pagination, search)
+
 	data["expenses"] = rows
 	data["categories"] = categories
-	data["pagination"] = newPaginationData(r, opts, totalCount, "this_month")
+	data["pagination"] = pagination
 	data["basePath"] = "/expenses"
 
 	h.render(w, http.StatusOK, ExpensesIndex, data)
+}
+
+// renderExpensesSearchErr re-renders the expenses page with an empty result set
+// and the search inputs preserved, so an invalid search never blanks the form.
+func (h *Handler) renderExpensesSearchErr(
+	w http.ResponseWriter,
+	r *http.Request,
+	search expenseSearch,
+	err error,
+) {
+	data := h.tmplData(r)
+	categories, _, categoriesErr := h.findCategories(r.Context())
+	if categoriesErr != nil {
+		h.app.Logger.Errorf("failed to load categories: %v", categoriesErr)
+	}
+
+	opts := userScopedQueryOpts(r, getCurrentUser(r).ID, repo.Sorting{Field: "date", Order: "DESC"}, "this_month")
+	pagination := newPaginationData(r, opts, 0, "this_month")
+	applySearchToPagination(&pagination, search)
+
+	data["expenses"] = []expenseRow{}
+	data["categories"] = categories
+	data["pagination"] = pagination
+	data["basePath"] = "/expenses"
+	data["error"] = err.Error()
+
+	h.render(w, http.StatusBadRequest, ExpensesIndex, data)
+}
+
+func applySearchToPagination(pagination *PaginationData, search expenseSearch) {
+	pagination.Search = search.Query
+	pagination.Tag = search.Tag
+	pagination.DateFrom = search.DateFrom
+	pagination.DateTo = search.DateTo
+
+	// The search replaced the preset range; reflect that in the range select.
+	if search.clearsPresetRange() {
+		pagination.DateRange = "all_time"
+	}
 }
 
 func (h *Handler) GetExpense(w http.ResponseWriter, r *http.Request) {

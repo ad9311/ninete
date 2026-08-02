@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 type Expense struct {
@@ -33,6 +34,53 @@ type UpdateExpenseParams struct {
 }
 
 const selectExpenses = `SELECT * FROM "expenses"`
+
+// expenseDescriptionExpr matches a description substring. SQLite's LIKE is
+// case-insensitive for ASCII, so no lower() wrapper is needed (and a leading
+// wildcard rules out an index either way).
+const expenseDescriptionExpr = `"description" LIKE ? ESCAPE '\'`
+
+// expenseTagExpr keeps the tag lookup index-friendly: the inner SELECT resolves
+// the tag through "uq_tags_user_lower_name" (user_id, lower(name)), then walks
+// "uq_taggings_tag_target" (tag_id, taggable_type, taggable_id) to collect the
+// tagged ids. The subquery is uncorrelated on purpose — SQLite materializes the
+// (small) id set once and drives from it, instead of probing the taggings index
+// once per candidate expense row as a correlated EXISTS would.
+const expenseTagExpr = `"expenses"."id" IN (
+  SELECT "taggings"."taggable_id" FROM "taggings"
+  WHERE "taggings"."taggable_type" = 'expense'
+    AND "taggings"."tag_id" IN (
+      SELECT "id" FROM "tags" WHERE "user_id" = ? AND lower("name") = ?
+    )
+)`
+
+// ExpenseDescriptionFilter builds a case-insensitive "description contains"
+// predicate. LIKE wildcards in term are escaped so they match literally.
+func ExpenseDescriptionFilter(term string) FilterField {
+	return FilterField{
+		Expr: expenseDescriptionExpr,
+		Args: []any{"%" + escapeLikePattern(term) + "%"},
+	}
+}
+
+// ExpenseTagFilter builds a predicate matching expenses tagged with tagName for
+// the given user. tagName is matched case-insensitively.
+func ExpenseTagFilter(userID int, tagName string) FilterField {
+	return FilterField{
+		Expr: expenseTagExpr,
+		Args: []any{userID, strings.ToLower(tagName)},
+	}
+}
+
+var likePatternEscaper = strings.NewReplacer( //nolint:gochecknoglobals // static replacer
+	`\`, `\\`,
+	`%`, `\%`,
+	`_`, `\_`,
+)
+
+func escapeLikePattern(s string) string {
+	return likePatternEscaper.Replace(s)
+}
 
 func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expense, error) {
 	var es []Expense

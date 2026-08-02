@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -419,6 +420,197 @@ func TestGetExpensesStats(t *testing.T) {
 
 				require.Equal(t, http.StatusOK, rec.Code)
 				require.NotContains(t, rec.Body.String(), "$99,999.00")
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestGetExpensesSearch(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	user := s.CreateAuthUser(t, "exp_search_1", "exp_search_1@example.com", "exp_search_pass_1")
+	category := s.CreateCategory(t, "exp_search_cat_1")
+	cookies := s.AuthCookies(t, "exp_search_1@example.com", "exp_search_pass_1")
+
+	jan := time.Date(2026, time.January, 15, 0, 0, 0, 0, time.UTC).Unix()
+	feb := time.Date(2026, time.February, 20, 0, 0, 0, 0, time.UTC).Unix()
+
+	taxi := newExpenseParams(category.ID, "Taxi to airport", 1200, jan)
+	taxi.Tags = []string{"travel"}
+	s.CreateExpense(t, user.ID, taxi)
+
+	groceries := newExpenseParams(category.ID, "Weekly groceries", 5500, feb)
+	groceries.Tags = []string{"home"}
+	s.CreateExpense(t, user.ID, groceries)
+
+	// date_range=all_time keeps the preset filter out of the way of the searches.
+	get := func(t *testing.T, query string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := spec.NewGetRequest("/expenses?date_range=all_time&"+query, cookies)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_filter_by_description_substring_case_insensitively",
+			fn: func(t *testing.T) {
+				rec := get(t, "q=TAXI")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Weekly groceries")
+			},
+		},
+		{
+			name: "should_treat_like_wildcards_as_literal_characters",
+			fn: func(t *testing.T) {
+				rec := get(t, "q=%25")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Weekly groceries")
+			},
+		},
+		{
+			name: "should_filter_by_tag",
+			fn: func(t *testing.T) {
+				rec := get(t, "tag=Travel")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Weekly groceries")
+			},
+		},
+		{
+			name: "should_filter_by_inclusive_date_bounds",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2026-01-15&date_to=2026-01-15")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Weekly groceries")
+			},
+		},
+		{
+			name: "should_combine_search_fields",
+			fn: func(t *testing.T) {
+				rec := get(t, "q=groceries&tag=travel")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Weekly groceries")
+			},
+		},
+		{
+			name: "should_reject_non_iso_date",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=15/01/2026")
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+				// Assert on the quoted value from the error message; "YYYY-MM-DD"
+				// alone would match the input placeholder and title.
+				require.Contains(t, rec.Body.String(), `<p class="form-error-text">`)
+				require.Contains(t, rec.Body.String(), `&#34;15/01/2026&#34;`)
+			},
+		},
+		{
+			name: "should_reject_inverted_date_range",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2026-02-01&date_to=2026-01-01")
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+			},
+		},
+		{
+			name: "should_reject_overlong_search_term",
+			fn: func(t *testing.T) {
+				rec := get(t, "q="+url.QueryEscape(strings.Repeat("a", 51)))
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+			},
+		},
+		{
+			name: "should_reject_unpadded_date_components",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2026-1-5")
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+			},
+		},
+		{
+			name: "should_widen_to_all_time_when_no_date_range_is_given",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/expenses?q=Taxi", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Taxi to airport")
+			},
+		},
+		{
+			name: "should_keep_an_explicit_date_range_over_the_search",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/expenses?date_range=this_month&q=Taxi", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Taxi to airport")
+			},
+		},
+		{
+			name: "should_collapse_the_search_panel_when_no_search_is_active",
+			fn: func(t *testing.T) {
+				rec := get(t, "")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<details class="search-panel" >`)
+			},
+		},
+		{
+			name: "should_open_the_search_panel_when_a_search_is_active",
+			fn: func(t *testing.T) {
+				rec := get(t, "q=taxi")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<details class="search-panel" open>`)
+			},
+		},
+		{
+			name: "should_keep_search_params_in_sort_links",
+			fn: func(t *testing.T) {
+				rec := get(t, "q=taxi&tag=travel")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "q=taxi&amp;tag=travel")
+			},
+		},
+		{
+			name: "should_not_leak_other_users_tagged_expenses",
+			fn: func(t *testing.T) {
+				other := s.CreateAuthUser(t, "exp_search_2", "exp_search_2@example.com", "exp_search_pass_2")
+				otherExpense := newExpenseParams(category.ID, "Other user trip", 999, jan)
+				otherExpense.Tags = []string{"travel"}
+				s.CreateExpense(t, other.ID, otherExpense)
+
+				rec := get(t, "tag=travel")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Taxi to airport")
+				require.NotContains(t, rec.Body.String(), "Other user trip")
 			},
 		},
 	}

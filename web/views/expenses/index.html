@@ -30,6 +30,135 @@
         </a>
       </nav>
     </header>
+    {{ $searchActive := or
+      .pagination.Search
+      .pagination.Tag
+      .pagination.DateFrom
+      .pagination.DateTo
+    }}
+    <details class="search-panel" {{ if $searchActive }}open{{ end }}>
+      <summary class="search-summary">
+        <i data-lucide="search" class="filter-icon" aria-hidden="true"></i>
+        <span>Search</span>
+        <i
+          data-lucide="chevron-down"
+          class="search-caret"
+          aria-hidden="true"
+        ></i>
+      </summary>
+      <form
+        class="search-bar"
+        data-controller="filter"
+        data-action="submit->filter#applySearch"
+        role="search"
+        aria-label="Search expenses"
+      >
+        <label class="search-field">
+          <span class="sr-only">Description</span>
+          <i
+            data-lucide="align-left"
+            class="filter-icon"
+            aria-hidden="true"
+          ></i>
+          <input
+            type="search"
+            name="q"
+            value="{{ .pagination.Search }}"
+            placeholder="Description"
+            maxlength="50"
+            data-filter-target="search"
+          />
+        </label>
+        <label class="search-field">
+          <span class="sr-only">Tag</span>
+          <i data-lucide="tag" class="filter-icon" aria-hidden="true"></i>
+          <input
+            type="search"
+            name="tag"
+            value="{{ .pagination.Tag }}"
+            placeholder="Tag"
+            maxlength="50"
+            data-filter-target="tag"
+          />
+        </label>
+        <div class="search-date-group">
+          <label class="search-field search-field-date">
+            <span class="sr-only">From date</span>
+            <span class="search-date-label" aria-hidden="true">From</span>
+            <input
+              type="text"
+              name="date_from"
+              value="{{ .pagination.DateFrom }}"
+              placeholder="YYYY-MM-DD"
+              inputmode="numeric"
+              pattern="\d{4}-\d{2}-\d{2}"
+              title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
+              maxlength="10"
+              data-filter-target="dateFrom"
+            />
+          </label>
+          <label class="search-field search-field-date">
+            <span class="sr-only">To date</span>
+            <span class="search-date-label" aria-hidden="true">To</span>
+            <input
+              type="text"
+              name="date_to"
+              value="{{ .pagination.DateTo }}"
+              placeholder="YYYY-MM-DD"
+              inputmode="numeric"
+              pattern="\d{4}-\d{2}-\d{2}"
+              title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
+              maxlength="10"
+              data-filter-target="dateTo"
+            />
+          </label>
+          <span class="date-help" data-controller="date-help">
+            <button
+              type="button"
+              class="date-help-toggle"
+              data-date-help-target="toggle"
+              data-action="date-help#toggle"
+              aria-label="Show accepted date format"
+              aria-expanded="false"
+            >
+              <i
+                data-lucide="info"
+                class="date-help-icon"
+                aria-hidden="true"
+              ></i>
+            </button>
+            <div
+              class="date-help-panel date-help-panel-end"
+              data-date-help-target="panel"
+              role="tooltip"
+              hidden
+            >
+              <p class="date-help-title">Dates must be:</p>
+              <ul>
+                <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
+                <li>Both bounds are inclusive</li>
+                <li>Leave empty to use the date range filter</li>
+              </ul>
+            </div>
+          </span>
+        </div>
+        {{ template "form_error" . }}
+        <div class="search-actions">
+          <button type="submit" class="btn-primary search-button">
+            Search
+          </button>
+          {{ if $searchActive }}
+            <button
+              type="button"
+              class="btn-neutral search-button"
+              data-action="filter#clearSearch"
+            >
+              Clear
+            </button>
+          {{ end }}
+        </div>
+      </form>
+    </details>
     <div class="filters" data-controller="filter">
       <label>
         <span class="sr-only">Category</span>
