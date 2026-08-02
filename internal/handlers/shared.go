@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/ad9311/ninete/internal/repo"
@@ -31,7 +32,26 @@ func parseFloatFieldDefault(r *http.Request, field string) (float64, error) {
 	return v, nil
 }
 
-const defaultPerPage = 10
+const defaultPerPage = 15
+
+// perPageChoices are the only page sizes the listings accept. Anything else in
+// the query string falls back to defaultPerPage, so a hand-edited per_page
+// cannot ask the database for an unbounded page.
+var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
+
+// PerPageChoices exposes the allowed page sizes to templates.
+func PerPageChoices() []int {
+	return slices.Clone(perPageChoices)
+}
+
+func normalizePerPage(raw string) int {
+	perPage, err := strconv.Atoi(raw)
+	if err != nil || !slices.Contains(perPageChoices, perPage) {
+		return defaultPerPage
+	}
+
+	return perPage
+}
 
 type PaginationData struct {
 	CurrentPage int
@@ -48,6 +68,7 @@ type PaginationData struct {
 	Tag         string
 	DateFrom    string
 	DateTo      string
+	DateField   string
 }
 
 func userScopedQueryOpts(
@@ -68,10 +89,7 @@ func userScopedQueryOpts(
 		page = 1
 	}
 
-	perPage, _ := strconv.Atoi(q.Get("per_page"))
-	if perPage < 1 {
-		perPage = defaultPerPage
-	}
+	perPage := normalizePerPage(q.Get("per_page"))
 
 	opts := repo.QueryOptions{
 		Sorting: sorting,

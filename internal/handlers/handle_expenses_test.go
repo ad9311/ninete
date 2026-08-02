@@ -577,7 +577,8 @@ func TestGetExpensesSearch(t *testing.T) {
 				rec := get(t, "")
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), `<details class="search-panel" >`)
+				// The formatter breaks the tag across lines, so match within it.
+				require.NotRegexp(t, `search-panel#toggle"\s+open\b`, rec.Body.String())
 			},
 		},
 		{
@@ -586,7 +587,7 @@ func TestGetExpensesSearch(t *testing.T) {
 				rec := get(t, "q=taxi")
 
 				require.Equal(t, http.StatusOK, rec.Code)
-				require.Contains(t, rec.Body.String(), `<details class="search-panel" open>`)
+				require.Regexp(t, `search-panel#toggle"\s+open\b`, rec.Body.String())
 			},
 		},
 		{
@@ -619,6 +620,224 @@ func TestGetExpensesSearch(t *testing.T) {
 		t.Run(tc.name, tc.fn)
 	}
 }
+
+func TestGetExpensesSearchDateField(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	user := s.CreateAuthUser(t, "exp_df_1", "exp_df_1@example.com", "exp_df_pass_1")
+	category := s.CreateCategory(t, "exp_df_cat_1")
+	cookies := s.AuthCookies(t, "exp_df_1@example.com", "exp_df_pass_1")
+
+	// Billed long ago, but created now — the two columns disagree, which is the
+	// whole point of the toggle.
+	oldBilled := time.Date(2020, time.June, 10, 0, 0, 0, 0, time.UTC).Unix()
+	s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "Backdated receipt", 700, oldBilled))
+
+	today := time.Now().UTC().Format("2006-01-02")
+
+	get := func(t *testing.T, query string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := spec.NewGetRequest("/expenses?date_range=all_time&"+query, cookies)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_bound_on_the_billed_date_by_default",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_exclude_a_backdated_expense_when_bounding_on_created_at",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_match_a_backdated_expense_by_its_creation_date",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from="+today+"&date_to="+today+"&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_fall_back_to_the_billed_date_for_an_unknown_field",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10&date_to=2020-06-10&date_field=amount")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Backdated receipt")
+			},
+		},
+		{
+			name: "should_carry_the_selected_field_into_sort_links",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from="+today+"&date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "date_field=created_at")
+			},
+		},
+		{
+			name: "should_keep_the_default_field_out_of_links",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_from=2020-06-10")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "date_field=date")
+			},
+		},
+		{
+			name: "should_check_the_toggle_when_bounding_on_created_at",
+			fn: func(t *testing.T) {
+				rec := get(t, "date_field=created_at")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Regexp(t, `name="date_field"[^>]*checked`, rec.Body.String())
+			},
+		},
+		{
+			name: "should_leave_the_toggle_unchecked_by_default",
+			fn: func(t *testing.T) {
+				rec := get(t, "")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotRegexp(t, `name="date_field"[^>]*checked`, rec.Body.String())
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestGetExpensesPerPage(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	user := s.CreateAuthUser(t, "exp_pp_1", "exp_pp_1@example.com", "exp_pp_pass_1")
+	category := s.CreateCategory(t, "exp_pp_cat_1")
+	cookies := s.AuthCookies(t, "exp_pp_1@example.com", "exp_pp_pass_1")
+
+	// 20 expenses, newest first by date, so item 00 is newest and item 19 oldest.
+	base := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC).Unix()
+	for i := range 20 {
+		description := fmt.Sprintf("pp_item_%02d", i)
+		s.CreateExpense(t, user.ID, newExpenseParams(category.ID, description, 100, base-int64(i)*secondsPerDayTest))
+	}
+
+	get := func(t *testing.T, query string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := spec.NewGetRequest("/expenses?date_range=all_time&"+query, cookies)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_show_fifteen_rows_by_default",
+			fn: func(t *testing.T) {
+				rec := get(t, "")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "pp_item_14")
+				require.NotContains(t, rec.Body.String(), "pp_item_15")
+			},
+		},
+		{
+			name: "should_honour_a_larger_page_size",
+			fn: func(t *testing.T) {
+				rec := get(t, "per_page=25")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "pp_item_19")
+			},
+		},
+		{
+			name: "should_fall_back_to_the_default_for_an_unlisted_page_size",
+			fn: func(t *testing.T) {
+				rec := get(t, "per_page=100000")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "pp_item_14")
+				require.NotContains(t, rec.Body.String(), "pp_item_15")
+			},
+		},
+		{
+			name: "should_offer_every_page_size_choice",
+			fn: func(t *testing.T) {
+				rec := get(t, "")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				// Match on the option label, which is unique to this select —
+				// a bare value="15" could collide with a category option.
+				for _, choice := range []string{"15", "25", "50", "100"} {
+					require.Contains(t, rec.Body.String(), choice+" per page")
+				}
+			},
+		},
+		{
+			name: "should_honour_the_largest_page_size",
+			fn: func(t *testing.T) {
+				rec := get(t, "per_page=100")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "pp_item_19")
+				require.Regexp(t, `<option\s+value="100"\s+selected`, rec.Body.String())
+			},
+		},
+		{
+			name: "should_mark_the_active_page_size_as_selected",
+			fn: func(t *testing.T) {
+				rec := get(t, "per_page=50")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				// The formatter breaks option attributes across lines.
+				require.Regexp(t, `<option\s+value="50"\s+selected`, rec.Body.String())
+			},
+		},
+		{
+			name: "should_render_the_per_page_select_on_a_single_page_listing",
+			fn: func(t *testing.T) {
+				rec := get(t, "per_page=50")
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), `aria-label="Pagination"`)
+				require.Contains(t, rec.Body.String(), `data-filter-target="perPage"`)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+const secondsPerDayTest = int64(24 * 60 * 60)
 
 func newExpenseParams(
 	categoryID int,

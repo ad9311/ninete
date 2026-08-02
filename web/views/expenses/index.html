@@ -36,7 +36,12 @@
       .pagination.DateFrom
       .pagination.DateTo
     }}
-    <details class="search-panel" {{ if $searchActive }}open{{ end }}>
+    <details
+      class="search-panel"
+      data-controller="search-panel"
+      data-action="toggle->search-panel#toggle"
+      {{ if $searchActive }}open{{ end }}
+    >
       <summary class="search-summary">
         <i data-lucide="search" class="filter-icon" aria-hidden="true"></i>
         <span>Search</span>
@@ -82,6 +87,28 @@
           />
         </label>
         <div class="search-date-group">
+          <label
+            class="date-toggle"
+            title="Apply the date bounds to the billed date or the created date"
+          >
+            <span class="sr-only"
+              >Apply date bounds to the created date instead of the billed
+              date</span
+            >
+            <input
+              type="checkbox"
+              name="date_field"
+              value="created_at"
+              {{ if eq .pagination.DateField "created_at" }}checked{{ end }}
+              data-filter-target="dateField"
+              data-action="change->filter#applySearch"
+            />
+            <span class="switch" aria-hidden="true"></span>
+            <span class="date-toggle-text" aria-hidden="true">
+              <span class="when-off">Billed</span>
+              <span class="when-on">Created</span>
+            </span>
+          </label>
           <label class="search-field search-field-date">
             <span class="sr-only">From date</span>
             <span class="search-date-label" aria-hidden="true">From</span>
@@ -138,6 +165,9 @@
                 <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
                 <li>Both bounds are inclusive</li>
                 <li>Leave empty to use the date range filter</li>
+                <li>
+                  Bounds apply to the billed or created date, per the selector
+                </li>
               </ul>
             </div>
           </span>
