@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"html/template"
 	"math"
+	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ad9311/ninete/internal/handlers"
@@ -119,7 +121,24 @@ func filterParams(pg handlers.PaginationData) string {
 		params += "&date_range=" + pg.DateRange
 	}
 
-	return params
+	return params + searchParams(pg)
+}
+
+// searchParams carries the expense search inputs across sort/pagination links.
+func searchParams(pg handlers.PaginationData) string {
+	var params strings.Builder
+	for _, pair := range []struct{ key, value string }{
+		{"q", pg.Search},
+		{"tag", pg.Tag},
+		{"date_from", pg.DateFrom},
+		{"date_to", pg.DateTo},
+	} {
+		if pair.value != "" {
+			params.WriteString("&" + pair.key + "=" + url.QueryEscape(pair.value))
+		}
+	}
+
+	return params.String()
 }
 
 func sortURL(basePath, field string, pg handlers.PaginationData) string {
@@ -158,7 +177,7 @@ func filterURL(basePath string, pg handlers.PaginationData, key, value string) s
 		base += "&date_range=" + dateRange
 	}
 
-	return base
+	return base + searchParams(pg)
 }
 
 func pageRange(totalPages, currentPage int) []int {
