@@ -21,7 +21,7 @@ The goal is an app that feels instant for one person, not one that sustains thro
 
 **Not worth the effort**
 - Concurrency capacity work: connection-pool tuning, read/write pool splits, caching layers, queues. `MAX_OPEN_CONNS` defaults to 1 and that is fine — one user produces almost no overlapping requests, so serializing them costs microseconds nobody can perceive. Do not propose a pool split as a performance improvement.
-- If a pool larger than 1 is ever introduced anyway, two things matter: the PRAGMAs in `internal/db/init/connection.sql` are already applied to every connection through the driver connect hook, but `WithTx` opens a deferred transaction, which can fail with `SQLITE_BUSY_SNAPSHOT` under concurrent writers — `_txlock=immediate` would be needed.
+- If a pool larger than 1 is ever introduced anyway, three things matter. The PRAGMAs in `internal/db/init/connection.sql` are already applied to every connection through the driver connect hook, so those are fine. `WithTx` opens a deferred transaction, which can fail with `SQLITE_BUSY_SNAPSHOT` under concurrent writers — `_txlock=immediate` would be needed. And `db.Optimize` runs `PRAGMA optimize` on whichever single connection `database/sql` hands it at shutdown; the statistics it refreshes come from that connection's own query history, so with several connections in play it would only ever see a fraction of the workload.
 
 **Measuring**
 - Query shape: `EXPLAIN QUERY PLAN`, asserted in tests rather than eyeballed.
