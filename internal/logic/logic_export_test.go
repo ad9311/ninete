@@ -1,6 +1,7 @@
 package logic_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/repo"
@@ -106,4 +107,54 @@ func TestExportExpenses(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, tc.fn)
 	}
+}
+
+// TestExportExpensesAcrossTagChunks covers an export larger than the repo's tag
+// lookup chunk size. The lookup used to build one IN (...) list holding every
+// expense id, which SQLite refuses past its parameter limit.
+func TestExportExpensesAcrossTagChunks(t *testing.T) {
+	const expenseCount = 1200
+
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "export_chunk_user",
+		Email:        "export_chunk_user@example.com",
+		PasswordHash: []byte("export_chunk_hash"),
+	})
+	category := s.CreateCategory(t, "export_chunk_category")
+
+	// Tag the first, a middle and the last expense so the assertions straddle
+	// every chunk boundary.
+	taggedAt := map[int]string{0: "first_tag", expenseCount / 2: "middle_tag", expenseCount - 1: "last_tag"}
+
+	for i := range expenseCount {
+		var tags []string
+		if tag, ok := taggedAt[i]; ok {
+			tags = []string{tag}
+		}
+
+		description := fmt.Sprintf("chunked_%04d", i)
+		s.CreateExpense(t, user.ID, newExpenseParams(category.ID, description, 100, 1735689600, tags))
+	}
+
+	out, err := s.Store.ExportExpenses(ctx, user.ID)
+	require.NoError(t, err)
+	require.Len(t, out, expenseCount)
+
+	tagsByDescription := make(map[string][]string, len(out))
+	for _, e := range out {
+		tagsByDescription[e.Description] = e.Tags
+	}
+
+	for i, tag := range taggedAt {
+		description := fmt.Sprintf("chunked_%04d", i)
+		require.Equal(t, []string{tag}, tagsByDescription[description], "wrong tags for %s", description)
+	}
+
+	var tagged int
+	for _, tags := range tagsByDescription {
+		tagged += len(tags)
+	}
+	require.Equal(t, len(taggedAt), tagged, "tags leaked onto untagged expenses")
 }
