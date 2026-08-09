@@ -88,12 +88,14 @@ build-static-js: ## Build web/static/js/index.ts into web/static/js/build/index.
 	bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
 
 # ========= Tests ===========
-test: build clean-test-db ## Runs the tests
+# build-static-js is a dependency because internal/serve asserts that /static/*
+# serves the bundle, and the bundle is git-ignored.
+test: build-static-js build clean-test-db ## Runs the tests
 	@echo "Running tests..."
 	@mkdir -p ./data/db/test
 	ENV=test go test $(if $(func),-run $(func),) $(pkg)
 
-test-verbose: build clean-test-db ## Runs the tests in verbose mode
+test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose mode
 	@echo "Running tests in verbose mode"
 	@mkdir -p ./data/db/test
 	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)

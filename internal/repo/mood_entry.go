@@ -30,7 +30,12 @@ type UpdateMoodEntryParams struct {
 	LoggedAt int64
 }
 
-const selectMoodEntries = `SELECT * FROM "mood_entries"`
+// moodEntryColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const moodEntryColumns = `"id", "user_id", "mood", "notes", "logged_at", "created_at", "updated_at"`
+
+const selectMoodEntries = `SELECT ` + moodEntryColumns + ` FROM "mood_entries"`
 
 func (q *Queries) SelectMoodEntries(ctx context.Context, opts QueryOptions) ([]MoodEntry, error) {
 	var es []MoodEntry
@@ -104,7 +109,8 @@ func (q *Queries) CountMoodEntries(ctx context.Context, filters Filters) (int, e
 	return c, err
 }
 
-const selectMoodEntry = `SELECT * FROM "mood_entries" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
+const selectMoodEntry = `SELECT ` + moodEntryColumns + `
+FROM "mood_entries" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectMoodEntry(ctx context.Context, id, userID int) (MoodEntry, error) {
 	var e MoodEntry
@@ -129,7 +135,7 @@ func (q *Queries) SelectMoodEntry(ctx context.Context, id, userID int) (MoodEntr
 const insertMoodEntry = `
 INSERT INTO "mood_entries" ("user_id", "mood", "notes", "logged_at")
 VALUES (?, ?, ?, ?)
-RETURNING *`
+RETURNING ` + moodEntryColumns
 
 func (q *TxQueries) InsertMoodEntry(ctx context.Context, params InsertMoodEntryParams) (MoodEntry, error) {
 	var e MoodEntry
@@ -166,7 +172,7 @@ SET "mood"       = ?,
     "updated_at" = ?
 WHERE "id" = ?
   AND "user_id" = ?
-RETURNING *`
+RETURNING ` + moodEntryColumns
 
 func (q *TxQueries) UpdateMoodEntry(ctx context.Context, params UpdateMoodEntryParams) (MoodEntry, error) {
 	var e MoodEntry

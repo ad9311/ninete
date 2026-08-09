@@ -2,6 +2,8 @@
 
 A personal expense and nutrition tracking app. Supports multiple users with auth, expenses (with categories and tags), recurring expenses, macro tracking with daily goals, and a personal food library.
 
+In practice it runs single-user. Data stays user-scoped for correctness, but the app is tuned for one person's responsiveness rather than for concurrent capacity — see the Project Scope and Performance Priorities sections of [`CLAUDE.md`](CLAUDE.md) before optimizing anything.
+
 ## Prerequisites
 
 - **Go** 1.25.6 or higher

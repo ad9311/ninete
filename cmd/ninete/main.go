@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -36,6 +37,10 @@ func start(app *prog.App) (int, error) {
 		return 1, err
 	}
 	defer func() {
+		if err := db.Optimize(context.Background(), sqlDB); err != nil {
+			app.Logger.Errorf("%v", err)
+		}
+
 		if err := sqlDB.Close(); err != nil {
 			app.Logger.Errorf("failed to close database: %v", err)
 		}

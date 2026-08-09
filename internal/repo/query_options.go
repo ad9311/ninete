@@ -185,6 +185,15 @@ func (s *Sorting) Build() (string, error) {
 
 	sorting := fmt.Sprintf("ORDER BY \"%s\" %s", s.Field, s.Order)
 
+	// Every sortable column except the primary key holds duplicates — a day's
+	// worth of expenses share a "date", several foods share a "name". SQLite is
+	// free to break those ties differently from one query to the next, so
+	// paginating on such a column alone can repeat a row on one page and drop it
+	// from another. Every table reached through QueryOptions has "id".
+	if s.Field != "id" {
+		sorting += fmt.Sprintf(", \"id\" %s", s.Order)
+	}
+
 	return sorting, nil
 }
 

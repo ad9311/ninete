@@ -27,6 +27,17 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The JS bundle is git-ignored, and internal/serve asserts that
+      # /static/* serves it. Without this step that test 404s.
+      - name: Build static JS bundle
+        run: bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+
       - name: Create .env file
         run: cp .env.example .env
 

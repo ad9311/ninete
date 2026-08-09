@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -96,7 +97,7 @@ func (q *Queries) CountTaggingsByTarget(ctx context.Context, taggableType string
 }
 
 const selectTagsForTaggableBase = `
-SELECT t.*
+SELECT ` + tagColumnsAliased + `
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
 INNER JOIN "%s" o ON o."id" = tg."taggable_id"
@@ -150,6 +151,12 @@ WHERE tg."taggable_type" = ?
 ORDER BY tg."taggable_id" ASC, t."name" ASC
 `
 
+// tagRowChunkSize bounds how many ids go into a single IN (...) list. SQLite
+// rejects a statement carrying more than SQLITE_MAX_VARIABLE_NUMBER parameters
+// (32766 as go-sqlite3 builds it), which an unpaginated caller like the expense
+// export would eventually exceed.
+const tagRowChunkSize = 500
+
 func (q *Queries) SelectTagRows(
 	ctx context.Context,
 	taggableType string,
@@ -158,9 +165,29 @@ func (q *Queries) SelectTagRows(
 	userID int,
 ) ([]TagRow, error) {
 	var rowsResult []TagRow
-	if len(targetIDs) == 0 {
-		return rowsResult, nil
+
+	for chunk := range slices.Chunk(targetIDs, tagRowChunkSize) {
+		chunkRows, err := q.selectTagRowsChunk(ctx, taggableType, joinTable, chunk, userID)
+		if err != nil {
+			return nil, err
+		}
+
+		rowsResult = append(rowsResult, chunkRows...)
 	}
+
+	return rowsResult, nil
+}
+
+// selectTagRowsChunk reads one bounded batch of ids. Callers group the result by
+// target id, so the order chunks come back in does not matter.
+func (q *Queries) selectTagRowsChunk(
+	ctx context.Context,
+	taggableType string,
+	joinTable string,
+	targetIDs []int,
+	userID int,
+) ([]TagRow, error) {
+	var rowsResult []TagRow
 
 	query, values := selectTagRowsQuery(taggableType, joinTable, targetIDs, userID)
 

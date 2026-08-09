@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/justinas/nosurf"
 )
@@ -56,7 +56,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if strings.HasPrefix(path, "/static/") || path == cspReportPath {
+		if path == cspReportPath {
 			next.ServeHTTP(w, r)
 
 			return
@@ -160,7 +160,9 @@ func buildCSP(nonce string) string {
 		"report-to csp"
 }
 
-func (s *Server) securityHeaders(next http.Handler) http.Handler {
+// baseSecurityHeaders carries the headers every response needs, static assets
+// included.
+func (s *Server) baseSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 
@@ -168,14 +170,14 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
 
-		// Static assets carry no nonce'd markup — skip the per-request nonce
-		// generation and CSP on the asset hot path.
-		if strings.HasPrefix(r.URL.Path, "/static/") {
-			next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
+	})
+}
 
-			return
-		}
-
+// contentSecurityPolicy issues the per-request nonce and the CSP that references
+// it. Only rendered pages carry nonce'd markup, so static assets never reach it.
+func (s *Server) contentSecurityPolicy(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		nonce, err := generateNonce()
 		if err != nil {
 			s.app.Logger.Errorf("%v", err)
@@ -195,6 +197,9 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// setUpMiddlewares registers what every request pays for, static assets
+// included. Keep it cheap: anything touching the database belongs in
+// setUpAppMiddlewares.
 func (s *Server) setUpMiddlewares() {
 	if !s.app.IsTest() {
 		s.Router.Use(middleware.Logger)
@@ -202,16 +207,21 @@ func (s *Server) setUpMiddlewares() {
 
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.RequestID)
-	s.Router.Use(s.securityHeaders)
-	s.Router.Use(s.limitRequestBody)
+	s.Router.Use(s.baseSecurityHeaders)
+}
 
-	s.Router.Use(s.WithTimeout(5 * time.Second))
+// setUpAppMiddlewares is the chain for routes that render the app. Static assets
+// are mounted outside of it, so serving a stylesheet no longer loads the session
+// and looks up the current user.
+func (s *Server) setUpAppMiddlewares(root chi.Router) {
+	root.Use(s.Session.LoadAndSave)
+	root.Use(s.limitRequestBody)
 
-	s.Router.Use(s.csrf)
+	root.Use(s.WithTimeout(5 * time.Second))
 
-	s.Router.Use(s.setTmplData)
-	s.Router.Use(s.AuthMiddleware)
+	root.Use(s.contentSecurityPolicy)
+	root.Use(s.csrf)
 
-	s.Router.NotFound(s.handlers.NotFound)
-	s.Router.MethodNotAllowed(s.handlers.MethodNotAllowed)
+	root.Use(s.setTmplData)
+	root.Use(s.AuthMiddleware)
 }

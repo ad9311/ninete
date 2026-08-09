@@ -66,7 +66,7 @@ func New(app *prog.App, store *logic.Store, db *sql.DB) *Server {
 func (s *Server) Start() error {
 	server := &http.Server{
 		Addr:              ":" + s.port,
-		Handler:           s.Session.LoadAndSave(s.Router),
+		Handler:           s.Router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

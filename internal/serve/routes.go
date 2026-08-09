@@ -8,8 +8,14 @@ import (
 )
 
 func (s *Server) setUpRoutes() {
-	s.Router.Route("/", func(root chi.Router) {
-		setUpFileServer(root)
+	s.setUpFileServer()
+
+	s.Router.Group(func(root chi.Router) {
+		s.setUpAppMiddlewares(root)
+
+		// Registered on the group so the fallbacks still get template data.
+		root.NotFound(s.handlers.NotFound)
+		root.MethodNotAllowed(s.handlers.MethodNotAllowed)
 
 		root.Get("/", s.handlers.GetRoot)
 
@@ -117,9 +123,26 @@ func (s *Server) setUpRoutes() {
 	})
 }
 
-func setUpFileServer(root chi.Router) {
+// staticCacheControl lets the browser reuse assets across page loads without a
+// request at all. The bundle filenames carry no content hash, so the window
+// stays short; once it lapses http.FileServer answers the revalidation with a
+// 304 off Last-Modified.
+const staticCacheControl = "public, max-age=300"
+
+// setUpFileServer mounts the assets on the root router, outside the app
+// middleware chain. Serving a file must not cost a session load, a CSRF token
+// or a current-user query.
+func (s *Server) setUpFileServer() {
 	fileServer := http.FileServer(http.Dir("./web/static/"))
-	root.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+
+	s.Router.Handle("/static/*", staticCacheHeaders(http.StripPrefix("/static/", fileServer)))
+}
+
+func staticCacheHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", staticCacheControl)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) setUpSession() {
