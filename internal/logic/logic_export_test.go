@@ -110,8 +110,13 @@ func TestExportExpenses(t *testing.T) {
 }
 
 // TestExportExpensesAcrossTagChunks covers an export larger than the repo's tag
-// lookup chunk size. The lookup used to build one IN (...) list holding every
-// expense id, which SQLite refuses past its parameter limit.
+// lookup chunk size, checking that the batches stitch back together: every
+// expense present once, and each tag on the expense it belongs to.
+//
+// This is an invariant guard, not a reproduction. 1200 ids stay well under
+// SQLite's parameter ceiling, so the un-chunked lookup would have handled them
+// fine and this passes either way. TestSelectTagRowsExceedsParameterLimit in
+// internal/repo is the test that actually fails without the chunking.
 func TestExportExpensesAcrossTagChunks(t *testing.T) {
 	const expenseCount = 1200
 
