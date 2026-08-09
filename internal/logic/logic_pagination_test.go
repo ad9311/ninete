@@ -16,6 +16,13 @@ import (
 // ties consistently for the plan this query gets today, so it passes without the
 // "id" tiebreaker too. TestSortingBuild in internal/repo is the test that fails
 // when the tiebreaker goes missing.
+//
+// Kept anyway, because it still covers things nothing else does: the offset
+// arithmetic, and that the pages partition the rows rather than overlapping or
+// skipping. It is also the only test stated in terms of the user-visible
+// symptom, so it is what catches this class of bug if the query plan changes and
+// the tie order stops being accidentally stable. Do not delete it on the grounds
+// that it passes without the fix — that is expected, and documented above.
 func TestPaginationIsStableAcrossPages(t *testing.T) {
 	const (
 		expenseCount = 40
