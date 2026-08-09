@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"embed"
@@ -70,6 +71,17 @@ func Open() (*sql.DB, error) {
 	sqlDB.SetMaxIdleConns(maxIdleConns)
 
 	return sqlDB, nil
+}
+
+// Optimize refreshes the query planner statistics. It belongs at shutdown: run
+// at startup, as it used to be, PRAGMA optimize has no accumulated query history
+// to learn from and does nothing.
+func Optimize(ctx context.Context, sqlDB *sql.DB) error {
+	if _, err := sqlDB.ExecContext(ctx, "PRAGMA optimize"); err != nil {
+		return fmt.Errorf("failed to run PRAGMA optimize: %w", err)
+	}
+
+	return nil
 }
 
 // applyConnectionPragmas runs on every connection the pool opens. The settings

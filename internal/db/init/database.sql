@@ -6,4 +6,3 @@ PRAGMA page_size = 4096;
 PRAGMA auto_vacuum = INCREMENTAL;
 PRAGMA application_id = 0x6E696E657465;
 PRAGMA journal_mode = WAL;
-PRAGMA optimize;
