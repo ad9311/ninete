@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// WrappedHandler returns the router wrapped with session LoadAndSave,
-// matching how Start() serves the app.
+// WrappedHandler returns the handler Start() serves. Session LoadAndSave now
+// lives in the app middleware chain, so the router is already complete.
 func (s *Spec) WrappedHandler() http.Handler {
-	return s.Server.Session.LoadAndSave(s.Server.Router)
+	return s.Server.Router
 }
 
 // AuthCookies logs in with real credentials and returns the cookies needed

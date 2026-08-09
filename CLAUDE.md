@@ -17,18 +17,23 @@ NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods) tha
 
 ## Request Flow (`internal/serve` -> `internal/handlers`)
 1. Request enters Chi router in `internal/serve/routes.go`.
-2. Global middleware order:
+2. Root middleware, paid by every request including static assets (`setUpMiddlewares`):
 - Logger (non-test), Recoverer, request ID.
-- Security headers, request body limit, timeout.
+- Base security headers (`nosniff`, HSTS in production).
+3. `/static/*` is mounted on the root router, outside the app chain, and adds only a `Cache-Control` header. Serving an asset must never load a session or query the database — keep it that way.
+4. App middleware, only for rendered routes (`setUpAppMiddlewares`, applied to a `chi` group):
+- Session load/save (`scs`).
+- Request body limit, timeout.
+- CSP nonce and headers (`contentSecurityPolicy`).
 - CSRF middleware (`nosurf`).
-- Template/context setup (`setTmplData`).
+- Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group. `NotFound`/`MethodNotAllowed` are registered on the group for that reason.
 - Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`).
-3. Route-level context middleware may run for resource-specific lookups.
-4. Handler executes endpoint behavior in `internal/handlers`.
-5. Handler calls `logic.Store` methods.
-6. Logic calls `repo.Queries` methods.
-7. Repo executes SQL against SQLite.
-8. Handler renders templates through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`.
+5. Route-level context middleware may run for resource-specific lookups.
+6. Handler executes endpoint behavior in `internal/handlers`.
+7. Handler calls `logic.Store` methods.
+8. Logic calls `repo.Queries` methods.
+9. Repo executes SQL against SQLite.
+10. Handler renders templates through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`.
 
 ## Layering
 - `cmd/*`: process entrypoints and composition.
