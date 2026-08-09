@@ -62,6 +62,38 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 			},
 		},
 		{
+			// staticCacheHeaders sets Cache-Control before the file server runs,
+			// so a 404 would inherit it and outlive the deploy that ships the
+			// asset. It does not, because ServeContent strips Cache-Control on
+			// its error paths — a property of net/http, not of our code, which
+			// is why it is pinned here.
+			name: "should_not_mark_a_missing_asset_as_cacheable",
+			fn: func(t *testing.T) {
+				res := doGet(t, s, "/static/css/missing.css", nil)
+
+				require.Equal(t, http.StatusNotFound, res.StatusCode)
+				require.Empty(t, res.Header.Get("Cache-Control"), "a 404 was marked cacheable")
+			},
+		},
+		{
+			name: "should_keep_the_cache_header_on_a_revalidated_asset",
+			fn: func(t *testing.T) {
+				res := doGet(t, s, "/static/css/layout.css", nil)
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				lastModified := res.Header.Get("Last-Modified")
+				require.NotEmpty(t, lastModified)
+
+				req := spec.NewGetRequest("/static/css/layout.css", nil)
+				req.Header.Set("If-Modified-Since", lastModified)
+				rec := httptest.NewRecorder()
+				s.WrappedHandler().ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusNotModified, rec.Code)
+				require.Equal(t, "public, max-age=300", rec.Header().Get("Cache-Control"))
+			},
+		},
+		{
 			name: "should_serve_assets_without_authentication",
 			fn: func(t *testing.T) {
 				res := doGet(t, s, "/static/js/build/index.js", nil)
