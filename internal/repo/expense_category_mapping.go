@@ -21,8 +21,13 @@ type UpsertExpenseCategoryMappingParams struct {
 	DescriptionKey string
 }
 
+// expenseCategoryMappingColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const expenseCategoryMappingColumns = `"id", "user_id", "category_id", "description_key", "created_at", "updated_at"`
+
 const selectExpenseCategoryMapping = `
-SELECT * FROM "expense_category_mappings"
+SELECT ` + expenseCategoryMappingColumns + ` FROM "expense_category_mappings"
 WHERE "user_id" = ? AND "description_key" = ?`
 
 // SelectExpenseCategoryMapping returns the mapping for a user's description key.
@@ -61,7 +66,7 @@ INSERT INTO "expense_category_mappings" ("user_id", "category_id", "description_
 VALUES (?, ?, ?)
 ON CONFLICT ("user_id", "description_key")
 DO UPDATE SET "category_id" = excluded."category_id", "updated_at" = ?
-RETURNING *`
+RETURNING ` + expenseCategoryMappingColumns
 
 func (q *TxQueries) UpsertExpenseCategoryMapping(
 	ctx context.Context,

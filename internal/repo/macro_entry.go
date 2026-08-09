@@ -67,7 +67,13 @@ type MacroDayTotals struct {
 	SaturatedFatG float64
 }
 
-const selectMacroEntries = `SELECT * FROM "macro_entries"`
+// macroEntryColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const macroEntryColumns = `"id", "user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date",
+"created_at", "updated_at", "meal_type", "fiber_g", "sodium_g", "saturated_fat_g"`
+
+const selectMacroEntries = `SELECT ` + macroEntryColumns + ` FROM "macro_entries"`
 
 func (q *Queries) SelectMacroEntries(ctx context.Context, opts QueryOptions) ([]MacroEntry, error) {
 	var es []MacroEntry
@@ -148,7 +154,8 @@ func (q *Queries) CountMacroEntries(ctx context.Context, filters Filters) (int, 
 	return c, err
 }
 
-const selectMacroEntry = `SELECT * FROM "macro_entries" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
+const selectMacroEntry = `SELECT ` + macroEntryColumns + `
+FROM "macro_entries" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectMacroEntry(ctx context.Context, id, userID int) (MacroEntry, error) {
 	var e MacroEntry
@@ -182,7 +189,7 @@ INSERT INTO "macro_entries"
   ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g", "date", "meal_type",
    "fiber_g", "sodium_g", "saturated_fat_g")
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *`
+RETURNING ` + macroEntryColumns
 
 func (q *TxQueries) InsertMacroEntry(ctx context.Context, params InsertMacroEntryParams) (MacroEntry, error) {
 	var e MacroEntry
@@ -240,7 +247,7 @@ SET "name"            = ?,
     "updated_at"      = ?
 WHERE "id" = ?
   AND "user_id" = ?
-RETURNING *`
+RETURNING ` + macroEntryColumns
 
 func (q *TxQueries) UpdateMacroEntry(
 	ctx context.Context,

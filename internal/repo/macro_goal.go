@@ -29,7 +29,14 @@ type UpsertMacroGoalParams struct {
 	SaturatedFatG float64
 }
 
-const selectMacroGoal = `SELECT * FROM "macro_goals" WHERE "user_id" = ? LIMIT 1`
+// macroGoalColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const macroGoalColumns = `"id", "user_id", "kcal", "protein_g", "carbs_g", "fat_g",
+"created_at", "updated_at", "fiber_g", "sodium_g", "saturated_fat_g"`
+
+const selectMacroGoal = `SELECT ` + macroGoalColumns + `
+FROM "macro_goals" WHERE "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectMacroGoal(ctx context.Context, userID int) (MacroGoal, error) {
 	var g MacroGoal
@@ -68,7 +75,7 @@ ON CONFLICT ("user_id") DO UPDATE SET
   "sodium_g"        = excluded."sodium_g",
   "saturated_fat_g" = excluded."saturated_fat_g",
   "updated_at"      = strftime('%s','now')
-RETURNING *`
+RETURNING ` + macroGoalColumns
 
 func (q *TxQueries) UpsertMacroGoal(ctx context.Context, params UpsertMacroGoalParams) (MacroGoal, error) {
 	var g MacroGoal

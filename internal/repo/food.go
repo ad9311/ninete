@@ -43,7 +43,13 @@ type UpdateFoodParams struct {
 	SaturatedFatG float64
 }
 
-const selectFoods = `SELECT * FROM "foods"`
+// foodColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const foodColumns = `"id", "user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g",
+"created_at", "updated_at", "fiber_g", "sodium_g", "saturated_fat_g"`
+
+const selectFoods = `SELECT ` + foodColumns + ` FROM "foods"`
 
 func (q *Queries) SelectFoods(ctx context.Context, opts QueryOptions) ([]Food, error) {
 	var fs []Food
@@ -100,7 +106,8 @@ func (q *Queries) SelectFoods(ctx context.Context, opts QueryOptions) ([]Food, e
 	return fs, err
 }
 
-const selectFood = `SELECT * FROM "foods" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
+const selectFood = `SELECT ` + foodColumns + `
+FROM "foods" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectFood(ctx context.Context, id, userID int) (Food, error) {
 	var f Food
@@ -132,7 +139,7 @@ INSERT INTO "foods"
   ("user_id", "name", "kcal", "protein_g", "carbs_g", "fat_g",
    "fiber_g", "sodium_g", "saturated_fat_g")
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING *`
+RETURNING ` + foodColumns
 
 func (q *TxQueries) InsertFood(ctx context.Context, params InsertFoodParams) (Food, error) {
 	var f Food
@@ -184,7 +191,7 @@ SET "name"            = ?,
     "updated_at"      = ?
 WHERE "id" = ?
   AND "user_id" = ?
-RETURNING *`
+RETURNING ` + foodColumns
 
 func (q *TxQueries) UpdateFood(
 	ctx context.Context,

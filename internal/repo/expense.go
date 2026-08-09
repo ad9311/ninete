@@ -33,7 +33,12 @@ type UpdateExpenseParams struct {
 	Date        int64
 }
 
-const selectExpenses = `SELECT * FROM "expenses"`
+// expenseColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const expenseColumns = `"id", "user_id", "category_id", "description", "amount", "date", "created_at", "updated_at"`
+
+const selectExpenses = `SELECT ` + expenseColumns + ` FROM "expenses"`
 
 // expenseDescriptionExpr matches a description substring. SQLite's LIKE is
 // case-insensitive for ASCII, so no lower() wrapper is needed (and a leading
@@ -155,7 +160,8 @@ func (q *Queries) CountExpenses(ctx context.Context, filters Filters) (int, erro
 	return c, err
 }
 
-const selectExpense = `SELECT * FROM "expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
+const selectExpense = `SELECT ` + expenseColumns + `
+FROM "expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1`
 
 func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, error) {
 	var e Expense
@@ -181,7 +187,7 @@ func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, e
 const insertExpense = `
 INSERT INTO "expenses" ("user_id", "category_id", "description", "amount", "date")
 VALUES (?, ?, ?, ?, ?)
-RETURNING *`
+RETURNING ` + expenseColumns
 
 func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams) (Expense, error) {
 	var e Expense
@@ -250,7 +256,7 @@ SET "category_id" = ?,
     "updated_at"  = ?
 WHERE "id" = ?
   AND "user_id" = ?
-RETURNING *;
+RETURNING ` + expenseColumns + `;
 `
 
 func (q *Queries) UpdateExpense(

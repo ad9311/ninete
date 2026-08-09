@@ -75,12 +75,18 @@ type UpdateRecurrentExpenseParams struct {
 	LastCopyCreatedAt sql.NullInt64
 }
 
+// recurrentExpenseColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const recurrentExpenseColumns = `"id", "user_id", "category_id", "description", "amount", "period",
+"last_copy_created_at", "created_at", "updated_at"`
+
 const insertRecurrentExpense = `
 INSERT INTO "recurrent_expenses" ("user_id", "category_id", "description", "amount", "period")
 VALUES (?, ?, ?, ?, ?)
-RETURNING *`
+RETURNING ` + recurrentExpenseColumns
 
-const selectRecurrentExpenses = `SELECT * FROM "recurrent_expenses"`
+const selectRecurrentExpenses = `SELECT ` + recurrentExpenseColumns + ` FROM "recurrent_expenses"`
 
 func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions) ([]RecurrentExpense, error) {
 	var res []RecurrentExpense
@@ -198,7 +204,7 @@ SET "category_id"          = ?,
     "last_copy_created_at" = COALESCE(?, "last_copy_created_at"),
     "updated_at"           = ?
 WHERE "id" = ? AND "user_id" = ?
-RETURNING *;
+RETURNING ` + recurrentExpenseColumns + `;
 `
 
 const deleteRecurrentExpense = `DELETE FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
@@ -312,7 +318,8 @@ func (q *TxQueries) DeleteAllRecurrentExpensesByUser(ctx context.Context, userID
 }
 
 const selectRecurrentExpense = `
-SELECT * FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
+SELECT ` + recurrentExpenseColumns + `
+FROM "recurrent_expenses" WHERE "id" = ? AND "user_id" = ? LIMIT 1
 `
 
 func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (RecurrentExpense, error) {
@@ -338,7 +345,7 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 }
 
 const selectAllDueRecurrentExpenses = `
-SELECT *
+SELECT ` + recurrentExpenseColumns + `
 FROM "recurrent_expenses"
 WHERE "last_copy_created_at" IS NULL
    OR (

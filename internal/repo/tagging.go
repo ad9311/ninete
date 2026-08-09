@@ -97,7 +97,7 @@ func (q *Queries) CountTaggingsByTarget(ctx context.Context, taggableType string
 }
 
 const selectTagsForTaggableBase = `
-SELECT t.*
+SELECT ` + tagColumnsAliased + `
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
 INNER JOIN "%s" o ON o."id" = tg."taggable_id"

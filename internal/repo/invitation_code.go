@@ -15,10 +15,15 @@ type InsertInvitationCodeParams struct {
 	CodeFingerprint string
 }
 
+// invitationCodeColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const invitationCodeColumns = `"id", "code_hash", "code_fingerprint", "created_at", "updated_at"`
+
 const insertInvitationCode = `
 INSERT INTO "invitation_codes" ("code_hash", "code_fingerprint")
 VALUES (?, ?)
-RETURNING *`
+RETURNING ` + invitationCodeColumns
 
 func (q *Queries) InsertInvitationCode(ctx context.Context, params InsertInvitationCodeParams) (InvitationCode, error) {
 	var c InvitationCode
@@ -39,7 +44,7 @@ func (q *Queries) InsertInvitationCode(ctx context.Context, params InsertInvitat
 }
 
 const selectInvitationCodeByFingerprint = `
-SELECT * FROM "invitation_codes"
+SELECT ` + invitationCodeColumns + ` FROM "invitation_codes"
 WHERE "code_fingerprint" = ?
 LIMIT 1`
 

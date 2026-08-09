@@ -19,10 +19,15 @@ type InsertUserParams struct {
 	PasswordHash []byte
 }
 
+// userColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const userColumns = `"id", "username", "email", "password_hash", "created_at", "updated_at"`
+
 const insertUser = `
 INSERT INTO "users" ("username", "email", "password_hash")
 VALUES (?, ?, ?)
-RETURNING *`
+RETURNING ` + userColumns
 
 func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
 	var u User
@@ -49,7 +54,7 @@ func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User
 	return u, err
 }
 
-const selectUser = `SELECT * FROM "users" WHERE "id" = ? LIMIT 1`
+const selectUser = `SELECT ` + userColumns + ` FROM "users" WHERE "id" = ? LIMIT 1`
 
 func (q *Queries) SelectUser(ctx context.Context, id int) (User, error) {
 	var u User
@@ -70,7 +75,7 @@ func (q *Queries) SelectUser(ctx context.Context, id int) (User, error) {
 	return u, err
 }
 
-const selectUserByEmail = `SELECT * FROM "users" WHERE "email" = ? LIMIT 1`
+const selectUserByEmail = `SELECT ` + userColumns + ` FROM "users" WHERE "email" = ? LIMIT 1`
 
 func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
 	var u User

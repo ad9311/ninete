@@ -19,7 +19,16 @@ type InsertTagParams struct {
 	Name   string
 }
 
-const selectTags = `SELECT * FROM "tags"`
+// tagColumns pins the projection order the Scan calls in this file depend on.
+// SELECT * would resolve to whatever order the table happens to have, so an
+// ALTER TABLE could shift values into the wrong struct fields with no error.
+const tagColumns = `"id", "user_id", "name", "created_at", "updated_at"`
+
+// tagColumnsAliased is tagColumns qualified for the joins in tagging.go, which
+// select tags through an alias.
+const tagColumnsAliased = `t."id", t."user_id", t."name", t."created_at", t."updated_at"`
+
+const selectTags = `SELECT ` + tagColumns + ` FROM "tags"`
 
 func (q *Queries) SelectTags(ctx context.Context, opts QueryOptions) ([]Tag, error) {
 	var ts []Tag
@@ -61,7 +70,7 @@ func (q *Queries) SelectTags(ctx context.Context, opts QueryOptions) ([]Tag, err
 const insertTag = `
 INSERT INTO "tags" ("user_id", "name")
 VALUES (?, ?)
-RETURNING *`
+RETURNING ` + tagColumns
 
 func (q *Queries) InsertTag(ctx context.Context, params InsertTagParams) (Tag, error) {
 	var t Tag
@@ -94,7 +103,7 @@ func (q *TxQueries) InsertOrIgnoreTag(ctx context.Context, params InsertTagParam
 }
 
 const selectTagsByUserAndNames = `
-SELECT * FROM "tags"
+SELECT ` + tagColumns + ` FROM "tags"
 WHERE "user_id" = ?
   AND "name" IN (%s)
 ORDER BY "name" ASC`
