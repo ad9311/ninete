@@ -64,3 +64,6 @@ vendor/
 # Temporary files
 /.cache/
 tmp/
+
+# Private runbooks (host-specific notes, never committed)
+/docs/*.local.md
