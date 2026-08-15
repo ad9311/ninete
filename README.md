@@ -159,6 +159,12 @@ make migrate-down
 
 Migrations live in `internal/db/migrations/` and are managed with Goose.
 
+## Deployment
+
+Production runs on a single Linux VPS (systemd + Caddy, no containers). See
+[`docs/deployment.md`](docs/deployment.md) for the deploy procedure, environment
+handling, migrations, tasks, and rollback.
+
 ## Project Structure
 
 See `CLAUDE.md` for detailed architecture, layering, and conventions.
