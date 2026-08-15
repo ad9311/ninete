@@ -49,6 +49,9 @@ migrate-status: build-migrate ## Run all migrations up
 seed: build-migrate ## Seed the database
 	ENV=development ./build/migrate seed
 
+stamp: build-migrate ## Claim the database for the current ENV
+	ENV=development ./build/migrate stamp
+
 build-task: ## Build the task binary
 	@echo "Building task binary..."
 	@mkdir -p ./build

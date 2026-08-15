@@ -67,6 +67,10 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to run database PRAGMA commands: %w", err)
 	}
 
+	if err := verifyEnvStamp(sqlDB); err != nil {
+		return nil, err
+	}
+
 	sqlDB.SetMaxOpenConns(maxOpenConns)
 	sqlDB.SetMaxIdleConns(maxIdleConns)
 

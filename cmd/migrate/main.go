@@ -36,6 +36,11 @@ func main() {
 			Description: "Run database seeds",
 			Run:         db.RunSeeds,
 		},
+		{
+			Name:        "stamp",
+			Description: "Claim the database for the current ENV",
+			Run:         db.StampDatabase,
+		},
 	})
 	if err != nil {
 		prog.QuickLogger().Errorf("%v", err)

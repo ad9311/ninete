@@ -118,7 +118,7 @@ Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/t
 - **Role**: Migration/seed CLI entrypoint.
 - **Key file**: `cmd/migrate/main.go`.
 - **Responsibilities**:
-- Register migration commands (`up`, `down`, `create`, `status`, `seed`).
+- Register migration commands (`up`, `down`, `create`, `status`, `seed`, `stamp`).
 - Delegate execution to `internal/db` functions via `internal/cmd`.
 
 ### `cmd/task`
@@ -156,6 +156,7 @@ Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/t
 - Create new migration files.
 - Run seed routines.
 - **PRAGMA split — do not merge these two files back together**: `init/database.sql` holds settings SQLite persists in the database file (encoding, page size, journal mode) and runs once when the pool opens. `init/connection.sql` holds per-connection settings and runs from a driver connect hook registered under the driver name `sqlite3_ninete`, so every connection gets them. Applying `foreign_keys` once at startup leaves later connections with SQLite's default of OFF, which silently skips `ON DELETE CASCADE`. The hook reads the value back and fails the connection if it did not take.
+- **Environment stamp**: `ENV` and `DATABASE_URL` are independent, so nothing else stops a development command from opening the production database. `verifyEnvStamp` (`internal/db/stamp.go`) writes the owning environment into the SQLite header's `application_id` on first open and fails `Open` when a later open disagrees. That is why `init/database.sql` must not set `application_id` itself. A database created before stamping reads back as unstamped and is claimed by whichever command opens it first, so claim it deliberately once with `ENV=<env> ./build/migrate stamp`.
 - **Migration index convention**: Simple single-column FK columns use only the inline `REFERENCES "table"("col") ON DELETE CASCADE` declaration — do NOT add a separate `CREATE INDEX` for them. Only add explicit `CREATE INDEX` statements for composite or complex indexes (e.g. `CREATE UNIQUE INDEX … ON "table" ("col_a", lower("col_b"))`). Example of correct inline FK: `"user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE`.
 - **Migration file convention**: named `YYYYMMDDHHMMSS_description.sql`, with `-- +goose Up` and `-- +goose Down` sections. Every migration must set `PRAGMA user_version` — incremented in `Up`, restored to the previous value in `Down`. Read the newest migration to find the current number rather than guessing.
 - **Adding a column**: append it at the end of the table. If a migration rebuilds a table or inserts a column mid-list, the matching columns constant in `internal/repo` must be updated in the same change; `TestColumnConstantsMatchSchema` will fail until it is.
