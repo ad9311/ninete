@@ -127,6 +127,7 @@ func CategoryNames() []string {
 		"Other",
 		"Utilities",
 		"Restaurants",
+		"Hobbies",
 	}
 }
 
@@ -206,7 +207,7 @@ func seedExpenses(s *logic.Store, userID int) error {
 
 		if _, err := s.CreateExpense(ctx, userID, logic.ExpenseParams{
 			ExpenseBaseParams: logic.ExpenseBaseParams{
-				CategoryID:  (i % 17) + 1,
+				CategoryID:  (i % len(CategoryNames())) + 1,
 				Description: descriptions[i%len(descriptions)],
 				Amount:      amounts[i%len(amounts)],
 			},
