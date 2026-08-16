@@ -15,10 +15,11 @@ Production runs on a single Linux VPS with a standard FHS layout — no containe
 
 Host specifics — exact paths, the service account, the hostname, cron, and the list of known gaps — are in `docs/deployment.local.md`, which is git-ignored because this repository is public. Keep it that way: a note that helps someone write code belongs in `deployment.md`, a note that helps someone reach the box belongs in `deployment.local.md`.
 
-Three facts from it that change how code should be written:
+Four facts from it that change how code should be written:
 - `prog.Load()` skips `.env` when `ENV=production`, so production config comes only from the process environment (systemd `EnvironmentFile=/etc/ninete/env`). A new config value must be added there, not to a `.env` on the host.
 - Templates and static assets resolve through relative paths (`./web/views/...`, `./web/static/`), so the binary only works when started from the repository root. `WorkingDirectory` in the unit is load-bearing — do not introduce more relative-path dependencies without noting it.
 - Migrations are applied while the previous binary is still serving. A migration that removes or renames something the running code reads will error until the restart lands.
+- The unit runs under `ProtectSystem=strict`, so the app process can write to exactly one directory — the one holding the SQLite file. Runtime writes to the working directory, `/tmp`, or anywhere else fail with `EPERM`. The `./tmp/` convention below is for development only.
 
 ## Performance Priorities
 The goal is an app that feels instant for one person, not one that sustains throughput for many. When those two goals conflict, choose responsiveness.
