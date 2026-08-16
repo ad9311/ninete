@@ -138,12 +138,24 @@ loaded: `status`, `up`, `down` (one step).
 
 ### Backups
 
-If adding backups, use SQLite's own backup API rather than copying the file — a
-plain `cp` of a database with a live WAL can capture a torn state:
+Production is backed up nightly to off-site object storage on a systemd timer.
+Host specifics — paths, credentials, retention, and the restore procedure — are
+in `deployment.local.md`.
+
+The one rule that constrains code: never snapshot the database with `cp`. A plain
+copy of a database with a live WAL can capture a torn state. Use SQLite's own
+mechanism, which the backup script does:
 
 ```bash
-sqlite3 <db-path> ".backup '<backup-path>'"
+sqlite3 <db-path> "VACUUM INTO '<snapshot-path>'"
 ```
+
+`VACUUM INTO` writes a consistent, compacted copy — expect the snapshot to be
+smaller than the source. `.backup '<path>'` is equally safe if you want a
+byte-for-byte copy instead.
+
+A restored database arrives with the copying process's umask rather than the
+original's, so modes need re-checking after any restore.
 
 ## Tasks
 
