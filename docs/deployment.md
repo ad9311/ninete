@@ -73,6 +73,32 @@ else produces a server that boots and then fails to render.
 
 Do not introduce more relative-path dependencies without noting it here.
 
+## Service sandbox
+
+The unit runs under systemd's filesystem sandbox: `ProtectSystem=strict` makes the
+entire filesystem read-only for the process, and a single `ReadWritePaths=` entry
+punches the database directory back open. **The app process can write to exactly
+one directory — the one holding the SQLite file — and nowhere else.**
+
+That is a constraint on code, not just on the host:
+
+- Anything the app writes at runtime must live beside the database. Writing a
+  temp file, a cache, an upload, or an export to the working directory, `/tmp`,
+  or the service account's home fails with `EPERM`. `PrivateTmp=yes` also gives
+  the service its own `/tmp`, so nothing written there is visible from a shell.
+- The working directory — the repository checkout — is **read-only** to the running
+  app. Reading templates and static assets from it still works, which is all the
+  app needs. Nothing may write there.
+- `UMask=0077` means files the app creates are `0600`, owned by the service account.
+- The capability bounding set is empty, so the app cannot bind a privileged port.
+  It binds `PORT` on loopback and Caddy owns 80/443; do not change that expecting
+  the app to listen on 443 directly.
+- A syscall filter (`@system-service`) and `MemoryDenyWriteExecute=yes` are in
+  effect. Both are fine for a Go binary — no JIT, no exotic syscalls — but a
+  future dependency that needs one would fail at runtime rather than at build time.
+
+The exact stanza lives in `docs/deployment.local.md`.
+
 ## Deploying
 
 A single script on the host runs the whole procedure, in order:
