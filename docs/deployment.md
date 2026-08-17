@@ -99,6 +99,26 @@ That is a constraint on code, not just on the host:
 
 The exact stanza lives in `docs/deployment.local.md`.
 
+### What the sandbox does not cover
+
+The sandbox is a property of the long-running web process, not of the app as a
+whole. `migrate.sh` and `task.sh` run as plain shell processes outside the unit,
+so **none of the constraints above apply to them**. This is deliberate and settled
+— the reasoning is in `docs/deployment.local.md` — but it has one consequence for
+code:
+
+Something invoked through `task.sh` can write wherever the service account can
+write. The same logic called from an HTTP handler gets `EPERM` outside the
+database directory. So a task that ran clean in production proves nothing about
+the same code reached from a request, and "it worked when I ran the task" is not
+evidence the write path is legal.
+
+Nothing diverges today — `internal/task/task.go` does database work only, and
+migrations are `go:embed`ed, so `goose.Up` never touches the filesystem. The first
+task that needs to write a file (an import, an export dump, a generated report) is
+the point at which this stops being trivia: put its output beside the database, or
+raise it with the owner before assuming a directory is writable.
+
 ## Deploying
 
 A single script on the host runs the whole procedure, in order:
