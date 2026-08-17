@@ -105,6 +105,9 @@ The goal is an app that feels instant for one person, not one that sustains thro
 Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); categories are global, not user-scoped (`logic_category.go`).
 
 ## Engineering Workflow
+- **Always write in English.** Code, comments, identifiers, commit messages, PR titles and
+  descriptions, documentation, migration names, log messages, and user-facing strings are all
+  English, with no exceptions. This holds regardless of the language a request is written in.
 - Use `Makefile` targets as the default way to run project commands.
 - After implementing changes, run `make lint-fix`. It covers Go, CSS, JS, and the
   shell scripts under `scripts/` (`make lint-sh` runs shellcheck alone). The shell
