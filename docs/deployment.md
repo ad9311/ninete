@@ -108,8 +108,14 @@ A single script on the host runs the whole procedure, in order:
 2. `build-js.sh` — `bun install` then `make build-static-js`. The JS bundle is
    git-ignored, so it must be built on the host.
 3. `build.sh` — builds `migrate`, `task`, and `ninete` with
-   `CGO_ENABLED=1 CC=gcc -trimpath -ldflags=-s -ldflags=-w -buildvcs=false`, then
+   `CGO_ENABLED=1 CC=gcc -trimpath -ldflags='-s -w' -buildvcs=false`, then
    re-applies restrictive permissions to the output directory.
+
+   The flags are held in bash arrays rather than strings. `-ldflags` is a single
+   flag taking one quoted argument, and a string expanded unquoted for word
+   splitting cannot carry one — passing `-ldflags=-s -ldflags=-w` instead means Go
+   keeps only the last, silently dropping `-s`. That was the case until
+   2026-08-17 and cost ~1.1 MB of symbol table in every production binary.
 4. `migrate.sh up` — applies pending migrations.
 5. Copy the new binary into place as root and restart the unit.
 
