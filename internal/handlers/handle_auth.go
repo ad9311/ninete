@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/ad9311/ninete/internal/logic"
@@ -62,6 +63,15 @@ func (h *Handler) PostLogin(w http.ResponseWriter, r *http.Request) {
 		Password: r.FormValue("password"),
 	})
 	if err != nil {
+		// A failed lookup is a server fault, so it must not be rendered back as
+		// a rejected credential on the login form.
+		if errors.Is(err, logic.ErrLoginLookup) {
+			h.app.Logger.Errorf("%v", err)
+			h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, ErrLoginUnavailable)
+
+			return
+		}
+
 		h.renderErr(w, r, http.StatusBadRequest, LoginIndex, err)
 
 		return

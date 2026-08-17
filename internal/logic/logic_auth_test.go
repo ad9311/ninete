@@ -3,6 +3,7 @@ package logic_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
@@ -92,6 +93,56 @@ func TestLogin(t *testing.T) {
 					Password: "login_password_4",
 				})
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			// Genuine reproduction: before the dummy-hash comparison, an unknown
+			// email returned after one indexed SELECT while a known email paid a
+			// full bcrypt compare, so response latency told an attacker which
+			// address owned the account.
+			//
+			// The bound is a ratio against a baseline measured in this same test
+			// rather than an absolute duration, so it does not depend on how fast
+			// the machine running it is. Without the fix the ratio is roughly
+			// 1:60; half the baseline leaves ample room for scheduling noise.
+			name: "should_spend_comparable_time_on_known_and_unknown_emails",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(
+					t,
+					"login_user_timing",
+					"login_user_timing@example.com",
+					"login_password_timing",
+				)
+
+				// Warm the lazily built dummy hash so its one-off cost is not
+				// counted as if it were comparison time.
+				_, _ = s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_timing_warmup@example.com",
+					Password: "login_password_timing",
+				})
+
+				start := time.Now()
+				_, err := s.Store.Login(ctx, logic.SessionParams{
+					Email:    "login_user_timing@example.com",
+					Password: "wrong_password_timing",
+				})
+				knownEmail := time.Since(start)
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+
+				start = time.Now()
+				_, err = s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_timing@example.com",
+					Password: "wrong_password_timing",
+				})
+				unknownEmail := time.Since(start)
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+
+				require.Greater(
+					t,
+					unknownEmail,
+					knownEmail/2,
+					"unknown email answered far faster than a known one, leaking account existence",
+				)
 			},
 		},
 	}

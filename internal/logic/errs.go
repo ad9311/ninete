@@ -9,6 +9,7 @@ var (
 	ErrInvitationCodeExists  = errors.New("invitation code already exists")
 	ErrPasswordConfirmation  = errors.New("password and password confirmation do not match")
 	ErrInvitationCodeVerify  = errors.New("failed to verify invitation code")
+	ErrLoginLookup           = errors.New("failed to look up account")
 
 	ErrValidationAssertion = errors.New("failed to assert error type")
 	ErrValidationFailed    = errors.New("validation failed")
