@@ -32,6 +32,22 @@ jobs:
         with:
           version: v2.4.0
 
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Preinstalled on the ubuntu runner image, but the deploy scripts are the
+      # one thing here with no test coverage at all, so do not let a dropped
+      # preinstall turn this job into a silent no-op.
+      - name: Install ShellCheck
+        run: shellcheck --version || (sudo apt-get update && sudo apt-get install -y shellcheck)
+
+      - name: Run ShellCheck
+        run: make lint-sh
+
   eslint:
     name: eslint
     runs-on: ubuntu-latest

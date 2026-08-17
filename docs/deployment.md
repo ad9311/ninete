@@ -142,6 +142,11 @@ editing them:
   `cd -P "$(dirname "${BASH_SOURCE[0]}")"`. `-P` is required: the host invokes them
   through the symlink, and without it the derived parent directory is wrong.
 
+They are linted: `make lint-sh` runs shellcheck over `scripts/*.sh`, and `make lint`
+and `make lint-fix` both depend on it. These scripts have no test coverage and a
+failure only surfaces mid-deploy, so the linter is the only check standing between
+an edit and production.
+
 Paths *outside* the checkout (the build output directory, the env file, the
 installed binary) stay literal — they are host facts, not repository facts, and
 one of them is matched verbatim by the sudo policy. See `deployment.local.md`

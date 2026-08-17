@@ -101,7 +101,9 @@ Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/t
 
 ## Engineering Workflow
 - Use `Makefile` targets as the default way to run project commands.
-- After implementing changes, run `make lint-fix`.
+- After implementing changes, run `make lint-fix`. It covers Go, CSS, JS, and the
+  shell scripts under `scripts/` (`make lint-sh` runs shellcheck alone). Shellcheck
+  must be installed locally; CI runs it too.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
