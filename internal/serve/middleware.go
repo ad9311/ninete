@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"github.com/justinas/nosurf"
 )
 
@@ -197,6 +199,51 @@ func (s *Server) contentSecurityPolicy(next http.Handler) http.Handler {
 	})
 }
 
+// Credential attempts allowed per client per window. A person logging in never
+// approaches this; a script trying passwords hits it on the first burst.
+const (
+	authAttemptLimit  = 10
+	authAttemptWindow = time.Minute
+)
+
+// authRateLimit throttles the credential-checking routes. It keys off
+// RemoteAddr, which middleware.RealIP has already rewritten from the proxy's
+// forwarded header, so the key is the actual client rather than Caddy.
+//
+// Disabled under ENV=test: the suite performs a hundred logins from one
+// synthetic address, which is exactly the pattern this blocks. The middleware
+// itself is covered directly in middleware_test.go.
+func (s *Server) authRateLimit() func(http.Handler) http.Handler {
+	if s.app.IsTest() {
+		return func(next http.Handler) http.Handler { return next }
+	}
+
+	return newAuthRateLimit(s.handlers.TooManyRequests)
+}
+
+func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Handler {
+	return httprate.LimitBy(
+		authAttemptLimit,
+		authAttemptWindow,
+		keyByClientIP,
+		httprate.WithLimitHandler(limitHandler),
+	)
+}
+
+// keyByClientIP buckets by the connecting address, which middleware.RealIP has
+// already replaced with the forwarded client address. httprate's own KeyByIP is
+// deprecated precisely because it cannot know whether a proxy sits in front;
+// here it does, so the choice is made explicitly.
+func keyByClientIP(r *http.Request) (string, error) {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		// RemoteAddr carries no port when a middleware rewrote it from a header.
+		ip = r.RemoteAddr
+	}
+
+	return httprate.CanonicalizeIP(ip), nil
+}
+
 // setUpMiddlewares registers what every request pays for, static assets
 // included. Keep it cheap: anything touching the database belongs in
 // setUpAppMiddlewares.
@@ -205,6 +252,11 @@ func (s *Server) setUpMiddlewares() {
 		s.Router.Use(middleware.Logger)
 	}
 
+	// RealIP rewrites RemoteAddr from the proxy's forwarded header. It is only
+	// safe because the app binds loopback and Caddy is the sole path in; a
+	// directly reachable port would let a client forge its own address and walk
+	// past the auth rate limiter.
+	s.Router.Use(middleware.RealIP)
 	s.Router.Use(middleware.Recoverer)
 	s.Router.Use(middleware.RequestID)
 	s.Router.Use(s.baseSecurityHeaders)

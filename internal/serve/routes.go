@@ -22,10 +22,13 @@ func (s *Server) setUpRoutes() {
 		root.Post(cspReportPath, s.handlers.PostCSPReport)
 
 		root.Get("/login", s.handlers.GetLogin)
-		root.Post("/login", s.handlers.PostLogin)
 		root.Get("/register", s.handlers.GetRegister)
-		root.Post("/register", s.handlers.PostRegister)
 		root.Post("/logout", s.handlers.PostLogout)
+
+		// Only the routes that check a credential are throttled. Rendering the
+		// forms stays free.
+		root.With(s.authRateLimit()).Post("/login", s.handlers.PostLogin)
+		root.With(s.authRateLimit()).Post("/register", s.handlers.PostRegister)
 
 		root.Get("/dashboard", s.handlers.GetDashboard)
 

@@ -11,6 +11,8 @@ var (
 	// database fault does not describe itself on a public page.
 	ErrLoginUnavailable = errors.New("login is temporarily unavailable, please try again")
 
+	ErrTooManyAttempts = errors.New("too many attempts, please wait a moment and try again")
+
 	ErrSearchDateFormat  = errors.New("dates must use the YYYY-MM-DD format")
 	ErrSearchDateRange   = errors.New("the from date must be on or before the to date")
 	ErrSearchTermTooLong = errors.New("search terms must be at most 50 characters")
