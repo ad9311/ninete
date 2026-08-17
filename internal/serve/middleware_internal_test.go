@@ -137,6 +137,136 @@ func TestKeyByClientIP(t *testing.T) {
 	}
 }
 
+func TestRealClientIP(t *testing.T) {
+	remoteAddrFor := func(t *testing.T, setHeaders func(http.Header)) string {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/login", nil)
+		req.RemoteAddr = "127.0.0.1:41000"
+		setHeaders(req.Header)
+
+		var seen string
+		realClientIP(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			seen = r.RemoteAddr
+		})).ServeHTTP(httptest.NewRecorder(), req)
+
+		return seen
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_use_the_last_forwarded_entry",
+			fn: func(t *testing.T) {
+				// Caddy appends the address it saw, so the entry it wrote is
+				// last. Anything before it came from the client.
+				got := remoteAddrFor(t, func(h http.Header) {
+					h.Set("X-Forwarded-For", "198.51.100.7, 203.0.113.30")
+				})
+				require.Equal(t, "203.0.113.30", got)
+			},
+		},
+		{
+			name: "should_use_the_last_entry_of_repeated_headers",
+			fn: func(t *testing.T) {
+				got := remoteAddrFor(t, func(h http.Header) {
+					h.Add("X-Forwarded-For", "198.51.100.7")
+					h.Add("X-Forwarded-For", "203.0.113.31")
+				})
+				require.Equal(t, "203.0.113.31", got)
+			},
+		},
+		{
+			// Genuine reproduction: chi's middleware.RealIP reads
+			// True-Client-IP first, then X-Real-IP, then the *first*
+			// X-Forwarded-For entry. Caddy sets neither of the first two and
+			// appends to the third, so a client could set all three and mint a
+			// fresh rate-limit bucket per request. With RealIP in place this
+			// case returned the forged address.
+			name: "should_ignore_client_supplied_identity_headers",
+			fn: func(t *testing.T) {
+				got := remoteAddrFor(t, func(h http.Header) {
+					h.Set("True-Client-IP", "198.51.100.1")
+					h.Set("X-Real-IP", "198.51.100.2")
+					h.Set("X-Forwarded-For", "198.51.100.3, 203.0.113.32")
+				})
+				require.Equal(t, "203.0.113.32", got)
+			},
+		},
+		{
+			name: "should_keep_remote_addr_without_a_forwarded_header",
+			fn: func(t *testing.T) {
+				got := remoteAddrFor(t, func(http.Header) {})
+				require.Equal(t, "127.0.0.1:41000", got)
+			},
+		},
+		{
+			name: "should_keep_remote_addr_when_the_last_entry_is_not_an_address",
+			fn: func(t *testing.T) {
+				got := remoteAddrFor(t, func(h http.Header) {
+					h.Set("X-Forwarded-For", "203.0.113.33, not-an-ip")
+				})
+				require.Equal(t, "127.0.0.1:41000", got)
+			},
+		},
+		{
+			name: "should_handle_an_ipv6_entry",
+			fn: func(t *testing.T) {
+				got := remoteAddrFor(t, func(h http.Header) {
+					h.Set("X-Forwarded-For", "198.51.100.7, 2001:db8::2")
+				})
+				require.Equal(t, "2001:db8::2", got)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+// A forged identity header must not buy a fresh budget. This is the property
+// the loopback bind alone does not provide, since the headers arrive through
+// the proxy rather than on a direct connection.
+func TestAuthRateLimitIgnoresForgedHeaders(t *testing.T) {
+	limited := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	})
+
+	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	handler := realClientIP(newAuthRateLimit(limited)(ok))
+
+	attempt := func(t *testing.T, forged string) int {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/login", nil)
+		req.RemoteAddr = "127.0.0.1:41000"
+		req.Header.Set("True-Client-IP", forged)
+		req.Header.Set("X-Real-IP", forged)
+		req.Header.Set("X-Forwarded-For", forged+", 203.0.113.40")
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec.Code
+	}
+
+	for i := range authAttemptLimit {
+		require.Equal(t, http.StatusOK, attempt(t, fmt.Sprintf("198.51.100.%d", i+1)))
+	}
+
+	require.Equal(
+		t,
+		http.StatusTooManyRequests,
+		attempt(t, "198.51.100.200"),
+		"a rotating forged header bought a fresh rate-limit budget",
+	)
+}
+
 func portFor(i int) string {
 	return fmt.Sprintf("203.0.113.14:%d", 50000+i)
 }

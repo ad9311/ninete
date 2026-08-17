@@ -26,9 +26,11 @@ func (s *Server) setUpRoutes() {
 		root.Post("/logout", s.handlers.PostLogout)
 
 		// Only the routes that check a credential are throttled. Rendering the
-		// forms stays free.
-		root.With(s.authRateLimit()).Post("/login", s.handlers.PostLogin)
-		root.With(s.authRateLimit()).Post("/register", s.handlers.PostRegister)
+		// forms stays free. Both routes share one middleware value, so a client
+		// gets a single budget across them instead of one each.
+		credentialLimit := s.authRateLimit()
+		root.With(credentialLimit).Post("/login", s.handlers.PostLogin)
+		root.With(credentialLimit).Post("/register", s.handlers.PostRegister)
 
 		root.Get("/dashboard", s.handlers.GetDashboard)
 

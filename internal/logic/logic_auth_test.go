@@ -1,6 +1,7 @@
 package logic_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -143,6 +144,45 @@ func TestLogin(t *testing.T) {
 					knownEmail/2,
 					"unknown email answered far faster than a known one, leaking account existence",
 				)
+			},
+		},
+		{
+			// Genuine reproduction: every lookup failure used to collapse into
+			// ErrWrongEmailOrPassword, so a database fault was reported to the
+			// browser as a rejected credential and logged nowhere. Only
+			// sql.ErrNoRows means "no such account"; anything else is a server
+			// fault and must surface as one.
+			name: "should_report_a_failed_lookup_as_a_server_fault",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(
+					t,
+					"login_user_lookup",
+					"login_user_lookup@example.com",
+					"login_password_lookup",
+				)
+
+				// A cancelled context makes the SELECT fail with something
+				// other than sql.ErrNoRows, which is the branch under test.
+				cancelledCtx, cancel := context.WithCancel(ctx)
+				cancel()
+
+				_, err := s.Store.Login(cancelledCtx, logic.SessionParams{
+					Email:    "login_user_lookup@example.com",
+					Password: "login_password_lookup",
+				})
+				require.ErrorIs(t, err, logic.ErrLoginLookup)
+				require.NotErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+			},
+		},
+		{
+			name: "should_still_report_an_unknown_email_as_a_credential_failure",
+			fn: func(t *testing.T) {
+				_, err := s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_lookup@example.com",
+					Password: "login_password_lookup",
+				})
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+				require.NotErrorIs(t, err, logic.ErrLoginLookup)
 			},
 		},
 	}

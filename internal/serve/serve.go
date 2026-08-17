@@ -33,11 +33,24 @@ type Server struct {
 }
 
 // defaultHost keeps the listener on loopback, which is what Caddy proxies to and
-// what docs/deployment.md describes. It is also what makes middleware.RealIP
-// safe: no client can reach the port directly to forge a forwarded address and
-// slip past the auth rate limiter. Override with HOST only if something other
-// than a local reverse proxy needs to connect.
+// what docs/deployment.md describes. It bounds who can append an
+// X-Forwarded-For entry directly: realClientIP trusts the last entry, so a
+// directly reachable port would let a client write that entry itself and slip
+// past the auth rate limiter. Override with HOST only if something other than a
+// local reverse proxy needs to connect.
 const defaultHost = "127.0.0.1"
+
+// resolveHost picks the listen address. An empty HOST falls back to the default
+// rather than binding every interface: a bare "HOST=" line in /etc/ninete/env
+// would otherwise silently undo the loopback boundary with no error or log.
+func resolveHost() string {
+	host := os.Getenv("HOST")
+	if host == "" {
+		return defaultHost
+	}
+
+	return host
+}
 
 func New(app *prog.App, store *logic.Store, db *sql.DB) *Server {
 	port := os.Getenv("PORT")
@@ -45,10 +58,7 @@ func New(app *prog.App, store *logic.Store, db *sql.DB) *Server {
 		port = "8080"
 	}
 
-	host, ok := os.LookupEnv("HOST")
-	if !ok {
-		host = defaultHost
-	}
+	host := resolveHost()
 
 	s := &Server{
 		Router:  chi.NewRouter(),
