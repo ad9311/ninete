@@ -90,3 +90,10 @@ func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	h.renderErr(w, r, http.StatusMethodNotAllowed, ErrorIndex, ErrNotAllowed)
 }
+
+// TooManyRequests answers a throttled request. It renders the error page rather
+// than httprate's plain-text default, so a rate-limited login looks like the
+// rest of the app.
+func (h *Handler) TooManyRequests(w http.ResponseWriter, r *http.Request) {
+	h.renderErr(w, r, http.StatusTooManyRequests, ErrorIndex, ErrTooManyAttempts)
+}

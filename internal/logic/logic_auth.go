@@ -2,13 +2,28 @@ package logic
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// dummyHash gives Login something to compare against when the email matches no
+// account, so both failure paths pay the same bcrypt cost. The plaintext behind
+// it is irrelevant and never matches a real account, since no user is created
+// with it. Hashing is deferred to the first failed login rather than paid at
+// startup.
+var dummyHash = sync.OnceValue(func() []byte { //nolint:gochecknoglobals // one-time constant
+	// GenerateFromPassword only fails on an input over 72 bytes, and this one is
+	// a fixed short literal.
+	hash, _ := bcrypt.GenerateFromPassword([]byte("ninete-no-such-account"), bcrypt.DefaultCost)
+
+	return hash
+})
 
 type SessionParams struct {
 	Email    string `validate:"required,email"`
@@ -34,6 +49,17 @@ func (s *Store) Login(ctx context.Context, params SessionParams) (repo.User, err
 
 	user, err := s.FindUserForAuth(ctx, params.Email)
 	if err != nil {
+		// A lookup that failed for any reason other than "no such row" is a
+		// server fault, not a credential problem. Reporting it as one hides
+		// real database failures behind a login form error.
+		if !errors.Is(err, sql.ErrNoRows) {
+			return user, fmt.Errorf("%w: %w", ErrLoginLookup, err)
+		}
+
+		// Spend the same bcrypt time a real comparison would, so response
+		// latency does not reveal whether the email owns an account.
+		_ = comparePasswords(params.Password, dummyHash())
+
 		return user, ErrWrongEmailOrPassword
 	}
 
@@ -74,7 +100,16 @@ func (s *Store) SignUp(ctx context.Context, params SignUpParams) (User, error) {
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		return user, err
+		// The insert is the only step that can collide with an existing row.
+		// Everything else it can fail with is a server fault, and neither may
+		// reach the page as the driver phrased it: the constraint message names
+		// the table and column, and a database fault reported as a form error
+		// is the same masking Login stopped doing.
+		if repo.IsUniqueViolation(err) {
+			return user, ErrAccountExists
+		}
+
+		return user, fmt.Errorf("%w: %w", ErrSignUpFailed, err)
 	}
 
 	return user, nil

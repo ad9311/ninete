@@ -25,6 +25,21 @@ Caddy terminates TLS and reverse-proxies to the app on loopback. The app listens
 only on `PORT` and is never exposed directly. Certificates are issued and renewed
 automatically.
 
+The listener binds `127.0.0.1` unless `HOST` is set to something else (an empty
+`HOST` falls back to the default too). That default is a security boundary, not a
+convenience: the root middleware chain runs `realClientIP`, which identifies the
+client from the **last** `X-Forwarded-For` entry, and the login rate limiter
+buckets on the result. Caddy appends the address it saw, so the last entry is the
+one Caddy wrote and everything before it is whatever the client sent. A directly
+reachable port would let a client append that last entry itself and get a fresh
+rate-limit budget per request.
+
+`realClientIP` deliberately ignores `True-Client-IP` and `X-Real-IP`. Caddy's
+`reverse_proxy` sets neither, so both would arrive verbatim from the client;
+chi's `middleware.RealIP` trusts them and must not be substituted here. **Do not
+set `HOST` to `0.0.0.0` without putting a proxy in front that overwrites, rather
+than appends to, `X-Forwarded-For`.**
+
 ## Environment
 
 `prog.Load()` (`internal/prog/prog.go`) **skips `.env` entirely when `ENV=production`.**

@@ -1,8 +1,10 @@
 package logic_test
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
@@ -92,6 +94,95 @@ func TestLogin(t *testing.T) {
 					Password: "login_password_4",
 				})
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			// Genuine reproduction: before the dummy-hash comparison, an unknown
+			// email returned after one indexed SELECT while a known email paid a
+			// full bcrypt compare, so response latency told an attacker which
+			// address owned the account.
+			//
+			// The bound is a ratio against a baseline measured in this same test
+			// rather than an absolute duration, so it does not depend on how fast
+			// the machine running it is. Without the fix the ratio is roughly
+			// 1:60; half the baseline leaves ample room for scheduling noise.
+			name: "should_spend_comparable_time_on_known_and_unknown_emails",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(
+					t,
+					"login_user_timing",
+					"login_user_timing@example.com",
+					"login_password_timing",
+				)
+
+				// Warm the lazily built dummy hash so its one-off cost is not
+				// counted as if it were comparison time.
+				_, _ = s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_timing_warmup@example.com",
+					Password: "login_password_timing",
+				})
+
+				start := time.Now()
+				_, err := s.Store.Login(ctx, logic.SessionParams{
+					Email:    "login_user_timing@example.com",
+					Password: "wrong_password_timing",
+				})
+				knownEmail := time.Since(start)
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+
+				start = time.Now()
+				_, err = s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_timing@example.com",
+					Password: "wrong_password_timing",
+				})
+				unknownEmail := time.Since(start)
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+
+				require.Greater(
+					t,
+					unknownEmail,
+					knownEmail/2,
+					"unknown email answered far faster than a known one, leaking account existence",
+				)
+			},
+		},
+		{
+			// Genuine reproduction: every lookup failure used to collapse into
+			// ErrWrongEmailOrPassword, so a database fault was reported to the
+			// browser as a rejected credential and logged nowhere. Only
+			// sql.ErrNoRows means "no such account"; anything else is a server
+			// fault and must surface as one.
+			name: "should_report_a_failed_lookup_as_a_server_fault",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(
+					t,
+					"login_user_lookup",
+					"login_user_lookup@example.com",
+					"login_password_lookup",
+				)
+
+				// A cancelled context makes the SELECT fail with something
+				// other than sql.ErrNoRows, which is the branch under test.
+				cancelledCtx, cancel := context.WithCancel(ctx)
+				cancel()
+
+				_, err := s.Store.Login(cancelledCtx, logic.SessionParams{
+					Email:    "login_user_lookup@example.com",
+					Password: "login_password_lookup",
+				})
+				require.ErrorIs(t, err, logic.ErrLoginLookup)
+				require.NotErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+			},
+		},
+		{
+			name: "should_still_report_an_unknown_email_as_a_credential_failure",
+			fn: func(t *testing.T) {
+				_, err := s.Store.Login(ctx, logic.SessionParams{
+					Email:    "missing_user_lookup@example.com",
+					Password: "login_password_lookup",
+				})
+				require.ErrorIs(t, err, logic.ErrWrongEmailOrPassword)
+				require.NotErrorIs(t, err, logic.ErrLoginLookup)
 			},
 		},
 	}
@@ -205,7 +296,38 @@ func TestSignUp(t *testing.T) {
 					PasswordConfirmation: "signup_password_7",
 					InvitationCode:       "invite_code_7",
 				})
-				require.Error(t, err)
+				// Genuine reproduction: this used to return the driver error
+				// verbatim, and the register handler renders whatever it gets,
+				// so the page showed "UNIQUE constraint failed: users.email".
+				require.ErrorIs(t, err, logic.ErrAccountExists)
+				require.NotContains(t, err.Error(), "constraint")
+				require.NotContains(t, err.Error(), "users.email")
+			},
+		},
+		{
+			name: "should_fail_with_duplicate_username",
+			fn: func(t *testing.T) {
+				s.CreateInvitationCode(t, "invite_code_8")
+				s.CreateInvitationCode(t, "invite_code_9")
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser8",
+					Email:                "new_user_8@example.com",
+					Password:             "signup_password_8",
+					PasswordConfirmation: "signup_password_8",
+					InvitationCode:       "invite_code_8",
+				})
+				require.NoError(t, err)
+
+				_, err = s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser8",
+					Email:                "new_user_9@example.com",
+					Password:             "signup_password_9",
+					PasswordConfirmation: "signup_password_9",
+					InvitationCode:       "invite_code_9",
+				})
+				require.ErrorIs(t, err, logic.ErrAccountExists)
+				require.NotErrorIs(t, err, logic.ErrSignUpFailed)
 			},
 		},
 	}

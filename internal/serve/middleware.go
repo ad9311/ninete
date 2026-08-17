@@ -7,13 +7,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"github.com/justinas/nosurf"
 )
 
@@ -197,10 +200,111 @@ func (s *Server) contentSecurityPolicy(next http.Handler) http.Handler {
 	})
 }
 
+// Credential attempts allowed per client per window. A person logging in never
+// approaches this; a script trying passwords hits it on the first burst.
+const (
+	authAttemptLimit  = 10
+	authAttemptWindow = time.Minute
+)
+
+// authRateLimit throttles the credential-checking routes. It keys off
+// RemoteAddr, which realClientIP has already rewritten from the proxy's
+// forwarded header, so the key is the actual client rather than Caddy.
+//
+// The returned middleware is shared by every route it guards, so /login and
+// /register draw on one budget per client rather than one each.
+//
+// Disabled under ENV=test: the suite performs a hundred logins from one
+// synthetic address, which is exactly the pattern this blocks. The middleware
+// itself is covered directly in middleware_internal_test.go.
+func (s *Server) authRateLimit() func(http.Handler) http.Handler {
+	if s.app.IsTest() {
+		return func(next http.Handler) http.Handler { return next }
+	}
+
+	return newAuthRateLimit(s.handlers.TooManyRequests)
+}
+
+func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Handler {
+	return httprate.LimitBy(
+		authAttemptLimit,
+		authAttemptWindow,
+		keyByClientIP,
+		httprate.WithLimitHandler(limitHandler),
+	)
+}
+
+// keyByClientIP buckets by the connecting address, which realClientIP has
+// already replaced with the forwarded client address. httprate's own KeyByIP is
+// deprecated precisely because it cannot know whether a proxy sits in front;
+// here it does, so the choice is made explicitly.
+func keyByClientIP(r *http.Request) (string, error) {
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		// RemoteAddr carries no port when a middleware rewrote it from a header.
+		ip = r.RemoteAddr
+	}
+
+	return httprate.CanonicalizeIP(ip), nil
+}
+
+const xForwardedForHeader = "X-Forwarded-For"
+
+// realClientIP rewrites RemoteAddr from the reverse proxy's X-Forwarded-For so
+// the rate limiter buckets on the client rather than on Caddy.
+//
+// This deliberately does not use chi's middleware.RealIP. That one reads
+// True-Client-IP, then X-Real-IP, then the *first* X-Forwarded-For entry, and
+// all three are client-controlled behind a stock Caddy: Caddy sets neither of
+// the first two, so they arrive verbatim, and it *appends* to X-Forwarded-For
+// rather than replacing it, so the first entry is whatever the client sent.
+// Trusting any of them lets a client mint a new rate-limit bucket per request
+// by rotating a header value. Binding loopback stops direct connections; it
+// does nothing about headers arriving through the proxy.
+//
+// The last X-Forwarded-For entry is the only one the proxy itself wrote, so
+// that is the one used here.
+func realClientIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if ip := forwardedClientIP(r); ip != "" {
+			r.RemoteAddr = ip
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func forwardedClientIP(r *http.Request) string {
+	values := r.Header.Values(xForwardedForHeader)
+	if len(values) == 0 {
+		return ""
+	}
+
+	// Repeated headers are equivalent to a single comma-joined one, so the
+	// proxy's own entry is the last element of the last header.
+	last := values[len(values)-1]
+	if i := strings.LastIndex(last, ","); i >= 0 {
+		last = last[i+1:]
+	}
+
+	last = strings.TrimSpace(last)
+	if net.ParseIP(last) == nil {
+		return ""
+	}
+
+	return last
+}
+
 // setUpMiddlewares registers what every request pays for, static assets
 // included. Keep it cheap: anything touching the database belongs in
 // setUpAppMiddlewares.
 func (s *Server) setUpMiddlewares() {
+	// realClientIP runs before the logger so access logs record the client
+	// rather than the proxy. It reads only the last X-Forwarded-For entry,
+	// which is the one Caddy wrote — see the comment on realClientIP for why
+	// the client-supplied entries are not trusted.
+	s.Router.Use(realClientIP)
+
 	if !s.app.IsTest() {
 		s.Router.Use(middleware.Logger)
 	}
