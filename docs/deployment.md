@@ -108,8 +108,14 @@ A single script on the host runs the whole procedure, in order:
 2. `build-js.sh` — `bun install` then `make build-static-js`. The JS bundle is
    git-ignored, so it must be built on the host.
 3. `build.sh` — builds `migrate`, `task`, and `ninete` with
-   `CGO_ENABLED=1 CC=gcc -trimpath -ldflags=-s -ldflags=-w -buildvcs=false`, then
+   `CGO_ENABLED=1 CC=gcc -trimpath -ldflags='-s -w' -buildvcs=false`, then
    re-applies restrictive permissions to the output directory.
+
+   The flags are held in bash arrays rather than strings. `-ldflags` is a single
+   flag taking one quoted argument, and a string expanded unquoted for word
+   splitting cannot carry one — passing `-ldflags=-s -ldflags=-w` instead means Go
+   keeps only the last, silently dropping `-s`. That was the case until
+   2026-08-17 and cost ~1.1 MB of symbol table in every production binary.
 4. `migrate.sh up` — applies pending migrations.
 5. Copy the new binary into place as root and restart the unit.
 
@@ -124,7 +130,39 @@ error for the few seconds before the restart lands.
 
 Each step is also runnable on its own: `pull.sh`, `build-js.sh`, `build.sh`,
 `migrate.sh <cmd>`, `task.sh <name>`. The last two print help when given no
-arguments. The scripts live on the host and are **not under version control**.
+arguments.
+
+The scripts live in this repository under `scripts/`, and the host reaches them
+through a symlink so the path it invokes is stable. Three consequences for anyone
+editing them:
+
+- **They deploy themselves.** `pull.sh` updates the scripts along with the code,
+  so a change to `deploy.sh` takes effect on the *next* deploy, not the one that
+  pulls it.
+- **Each body is wrapped in `main()`, and the last line is `main "$@"; exit`.**
+  Both halves are load-bearing, not style. Bash parses one command at a time and
+  seeks back to just past it before executing, and step 1 of a deploy rewrites the
+  very file that is running. The wrap gets the body parsed in one piece, so the
+  work itself is safe. It is not sufficient on its own: on return from `main`,
+  bash seeks to the old offset of that final line and keeps reading, so a
+  rewritten file that grew hands it a fragment of new content to execute. The
+  `exit` prevents that read — but only while it shares the line, because an
+  `exit` on a line of its own sits in the old bytes bash never reaches.
+- **Paths into the checkout are derived, not hardcoded**, via
+  `cd -P "$(dirname "${BASH_SOURCE[0]}")"`. `-P` is required: the host invokes them
+  through the symlink, and without it the derived parent directory is wrong.
+
+They are linted: `make lint-sh` runs shellcheck over `scripts/*.sh`, and `make lint`
+and `make lint-fix` both end by calling it. These scripts have no test coverage and
+a failure only surfaces mid-deploy, so the linter is the only check standing between
+an edit and production. It skips with a warning when shellcheck is not installed,
+so an editor without it silently loses that check — CI installs a pinned version
+(`v0.11.0`, matching the pin in `.github/workflows/linters.yml`) and always runs it.
+
+Paths *outside* the checkout (the build output directory, the env file, the
+installed binary) stay literal — they are host facts, not repository facts, and
+one of them is matched verbatim by the sudo policy. See `deployment.local.md`
+before changing any of those strings.
 
 ## Database
 

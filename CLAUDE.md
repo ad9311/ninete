@@ -101,7 +101,11 @@ Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/t
 
 ## Engineering Workflow
 - Use `Makefile` targets as the default way to run project commands.
-- After implementing changes, run `make lint-fix`.
+- After implementing changes, run `make lint-fix`. It covers Go, CSS, JS, and the
+  shell scripts under `scripts/` (`make lint-sh` runs shellcheck alone). The shell
+  step runs last and skips with a warning when shellcheck is not installed, so
+  install it (`brew install shellcheck`) before editing `scripts/` — CI runs a
+  pinned version and will not skip.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
@@ -242,6 +246,7 @@ Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/t
 - Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
 - Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `errs.go` (sentinel errors).
+- `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.

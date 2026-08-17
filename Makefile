@@ -8,11 +8,12 @@ export
 GO_BUILD_ENVS     ?= CGO_ENABLED=1
 INTERNAL_PATH     := github.com/ad9311/ninete/internal
 SHELL             := /bin/bash
+SHELL_FILES       := $(wildcard scripts/*.sh)
 pkg               ?= ./...
 func              ?=
 
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix build-static-js
+.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js
 
 # ========= App / Dev =========
 build: ## Build the application binary
@@ -107,6 +108,7 @@ test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose m
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."
 	golangci-lint run
+	@$(MAKE) --no-print-directory lint-sh
 
 lint-fix: ## Run golangci-lint with automatic fixes
 	@echo "Running golangci-lint (with --fix)..."
@@ -115,6 +117,19 @@ lint-fix: ## Run golangci-lint with automatic fixes
 	bun run format:static
 	bun run lint:css
 	bun run lint:js
+	@$(MAKE) --no-print-directory lint-sh
+
+# Runs last in lint/lint-fix, and skips itself when shellcheck is absent, so a
+# missing optional tool cannot block the Go/CSS/JS formatting everyone runs. CI
+# installs shellcheck in the step before calling this, so the skip cannot make
+# the pipeline pass vacuously.
+lint-sh: ## Run shellcheck over the deployment scripts
+	@if ! command -v shellcheck >/dev/null 2>&1; then \
+		echo "shellcheck not installed, skipping (brew install shellcheck)"; \
+		exit 0; \
+	fi; \
+	echo "Running shellcheck..."; \
+	shellcheck $(SHELL_FILES)
 
 # ========= Help =========
 help: ## Show this help message
