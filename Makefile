@@ -105,20 +105,30 @@ test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose m
 	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)
 
 # ========= Linting =========
-lint: lint-sh ## Run golangci-lint
+lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."
 	golangci-lint run
+	@$(MAKE) --no-print-directory lint-sh
 
-lint-fix: lint-sh ## Run golangci-lint with automatic fixes
+lint-fix: ## Run golangci-lint with automatic fixes
 	@echo "Running golangci-lint (with --fix)..."
 	golangci-lint run --fix
 	@echo "Running static formatter and linters with bun..."
 	bun run format:static
 	bun run lint:css
 	bun run lint:js
+	@$(MAKE) --no-print-directory lint-sh
 
+# Runs last in lint/lint-fix, and skips itself when shellcheck is absent, so a
+# missing optional tool cannot block the Go/CSS/JS formatting everyone runs. CI
+# installs shellcheck in the step before calling this, so the skip cannot make
+# the pipeline pass vacuously.
 lint-sh: ## Run shellcheck over the deployment scripts
-	@echo "Running shellcheck..."
+	@if ! command -v shellcheck >/dev/null 2>&1; then \
+		echo "shellcheck not installed, skipping (brew install shellcheck)"; \
+		exit 0; \
+	fi; \
+	echo "Running shellcheck..."; \
 	shellcheck $(SHELL_FILES)
 
 # ========= Help =========

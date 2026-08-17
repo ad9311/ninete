@@ -17,7 +17,7 @@ main() {
     set +o allexport
 
     # If no arguments were provided, show help and exit gracefully
-    if [[ $# -lt 1 ]]; then
+    if [[ $# -eq 0 ]]; then
         echo "==> No migration command supplied. Showing help..."
         "$MIGRATION_BIN" help
         exit 0
@@ -29,4 +29,8 @@ main() {
     echo "==> Migrations completed successfully."
 }
 
-main "$@"
+# `exit` shares this line deliberately. Bash parses one command at a time and
+# seeks back to just past it before executing, so returning from a `main` that
+# rewrote this file would resume at a stale offset in the new bytes. An `exit`
+# on its own line lives in the old bytes and is never read.
+main "$@"; exit

@@ -139,19 +139,25 @@ editing them:
 - **They deploy themselves.** `pull.sh` updates the scripts along with the code,
   so a change to `deploy.sh` takes effect on the *next* deploy, not the one that
   pulls it.
-- **Each body is wrapped in `main()` with `main "$@"` last.** This is load-bearing,
-  not style: bash reads a script by byte offset as it executes, and step 1 of a
-  deploy rewrites the very file that is running. Wrapping forces bash to parse the
-  whole body before running any of it. An unwrapped script can resume at a stale
-  offset in a rewritten file and execute garbage.
+- **Each body is wrapped in `main()`, and the last line is `main "$@"; exit`.**
+  Both halves are load-bearing, not style. Bash parses one command at a time and
+  seeks back to just past it before executing, and step 1 of a deploy rewrites the
+  very file that is running. The wrap gets the body parsed in one piece, so the
+  work itself is safe. It is not sufficient on its own: on return from `main`,
+  bash seeks to the old offset of that final line and keeps reading, so a
+  rewritten file that grew hands it a fragment of new content to execute. The
+  `exit` prevents that read — but only while it shares the line, because an
+  `exit` on a line of its own sits in the old bytes bash never reaches.
 - **Paths into the checkout are derived, not hardcoded**, via
   `cd -P "$(dirname "${BASH_SOURCE[0]}")"`. `-P` is required: the host invokes them
   through the symlink, and without it the derived parent directory is wrong.
 
 They are linted: `make lint-sh` runs shellcheck over `scripts/*.sh`, and `make lint`
-and `make lint-fix` both depend on it. These scripts have no test coverage and a
-failure only surfaces mid-deploy, so the linter is the only check standing between
-an edit and production.
+and `make lint-fix` both end by calling it. These scripts have no test coverage and
+a failure only surfaces mid-deploy, so the linter is the only check standing between
+an edit and production. It skips with a warning when shellcheck is not installed,
+so an editor without it silently loses that check — CI installs a pinned version
+(`v0.11.0`, matching the pin in `.github/workflows/linters.yml`) and always runs it.
 
 Paths *outside* the checkout (the build output directory, the env file, the
 installed binary) stay literal — they are host facts, not repository facts, and

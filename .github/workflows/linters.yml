@@ -39,11 +39,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # Preinstalled on the ubuntu runner image, but the deploy scripts are the
-      # one thing here with no test coverage at all, so do not let a dropped
-      # preinstall turn this job into a silent no-op.
+      # Pinned rather than taken from the runner image, for the same reason
+      # golangci is pinned above: a new release adds new checks, and an image
+      # bump must not fail a PR that changed nothing. Installed unconditionally
+      # so a broken download fails loudly here instead of turning the job into a
+      # silent no-op — the deploy scripts have no other coverage.
       - name: Install ShellCheck
-        run: shellcheck --version || (sudo apt-get update && sudo apt-get install -y shellcheck)
+        env:
+          SHELLCHECK_VERSION: v0.11.0
+        run: |
+          curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/$SHELLCHECK_VERSION/shellcheck-$SHELLCHECK_VERSION.linux.x86_64.tar.xz" \
+            | tar -xJ -C /tmp
+          sudo install "/tmp/shellcheck-$SHELLCHECK_VERSION/shellcheck" /usr/local/bin/shellcheck
+          shellcheck --version
 
       - name: Run ShellCheck
         run: make lint-sh

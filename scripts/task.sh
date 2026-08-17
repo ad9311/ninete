@@ -29,4 +29,8 @@ main() {
     echo "==> Task completed successfully."
 }
 
-main "$@"
+# `exit` shares this line deliberately. Bash parses one command at a time and
+# seeks back to just past it before executing, so returning from a `main` that
+# rewrote this file would resume at a stale offset in the new bytes. An `exit`
+# on its own line lives in the old bytes and is never read.
+main "$@"; exit
