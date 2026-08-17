@@ -124,7 +124,28 @@ error for the few seconds before the restart lands.
 
 Each step is also runnable on its own: `pull.sh`, `build-js.sh`, `build.sh`,
 `migrate.sh <cmd>`, `task.sh <name>`. The last two print help when given no
-arguments. The scripts live on the host and are **not under version control**.
+arguments.
+
+The scripts live in this repository under `scripts/`, and the host reaches them
+through a symlink so the path it invokes is stable. Three consequences for anyone
+editing them:
+
+- **They deploy themselves.** `pull.sh` updates the scripts along with the code,
+  so a change to `deploy.sh` takes effect on the *next* deploy, not the one that
+  pulls it.
+- **Each body is wrapped in `main()` with `main "$@"` last.** This is load-bearing,
+  not style: bash reads a script by byte offset as it executes, and step 1 of a
+  deploy rewrites the very file that is running. Wrapping forces bash to parse the
+  whole body before running any of it. An unwrapped script can resume at a stale
+  offset in a rewritten file and execute garbage.
+- **Paths into the checkout are derived, not hardcoded**, via
+  `cd -P "$(dirname "${BASH_SOURCE[0]}")"`. `-P` is required: the host invokes them
+  through the symlink, and without it the derived parent directory is wrong.
+
+Paths *outside* the checkout (the build output directory, the env file, the
+installed binary) stay literal — they are host facts, not repository facts, and
+one of them is matched verbatim by the sudo policy. See `deployment.local.md`
+before changing any of those strings.
 
 ## Database
 
