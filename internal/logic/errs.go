@@ -11,6 +11,15 @@ var (
 	ErrInvitationCodeVerify  = errors.New("failed to verify invitation code")
 	ErrLoginLookup           = errors.New("failed to look up account")
 
+	// ErrAccountExists names neither the field that collided nor the value, so
+	// a holder of a valid invitation code cannot probe which addresses are
+	// already registered.
+	ErrAccountExists = errors.New("an account with that username or email already exists")
+
+	// ErrSignUpFailed marks a sign-up that failed for a reason the applicant
+	// did nothing to cause. The underlying error is for the log, not the page.
+	ErrSignUpFailed = errors.New("failed to create account")
+
 	ErrValidationAssertion = errors.New("failed to assert error type")
 	ErrValidationFailed    = errors.New("validation failed")
 

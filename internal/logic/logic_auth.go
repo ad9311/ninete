@@ -100,7 +100,16 @@ func (s *Store) SignUp(ctx context.Context, params SignUpParams) (User, error) {
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		return user, err
+		// The insert is the only step that can collide with an existing row.
+		// Everything else it can fail with is a server fault, and neither may
+		// reach the page as the driver phrased it: the constraint message names
+		// the table and column, and a database fault reported as a form error
+		// is the same masking Login stopped doing.
+		if repo.IsUniqueViolation(err) {
+			return user, ErrAccountExists
+		}
+
+		return user, fmt.Errorf("%w: %w", ErrSignUpFailed, err)
 	}
 
 	return user, nil

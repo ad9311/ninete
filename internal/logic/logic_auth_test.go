@@ -296,7 +296,38 @@ func TestSignUp(t *testing.T) {
 					PasswordConfirmation: "signup_password_7",
 					InvitationCode:       "invite_code_7",
 				})
-				require.Error(t, err)
+				// Genuine reproduction: this used to return the driver error
+				// verbatim, and the register handler renders whatever it gets,
+				// so the page showed "UNIQUE constraint failed: users.email".
+				require.ErrorIs(t, err, logic.ErrAccountExists)
+				require.NotContains(t, err.Error(), "constraint")
+				require.NotContains(t, err.Error(), "users.email")
+			},
+		},
+		{
+			name: "should_fail_with_duplicate_username",
+			fn: func(t *testing.T) {
+				s.CreateInvitationCode(t, "invite_code_8")
+				s.CreateInvitationCode(t, "invite_code_9")
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser8",
+					Email:                "new_user_8@example.com",
+					Password:             "signup_password_8",
+					PasswordConfirmation: "signup_password_8",
+					InvitationCode:       "invite_code_8",
+				})
+				require.NoError(t, err)
+
+				_, err = s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser8",
+					Email:                "new_user_9@example.com",
+					Password:             "signup_password_9",
+					PasswordConfirmation: "signup_password_9",
+					InvitationCode:       "invite_code_9",
+				})
+				require.ErrorIs(t, err, logic.ErrAccountExists)
+				require.NotErrorIs(t, err, logic.ErrSignUpFailed)
 			},
 		},
 	}
