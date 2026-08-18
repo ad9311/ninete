@@ -7,10 +7,11 @@ import (
 )
 
 // ExpenseBudgetParams is one category's budget as submitted by the budgets
-// form. An Amount of zero means "no budget" and deletes any stored row.
+// form. An Amount of zero means "no budget" and deletes any stored row, so it
+// carries no lower bound — being unsigned, it already has one.
 type ExpenseBudgetParams struct {
-	CategoryID int    `validate:"required"`
-	Amount     uint64 `validate:"gte=0"`
+	CategoryID int `validate:"required"`
+	Amount     uint64
 }
 
 func (s *Store) FindExpenseBudgets(ctx context.Context, userID int) ([]repo.ExpenseBudget, error) {

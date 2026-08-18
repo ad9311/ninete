@@ -115,7 +115,10 @@ func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "six_months":
-		start := time.Date(year, month-6, 1, 0, 0, 0, 0, time.UTC)
+		// Five months back plus the current one is six, matching the label.
+		// month-6 would span seven, which the budgets page prints as the
+		// denominator of "N of M months over".
+		start := time.Date(year, month-5, 1, 0, 0, 0, 0, time.UTC)
 		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
 
 		return dateRange{start.Unix(), end.Unix()}, true

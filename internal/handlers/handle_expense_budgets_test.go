@@ -77,6 +77,75 @@ func TestGetExpensesBudgets(t *testing.T) {
 			},
 		},
 		{
+			// Reproduction: Over was computed as total > budget in both modes,
+			// so a range total spread under a monthly budget flagged the row.
+			name: "should_not_flag_a_multi_month_row_whose_every_month_stayed_under",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "budget_under", "budget_under@example.com", "budget_password_5")
+				category := s.CreateCategory(t, "budget under category")
+				// 60000 total against a 50000 monthly budget, but 30000 in each
+				// of two months: never over in any single month.
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "budget under a", 30000, monthStart(-1)))
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "budget under b", 30000, monthStart(-2)))
+				s.SaveExpenseBudgets(t, user.ID, map[int]uint64{category.ID: 50000})
+				cookies := s.AuthCookies(t, "budget_under@example.com", "budget_password_5")
+
+				req := spec.NewGetRequest("/expenses/budgets?date_range=six_months", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				body := rec.Body.String()
+				require.Contains(t, body, "budget under category")
+				require.Contains(t, body, "0 of 6 months over")
+				require.NotContains(t, body, "budget-row-over")
+			},
+		},
+		{
+			// Reproduction: the denominator came from month-6 through month+1,
+			// which is seven months under a "Last 6 months" label.
+			name: "should_count_exactly_six_months_for_six_months",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "budget_six", "budget_six@example.com", "budget_password_6")
+				category := s.CreateCategory(t, "budget six category")
+				s.SaveExpenseBudgets(t, user.ID, map[int]uint64{category.ID: 50000})
+				cookies := s.AuthCookies(t, "budget_six@example.com", "budget_password_6")
+
+				req := spec.NewGetRequest("/expenses/budgets?date_range=six_months", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				body := rec.Body.String()
+				require.Contains(t, body, "0 of 6 months over")
+				// Every month in range gets a bar, including the empty ones.
+				for offset := 0; offset > -6; offset-- {
+					require.Contains(t, body, monthLabel(offset))
+				}
+				require.NotContains(t, body, monthLabel(-6))
+			},
+		},
+		{
+			// Reproduction: this_year always spans to January of the next year,
+			// so the denominator was 12 and the average was divided by twelve
+			// even in a year still months from finishing.
+			name: "should_count_only_elapsed_months_for_this_year",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "budget_year", "budget_year@example.com", "budget_password_7")
+				category := s.CreateCategory(t, "budget year category")
+				s.SaveExpenseBudgets(t, user.ID, map[int]uint64{category.ID: 50000})
+				cookies := s.AuthCookies(t, "budget_year@example.com", "budget_password_7")
+
+				req := spec.NewGetRequest("/expenses/budgets?date_range=this_year", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				elapsed := int(time.Now().UTC().Month())
+				require.Contains(t, rec.Body.String(), fmt.Sprintf("0 of %d months over", elapsed))
+			},
+		},
+		{
 			name: "should_fall_back_to_this_month_for_an_unsupported_range",
 			fn: func(t *testing.T) {
 				user := s.CreateAuthUser(t, "budget_range", "budget_range@example.com", "budget_password_3")
@@ -163,6 +232,30 @@ func TestPostExpensesBudgets(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusBadRequest, rec.Code)
+			},
+		},
+		{
+			// Reproduction: the re-render read the range from the query string,
+			// where a POST never carries it, so a rejected submission dropped
+			// the user back onto this_month.
+			name: "should_keep_the_submitted_range_when_the_form_is_rejected",
+			fn: func(t *testing.T) {
+				csrfToken, formCookies := s.CSRFFrom(t, "/expenses/budgets", cookies)
+
+				req := spec.NewPostRequest(
+					"/expenses/budgets",
+					"budget_abc=100&date_range=six_months",
+					formCookies,
+					csrfToken,
+				)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+				body := rec.Body.String()
+				require.Contains(t, body, `name="date_range" value="six_months"`)
+				// The multi-month branch renders no Left column.
+				require.NotContains(t, body, "<th>Left</th>")
 			},
 		},
 	}

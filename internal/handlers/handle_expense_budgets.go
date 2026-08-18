@@ -14,6 +14,9 @@ import (
 
 const budgetFieldPrefix = "budget_"
 
+// budgetMonthLayout matches strftime('%Y-%m') in selectExpensesCategoryMonthTotals.
+const budgetMonthLayout = "2006-01"
+
 // budgetRow is one category on the budgets page. Months, MonthsOver,
 // MonthCount and AvgPerMonth are filled in budgetModeMonths only.
 type budgetRow struct {
@@ -107,7 +110,7 @@ func (h *Handler) buildBudgetsPage(
 	ctx := r.Context()
 	user := getCurrentUser(r)
 
-	rangeKey, mode := budgetDateRange(r.URL.Query().Get("date_range"))
+	rangeKey, mode := budgetDateRange(budgetRangeKey(r))
 
 	filters := repo.Filters{
 		FilterFields: []repo.FilterField{
@@ -152,7 +155,7 @@ func (h *Handler) buildBudgetsPage(
 		budgetByCategoryID[b.CategoryID] = b.Amount
 	}
 
-	rows := buildBudgetRows(monthTotals, budgetByCategoryID, categoryNameByID, mode, monthsInRange(dr))
+	rows := buildBudgetRows(monthTotals, budgetByCategoryID, categoryNameByID, mode, budgetMonths(dr, time.Now()))
 	editRows := buildBudgetEditRows(categories, budgetByCategoryID)
 
 	return rangeKey, mode, rows, editRows, true
@@ -161,32 +164,57 @@ func (h *Handler) buildBudgetsPage(
 // renderBudgetsErr re-renders the page with the form error shown. The page data
 // is rebuilt from scratch: the failed submission changed nothing.
 func (h *Handler) renderBudgetsErr(w http.ResponseWriter, r *http.Request, err error) {
-	data := h.tmplData(r)
-
 	rangeKey, mode, rows, editRows, ok := h.buildBudgetsPage(w, r)
 	if !ok {
 		return
 	}
 
+	data := h.tmplData(r)
 	data["budgetMode"] = string(mode)
 	data["dateRange"] = rangeKey
 	data["dateRanges"] = budgetDateRanges
 	data["rows"] = rows
 	data["editRows"] = editRows
+	data["error"] = err.Error()
 
-	h.renderErr(w, r, http.StatusBadRequest, ExpensesBudgets, err)
+	h.render(w, http.StatusBadRequest, ExpensesBudgets, data)
 }
 
-// monthsInRange counts the calendar months the range covers, which is the
-// denominator of the "N of M months over" summary. Months with no spending
-// count: a month under budget because nothing was bought is still under budget.
-func monthsInRange(dr dateRange) int {
-	start := time.Unix(dr.start, 0).UTC()
-	end := time.Unix(dr.end, 0).UTC()
+// budgetRangeKey reads the requested range. A GET carries it in the query; the
+// POST form posts it in the body, and the failed-submission re-render has to
+// find it there or the page snaps back to this_month.
+func budgetRangeKey(r *http.Request) string {
+	if key := r.URL.Query().Get("date_range"); key != "" {
+		return key
+	}
 
-	months := (end.Year()-start.Year())*12 + int(end.Month()) - int(start.Month())
-	if months < 1 {
-		return 1
+	return r.FormValue("date_range")
+}
+
+// budgetMonths lists the calendar months the range covers, oldest first, keyed
+// the way SelectExpensesCategoryMonthTotals groups them. It is the denominator
+// of the "N of M months over" summary, so months with no spending count: a
+// month under budget because nothing was bought is still under budget.
+//
+// The end is clamped to the current month. this_year always spans to January of
+// the next year, and dividing a part-finished year by twelve would deflate the
+// average with months that have not happened yet.
+func budgetMonths(dr dateRange, now time.Time) []string {
+	start := time.Unix(dr.start, 0).UTC()
+	// dr.end is exclusive, so the last month in range is the one before it.
+	last := time.Unix(dr.end, 0).UTC().AddDate(0, 0, -1)
+
+	if nowUTC := now.UTC(); nowUTC.Before(last) {
+		last = nowUTC
+	}
+
+	months := make([]string, 0, 12)
+	for m := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC); !m.After(last); m = m.AddDate(0, 1, 0) {
+		months = append(months, m.Format(budgetMonthLayout))
+	}
+
+	if len(months) == 0 {
+		months = append(months, start.Format(budgetMonthLayout))
 	}
 
 	return months
@@ -197,7 +225,7 @@ func buildBudgetRows(
 	budgetByCategoryID map[int]uint64,
 	categoryNameByID map[int]string,
 	mode budgetMode,
-	monthCount int,
+	monthKeys []string,
 ) []budgetRow {
 	totalByCategoryID := make(map[int]uint64, len(monthTotals))
 	monthsByCategoryID := make(map[int][]repo.ExpenseCategoryMonthTotal, len(monthTotals))
@@ -206,6 +234,9 @@ func buildBudgetRows(
 		totalByCategoryID[t.CategoryID] += t.Total
 		monthsByCategoryID[t.CategoryID] = append(monthsByCategoryID[t.CategoryID], t)
 	}
+
+	monthKeys = withSpentMonths(monthKeys, monthTotals)
+	monthCount := len(monthKeys)
 
 	categoryIDs := make([]int, 0, len(totalByCategoryID)+len(budgetByCategoryID))
 	for categoryID := range totalByCategoryID {
@@ -233,11 +264,17 @@ func buildBudgetRows(
 		if row.HasBudget {
 			row.Left = budgetLeft(budget, total)
 			row.Pct, row.BarPct = budgetPercent(total, budget)
-			row.Over = total > budget
 
 			if mode == budgetModeMonths {
-				row.Months, row.MonthsOver = buildBudgetMonthRows(monthsByCategoryID[categoryID], budget)
-				row.AvgPerMonth = total / uint64(monthCount) //nolint:gosec // monthsInRange returns at least 1
+				row.Months, row.MonthsOver = buildBudgetMonthRows(monthsByCategoryID[categoryID], monthKeys, budget)
+				row.AvgPerMonth = total / uint64(monthCount) //nolint:gosec // budgetMonths returns at least one month
+				// Budget is a monthly amount, so a multi-month total is not
+				// comparable to it — $700 spent over six months against a $500
+				// monthly budget is well under. Only a month that individually
+				// exceeded the budget makes the row over.
+				row.Over = row.MonthsOver > 0
+			} else {
+				row.Over = total > budget
 			}
 		}
 
@@ -251,21 +288,58 @@ func buildBudgetRows(
 	return rows
 }
 
+// withSpentMonths adds any month that carries spending but falls outside the
+// clamped month list, so no expense is counted in a row total without a bar to
+// account for it. An expense may be dated ahead of today — a purchase made now
+// can be billed next month — which puts it past the clamp.
+func withSpentMonths(monthKeys []string, totals []repo.ExpenseCategoryMonthTotal) []string {
+	known := make(map[string]bool, len(monthKeys))
+	for _, key := range monthKeys {
+		known[key] = true
+	}
+
+	extended := monthKeys
+	for _, t := range totals {
+		if !known[t.Month] {
+			known[t.Month] = true
+			extended = append(extended, t.Month)
+		}
+	}
+
+	if len(extended) == len(monthKeys) {
+		return monthKeys
+	}
+
+	sort.Strings(extended)
+
+	return extended
+}
+
+// buildBudgetMonthRows renders one bar per month in range, not per month that
+// happened to have spending. A month with nothing spent is under budget and has
+// to appear, or the list contradicts the "N of M months" count beside it.
 func buildBudgetMonthRows(
 	totals []repo.ExpenseCategoryMonthTotal,
+	monthKeys []string,
 	budget uint64,
 ) ([]budgetMonthRow, int) {
-	months := make([]budgetMonthRow, 0, len(totals))
+	totalByMonth := make(map[string]uint64, len(totals))
+	for _, t := range totals {
+		totalByMonth[t.Month] += t.Total
+	}
+
+	months := make([]budgetMonthRow, 0, len(monthKeys))
 	over := 0
 
-	for _, t := range totals {
-		pct, barPct := budgetPercent(t.Total, budget)
+	for _, key := range monthKeys {
+		total := totalByMonth[key]
+		pct, barPct := budgetPercent(total, budget)
 		month := budgetMonthRow{
-			Month:  t.Month,
-			Total:  t.Total,
+			Month:  key,
+			Total:  total,
 			Pct:    pct,
 			BarPct: barPct,
-			Over:   t.Total > budget,
+			Over:   total > budget,
 		}
 
 		if month.Over {
@@ -274,10 +348,6 @@ func buildBudgetMonthRows(
 
 		months = append(months, month)
 	}
-
-	sort.Slice(months, func(i, j int) bool {
-		return months[i].Month < months[j].Month
-	})
 
 	return months, over
 }
