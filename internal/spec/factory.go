@@ -143,3 +143,9 @@ func (s *Spec) CreateMoodEntry(t *testing.T, userID int, params logic.MoodEntryP
 
 	return entry
 }
+
+func (s *Spec) SaveExpenseBudgets(t *testing.T, userID int, amountByCategoryID map[int]uint64) {
+	t.Helper()
+
+	require.NoError(t, s.Store.SaveExpenseBudgets(t.Context(), userID, amountByCategoryID))
+}

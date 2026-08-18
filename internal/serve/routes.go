@@ -40,6 +40,7 @@ func (s *Server) setUpRoutes() {
 			account.Post("/recurrent-expenses/delete-all", s.handlers.PostAccountDeleteRecurrentExpenses)
 			account.Post("/macro-entries/delete-all", s.handlers.PostAccountDeleteMacroEntries)
 			account.Post("/macro-goals/delete-all", s.handlers.PostAccountDeleteMacroGoals)
+			account.Post("/expense-budgets/delete-all", s.handlers.PostAccountDeleteExpenseBudgets)
 			account.Post("/foods/delete-all", s.handlers.PostAccountDeleteFoods)
 			account.Post("/moods/delete-all", s.handlers.PostAccountDeleteMoodEntries)
 			account.Post("/tags/delete-all", s.handlers.PostAccountDeleteTags)
@@ -57,6 +58,8 @@ func (s *Server) setUpRoutes() {
 			expenses.Post("/quick", s.handlers.PostExpensesQuick)
 			expenses.Get("/new", s.handlers.GetExpensesNew)
 			expenses.Get("/stats", s.handlers.GetExpensesStats)
+			expenses.Get("/budgets", s.handlers.GetExpensesBudgets)
+			expenses.Post("/budgets", s.handlers.PostExpensesBudgets)
 			expenses.Route("/{id}", func(expenses chi.Router) {
 				expenses.Use(s.handlers.ExpenseContext)
 

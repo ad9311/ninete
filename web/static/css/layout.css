@@ -1081,6 +1081,117 @@ button:focus-visible {
 
 /* ------------------------------------------------------------------ */
 
+/* Expense budgets                                                      */
+
+/* ------------------------------------------------------------------ */
+
+.budget-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 8rem;
+}
+
+.budget-progress progress {
+  display: block;
+  flex: 1;
+  height: 0.5rem;
+  border: none;
+  border-radius: var(--radius-1);
+  overflow: hidden;
+  background: var(--color-border);
+}
+
+.budget-progress progress::-webkit-progress-bar {
+  background: var(--color-border);
+}
+
+.budget-progress progress::-webkit-progress-value {
+  background: var(--color-primary);
+  border-radius: var(--radius-1);
+}
+
+.budget-progress progress::-moz-progress-bar {
+  background: var(--color-primary);
+  border-radius: var(--radius-1);
+}
+
+.budget-percent {
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.budget-row-over {
+  color: var(--color-danger);
+}
+
+.budget-row-over .budget-progress progress::-webkit-progress-value {
+  background: var(--color-danger);
+}
+
+.budget-row-over .budget-progress progress::-moz-progress-bar {
+  background: var(--color-danger);
+}
+
+.budget-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.budget-summary::-webkit-details-marker {
+  display: none;
+}
+
+.budget-category {
+  font-weight: 500;
+}
+
+.budget-per-month {
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
+.budget-months-note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
+.budget-month-list {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-month {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.budget-month-label {
+  min-width: 5rem;
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
+.budget-edit {
+  margin-top: var(--space-4);
+}
+
+.budget-edit-hint {
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+
 /* Dashboard summary                                                    */
 
 /* ------------------------------------------------------------------ */

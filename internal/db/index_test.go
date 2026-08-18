@@ -91,6 +91,15 @@ func TestUserScopedQueryPlans(t *testing.T) {
 			wantIndex: "idx_mood_entries_user_logged_at",
 		},
 		{
+			name: "expenses category month totals",
+			query: `SELECT "category_id", strftime('%Y-%m', "date", 'unixepoch') AS "month",
+			        SUM("amount") FROM "expenses"
+			        WHERE "user_id" = ? AND "date" >= ? AND "date" < ?
+			        GROUP BY "category_id", "month"`,
+			args:      []any{1, 0, 1},
+			wantIndex: "idx_expenses_user_date",
+		},
+		{
 			name:      "expenses listing",
 			query:     `SELECT "id" FROM "expenses" WHERE "user_id" = ? ORDER BY "date" DESC LIMIT 15`,
 			args:      []any{1},

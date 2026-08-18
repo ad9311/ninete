@@ -38,11 +38,12 @@ const (
 	RegisterIndex TemplateName = "register/index"
 
 	// Expense templates.
-	ExpensesIndex TemplateName = "expenses/index"
-	ExpensesNew   TemplateName = "expenses/new"
-	ExpensesEdit  TemplateName = "expenses/edit"
-	ExpensesShow  TemplateName = "expenses/show"
-	ExpensesStats TemplateName = "expenses/stats"
+	ExpensesIndex   TemplateName = "expenses/index"
+	ExpensesNew     TemplateName = "expenses/new"
+	ExpensesEdit    TemplateName = "expenses/edit"
+	ExpensesShow    TemplateName = "expenses/show"
+	ExpensesStats   TemplateName = "expenses/stats"
+	ExpensesBudgets TemplateName = "expenses/budgets"
 
 	// Recurrent expense templates.
 	RecurrentExpensesIndex TemplateName = "recurrent_expenses/index"

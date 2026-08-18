@@ -425,6 +425,63 @@ func (q *Queries) SelectExpensesCategoryTotals(ctx context.Context, filters Filt
 	return totals, err
 }
 
+// selectExpensesCategoryMonthTotals groups by calendar month as well as
+// category. strftime with 'unixepoch' yields UTC months, matching the range
+// boundaries computeDateRange builds with time.UTC — do not switch one side to
+// the client zone.
+const selectExpensesCategoryMonthTotals = `
+SELECT "category_id", strftime('%%Y-%%m', "date", 'unixepoch') AS "month", SUM("amount") AS "total"
+FROM "expenses"
+%s
+GROUP BY "category_id", "month"`
+
+type ExpenseCategoryMonthTotal struct {
+	CategoryID int
+	Month      string
+	Total      uint64
+}
+
+func (q *Queries) SelectExpensesCategoryMonthTotals(
+	ctx context.Context,
+	filters Filters,
+) ([]ExpenseCategoryMonthTotal, error) {
+	var totals []ExpenseCategoryMonthTotal
+
+	filterSubQuery, err := filters.Build()
+	if err != nil {
+		return totals, err
+	}
+
+	query := fmt.Sprintf(selectExpensesCategoryMonthTotals, filterSubQuery)
+	values := filters.Values()
+
+	err = q.wrapQuery(query, func() error {
+		rows, err := q.db.QueryContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var t ExpenseCategoryMonthTotal
+
+			if err := rows.Scan(&t.CategoryID, &t.Month, &t.Total); err != nil {
+				return err
+			}
+
+			totals = append(totals, t)
+		}
+
+		return rows.Err()
+	})
+
+	return totals, err
+}
+
 func validExpenseFields() []string {
 	return []string{
 		"id",
