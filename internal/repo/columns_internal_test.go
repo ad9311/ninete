@@ -75,6 +75,7 @@ func TestColumnConstantsMatchSchema(t *testing.T) {
 		columns string
 	}{
 		{"categories", categoryColumns},
+		{"expense_budgets", expenseBudgetColumns},
 		{"expense_category_mappings", expenseCategoryMappingColumns},
 		{"expenses", expenseColumns},
 		{"foods", foodColumns},

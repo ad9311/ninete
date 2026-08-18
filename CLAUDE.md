@@ -98,7 +98,7 @@ The goal is an app that feels instant for one person, not one that sustains thro
 | --- | --- | --- | --- |
 | Auth | `/login`, `/register`, `/logout` | `handle_auth.go` | `logic_auth.go`, `logic_invitation_code.go` |
 | Dashboard | `/dashboard` | `handle_dashboard.go` | reuses expense + macro stores |
-| Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go` |
+| Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/budgets`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `handle_expense_budgets.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go`, `logic_expense_budget.go` |
 | Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
 | Macros | `/macros`, `/macros/goals`, `/macros/stats`, `/macros/{id}` | `handle_macros.go`, `macro_shared.go` | `logic_macro.go` |
 | Foods | `/foods`, `/foods/{id}` | `handle_foods.go` | `logic_food.go` |

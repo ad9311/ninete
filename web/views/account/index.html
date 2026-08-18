@@ -75,6 +75,23 @@
       </form>
     </section>
 
+    <section class="card" aria-labelledby="account-expense-budgets-title">
+      <header class="card-header">
+        <h2 id="account-expense-budgets-title" class="card-title">
+          Expense Budgets
+        </h2>
+      </header>
+      <span class="card-delta">{{ .counts.ExpenseBudgets }} record(s)</span>
+      <form
+        action="/account/expense-budgets/delete-all"
+        method="post"
+        data-turbo-confirm="Delete your expense budgets? This cannot be undone."
+      >
+        {{ template "csrf" . }}
+        {{ template "delete_button" . }}
+      </form>
+    </section>
+
     <section class="card" aria-labelledby="account-foods-title">
       <header class="card-header">
         <h2 id="account-foods-title" class="card-title">Foods</h2>

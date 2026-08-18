@@ -47,6 +47,42 @@ func DateRangeOptions() []struct {
 	return dateRangeLabels
 }
 
+// budgetMode names how /expenses/budgets renders a range: one bar per category
+// for a single month, or a per-month breakdown for a multi-month span.
+type budgetMode string
+
+const (
+	budgetModeMonth  budgetMode = "month"
+	budgetModeMonths budgetMode = "months"
+)
+
+// budgetDateRanges is the subset of computeDateRange's keys the budgets page
+// offers. this_week is excluded because seven days read against a monthly
+// budget is a false comparison, next_month because it has no spending yet, and
+// all_time because the month count is unbounded.
+var budgetDateRanges = []struct { //nolint:gochecknoglobals // static lookup table
+	Value string
+	Label string
+	Mode  budgetMode
+}{
+	{"this_month", "This month", budgetModeMonth},
+	{"last_month", "Last month", budgetModeMonth},
+	{"six_months", "Last 6 months", budgetModeMonths},
+	{"this_year", "This year", budgetModeMonths},
+}
+
+// budgetDateRange normalizes a requested range key onto the supported set,
+// falling back to this_month for anything else.
+func budgetDateRange(key string) (string, budgetMode) {
+	for _, r := range budgetDateRanges {
+		if r.Value == key {
+			return r.Value, r.Mode
+		}
+	}
+
+	return budgetDateRanges[0].Value, budgetDateRanges[0].Mode
+}
+
 func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
 	loc := time.FixedZone("client", -tzOffsetMinutes*60)
 	now := time.Now().In(loc)
@@ -79,7 +115,10 @@ func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
 
 		return dateRange{start.Unix(), end.Unix()}, true
 	case "six_months":
-		start := time.Date(year, month-6, 1, 0, 0, 0, 0, time.UTC)
+		// Five months back plus the current one is six, matching the label.
+		// month-6 would span seven, which the budgets page prints as the
+		// denominator of "N of M months over".
+		start := time.Date(year, month-5, 1, 0, 0, 0, 0, time.UTC)
 		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
 
 		return dateRange{start.Unix(), end.Unix()}, true

@@ -18,7 +18,9 @@ var (
 
 	ErrTooManyAttempts = errors.New("too many attempts, please wait a moment and try again")
 
-	ErrSearchDateFormat  = errors.New("dates must use the YYYY-MM-DD format")
-	ErrSearchDateRange   = errors.New("the from date must be on or before the to date")
-	ErrSearchTermTooLong = errors.New("search terms must be at most 50 characters")
+	ErrSearchDateFormat    = errors.New("dates must use the YYYY-MM-DD format")
+	ErrSearchDateRange     = errors.New("the from date must be on or before the to date")
+	ErrUnknownDateRange    = errors.New("unknown date range")
+	ErrBudgetCategoryField = errors.New("invalid budget field name")
+	ErrSearchTermTooLong   = errors.New("search terms must be at most 50 characters")
 )

@@ -13,6 +13,7 @@ type AccountDataCounts struct {
 	RecurrentExpenses int
 	MacroEntries      int
 	MacroGoals        int
+	ExpenseBudgets    int
 	Foods             int
 	MoodEntries       int
 	Tags              int
@@ -33,6 +34,9 @@ func (s *Store) FindAccountDataCounts(ctx context.Context, userID int) (AccountD
 		return counts, err
 	}
 	if counts.MacroGoals, err = s.queries.CountMacroGoalsByUser(ctx, userID); err != nil {
+		return counts, err
+	}
+	if counts.ExpenseBudgets, err = s.queries.CountExpenseBudgetsByUser(ctx, userID); err != nil {
 		return counts, err
 	}
 	if counts.Foods, err = s.queries.CountFoodsByUser(ctx, userID); err != nil {
@@ -63,6 +67,9 @@ func (s *Store) DeleteAllUserData(ctx context.Context, userID int) error {
 			return err
 		}
 		if err := tq.DeleteAllMacroGoalsByUser(ctx, userID); err != nil {
+			return err
+		}
+		if err := tq.DeleteAllExpenseBudgetsByUser(ctx, userID); err != nil {
 			return err
 		}
 		if err := tq.DeleteAllFoodsByUser(ctx, userID); err != nil {

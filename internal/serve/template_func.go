@@ -20,6 +20,7 @@ import (
 func TemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"currency":         currency,
+		"signedCurrency":   signedCurrency,
 		"sumAmount":        sumAmount,
 		"sumTotal":         sumTotal,
 		"timeStamp":        timeStamp,
@@ -38,6 +39,19 @@ func TemplateFuncMap() template.FuncMap {
 
 func currency(v uint64) string {
 	p := message.NewPrinter(language.AmericanEnglish)
+
+	return p.Sprintf("$%.2f", float64(v)/100.0)
+}
+
+// signedCurrency formats a value that can go negative, which currency cannot:
+// every stored amount is unsigned, so only derived figures such as a budget's
+// remaining amount need this.
+func signedCurrency(v int64) string {
+	p := message.NewPrinter(language.AmericanEnglish)
+
+	if v < 0 {
+		return p.Sprintf("-$%.2f", float64(-v)/100.0)
+	}
 
 	return p.Sprintf("$%.2f", float64(v)/100.0)
 }

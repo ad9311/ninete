@@ -73,6 +73,19 @@ func (h *Handler) PostAccountDeleteMacroGoals(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/account", http.StatusSeeOther)
 }
 
+func (h *Handler) PostAccountDeleteExpenseBudgets(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getCurrentUser(r)
+
+	if err := h.store.DeleteAllExpenseBudgets(ctx, user.ID); err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
+
+		return
+	}
+
+	http.Redirect(w, r, "/account", http.StatusSeeOther)
+}
+
 func (h *Handler) PostAccountDeleteFoods(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
