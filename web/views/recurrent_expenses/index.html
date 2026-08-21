@@ -112,6 +112,7 @@
                 {{ end }}
               </a>
             </th>
+            <th>Tags</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -123,6 +124,17 @@
               <td class="amount-value">{{ .Amount | currency }}</td>
               <td>{{ .Period }}</td>
               <td>
+                {{ if .Tags }}
+                  <div class="chip-list">
+                    {{ range .Tags }}
+                      <span class="chip chip-tag">{{ . }}</span>
+                    {{ end }}
+                  </div>
+                {{ else }}
+                  <span class="chip chip-empty">No tags</span>
+                {{ end }}
+              </td>
+              <td>
                 <a href="/recurrent-expenses/{{ .ID }}">Visit</a>
               </td>
             </tr>
@@ -130,7 +142,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <th colspan="5">
+            <th colspan="6">
               Total recurrent expenses
               <span class="amount-value">
                 {{ .recurrentExpenses | sumAmount | currency }}

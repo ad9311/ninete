@@ -107,7 +107,7 @@ The goal is an app that feels instant for one person, not one that sustains thro
 | Exports | `/exports`, `/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
 
-Cross-cutting: tags attach to expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); categories are global, not user-scoped (`logic_category.go`).
+Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates; categories are global, not user-scoped (`logic_category.go`).
 
 ## Engineering Workflow
 - **Always write in English.** Code, comments, identifiers, commit messages, PR titles and

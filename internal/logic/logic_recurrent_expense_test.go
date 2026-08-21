@@ -434,3 +434,103 @@ func newRecurrentExpenseParams(
 		Period: period,
 	}
 }
+
+func TestRecurrentExpenseTags(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "recurrent_tag_user_1",
+		Email:        "recurrent_tag_user_1@example.com",
+		PasswordHash: []byte("recurrent_tag_user_hash_1"),
+	})
+	category := s.CreateCategory(t, "recurrent tag category 1")
+	now := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_attach_tags_on_create",
+			fn: func(t *testing.T) {
+				params := newRecurrentExpenseParams(category.ID, "recurrent tags create 1", 4100, 1)
+				params.Tags = []string{"Rent", "fixed"}
+
+				re, err := s.Store.CreateRecurrentExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+
+				tags, err := s.Store.FindRecurrentExpenseTags(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"fixed", "rent"}, logic.ExtractTagNames(tags))
+			},
+		},
+		{
+			name: "should_replace_tags_on_update",
+			fn: func(t *testing.T) {
+				params := newRecurrentExpenseParams(category.ID, "recurrent tags update 1", 4200, 1)
+				params.Tags = []string{"old"}
+
+				re, err := s.Store.CreateRecurrentExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+
+				params.Tags = []string{"new"}
+				_, err = s.Store.UpdateRecurrentExpense(ctx, re.ID, user.ID, params)
+				require.NoError(t, err)
+
+				tags, err := s.Store.FindRecurrentExpenseTags(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"new"}, logic.ExtractTagNames(tags))
+			},
+		},
+		{
+			name: "should_delete_taggings_with_the_recurrent_expense",
+			fn: func(t *testing.T) {
+				params := newRecurrentExpenseParams(category.ID, "recurrent tags delete 1", 4300, 1)
+				params.Tags = []string{"doomed"}
+
+				re, err := s.Store.CreateRecurrentExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+
+				_, err = s.Store.DeleteRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+
+				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeRecurrentExpense, re.ID)
+				require.NoError(t, err)
+				require.Zero(t, count)
+			},
+		},
+		{
+			name: "should_copy_tags_onto_the_generated_expense",
+			fn: func(t *testing.T) {
+				params := newRecurrentExpenseParams(category.ID, "recurrent tags copy 1", 4400, 1)
+				params.Tags = []string{"subscription", "monthly"}
+
+				re, err := s.Store.CreateRecurrentExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+
+				_, err = s.Store.CopyDueRecurrentExpenses(ctx, now)
+				require.NoError(t, err)
+
+				expenses, err := s.Store.FindExpenses(ctx, repo.QueryOptions{
+					Filters: repo.Filters{
+						FilterFields: []repo.FilterField{
+							{Name: "user_id", Value: user.ID, Operator: "="},
+							{Name: "description", Value: re.Description, Operator: "="},
+						},
+						Connector: "AND",
+					},
+				})
+				require.NoError(t, err)
+				require.Len(t, expenses, 1)
+
+				expenseTags, err := s.Store.FindExpenseTags(ctx, expenses[0].ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"monthly", "subscription"}, logic.ExtractTagNames(expenseTags))
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}

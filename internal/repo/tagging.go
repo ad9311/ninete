@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	TaggableTypeExpense   = "expense"
-	TaggableTypeMoodEntry = "mood_entry"
+	TaggableTypeExpense          = "expense"
+	TaggableTypeMoodEntry        = "mood_entry"
+	TaggableTypeRecurrentExpense = "recurrent_expense"
 )
 
 type Tagging struct {
@@ -74,6 +75,29 @@ WHERE "taggable_type" = ?
 func (q *TxQueries) DeleteTaggingsByTarget(ctx context.Context, taggableType string, taggableID int) error {
 	return q.wrapQuery(deleteTaggingsByTarget, func() error {
 		_, err := q.tx.ExecContext(ctx, deleteTaggingsByTarget, taggableType, taggableID)
+
+		return err
+	})
+}
+
+const copyTaggings = `
+INSERT OR IGNORE INTO "taggings" ("tag_id", "taggable_id", "taggable_type")
+SELECT "tag_id", ?, ?
+FROM "taggings"
+WHERE "taggable_type" = ?
+  AND "taggable_id" = ?`
+
+// CopyTaggings attaches every tag of one taggable to another without resolving
+// tag names first, so a copy carries the source tags in a single statement.
+func (q *TxQueries) CopyTaggings(
+	ctx context.Context,
+	sourceType string,
+	sourceID int,
+	targetType string,
+	targetID int,
+) error {
+	return q.wrapQuery(copyTaggings, func() error {
+		_, err := q.tx.ExecContext(ctx, copyTaggings, targetID, targetType, sourceType, sourceID)
 
 		return err
 	})

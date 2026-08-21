@@ -19,6 +19,7 @@ type recurrentExpenseRow struct {
 	Description  string
 	Amount       uint64
 	Period       uint
+	Tags         []string
 }
 
 // ----------------------------------------------------------------------------- //
@@ -84,6 +85,25 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recurrentExpenseIDs := make([]int, 0, len(recurrentExpenses))
+	for _, recurrentExpense := range recurrentExpenses {
+		recurrentExpenseIDs = append(recurrentExpenseIDs, recurrentExpense.ID)
+	}
+
+	tagRows, err := h.store.FindTagRows(
+		r.Context(),
+		repo.TaggableTypeRecurrentExpense,
+		"recurrent_expenses",
+		recurrentExpenseIDs,
+		user.ID,
+	)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
+
+		return
+	}
+	tagNames := repo.TagNamesByTargetID(tagRows)
+
 	rows := make([]recurrentExpenseRow, 0, len(recurrentExpenses))
 	for _, recurrentExpense := range recurrentExpenses {
 		rows = append(rows, recurrentExpenseRow{
@@ -92,6 +112,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 			Description:  recurrentExpense.Description,
 			Amount:       recurrentExpense.Amount,
 			Period:       recurrentExpense.Period,
+			Tags:         tagNames[recurrentExpense.ID],
 		})
 	}
 
@@ -112,12 +133,20 @@ func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tags, err := h.store.FindRecurrentExpenseTags(r.Context(), recurrentExpense.ID, getCurrentUser(r).ID)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesShow, err)
+
+		return
+	}
+
 	data["recurrentExpense"] = recurrentExpenseRow{
 		ID:           recurrentExpense.ID,
 		CategoryName: categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
 		Description:  recurrentExpense.Description,
 		Amount:       recurrentExpense.Amount,
 		Period:       recurrentExpense.Period,
+		Tags:         logic.ExtractTagNames(tags),
 	}
 
 	h.render(w, http.StatusOK, RecurrentExpensesShow, data)
@@ -131,7 +160,7 @@ func (h *Handler) GetRecurrentExpensesNew(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{})
+	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{}, "")
 
 	h.render(w, http.StatusOK, RecurrentExpensesNew, data)
 }
@@ -145,7 +174,19 @@ func (h *Handler) GetRecurrentExpensesEdit(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	setRecurrentExpenseFormData(data, categories, *recurrentExpense)
+	tags, err := h.store.FindRecurrentExpenseTags(r.Context(), recurrentExpense.ID, getCurrentUser(r).ID)
+	if err != nil {
+		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesEdit, err)
+
+		return
+	}
+
+	setRecurrentExpenseFormData(
+		data,
+		categories,
+		*recurrentExpense,
+		logic.JoinTagNames(logic.ExtractTagNames(tags)),
+	)
 
 	h.render(w, http.StatusOK, RecurrentExpensesEdit, data)
 }
@@ -154,8 +195,10 @@ func (h *Handler) PostRecurrentExpenses(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	data := h.tmplData(r)
 
+	rawTagsInput := r.FormValue("tags")
+
 	categories, _, categoriesErr := h.findCategories(ctx)
-	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{})
+	setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{}, rawTagsInput)
 
 	params, err := parseRecurrentExpenseForm(r)
 	if err != nil {
@@ -173,7 +216,7 @@ func (h *Handler) PostRecurrentExpenses(w http.ResponseWriter, r *http.Request) 
 			Description: params.Description,
 			Amount:      params.Amount,
 			Period:      params.Period,
-		})
+		}, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, RecurrentExpensesNew, err)
 
 		return
@@ -192,8 +235,10 @@ func (h *Handler) PostRecurrentExpensesUpdate(w http.ResponseWriter, r *http.Req
 	user := getCurrentUser(r)
 	recurrentExpense := *getRecurrentExpense(r)
 
+	rawTagsInput := r.FormValue("tags")
+
 	categories, _, categoriesErr := h.findCategories(ctx)
-	setRecurrentExpenseFormData(data, categories, recurrentExpense)
+	setRecurrentExpenseFormData(data, categories, recurrentExpense, rawTagsInput)
 
 	params, err := parseRecurrentExpenseForm(r)
 	if err != nil {
@@ -214,7 +259,7 @@ func (h *Handler) PostRecurrentExpensesUpdate(w http.ResponseWriter, r *http.Req
 		recurrentExpense.Description = params.Description
 		recurrentExpense.Amount = params.Amount
 		recurrentExpense.Period = params.Period
-		setRecurrentExpenseFormData(data, categories, recurrentExpense)
+		setRecurrentExpenseFormData(data, categories, recurrentExpense, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, RecurrentExpensesEdit, err)
 
 		return
@@ -271,6 +316,7 @@ func parseRecurrentExpenseForm(r *http.Request) (logic.RecurrentExpenseParams, e
 	params.Description = base.Description
 	params.Amount = base.Amount
 	params.Period = uint(period)
+	params.Tags = logic.ParseTagNames(r.FormValue("tags"))
 
 	return params, nil
 }
@@ -279,8 +325,10 @@ func setRecurrentExpenseFormData(
 	data map[string]any,
 	categories []repo.Category,
 	recurrentExpense repo.RecurrentExpense,
+	tagsInput string,
 ) {
 	setResourceFormData(data, categories, "recurrentExpense", recurrentExpense)
+	data["tagsInput"] = tagsInput
 }
 
 func getRecurrentExpense(r *http.Request) *repo.RecurrentExpense {
