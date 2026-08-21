@@ -139,25 +139,7 @@ Things that are easy to get wrong:
 - **A new controller is inert until registered in `index.ts`**, which maps a kebab-case identifier used in markup (`data-controller="quick-expense"`) to a camelCase file in `controllers/`.
 - **`index.ts` appends `tz_offset` to every Turbo fetch request.** That is how the server learns the browser's timezone; `parseTZOffset` reads it for all date-range math. A request that does not go through Turbo has no offset and falls back to UTC.
 - **Icons initialize on both `turbo:load` and `turbo:render`.** The second listener is required: form re-renders, including non-2xx error responses, do not fire `turbo:load`, and `<i data-lucide>` elements would stay unconverted and invisible.
-- **Loading feedback is global and automatic.** `loadingController` (mounted on
-  the `.loading-overlay` element in `layout.html`) listens on the document for
-  `turbo:visit` / `turbo:submit-start` and shows a centered spinner over a
-  translucent backdrop after a 250 ms delay, so fast responses never flash it.
-  It must not listen on `turbo:before-fetch-request`: Turbo 8 prefetches links
-  on hover, which fires that event with no matching `turbo:load`, so the overlay
-  would pop up under the cursor and eat the click. Because every Turbo
-  navigation passes through the two events above, form
-  submits, filters, sorting, pagination and plain navigation are all covered —
-  a page needs no markup of its own. The overlay blocks pointer events while
-  visible, which is what stops a double submit on a slow request. Its idle state
-  is `display: none` rather than `visibility: hidden`, on purpose: a permanently
-  present hidden element keeps a "running" spin animation the browser never
-  advances while nothing paints, and the ring then appears frozen for the first
-  moments it is on screen. Unmounting it restarts the animation from zero each
-  time it is shown. Anything that
-  opts out of Turbo (`data-turbo="false"`, such as the export download) fires
-  none of these events and gets no overlay. Per-button
-  `data-turbo-submits-with` text still applies on top of it.
+- **Loading feedback is global and automatic.** `loadingController` (mounted on the `.loading-overlay` element in `layout.html`) listens on the document for `turbo:visit` / `turbo:submit-start` and shows a centered spinner after a 250 ms delay, so form submits, filters, sorting, pagination and plain navigation are all covered and a page needs no markup of its own. Anything that opts out of Turbo (`data-turbo="false"`, such as the export download) fires none of these events and gets no overlay; per-button `data-turbo-submits-with` text still applies on top. Once visible the overlay swallows pointer events, so it also blocks a double submit — but only after the 250 ms delay has elapsed. The three non-obvious constraints are commented where they are enforced: why `turbo:before-fetch-request` must not be a show event and why `turbo:before-cache` must not be a hide one (`loadingController.ts`), and why the idle state is `display: none` rather than `visibility: hidden` (`layout.css`).
 - **The bundle is generated and git-ignored.** Run `make build-static-js` after editing any `.ts`; `make dev` does it as part of its build.
 
 Linted with `eslint`, formatted with `prettier` (the `prettier-plugin-go-template` plugin also formats `.html` templates), both via `make lint-fix`.
