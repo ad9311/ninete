@@ -15,6 +15,9 @@ type recurrentExpense struct {
 	LastCopyCreatedAt sql.NullInt64
 	CreatedAt         int64
 	UpdatedAt         int64
+	OccurrenceLimit   uint
+	OccurrenceCount   uint
+	ArchivedAt        sql.NullInt64
 }
 
 type RecurrentExpense struct {
@@ -27,6 +30,9 @@ type RecurrentExpense struct {
 	LastCopyCreatedAt *int64
 	CreatedAt         int64
 	UpdatedAt         int64
+	OccurrenceLimit   uint
+	OccurrenceCount   uint
+	ArchivedAt        *int64
 }
 
 func (re recurrentExpense) toRecurrentExpense() RecurrentExpense {
@@ -34,6 +40,12 @@ func (re recurrentExpense) toRecurrentExpense() RecurrentExpense {
 	if re.LastCopyCreatedAt.Valid {
 		value := re.LastCopyCreatedAt.Int64
 		lastCopy = &value
+	}
+
+	var archivedAt *int64
+	if re.ArchivedAt.Valid {
+		value := re.ArchivedAt.Int64
+		archivedAt = &value
 	}
 
 	return RecurrentExpense{
@@ -46,6 +58,9 @@ func (re recurrentExpense) toRecurrentExpense() RecurrentExpense {
 		LastCopyCreatedAt: lastCopy,
 		CreatedAt:         re.CreatedAt,
 		UpdatedAt:         re.UpdatedAt,
+		OccurrenceLimit:   re.OccurrenceLimit,
+		OccurrenceCount:   re.OccurrenceCount,
+		ArchivedAt:        archivedAt,
 	}
 }
 
@@ -58,11 +73,12 @@ func NullInt64FromPtr(value *int64) sql.NullInt64 {
 }
 
 type InsertRecurrentExpenseParams struct {
-	UserID      int
-	CategoryID  int
-	Description string
-	Amount      uint64
-	Period      uint
+	UserID          int
+	CategoryID      int
+	Description     string
+	Amount          uint64
+	Period          uint
+	OccurrenceLimit uint
 }
 
 type UpdateRecurrentExpenseParams struct {
@@ -73,17 +89,29 @@ type UpdateRecurrentExpenseParams struct {
 	Amount            uint64
 	Period            uint
 	LastCopyCreatedAt sql.NullInt64
+	OccurrenceLimit   uint
+}
+
+// RecurrentExpenseArchivedFilter builds the predicate splitting the active list
+// from the archived one. Both lists reuse the same select, so the split lives in
+// a filter rather than in two near-identical queries.
+func RecurrentExpenseArchivedFilter(archived bool) FilterField {
+	if archived {
+		return FilterField{Expr: `"archived_at" IS NOT NULL`}
+	}
+
+	return FilterField{Expr: `"archived_at" IS NULL`}
 }
 
 // recurrentExpenseColumns pins the projection order the Scan calls in this file depend on.
 // SELECT * would resolve to whatever order the table happens to have, so an
 // ALTER TABLE could shift values into the wrong struct fields with no error.
 const recurrentExpenseColumns = `"id", "user_id", "category_id", "description", "amount", "period",
-"last_copy_created_at", "created_at", "updated_at"`
+"last_copy_created_at", "created_at", "updated_at", "occurrence_limit", "occurrence_count", "archived_at"`
 
 const insertRecurrentExpense = `
-INSERT INTO "recurrent_expenses" ("user_id", "category_id", "description", "amount", "period")
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO "recurrent_expenses" ("user_id", "category_id", "description", "amount", "period", "occurrence_limit")
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING ` + recurrentExpenseColumns
 
 const selectRecurrentExpenses = `SELECT ` + recurrentExpenseColumns + ` FROM "recurrent_expenses"`
@@ -127,6 +155,9 @@ func (q *Queries) SelectRecurrentExpenses(ctx context.Context, opts QueryOptions
 				&re.LastCopyCreatedAt,
 				&re.CreatedAt,
 				&re.UpdatedAt,
+				&re.OccurrenceLimit,
+				&re.OccurrenceCount,
+				&re.ArchivedAt,
 			); err != nil {
 				return err
 			}
@@ -177,6 +208,7 @@ func (q *TxQueries) InsertRecurrentExpense(
 			params.Description,
 			params.Amount,
 			params.Period,
+			params.OccurrenceLimit,
 		)
 
 		return row.Scan(
@@ -189,21 +221,37 @@ func (q *TxQueries) InsertRecurrentExpense(
 			&re.LastCopyCreatedAt,
 			&re.CreatedAt,
 			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
 		)
 	})
 
 	return re.toRecurrentExpense(), err
 }
 
+// updateRecurrentExpense archives the row when the edited limit is already met.
+// The placeholders are numbered because the limit and the timestamp are each read
+// twice: with bare "?" the repeated values would be separate positional args, and
+// reordering them would go unnoticed since they carry the same value.
+// "archived_at" is what the cron job reads, so an edit that leaves the row unable
+// to ever run again has to stamp it — otherwise the row reads as active and
+// silently stops generating expenses.
 const updateRecurrentExpense = `
 UPDATE "recurrent_expenses"
-SET "category_id"          = ?,
-    "description"          = ?,
-    "amount"               = ?,
-    "period"               = ?,
-    "last_copy_created_at" = COALESCE(?, "last_copy_created_at"),
-    "updated_at"           = ?
-WHERE "id" = ? AND "user_id" = ?
+SET "category_id"          = ?1,
+    "description"          = ?2,
+    "amount"               = ?3,
+    "period"               = ?4,
+    "last_copy_created_at" = COALESCE(?5, "last_copy_created_at"),
+    "occurrence_limit"     = ?6,
+    "archived_at"          = CASE
+                               WHEN ?6 > 0 AND ?6 <= "occurrence_count"
+                               THEN COALESCE("archived_at", ?7)
+                               ELSE "archived_at"
+                             END,
+    "updated_at"           = ?7
+WHERE "id" = ?8 AND "user_id" = ?9
 RETURNING ` + recurrentExpenseColumns + `;
 `
 
@@ -214,6 +262,7 @@ func (q *Queries) UpdateRecurrentExpense(
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re recurrentExpense
+	now := newUpdatedAt()
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(
@@ -224,7 +273,8 @@ func (q *Queries) UpdateRecurrentExpense(
 			params.Amount,
 			params.Period,
 			params.LastCopyCreatedAt,
-			newUpdatedAt(),
+			params.OccurrenceLimit,
+			now,
 			params.ID,
 			params.UserID,
 		)
@@ -239,6 +289,9 @@ func (q *Queries) UpdateRecurrentExpense(
 			&re.LastCopyCreatedAt,
 			&re.CreatedAt,
 			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
 		)
 	})
 
@@ -250,6 +303,7 @@ func (q *TxQueries) UpdateRecurrentExpense(
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re recurrentExpense
+	now := newUpdatedAt()
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.tx.QueryRowContext(
@@ -260,7 +314,8 @@ func (q *TxQueries) UpdateRecurrentExpense(
 			params.Amount,
 			params.Period,
 			params.LastCopyCreatedAt,
-			newUpdatedAt(),
+			params.OccurrenceLimit,
+			now,
 			params.ID,
 			params.UserID,
 		)
@@ -275,6 +330,9 @@ func (q *TxQueries) UpdateRecurrentExpense(
 			&re.LastCopyCreatedAt,
 			&re.CreatedAt,
 			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
 		)
 	})
 
@@ -347,6 +405,9 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 			&re.LastCopyCreatedAt,
 			&re.CreatedAt,
 			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
 		)
 	})
 
@@ -356,13 +417,14 @@ func (q *Queries) SelectRecurrentExpense(ctx context.Context, id, userID int) (R
 const selectAllDueRecurrentExpenses = `
 SELECT ` + recurrentExpenseColumns + `
 FROM "recurrent_expenses"
-WHERE "last_copy_created_at" IS NULL
+WHERE "archived_at" IS NULL
+  AND ("last_copy_created_at" IS NULL
    OR (
         (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
          CAST(strftime('%Y', datetime("last_copy_created_at", 'unixepoch')) AS int)) * 12 +
         (CAST(strftime('%m', datetime(?, 'unixepoch')) AS int) -
          CAST(strftime('%m', datetime("last_copy_created_at", 'unixepoch')) AS int))
-      ) >= "period"
+      ) >= "period")
 ORDER BY "id" ASC
 `
 
@@ -393,6 +455,9 @@ func (q *Queries) SelectAllDueRecurrentExpenses(ctx context.Context, nowUnix int
 				&re.LastCopyCreatedAt,
 				&re.CreatedAt,
 				&re.UpdatedAt,
+				&re.OccurrenceLimit,
+				&re.OccurrenceCount,
+				&re.ArchivedAt,
 			); err != nil {
 				return err
 			}
@@ -406,6 +471,99 @@ func (q *Queries) SelectAllDueRecurrentExpenses(ctx context.Context, nowUnix int
 	return res, err
 }
 
+// recordRecurrentExpenseOccurrence closes out one generated copy: it stamps the
+// copy date, bumps the counter and archives the row in the same statement when
+// the bumped counter reaches a non-zero limit. Doing it in one UPDATE keeps the
+// count and the archived flag from disagreeing.
+const recordRecurrentExpenseOccurrence = `
+UPDATE "recurrent_expenses"
+SET "last_copy_created_at" = ?,
+    "occurrence_count"     = "occurrence_count" + 1,
+    "archived_at"          = CASE
+                               WHEN "occurrence_limit" > 0
+                                AND "occurrence_count" + 1 >= "occurrence_limit"
+                               THEN ?
+                               ELSE "archived_at"
+                             END,
+    "updated_at"           = ?
+WHERE "id" = ? AND "user_id" = ?
+RETURNING ` + recurrentExpenseColumns + `;
+`
+
+func (q *TxQueries) RecordRecurrentExpenseOccurrence(
+	ctx context.Context,
+	id, userID int,
+	copiedAt int64,
+) (RecurrentExpense, error) {
+	var re recurrentExpense
+	now := newUpdatedAt()
+
+	err := q.wrapQuery(recordRecurrentExpenseOccurrence, func() error {
+		row := q.tx.QueryRowContext(
+			ctx,
+			recordRecurrentExpenseOccurrence,
+			copiedAt,
+			now,
+			now,
+			id,
+			userID,
+		)
+
+		return row.Scan(
+			&re.ID,
+			&re.UserID,
+			&re.CategoryID,
+			&re.Description,
+			&re.Amount,
+			&re.Period,
+			&re.LastCopyCreatedAt,
+			&re.CreatedAt,
+			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
+		)
+	})
+
+	return re.toRecurrentExpense(), err
+}
+
+// unarchiveRecurrentExpense resets the counter along with the flag. Leaving the
+// count at the limit would archive the row again on the very next cron run.
+const unarchiveRecurrentExpense = `
+UPDATE "recurrent_expenses"
+SET "archived_at"      = NULL,
+    "occurrence_count" = 0,
+    "updated_at"       = ?
+WHERE "id" = ? AND "user_id" = ? AND "archived_at" IS NOT NULL
+RETURNING ` + recurrentExpenseColumns + `;
+`
+
+func (q *TxQueries) UnarchiveRecurrentExpense(ctx context.Context, id, userID int) (RecurrentExpense, error) {
+	var re recurrentExpense
+
+	err := q.wrapQuery(unarchiveRecurrentExpense, func() error {
+		row := q.tx.QueryRowContext(ctx, unarchiveRecurrentExpense, newUpdatedAt(), id, userID)
+
+		return row.Scan(
+			&re.ID,
+			&re.UserID,
+			&re.CategoryID,
+			&re.Description,
+			&re.Amount,
+			&re.Period,
+			&re.LastCopyCreatedAt,
+			&re.CreatedAt,
+			&re.UpdatedAt,
+			&re.OccurrenceLimit,
+			&re.OccurrenceCount,
+			&re.ArchivedAt,
+		)
+	})
+
+	return re.toRecurrentExpense(), err
+}
+
 func validRecurrentExpenseFields() []string {
 	return []string{
 		"id",
@@ -417,5 +575,8 @@ func validRecurrentExpenseFields() []string {
 		"last_copy_created_at",
 		"created_at",
 		"updated_at",
+		"occurrence_limit",
+		"occurrence_count",
+		"archived_at",
 	}
 }

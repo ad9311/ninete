@@ -56,5 +56,15 @@
       value="{{ .recurrentExpense.Period }}"
     />
   </label>
+  <label>
+    Occurrence limit (0 = unlimited)
+    <input
+      type="number"
+      min="0"
+      step="1"
+      name="occurrence_limit"
+      value="{{ .recurrentExpense.OccurrenceLimit }}"
+    />
+  </label>
   {{ template "submit_button" . }}
 {{ end }}

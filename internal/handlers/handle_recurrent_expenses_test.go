@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/repo"
@@ -495,4 +496,144 @@ func recurrentExpenseTagNames(t *testing.T, s spec.Spec, recurrentExpenseID, use
 	require.NoError(t, err)
 
 	return logic.ExtractTagNames(tags)
+}
+
+func TestRecurrentExpenseArchiving(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	archive := func(t *testing.T, userID, categoryID int, description string) repo.RecurrentExpense {
+		t.Helper()
+
+		params := newRecurrentExpenseParams(categoryID, description, 5000, 1)
+		params.OccurrenceLimit = 1
+		recurrentExpense := s.CreateRecurrentExpense(t, userID, params)
+
+		_, err := s.Store.CopyDueRecurrentExpenses(t.Context(), time.Now())
+		require.NoError(t, err)
+
+		archived, err := s.Store.FindRecurrentExpense(t.Context(), recurrentExpense.ID, userID)
+		require.NoError(t, err)
+		require.NotNil(t, archived.ArchivedAt)
+
+		return archived
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_store_the_occurrence_limit_from_the_form",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_arch_1", "rexp_arch_1@example.com", "rexp_password_1")
+				category := s.CreateCategory(t, "rexp_arch_cat_1")
+				cookies := s.AuthCookies(t, "rexp_arch_1@example.com", "rexp_password_1")
+				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
+
+				form := recurrentExpenseFormValues(category.ID, "Limited recurrent expense", "5000", "1", "")
+				form.Set("occurrence_limit", "3")
+				req := spec.NewPostRequest("/recurrent-expenses", form.Encode(), cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+
+				created := findRecurrentExpenseByDescription(t, s, user.ID, "Limited recurrent expense")
+				require.Equal(t, uint(3), created.OccurrenceLimit)
+			},
+		},
+		{
+			name: "should_keep_archived_rows_out_of_the_main_list",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_arch_2", "rexp_arch_2@example.com", "rexp_password_2")
+				category := s.CreateCategory(t, "rexp_arch_cat_2")
+				archive(t, user.ID, category.ID, "Archived recurrent item 2")
+				cookies := s.AuthCookies(t, "rexp_arch_2@example.com", "rexp_password_2")
+
+				req := spec.NewGetRequest("/recurrent-expenses", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.NotContains(t, rec.Body.String(), "Archived recurrent item 2")
+			},
+		},
+		{
+			name: "should_list_archived_rows_on_the_archived_page",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_arch_3", "rexp_arch_3@example.com", "rexp_password_3")
+				category := s.CreateCategory(t, "rexp_arch_cat_3")
+				archive(t, user.ID, category.ID, "Archived recurrent item 3")
+				s.CreateRecurrentExpense(
+					t,
+					user.ID,
+					newRecurrentExpenseParams(category.ID, "Active recurrent item 3", 5000, 1),
+				)
+				cookies := s.AuthCookies(t, "rexp_arch_3@example.com", "rexp_password_3")
+
+				req := spec.NewGetRequest("/recurrent-expenses/archived", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "Archived recurrent item 3")
+				require.NotContains(t, rec.Body.String(), "Active recurrent item 3")
+			},
+		},
+		{
+			name: "should_unarchive_and_redirect_to_the_recurrent_expense",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_arch_4", "rexp_arch_4@example.com", "rexp_password_4")
+				category := s.CreateCategory(t, "rexp_arch_cat_4")
+				archived := archive(t, user.ID, category.ID, "Archived recurrent item 4")
+				cookies := s.AuthCookies(t, "rexp_arch_4@example.com", "rexp_password_4")
+				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
+
+				path := fmt.Sprintf("/recurrent-expenses/%d/unarchive", archived.ID)
+				req := spec.NewPostRequest(path, "", cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(
+					t,
+					fmt.Sprintf("/recurrent-expenses/%d", archived.ID),
+					rec.Header().Get("Location"),
+				)
+
+				updated, err := s.Store.FindRecurrentExpense(t.Context(), archived.ID, user.ID)
+				require.NoError(t, err)
+				require.Nil(t, updated.ArchivedAt)
+				require.Equal(t, uint(0), updated.OccurrenceCount)
+			},
+		},
+		{
+			name: "should_not_unarchive_another_users_recurrent_expense",
+			fn: func(t *testing.T) {
+				owner := s.CreateAuthUser(t, "rexp_arch_5", "rexp_arch_5@example.com", "rexp_password_5")
+				s.CreateAuthUser(t, "rexp_arch_6", "rexp_arch_6@example.com", "rexp_password_6")
+				category := s.CreateCategory(t, "rexp_arch_cat_5")
+				archived := archive(t, owner.ID, category.ID, "Archived recurrent item 5")
+
+				cookies := s.AuthCookies(t, "rexp_arch_6@example.com", "rexp_password_6")
+				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
+
+				path := fmt.Sprintf("/recurrent-expenses/%d/unarchive", archived.ID)
+				req := spec.NewPostRequest(path, "", cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusNotFound, rec.Code)
+
+				untouched, err := s.Store.FindRecurrentExpense(t.Context(), archived.ID, owner.ID)
+				require.NoError(t, err)
+				require.NotNil(t, untouched.ArchivedAt)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
 }

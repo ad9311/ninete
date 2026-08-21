@@ -74,6 +74,7 @@ func (s *Server) setUpRoutes() {
 			recurrentExpenses.Get("/", s.handlers.GetRecurrentExpenses)
 			recurrentExpenses.Post("/", s.handlers.PostRecurrentExpenses)
 			recurrentExpenses.Get("/new", s.handlers.GetRecurrentExpensesNew)
+			recurrentExpenses.Get("/archived", s.handlers.GetRecurrentExpensesArchived)
 			recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
 				recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
 
@@ -81,6 +82,7 @@ func (s *Server) setUpRoutes() {
 				recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
 				recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
 				recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
+				recurrentExpenses.Post("/unarchive", s.handlers.PostRecurrentExpensesUnarchive)
 			})
 		})
 

@@ -51,6 +51,8 @@ const (
 	RecurrentExpensesEdit  TemplateName = "recurrent_expenses/edit"
 	RecurrentExpensesShow  TemplateName = "recurrent_expenses/show"
 
+	RecurrentExpensesArchived TemplateName = "recurrent_expenses/archived"
+
 	// Macro templates.
 	MacrosIndex TemplateName = "macros/index"
 	MacrosNew   TemplateName = "macros/new"

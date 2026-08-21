@@ -1,26 +1,21 @@
 {{ template "layout" . }}
 {{ define "main" }}
-  <section class="card" aria-labelledby="recurrent-expenses-card-title">
+  <section
+    class="card"
+    aria-labelledby="archived-recurrent-expenses-card-title"
+  >
     <header class="card-header">
-      <h1 id="recurrent-expenses-card-title" class="card-title">
-        Recurrent expenses
+      <h1 id="archived-recurrent-expenses-card-title" class="card-title">
+        Archived recurrent expenses
       </h1>
-      <nav class="card-actions" aria-label="Recurrent expense actions">
+      <nav class="card-actions" aria-label="Archived recurrent expense actions">
         <a
-          href="/recurrent-expenses/new"
+          href="/recurrent-expenses"
           class="card-action-link"
-          aria-label="New recurrent expense"
-          title="New recurrent expense"
+          aria-label="Recurrent expenses"
+          title="Recurrent expenses"
         >
-          <i data-lucide="plus" class="card-action-icon"></i>
-        </a>
-        <a
-          href="/recurrent-expenses/archived"
-          class="card-action-link"
-          aria-label="Archived recurrent expenses"
-          title="Archived recurrent expenses"
-        >
-          <i data-lucide="archive" class="card-action-icon"></i>
+          <i data-lucide="repeat" class="card-action-icon"></i>
         </a>
         <a
           href="/expenses"
@@ -160,7 +155,7 @@
         <tfoot>
           <tr>
             <th colspan="7">
-              Total recurrent expenses
+              Total archived recurrent expenses
               <span class="amount-value">
                 {{ .recurrentExpenses | sumAmount | currency }}
               </span>

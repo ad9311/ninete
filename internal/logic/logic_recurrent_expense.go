@@ -2,7 +2,6 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/ad9311/ninete/internal/repo"
@@ -10,8 +9,11 @@ import (
 
 type RecurrentExpenseParams struct {
 	ExpenseBaseParams
-	Period uint     `validate:"required,gt=0"`
-	Tags   []string `validate:"-"`
+	Period uint `validate:"required,gt=0"`
+	// OccurrenceLimit caps how many expenses this recurrent expense generates
+	// before it archives itself. Zero means unlimited.
+	OccurrenceLimit uint     `validate:"-"`
+	Tags            []string `validate:"-"`
 }
 
 func (s *Store) FindRecurrentExpenses(
@@ -74,11 +76,12 @@ func (s *Store) CreateRecurrentExpense(
 		var txErr error
 
 		recurrentExpense, txErr = tq.InsertRecurrentExpense(ctx, repo.InsertRecurrentExpenseParams{
-			UserID:      userID,
-			CategoryID:  params.CategoryID,
-			Description: params.Description,
-			Amount:      params.Amount,
-			Period:      params.Period,
+			UserID:          userID,
+			CategoryID:      params.CategoryID,
+			Description:     params.Description,
+			Amount:          params.Amount,
+			Period:          params.Period,
+			OccurrenceLimit: params.OccurrenceLimit,
 		})
 		if txErr != nil {
 			return txErr
@@ -115,12 +118,13 @@ func (s *Store) UpdateRecurrentExpense(
 		var txErr error
 
 		recurrentExpense, txErr = tq.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
-			ID:          id,
-			UserID:      userID,
-			CategoryID:  params.CategoryID,
-			Description: params.Description,
-			Amount:      params.Amount,
-			Period:      params.Period,
+			ID:              id,
+			UserID:          userID,
+			CategoryID:      params.CategoryID,
+			Description:     params.Description,
+			Amount:          params.Amount,
+			Period:          params.Period,
+			OccurrenceLimit: params.OccurrenceLimit,
 		})
 		if txErr != nil {
 			return txErr
@@ -222,16 +226,27 @@ func (s *Store) copyRecurrentExpense(ctx context.Context, re repo.RecurrentExpen
 			return err
 		}
 
-		_, err = tq.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
-			ID:                re.ID,
-			UserID:            re.UserID,
-			CategoryID:        re.CategoryID,
-			Description:       re.Description,
-			Amount:            re.Amount,
-			Period:            re.Period,
-			LastCopyCreatedAt: sql.NullInt64{Int64: expenseDate, Valid: true},
-		})
+		_, err = tq.RecordRecurrentExpenseOccurrence(ctx, re.ID, re.UserID, expenseDate)
 
 		return err
 	})
+}
+
+// UnarchiveRecurrentExpense clears the archived flag and resets the occurrence
+// counter, so the cron job starts a fresh run of "occurrence_limit" copies.
+func (s *Store) UnarchiveRecurrentExpense(ctx context.Context, id, userID int) (repo.RecurrentExpense, error) {
+	var recurrentExpense repo.RecurrentExpense
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		recurrentExpense, txErr = tq.UnarchiveRecurrentExpense(ctx, id, userID)
+
+		return txErr
+	})
+	if err != nil {
+		return recurrentExpense, err
+	}
+
+	return recurrentExpense, nil
 }
