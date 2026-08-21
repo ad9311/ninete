@@ -1,6 +1,6 @@
 # `web/` — Templates and Static Assets
 
-Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers architecture, layering and Go-side conventions; this file covers what you need before editing anything under `web/`.
+Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers conventions and the invariants that must not be broken, and `docs/architecture.md` covers layering and the Go-side request flow; this file covers what you need before editing anything under `web/`.
 
 Two directories:
 
@@ -84,6 +84,7 @@ Registered in `internal/serve/template_func.go`:
 | Function | Purpose |
 | --- | --- |
 | `currency` | `uint64` cents ⇒ `$1,234.56`. Money is stored in cents — never format it by hand |
+| `signedCurrency` | Same, for an `int64` that can go negative. Stored amounts are unsigned, so this is only for derived figures such as a budget's remaining amount |
 | `truncateFloat` | Trims a float for display |
 | `timeStamp` | Unix seconds ⇒ `YYYY-MM-DD` |
 | `sumAmount`, `sumTotal` | Totals over a slice of rows, by `Amount` / `Total` field |
@@ -105,7 +106,7 @@ A template syntax error surfaces as a 500 with `ERROR EXECUTING TEMPLATE` in the
 
 ## `web/static` — CSS, JS, images
 
-Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see Performance Priorities in `CLAUDE.md` before changing how these are served.
+Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see the "Static assets stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
 
 Responses carry `Cache-Control: public, max-age=300`. The window is short because the filenames are not content-hashed; a longer one would strand a stale bundle in the browser after a deploy.
 

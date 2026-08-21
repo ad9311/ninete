@@ -58,9 +58,9 @@ not to a `.env`. See `.env.example` for what each key does.
 `MAX_IDLE_CONNS` and `MAX_OPEN_CONNS` are present but **empty** in production, which
 is deliberate. `prog.SetInt` treats an empty value as unset and falls back to
 `DefaultMaxOpenConns` / `DefaultMaxIdleConns` — both `1` (`internal/db/db.go`). A
-single connection is the intended production configuration; see the Performance
-Priorities section of `CLAUDE.md` for why raising it is not an improvement here, and
-what would have to change first if it were ever raised anyway.
+single connection is the intended production configuration; see `docs/performance.md`
+for why raising it is not an improvement here, and what would have to change first if
+it were ever raised anyway.
 
 `GO_BUILD_ENVS` is *not* set in production. `build.sh` sets its own build flags
 inline (`CC=gcc`, not the `musl-gcc` from `.env.example`).
@@ -236,7 +236,15 @@ Available tasks are registered in `cmd/task/main.go`:
 
 - `copy_due_recurrent_expenses` — materializes due recurrent expenses into real
   expenses (`internal/task/task.go`, `CopyDueRecurrentExpenses`). Run on a schedule.
+  Each copy carries the recurrent expense's tags and bumps its occurrence
+  counter; when that counter reaches a non-zero `occurrence_limit` the row
+  archives itself in the same statement and drops out of the task's selection
+  until someone unarchives it from `/recurrent-expenses/archived`. A run that
+  copies fewer rows than the month before is therefore expected, not a fault.
+  One failing row is logged and skipped, and the task still exits 0 — check the
+  count in the log line, not just the exit status.
 - `create_invitation_code` — interactive, prompts on stdin. Run by hand.
+- `test` — a no-op hook for development. Not for production use.
 
 ## Rollback
 
