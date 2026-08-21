@@ -231,24 +231,27 @@ func (q *TxQueries) InsertRecurrentExpense(
 }
 
 // updateRecurrentExpense archives the row when the edited limit is already met.
+// The placeholders are numbered because the limit and the timestamp are each read
+// twice: with bare "?" the repeated values would be separate positional args, and
+// reordering them would go unnoticed since they carry the same value.
 // "archived_at" is what the cron job reads, so an edit that leaves the row unable
 // to ever run again has to stamp it — otherwise the row reads as active and
 // silently stops generating expenses.
 const updateRecurrentExpense = `
 UPDATE "recurrent_expenses"
-SET "category_id"          = ?,
-    "description"          = ?,
-    "amount"               = ?,
-    "period"               = ?,
-    "last_copy_created_at" = COALESCE(?, "last_copy_created_at"),
-    "occurrence_limit"     = ?,
+SET "category_id"          = ?1,
+    "description"          = ?2,
+    "amount"               = ?3,
+    "period"               = ?4,
+    "last_copy_created_at" = COALESCE(?5, "last_copy_created_at"),
+    "occurrence_limit"     = ?6,
     "archived_at"          = CASE
-                               WHEN ? > 0 AND ? <= "occurrence_count"
-                               THEN COALESCE("archived_at", ?)
+                               WHEN ?6 > 0 AND ?6 <= "occurrence_count"
+                               THEN COALESCE("archived_at", ?7)
                                ELSE "archived_at"
                              END,
-    "updated_at"           = ?
-WHERE "id" = ? AND "user_id" = ?
+    "updated_at"           = ?7
+WHERE "id" = ?8 AND "user_id" = ?9
 RETURNING ` + recurrentExpenseColumns + `;
 `
 
@@ -271,9 +274,6 @@ func (q *Queries) UpdateRecurrentExpense(
 			params.Period,
 			params.LastCopyCreatedAt,
 			params.OccurrenceLimit,
-			params.OccurrenceLimit,
-			params.OccurrenceLimit,
-			now,
 			now,
 			params.ID,
 			params.UserID,
@@ -315,9 +315,6 @@ func (q *TxQueries) UpdateRecurrentExpense(
 			params.Period,
 			params.LastCopyCreatedAt,
 			params.OccurrenceLimit,
-			params.OccurrenceLimit,
-			params.OccurrenceLimit,
-			now,
 			now,
 			params.ID,
 			params.UserID,
