@@ -53,6 +53,27 @@
           <td>{{ .recurrentExpense.Period }}</td>
         </tr>
         <tr>
+          <th>Runs</th>
+          <td>
+            {{ if .recurrentExpense.OccurrenceLimit }}
+              {{ .recurrentExpense.OccurrenceCount }} of
+              {{ .recurrentExpense.OccurrenceLimit }}
+            {{ else }}
+              <span class="chip chip-empty">Unlimited</span>
+            {{ end }}
+          </td>
+        </tr>
+        <tr>
+          <th>Status</th>
+          <td>
+            {{ if .recurrentExpense.Archived }}
+              <span class="chip chip-tag">Archived</span>
+            {{ else }}
+              <span class="chip chip-tag">Active</span>
+            {{ end }}
+          </td>
+        </tr>
+        <tr>
           <th>Tags</th>
           <td>
             {{ if .recurrentExpense.Tags }}
@@ -68,6 +89,22 @@
         </tr>
       </tbody>
     </table>
+    {{ if .recurrentExpense.Archived }}
+      <form
+        action="/recurrent-expenses/{{ .recurrentExpense.ID }}/unarchive"
+        method="post"
+        data-turbo-confirm="Unarchive this recurrent expense? Its run count goes back to zero."
+      >
+        {{ template "csrf" . }}
+        <button
+          type="submit"
+          class="btn-primary form-submit"
+          data-turbo-submits-with="Unarchiving..."
+        >
+          Unarchive
+        </button>
+      </form>
+    {{ end }}
     <form
       action="/recurrent-expenses/{{ .recurrentExpense.ID }}/delete"
       method="post"

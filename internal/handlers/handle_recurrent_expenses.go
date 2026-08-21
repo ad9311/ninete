@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -14,12 +15,15 @@ import (
 )
 
 type recurrentExpenseRow struct {
-	ID           int
-	CategoryName string
-	Description  string
-	Amount       uint64
-	Period       uint
-	Tags         []string
+	ID              int
+	CategoryName    string
+	Description     string
+	Amount          uint64
+	Period          uint
+	OccurrenceLimit uint
+	OccurrenceCount uint
+	Archived        bool
+	Tags            []string
 }
 
 // ----------------------------------------------------------------------------- //
@@ -61,26 +65,44 @@ func (h *Handler) RecurrentExpenseContext(next http.Handler) http.Handler {
 // ----------------------------------------------------------------------------- //
 
 func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
+	h.renderRecurrentExpenseList(w, r, false, RecurrentExpensesIndex, "/recurrent-expenses")
+}
+
+// GetRecurrentExpensesArchived lists the rows the cron job stopped copying
+// because they hit their occurrence limit. They stay out of the main list until
+// the owner unarchives one.
+func (h *Handler) GetRecurrentExpensesArchived(w http.ResponseWriter, r *http.Request) {
+	h.renderRecurrentExpenseList(w, r, true, RecurrentExpensesArchived, "/recurrent-expenses/archived")
+}
+
+func (h *Handler) renderRecurrentExpenseList(
+	w http.ResponseWriter,
+	r *http.Request,
+	archived bool,
+	template TemplateName,
+	basePath string,
+) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
 	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"}, "")
+	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.RecurrentExpenseArchivedFilter(archived))
 
 	totalCount, err := h.store.CountRecurrentExpenses(r.Context(), opts.Filters)
 	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, template, err)
 
 		return
 	}
 
 	recurrentExpenses, err := h.store.FindRecurrentExpenses(r.Context(), opts)
 	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, template, err)
 
 		return
 	}
 
-	categories, categoryNameByID, ok := h.findCategoriesOrErr(w, r, RecurrentExpensesIndex)
+	categories, categoryNameByID, ok := h.findCategoriesOrErr(w, r, template)
 	if !ok {
 		return
 	}
@@ -98,7 +120,7 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 		user.ID,
 	)
 	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, RecurrentExpensesIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, template, err)
 
 		return
 	}
@@ -106,22 +128,19 @@ func (h *Handler) GetRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 
 	rows := make([]recurrentExpenseRow, 0, len(recurrentExpenses))
 	for _, recurrentExpense := range recurrentExpenses {
-		rows = append(rows, recurrentExpenseRow{
-			ID:           recurrentExpense.ID,
-			CategoryName: categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
-			Description:  recurrentExpense.Description,
-			Amount:       recurrentExpense.Amount,
-			Period:       recurrentExpense.Period,
-			Tags:         tagNames[recurrentExpense.ID],
-		})
+		rows = append(rows, newRecurrentExpenseRow(
+			recurrentExpense,
+			categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
+			tagNames[recurrentExpense.ID],
+		))
 	}
 
 	data["recurrentExpenses"] = rows
 	data["categories"] = categories
 	data["pagination"] = newPaginationData(r, opts, totalCount, "")
-	data["basePath"] = "/recurrent-expenses"
+	data["basePath"] = basePath
 
-	h.render(w, http.StatusOK, RecurrentExpensesIndex, data)
+	h.render(w, http.StatusOK, template, data)
 }
 
 func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
@@ -140,14 +159,11 @@ func (h *Handler) GetRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data["recurrentExpense"] = recurrentExpenseRow{
-		ID:           recurrentExpense.ID,
-		CategoryName: categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
-		Description:  recurrentExpense.Description,
-		Amount:       recurrentExpense.Amount,
-		Period:       recurrentExpense.Period,
-		Tags:         logic.ExtractTagNames(tags),
-	}
+	data["recurrentExpense"] = newRecurrentExpenseRow(
+		*recurrentExpense,
+		categoryNameOrUnknown(categoryNameByID, recurrentExpense.CategoryID),
+		logic.ExtractTagNames(tags),
+	)
 
 	h.render(w, http.StatusOK, RecurrentExpensesShow, data)
 }
@@ -212,10 +228,11 @@ func (h *Handler) PostRecurrentExpenses(w http.ResponseWriter, r *http.Request) 
 	_, err = h.store.CreateRecurrentExpense(ctx, user.ID, params)
 	if err != nil {
 		setRecurrentExpenseFormData(data, categories, repo.RecurrentExpense{
-			CategoryID:  params.CategoryID,
-			Description: params.Description,
-			Amount:      params.Amount,
-			Period:      params.Period,
+			CategoryID:      params.CategoryID,
+			Description:     params.Description,
+			Amount:          params.Amount,
+			Period:          params.Period,
+			OccurrenceLimit: params.OccurrenceLimit,
 		}, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, RecurrentExpensesNew, err)
 
@@ -259,6 +276,7 @@ func (h *Handler) PostRecurrentExpensesUpdate(w http.ResponseWriter, r *http.Req
 		recurrentExpense.Description = params.Description
 		recurrentExpense.Amount = params.Amount
 		recurrentExpense.Period = params.Period
+		recurrentExpense.OccurrenceLimit = params.OccurrenceLimit
 		setRecurrentExpenseFormData(data, categories, recurrentExpense, logic.JoinTagNames(params.Tags))
 		h.renderErr(w, r, http.StatusBadRequest, RecurrentExpensesEdit, err)
 
@@ -292,6 +310,28 @@ func (h *Handler) PostRecurrentExpensesDelete(w http.ResponseWriter, r *http.Req
 	http.Redirect(w, r, "/recurrent-expenses", http.StatusSeeOther)
 }
 
+// PostRecurrentExpensesUnarchive puts an archived recurrent expense back in
+// rotation. Editing one never does this on its own — the owner has to ask.
+func (h *Handler) PostRecurrentExpensesUnarchive(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user := getCurrentUser(r)
+	recurrentExpense := getRecurrentExpense(r)
+
+	_, err := h.store.UnarchiveRecurrentExpense(ctx, recurrentExpense.ID, user.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.NotFound(w, r)
+
+			return
+		}
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
+
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/recurrent-expenses/%d", recurrentExpense.ID), http.StatusSeeOther)
+}
+
 // ----------------------------------------------------------------------------- //
 // Unexported Functions and Helpers
 // ----------------------------------------------------------------------------- //
@@ -312,13 +352,60 @@ func parseRecurrentExpenseForm(r *http.Request) (logic.RecurrentExpenseParams, e
 		return params, fmt.Errorf("%w of Period \"%v\", period cannot be lower than 1", prog.ErrParsing, period)
 	}
 
+	occurrenceLimit, err := parseOccurrenceLimit(r.FormValue("occurrence_limit"))
+	if err != nil {
+		return params, err
+	}
+
 	params.CategoryID = base.CategoryID
 	params.Description = base.Description
 	params.Amount = base.Amount
 	params.Period = uint(period)
+	params.OccurrenceLimit = occurrenceLimit
 	params.Tags = logic.ParseTagNames(r.FormValue("tags"))
 
 	return params, nil
+}
+
+// parseOccurrenceLimit accepts an empty field as "unlimited" so an existing form
+// submitted without the input keeps the old behaviour.
+func parseOccurrenceLimit(value string) (uint, error) {
+	if value == "" {
+		return 0, nil
+	}
+
+	limit, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("%w of Occurrence limit \"%v\"", prog.ErrParsing, value)
+	}
+
+	if limit < 0 {
+		return 0, fmt.Errorf(
+			"%w of Occurrence limit \"%v\", occurrence limit cannot be negative",
+			prog.ErrParsing,
+			limit,
+		)
+	}
+
+	return uint(limit), nil
+}
+
+func newRecurrentExpenseRow(
+	recurrentExpense repo.RecurrentExpense,
+	categoryName string,
+	tags []string,
+) recurrentExpenseRow {
+	return recurrentExpenseRow{
+		ID:              recurrentExpense.ID,
+		CategoryName:    categoryName,
+		Description:     recurrentExpense.Description,
+		Amount:          recurrentExpense.Amount,
+		Period:          recurrentExpense.Period,
+		OccurrenceLimit: recurrentExpense.OccurrenceLimit,
+		OccurrenceCount: recurrentExpense.OccurrenceCount,
+		Archived:        recurrentExpense.ArchivedAt != nil,
+		Tags:            tags,
+	}
 }
 
 func setRecurrentExpenseFormData(

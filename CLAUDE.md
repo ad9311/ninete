@@ -99,7 +99,7 @@ The goal is an app that feels instant for one person, not one that sustains thro
 | Auth | `/login`, `/register`, `/logout` | `handle_auth.go` | `logic_auth.go`, `logic_invitation_code.go` |
 | Dashboard | `/dashboard` | `handle_dashboard.go` | reuses expense + macro stores |
 | Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/budgets`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `handle_expense_budgets.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go`, `logic_expense_budget.go` |
-| Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
+| Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/archived`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
 | Macros | `/macros`, `/macros/goals`, `/macros/stats`, `/macros/{id}` | `handle_macros.go`, `macro_shared.go` | `logic_macro.go` |
 | Foods | `/foods`, `/foods/{id}` | `handle_foods.go` | `logic_food.go` |
 | Moods | `/moods`, `/moods/stats`, `/moods/{id}` | `handle_mood_entries.go` | `logic_mood_entry.go`, `mood.go` |
@@ -107,7 +107,7 @@ The goal is an app that feels instant for one person, not one that sustains thro
 | Exports | `/exports`, `/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
 
-Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates; categories are global, not user-scoped (`logic_category.go`).
+Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 
 ## Engineering Workflow
 - **Always write in English.** Code, comments, identifiers, commit messages, PR titles and
