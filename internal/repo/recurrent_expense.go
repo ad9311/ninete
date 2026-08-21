@@ -162,39 +162,6 @@ func (q *Queries) CountRecurrentExpenses(ctx context.Context, filters Filters) (
 	return c, err
 }
 
-func (q *Queries) InsertRecurrentExpense(
-	ctx context.Context,
-	params InsertRecurrentExpenseParams,
-) (RecurrentExpense, error) {
-	var re recurrentExpense
-
-	err := q.wrapQuery(insertRecurrentExpense, func() error {
-		row := q.db.QueryRowContext(
-			ctx,
-			insertRecurrentExpense,
-			params.UserID,
-			params.CategoryID,
-			params.Description,
-			params.Amount,
-			params.Period,
-		)
-
-		return row.Scan(
-			&re.ID,
-			&re.UserID,
-			&re.CategoryID,
-			&re.Description,
-			&re.Amount,
-			&re.Period,
-			&re.LastCopyCreatedAt,
-			&re.CreatedAt,
-			&re.UpdatedAt,
-		)
-	})
-
-	return re.toRecurrentExpense(), err
-}
-
 func (q *TxQueries) InsertRecurrentExpense(
 	ctx context.Context,
 	params InsertRecurrentExpenseParams,
@@ -319,18 +286,6 @@ func (q *TxQueries) DeleteRecurrentExpense(ctx context.Context, id, userID int) 
 
 	err := q.wrapQuery(deleteRecurrentExpense, func() error {
 		row := q.tx.QueryRowContext(ctx, deleteRecurrentExpense, id, userID)
-
-		return row.Scan(&i)
-	})
-
-	return i, err
-}
-
-func (q *Queries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
-	var i int
-
-	err := q.wrapQuery(deleteRecurrentExpense, func() error {
-		row := q.db.QueryRowContext(ctx, deleteRecurrentExpense, id, userID)
 
 		return row.Scan(&i)
 	})
