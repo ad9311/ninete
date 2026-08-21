@@ -1,14 +1,33 @@
 # NINETE Architecture Guide
 
 ## Purpose
-This document gives high-level context so agents can navigate the codebase quickly and make consistent changes.
+This document holds the rules and invariants that must not be broken, plus the
+map needed to find things.
+
+### Documentation map
+Every document in the repository, and when to read it. This list is the index —
+if a document is added, add it here too, or nobody will find it.
+
+| Document | What it holds | Read it when |
+| --- | --- | --- |
+| `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
+| `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
+| `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
+| `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, backups, rollback | Answering anything about production, or editing `scripts/` |
+| `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
+| `web/README.md` | Templates and static assets: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration | **Before editing anything under `web/`** |
+| `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
+| `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
 
 ## Project Scope
 NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods). It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
 
 The app is still built multi-user and must stay that way: auth flows exist, and every table holding personal data is scoped by `user_id` (`categories` is the one shared lookup table). That scoping is an ownership and correctness boundary — a query that forgets `user_id` is a bug that leaks or destroys another account's data — and it is cheap to maintain. It is not an ambition to serve many people at once.
 
-The distinction matters most when deciding what to optimize. See Performance Priorities.
+The distinction matters most when deciding what to optimize. **Do not propose
+connection-pool tuning, read/write pool splits, caching layers or queues as a
+performance improvement** — `MAX_OPEN_CONNS` defaults to 1 and that is correct
+for this app. See `docs/performance.md` for what is worth the effort instead.
 
 ## Deployment
 Production runs on a single Linux VPS with a standard FHS layout — no containers. `docs/deployment.md` covers the deploy script chain, the systemd unit, Caddy, migrations, and rollback. Read it before answering anything about how the app runs in production.
@@ -23,61 +42,60 @@ Four facts from it that change how code should be written:
 
 The deploy account's privilege setup is deliberate, settled, and documented in `deployment.local.md`. It is not an open weakness, and the trade-offs behind it — including what was considered and rejected — are recorded there. Do not propose changes to it as a security improvement; if something genuinely looks wrong, raise it with the owner rather than acting. The one part that touches code: the privileged deploy steps are granted per exact command line, so changing which commands the deploy runs, or their arguments, breaks the grant until the host config is updated to match. Read `deployment.local.md` before touching anything in that area.
 
-## Performance Priorities
-The goal is an app that feels instant for one person, not one that sustains throughput for many. When those two goals conflict, choose responsiveness.
+## Invariants
+Each of these breaks something real if undone. `docs/architecture.md` describes
+the surrounding machinery; this is the part you must not get wrong.
 
-**Worth the effort**
-- Reduce how many queries a page costs, and keep each one index-backed. Any user-scoped query bounded by a timestamp should have a matching `(user_id, <time column>)` index; `internal/db/index_test.go` pins the important ones with `EXPLAIN QUERY PLAN`.
-- Batch lookups instead of one query per row. `repo.SelectTagRows` is the pattern: pass a slice of ids, get rows back, group them in memory with `repo.TagNamesByTargetID`.
-- Keep work off paths that should be free. `/static/*` is mounted outside the app middleware chain specifically so serving an asset never loads a session or queries the database.
-- Remove anything unbounded in rows, memory, or SQL parameters. SQLite rejects a statement with more than 32766 parameters, which is why `SelectTagRows` batches its `IN (...)` list.
+**Client IP** — `realClientIP` (`internal/serve/middleware.go`) rewrites
+`RemoteAddr` from the **last** `X-Forwarded-For` entry, which is the only one
+Caddy itself wrote. Do not replace it with chi's `middleware.RealIP`: that reads
+`True-Client-IP`, then `X-Real-IP`, then the *first* `X-Forwarded-For` entry, and
+a stock Caddy sets neither of the first two and appends to the third — so all
+three arrive client-controlled and let a caller mint a fresh rate-limit bucket
+per request by rotating a header. Binding loopback (`defaultHost` in
+`internal/serve/serve.go`) stops direct connections; it does nothing about forged
+headers arriving through the proxy.
 
-**Not worth the effort**
-- Concurrency capacity work: connection-pool tuning, read/write pool splits, caching layers, queues. `MAX_OPEN_CONNS` defaults to 1 and that is fine — one user produces almost no overlapping requests, so serializing them costs microseconds nobody can perceive. Do not propose a pool split as a performance improvement.
-- If a pool larger than 1 is ever introduced anyway, three things matter. The PRAGMAs in `internal/db/init/connection.sql` are already applied to every connection through the driver connect hook, so those are fine. `WithTx` opens a deferred transaction, which can fail with `SQLITE_BUSY_SNAPSHOT` under concurrent writers — `_txlock=immediate` would be needed. And `db.Optimize` runs `PRAGMA optimize` on whichever single connection `database/sql` hands it at shutdown; the statistics it refreshes come from that connection's own query history, so with several connections in play it would only ever see a fraction of the workload.
+**Static assets stay off the app chain** — `/static/*` is mounted on the root
+router by `setUpFileServer`, outside `setUpAppMiddlewares`. Serving an asset must
+never load a session or query the database.
 
-**Measuring**
-- Query shape: `EXPLAIN QUERY PLAN`, asserted in tests rather than eyeballed.
-- Wall time: the app logs every repo query with its duration outside `ENV=test` (`prog.Logger.Query`), so `make dev` shows what a page actually costs.
+**Auth rate limit is one shared value** — `POST /login` and `POST /register`
+carry the same `authRateLimit()` middleware value, applied with
+`root.With(...)`, so a client draws on a single budget across both. Calling
+`authRateLimit()` twice would build two independent counters and double the
+allowance. It is a no-op under `ENV=test` — the suite logs in ~100 times from one
+address — and is covered directly in
+`internal/serve/middleware_internal_test.go` instead.
 
-## Runtime Flow (`cmd/ninete`)
-1. `cmd/ninete/main.go` loads application config using `prog.Load()`.
-2. It opens SQLite via `db.Open()`.
-3. It creates repository queries via `repo.New(app, sqlDB)`.
-4. It creates business logic via `logic.New(app, queries)`.
-5. It creates the HTTP server via `serve.New(app, store, sqlDB)` — the `*sql.DB` is handed over because the session store (`scs/sqlite3store`) persists sessions in the same database.
-6. It loads templates via `server.LoadTemplates()`.
-7. It starts HTTP serving via `server.Start()`.
+**Render helpers need `setTmplData`** — anything calling a render helper must sit
+inside the app middleware group, which is why `NotFound`/`MethodNotAllowed` are
+registered on the group rather than the root router.
 
-## Request Flow (`internal/serve` -> `internal/handlers`)
-1. Request enters Chi router in `internal/serve/routes.go`.
-2. Root middleware, paid by every request including static assets (`setUpMiddlewares`):
-- `realClientIP`, Logger (non-test), Recoverer, request ID.
-- Base security headers (`nosniff`, HSTS in production).
-- `realClientIP` rewrites `RemoteAddr` from the **last** `X-Forwarded-For` entry,
-  which is the only one Caddy itself wrote, and runs before the logger so access
-  logs record the client. Do not replace it with chi's `middleware.RealIP`: that
-  reads `True-Client-IP`, then `X-Real-IP`, then the *first* `X-Forwarded-For`
-  entry, and a stock Caddy sets neither of the first two and appends to the
-  third — so all three arrive client-controlled and let a caller mint a fresh
-  rate-limit bucket per request by rotating a header. Binding loopback
-  (`defaultHost` in `internal/serve/serve.go`) stops direct connections; it does
-  nothing about forged headers arriving through the proxy.
-3. `/static/*` is mounted on the root router, outside the app chain, and adds only a `Cache-Control` header. Serving an asset must never load a session or query the database — keep it that way.
-4. App middleware, only for rendered routes (`setUpAppMiddlewares`, applied to a `chi` group):
-- Session load/save (`scs`).
-- Request body limit, timeout.
-- CSP nonce and headers (`contentSecurityPolicy`).
-- CSRF middleware (`nosurf`).
-- Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group. `NotFound`/`MethodNotAllowed` are registered on the group for that reason.
-- Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`).
-- `POST /login` and `POST /register` additionally carry `authRateLimit()`, applied with `root.With(...)` so rendering the forms stays free. Both routes share **one** middleware value, so a client draws on a single budget across them; calling `authRateLimit()` twice would build two independent counters and double the allowance. It is a no-op under `ENV=test` — the suite logs in ~100 times from one address — and is covered directly in `internal/serve/middleware_internal_test.go` instead.
-5. Route-level context middleware may run for resource-specific lookups.
-6. Handler executes endpoint behavior in `internal/handlers`.
-7. Handler calls `logic.Store` methods.
-8. Logic calls `repo.Queries` methods.
-9. Repo executes SQL against SQLite.
-10. Handler renders templates through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`.
+**PRAGMA split — do not merge `internal/db/init/database.sql` and
+`internal/db/init/connection.sql` back together.** `database.sql` holds settings
+SQLite persists in the database file (encoding, page size, journal mode) and runs
+once when the pool opens. `connection.sql` holds per-connection settings and runs
+from a driver connect hook registered under the driver name `sqlite3_ninete`, so
+every connection gets them. Applying `foreign_keys` once at startup leaves later
+connections with SQLite's default of OFF, which silently skips
+`ON DELETE CASCADE`. The hook reads the value back and fails the connection if it
+did not take.
+
+**Environment stamp** — `ENV` and `DATABASE_URL` are independent, so nothing else
+stops a development command from opening the production database.
+`verifyEnvStamp` (`internal/db/stamp.go`) writes the owning environment into the
+SQLite header's `application_id` on first open and fails `Open` when a later open
+disagrees. That is why `init/database.sql` must not set `application_id` itself. A
+database created before stamping reads back as unstamped and is claimed by
+whichever command opens it first, so claim it deliberately once with
+`ENV=<env> ./build/migrate stamp` (or `make stamp`).
+
+**No `SELECT *` or `RETURNING *` in `internal/repo`.** Every file declares a
+columns constant (`expenseColumns`, `macroEntryColumns`, …) naming its table's
+columns in physical order, and queries concatenate it. The `Scan` calls read
+positionally, so a reordered table would put values in the wrong struct fields
+with no error from SQLite or the driver.
 
 ## Layering
 - `cmd/*`: process entrypoints and composition.
@@ -123,6 +141,12 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
 - Any temporary file should go under `./tmp/`
+- Adding a document to the repository means adding a row to the Documentation map above. A document nobody can find is a document nobody reads.
+
+## Migration Conventions
+- **File naming**: `YYYYMMDDHHMMSS_description.sql` under `internal/db/migrations/`, with `-- +goose Up` and `-- +goose Down` sections. Every migration must set `PRAGMA user_version` — incremented in `Up`, restored to the previous value in `Down`. Read the newest migration to find the current number rather than guessing.
+- **Indexes**: Simple single-column FK columns use only the inline `REFERENCES "table"("col") ON DELETE CASCADE` declaration — do NOT add a separate `CREATE INDEX` for them. Only add explicit `CREATE INDEX` statements for composite or complex indexes (e.g. `CREATE UNIQUE INDEX … ON "table" ("col_a", lower("col_b"))`). Example of correct inline FK: `"user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE`.
+- **Adding a column**: append it at the end of the table. If a migration rebuilds a table or inserts a column mid-list, the matching columns constant in `internal/repo` must be updated in the same change; `TestColumnConstantsMatchSchema` will fail until it is.
 
 ## Testing Conventions
 - Test files live in the same directory as the code they test, using external test packages (e.g., `package logic_test`).
@@ -135,133 +159,21 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - Prefer external test packages, but an internal test file (`package repo`, `package handlers`) is acceptable when the invariant under test is unexported — see `internal/repo/columns_internal_test.go` and `internal/handlers/helpers_internal_test.go`. Name these `*_internal_test.go`.
 - When a change fixes a bug, make sure the test fails without the fix before committing. Several tests in this repo carry a comment saying which ones are genuine reproductions and which are only invariant guards; keep that distinction honest.
 
-## Package Reference
-
-### `cmd/ninete`
-- **Role**: Main web app entrypoint.
-- **Key file**: `cmd/ninete/main.go`.
-- **Responsibilities**:
-- Bootstrap dependencies.
-- Start server lifecycle.
-
-### `cmd/migrate`
-- **Role**: Migration/seed CLI entrypoint.
-- **Key file**: `cmd/migrate/main.go`.
-- **Responsibilities**:
-- Register migration commands (`up`, `down`, `create`, `status`, `seed`, `stamp`).
-- Delegate execution to `internal/db` functions via `internal/cmd`.
-
-### `cmd/task`
-- **Role**: Task CLI entrypoint.
-- **Key file**: `cmd/task/main.go`.
-- **Responsibilities**:
-- Register task commands.
-- Bootstrap app/db/store and run task functions from `internal/task`.
-
-### `internal/cmd`
-- **Role**: CLI command registry/dispatcher.
-- **Key files**: `internal/cmd/cmd.go`.
-- **Responsibilities**:
-- Register command handlers.
-- Parse command names from args.
-- Print usage/help.
-- Execute selected command and return exit codes.
-
-### `internal/prog`
-- **Role**: Runtime primitives.
-- **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`.
-- **Responsibilities**:
-- Load environment configuration.
-- Validate `ENV` (`production`, `development`, `test`).
-- Load `.env` outside production.
-- Provide app logger (`Logger`) with query timing support.
-- Shared utility parsing/conversion helpers.
-
-### `internal/db`
-- **Role**: Database setup and maintenance.
-- **Key files**: `internal/db/db.go`, `internal/db/migrate.go`, `internal/db/seed.go`, `internal/db/migrations/*.sql`, `internal/db/init/database.sql`, `internal/db/init/connection.sql`.
-- **Responsibilities**:
-- Open SQLite and apply PRAGMAs.
-- Execute Goose migrations.
-- Create new migration files.
-- Run seed routines.
-- **PRAGMA split — do not merge these two files back together**: `init/database.sql` holds settings SQLite persists in the database file (encoding, page size, journal mode) and runs once when the pool opens. `init/connection.sql` holds per-connection settings and runs from a driver connect hook registered under the driver name `sqlite3_ninete`, so every connection gets them. Applying `foreign_keys` once at startup leaves later connections with SQLite's default of OFF, which silently skips `ON DELETE CASCADE`. The hook reads the value back and fails the connection if it did not take.
-- **Environment stamp**: `ENV` and `DATABASE_URL` are independent, so nothing else stops a development command from opening the production database. `verifyEnvStamp` (`internal/db/stamp.go`) writes the owning environment into the SQLite header's `application_id` on first open and fails `Open` when a later open disagrees. That is why `init/database.sql` must not set `application_id` itself. A database created before stamping reads back as unstamped and is claimed by whichever command opens it first, so claim it deliberately once with `ENV=<env> ./build/migrate stamp`.
-- **Migration index convention**: Simple single-column FK columns use only the inline `REFERENCES "table"("col") ON DELETE CASCADE` declaration — do NOT add a separate `CREATE INDEX` for them. Only add explicit `CREATE INDEX` statements for composite or complex indexes (e.g. `CREATE UNIQUE INDEX … ON "table" ("col_a", lower("col_b"))`). Example of correct inline FK: `"user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE`.
-- **Migration file convention**: named `YYYYMMDDHHMMSS_description.sql`, with `-- +goose Up` and `-- +goose Down` sections. Every migration must set `PRAGMA user_version` — incremented in `Up`, restored to the previous value in `Down`. Read the newest migration to find the current number rather than guessing.
-- **Adding a column**: append it at the end of the table. If a migration rebuilds a table or inserts a column mid-list, the matching columns constant in `internal/repo` must be updated in the same change; `TestColumnConstantsMatchSchema` will fail until it is.
-
-### `internal/repo`
-- **Role**: SQL data access layer.
-- **Key files**:
-- Core: `internal/repo/repo.go`, `internal/repo/query_options.go`.
-- Domain query files follow `internal/repo/*.go` by resource.
-- **Responsibilities**:
-- Implement SQL CRUD and query operations.
-- Provide transaction API (`WithTx`, `TxQueries`).
-- Validate/filter sorting/pagination query options.
-- Emit query timing logs through `prog.Logger`.
-- Enforce ownership constraints where applicable (example: expense update/delete scoped by user).
-- **Query patterns to follow rather than reinvent**:
-- `QueryOptions` (`query_options.go`) composes a `WHERE`/`ORDER BY`/`LIMIT OFFSET` tail from `Filters`, `Sorting` and `Pagination`. Callers pass column names, which are validated against the table's `validXFields()` list before reaching SQL. A filter needing real SQL sets `FilterField.Expr` with its own `Args` — that fragment must be repo-defined, never user input (see `ExpenseTagFilter`).
-- `Sorting.Build` appends `"id"` as a tiebreaker. Sort columns hold duplicates, and `LIMIT/OFFSET` over a non-deterministic order repeats rows on one page and drops them from another.
-- Every file declares a columns constant (`expenseColumns`, `macroEntryColumns`, …) naming its table's columns in physical order, and queries concatenate it. **Do not go back to `SELECT *` or `RETURNING *`**: the `Scan` calls read positionally, so a reordered table would put values in the wrong struct fields with no error from SQLite or the driver.
-- Reads and deletes hang off `*Queries`; inserts and updates that participate in a transaction hang off `*TxQueries`. Multi-step writes go through `queries.WithTx`.
-- Tags are polymorphic: `taggings` rows carry `taggable_type` + `taggable_id`, with types listed as `TaggableType*` constants. Bulk tag reads batch through `SelectTagRows` + `TagNamesByTargetID`.
-
-### `internal/logic`
-- **Role**: Application/business logic.
-- **Key files**: `internal/logic/logic.go`, `internal/logic/logic_*.go`.
-- **Responsibilities**:
-- Expose use-cases to handlers.
-- Validate inputs (`go-playground/validator`).
-- Handle auth flows.
-- Keep route layer free of SQL details.
-- The `logic_` prefix is reserved for service/business-use-case files.
-
-### `internal/serve`
-- **Role**: HTTP server infrastructure/lifecycle.
-- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`.
-- **Responsibilities**:
-- Configure Chi router and SCS session manager.
-- Register global middleware and routes.
-- Configure CSRF and auth redirection.
-- Build and inject template/request context data.
-- Parse/cache templates and expose lookup callback to handlers.
-- Start and gracefully shut down HTTP server.
-
-### `internal/handlers`
-- **Role**: HTTP handlers and rendering.
-- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`, `internal/handlers/shared.go`, `internal/handlers/expense_shared.go`.
-- **Responsibilities**:
-- Implement endpoint behavior.
-- Use `logic.Store` + session manager for app actions.
-- Own template rendering helpers and render error paths.
-- Provide context-key and template-name constants.
-- Handler endpoint files must be named with the `handle_` prefix.
-
-### `internal/task`
-- **Role**: Task hooks used by `cmd/task`.
-- **Key file**: `internal/task/task.go`.
-- **Responsibilities**:
-- Define task entrypoints executed with initialized app/store dependencies.
-
-### `internal/spec`
-- **Role**: Test support package for DB-backed setup and factories.
-- **Key files**: `internal/spec/setup.go`, `internal/spec/factory.go`, `internal/spec/spec.go`, `internal/spec/http.go`.
-- **Responsibilities**:
-- Initialize isolated test DB state.
-- Provide reusable factories/helpers for logic tests.
-- Provide HTTP test helpers (request builders, CSRF extraction, login cookies).
-
 ## File Structure Convention
 - ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
 - Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
 - Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `errs.go` (sentinel errors).
+- Reads and deletes hang off `*Queries`; inserts and updates that participate in a transaction hang off `*TxQueries`. Multi-step writes go through `queries.WithTx`.
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
+**`web/README.md` is the reference for everything under `web/`. Read it before
+editing a template, a stylesheet or a controller** — it covers the template data
+contract, the partial namespace, the Turbo/Stimulus wiring and the editing loop.
+What follows is the shape, plus the four things that fail silently if you do not
+know them going in.
+
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
 - Shared layout lives in `web/views/layout.html`.
 - Shared partials live in `web/views/common/_*.html`.
@@ -269,3 +181,21 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - Route definitions are the source of truth in `internal/serve/routes.go`.
 - **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
 - Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
+
+Four frontend failures that produce no build error and no obvious symptom:
+
+- **Partial `define` names share one global namespace.** Every `_*.html` in a
+  resource directory under `web/views` is parsed into the same base template
+  (`parseTemplates` in `internal/serve/template.go`), so a duplicate name
+  silently overwrites another page's partial.
+- **Templates live exactly one directory below `web/views`.** Both globs in
+  `template.go` use `**`, which Go's `filepath.Glob` treats as a single path
+  segment, not a recursive match. A view or partial placed directly in
+  `web/views`, or nested two levels deep, is never parsed and surfaces only as a
+  failed render.
+- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks
+  the two agree at compile time; a mismatch logs `missing template` and returns a
+  500 at request time.
+- **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
+  Without it the browser drops the tag and posts to `/csp-report`.
+- **A new Stimulus controller is inert until registered in `index.ts`.**

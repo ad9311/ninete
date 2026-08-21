@@ -1,14 +1,28 @@
 # NINETE
 
-A personal expense and nutrition tracking app. Supports multiple users with auth, expenses (with categories and tags), recurring expenses, macro tracking with daily goals, and a personal food library.
+A personal tracking app, built around four areas:
 
-In practice it runs single-user. Data stays user-scoped for correctness, but the app is tuned for one person's responsiveness rather than for concurrent capacity — see the Project Scope and Performance Priorities sections of [`CLAUDE.md`](CLAUDE.md) before optimizing anything.
+- **Expenses** — categories and tags, quick entry, search by description, tag or
+  date range, per-category monthly budgets, and stats.
+- **Recurrent expenses** — copied into real expenses on a schedule by a task,
+  carrying their tags, and archived once they hit an optional occurrence limit.
+- **Nutrition** — macro entries against daily goals, plus a personal food library
+  used to prefill them.
+- **Moods** — tagged daily entries with stats.
+
+Alongside those: a dashboard summarizing spend and macro progress, a JSON export
+of expenses, and an account page for bulk-deleting any of the data above.
+
+In practice it runs single-user. Data stays user-scoped for correctness, but the app is tuned for one person's responsiveness rather than for concurrent capacity — see the Project Scope section of [`CLAUDE.md`](CLAUDE.md) and [`docs/performance.md`](docs/performance.md) before optimizing anything.
 
 ## Prerequisites
 
 - **Go** 1.25.6 or higher
 - **Bun** (for installing JS deps and building static assets)
 - **golangci-lint** (for linting)
+- **shellcheck** (for linting the deploy scripts under `scripts/`) — `make lint-sh`
+  skips with a warning when it is absent, but CI runs a pinned version and will
+  not skip, so install it (`brew install shellcheck`) before editing `scripts/`
 - **A C compiler** — the app uses `mattn/go-sqlite3`, which requires CGO (`CGO_ENABLED=1`) and
   a C toolchain:
   - **macOS**: Xcode Command Line Tools (`clang`) — install with `xcode-select --install`
@@ -57,8 +71,17 @@ Key variables:
   `/path/to/ninete/data/db/dev/main.db`). The file is created on first migration, but the
   variable itself must be set.
 - `PORT`: HTTP server port (default: 8080)
-- `MAX_IDLE_CONNS`: Max idle database connections (optional; defaults applied when unset)
-- `MAX_OPEN_CONNS`: Max open database connections (optional; defaults applied when unset)
+- `HOST`: Listen address. Empty or unset binds loopback (`127.0.0.1`), which is
+  what the production reverse proxy connects to. That default is a security
+  boundary — see [`docs/deployment.md`](docs/deployment.md) before changing it.
+- `MAX_IDLE_CONNS`: Max idle database connections (optional; defaults to 1)
+- `MAX_OPEN_CONNS`: Max open database connections (optional; defaults to 1 — see
+  [`docs/performance.md`](docs/performance.md) for why raising it is not an
+  improvement here)
+
+`ENV` is not read from `.env`: the `Makefile` targets set it (`development` for
+`make dev`, `test` for `make test`), and production supplies it through the
+process environment. Valid values are `production`, `development` and `test`.
 
 ### 4. Initialize the database
 
@@ -71,6 +94,18 @@ This runs all pending migrations. Optionally seed with sample data:
 ```bash
 make seed
 ```
+
+On first open the database is stamped with the environment that owns it, and any
+later open from a different `ENV` fails. A fresh `make migrate` stamps it for
+you; a database file created before stamping existed reads back as unstamped and
+is claimed by whichever command opens it first, so claim it deliberately:
+
+```bash
+make stamp
+```
+
+`make stamp` claims the database for `development`. For another environment, run
+the binary directly: `ENV=<env> ./build/migrate stamp`.
 
 ## Running the App
 
@@ -93,8 +128,27 @@ The development build:
 
 - `make build` — Build the binary without running
 - `make build-static-js` — Build only the static JS bundle
+- `make lint` — Run golangci-lint and shellcheck without fixing
+- `make lint-fix` — Run all formatters and linters with automatic fixes
+- `make lint-sh` — Run shellcheck over `scripts/*.sh` alone
+- `make task name=<task>` — Run a task (see below)
 - `make clean` — Remove compiled binaries
 - `make clean-db` — Reset the development database
+- `make help` — List every target with its description
+
+## Tasks
+
+Tasks are one-off or scheduled jobs that run outside the web process, registered
+in `cmd/task/main.go`:
+
+```bash
+make task name=create_invitation_code   # prompts on stdin for a code
+make task name=copy_due_recurrent_expenses
+```
+
+`copy_due_recurrent_expenses` materializes due recurrent expenses into real
+expenses and is the one meant to run on a schedule in production — see
+[`docs/deployment.md`](docs/deployment.md).
 
 ## Running Tests
 
@@ -110,10 +164,11 @@ Run tests in verbose mode:
 make test-verbose
 ```
 
-Run a specific test function:
+Run a specific test function, or restrict the run to one package:
 
 ```bash
 make test func=TestName
+make test pkg=./internal/logic/...
 ```
 
 Tests use an isolated test database (`./data/db/test/`), which is automatically cleaned before each run.
@@ -167,15 +222,25 @@ handling, migrations, tasks, and rollback.
 
 ## Project Structure
 
-See `CLAUDE.md` for detailed architecture, layering, and conventions.
+`CLAUDE.md` holds the conventions and the invariants that must not be broken, and
+opens with a map of every document in the repository.
+[`docs/architecture.md`](docs/architecture.md) describes the runtime flow,
+request flow, and what each package owns;
+[`web/README.md`](web/README.md) covers the frontend half.
 
 Quick overview:
 - `cmd/` — CLI entrypoints (app, migrations, tasks)
+- `internal/serve/` — HTTP server, router, middleware, templates
 - `internal/handlers/` — HTTP handlers
 - `internal/logic/` — Business logic
 - `internal/repo/` — Data access (SQL)
 - `internal/db/` — Database setup and migrations
-- `web/` — HTML templates and static assets (JS, CSS)
+- `internal/task/` — Task entrypoints run by `cmd/task`
+- `internal/spec/` — Test setup and factories
+- `web/` — HTML templates and static assets (JS, CSS), documented in [`web/README.md`](web/README.md)
+- `scripts/` — Production deploy scripts, run on the host
+- `docs/` — Architecture, performance and deployment references
+- `TODO.md` — Known bugs and follow-up work left out of the change that surfaced them
 
 ## Troubleshooting
 

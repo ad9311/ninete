@@ -1,6 +1,6 @@
 # `web/` — Templates and Static Assets
 
-Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers architecture, layering and Go-side conventions; this file covers what you need before editing anything under `web/`.
+Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers conventions and the invariants that must not be broken, and `docs/architecture.md` covers layering and the Go-side request flow; this file covers what you need before editing anything under `web/`.
 
 Two directories:
 
@@ -38,9 +38,13 @@ web/views/foods/edit.html  ⇒  "foods/edit"  ⇒  handlers.FoodsEdit
 
 **Adding a view means two edits**: the file itself, and a `TemplateName` constant in `internal/handlers/constants.go`. Nothing checks these agree at compile time — a handler rendering a name with no template logs `missing template` and returns a 500.
 
+**The resource directory is not optional.** Views are globbed with `./web/views/**/*.html`, and Go's `filepath.Glob` treats `**` as a single path segment rather than a recursive match — so the pattern means exactly one directory below `web/views`. A template at `web/views/foo.html`, or nested two levels deep at `web/views/a/b/foo.html`, is silently never parsed: no error at boot, just a 500 the first time a handler asks for it. `layout.html` sits at the top level only because `parseTemplates` globs it separately.
+
 ### Partials
 
-Files named `_*.html` anywhere under `web/views` are parsed into the shared base template. That means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
+Files named `_*.html` **in a resource directory under `web/views`** are parsed into the shared base template. Partials are globbed with `./web/views/**/_*.html`, so the one-level rule above applies to them too: a partial at `web/views/_foo.html` matches neither the partials glob nor the views glob, and every page using it fails at render.
+
+Being parsed into one shared base means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
 
 Names currently in use:
 
@@ -84,6 +88,7 @@ Registered in `internal/serve/template_func.go`:
 | Function | Purpose |
 | --- | --- |
 | `currency` | `uint64` cents ⇒ `$1,234.56`. Money is stored in cents — never format it by hand |
+| `signedCurrency` | Same, for an `int64` that can go negative. Stored amounts are unsigned, so this is only for derived figures such as a budget's remaining amount |
 | `truncateFloat` | Trims a float for display |
 | `timeStamp` | Unix seconds ⇒ `YYYY-MM-DD` |
 | `sumAmount`, `sumTotal` | Totals over a slice of rows, by `Amount` / `Total` field |
@@ -105,7 +110,7 @@ A template syntax error surfaces as a 500 with `ERROR EXECUTING TEMPLATE` in the
 
 ## `web/static` — CSS, JS, images
 
-Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see Performance Priorities in `CLAUDE.md` before changing how these are served.
+Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see the "Static assets stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
 
 Responses carry `Cache-Control: public, max-age=300`. The window is short because the filenames are not content-hashed; a longer one would strand a stale bundle in the browser after a deploy.
 
