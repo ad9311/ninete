@@ -140,6 +140,10 @@ corrupts data or silently disables `ON DELETE CASCADE`.
 - Provide the template function map (`template_func.go`): currency and timestamp formatting, row summing, and the URL builders that carry sort, filter, search and pagination state across links.
 - Start and gracefully shut down HTTP server.
 
+The templates and static assets this package serves are documented in
+`web/README.md`, including the partial namespace, the template data contract and
+the CSP nonce rule.
+
 ### `internal/handlers`
 - **Role**: HTTP handlers and rendering.
 - **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`, `internal/handlers/shared.go`, `internal/handlers/expense_shared.go`, `internal/handlers/macro_shared.go`, `internal/handlers/expense_search.go`.

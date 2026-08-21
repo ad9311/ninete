@@ -222,9 +222,11 @@ handling, migrations, tasks, and rollback.
 
 ## Project Structure
 
-`CLAUDE.md` holds the conventions and the invariants that must not be broken;
+`CLAUDE.md` holds the conventions and the invariants that must not be broken, and
+opens with a map of every document in the repository.
 [`docs/architecture.md`](docs/architecture.md) describes the runtime flow,
-request flow, and what each package owns.
+request flow, and what each package owns;
+[`web/README.md`](web/README.md) covers the frontend half.
 
 Quick overview:
 - `cmd/` — CLI entrypoints (app, migrations, tasks)
@@ -235,9 +237,10 @@ Quick overview:
 - `internal/db/` — Database setup and migrations
 - `internal/task/` — Task entrypoints run by `cmd/task`
 - `internal/spec/` — Test setup and factories
-- `web/` — HTML templates and static assets (JS, CSS)
+- `web/` — HTML templates and static assets (JS, CSS), documented in [`web/README.md`](web/README.md)
 - `scripts/` — Production deploy scripts, run on the host
 - `docs/` — Architecture, performance and deployment references
+- `TODO.md` — Known bugs and follow-up work left out of the change that surfaced them
 
 ## Troubleshooting
 

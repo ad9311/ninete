@@ -2,11 +2,22 @@
 
 ## Purpose
 This document holds the rules and invariants that must not be broken, plus the
-map needed to find things. The descriptive reference lives beside it:
+map needed to find things.
 
-- `docs/architecture.md` — runtime flow, request flow, per-package reference.
-- `docs/performance.md` — what optimization work pays off here and what does not.
-- `docs/deployment.md` — how the app runs in production.
+### Documentation map
+Every document in the repository, and when to read it. This list is the index —
+if a document is added, add it here too, or nobody will find it.
+
+| Document | What it holds | Read it when |
+| --- | --- | --- |
+| `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
+| `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
+| `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
+| `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, backups, rollback | Answering anything about production, or editing `scripts/` |
+| `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
+| `web/README.md` | Templates and static assets: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration | **Before editing anything under `web/`** |
+| `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
+| `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
 
 ## Project Scope
 NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods). It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
@@ -130,6 +141,7 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
 - Any temporary file should go under `./tmp/`
+- Adding a document to the repository means adding a row to the Documentation map above. A document nobody can find is a document nobody reads.
 
 ## Migration Conventions
 - **File naming**: `YYYYMMDDHHMMSS_description.sql` under `internal/db/migrations/`, with `-- +goose Up` and `-- +goose Down` sections. Every migration must set `PRAGMA user_version` — incremented in `Up`, restored to the previous value in `Down`. Read the newest migration to find the current number rather than guessing.
@@ -156,6 +168,12 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
+**`web/README.md` is the reference for everything under `web/`. Read it before
+editing a template, a stylesheet or a controller** — it covers the template data
+contract, the partial namespace, the Turbo/Stimulus wiring and the editing loop.
+What follows is the shape, plus the four things that fail silently if you do not
+know them going in.
+
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
 - Shared layout lives in `web/views/layout.html`.
 - Shared partials live in `web/views/common/_*.html`.
@@ -163,3 +181,16 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - Route definitions are the source of truth in `internal/serve/routes.go`.
 - **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
 - Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
+
+Four frontend failures that produce no build error and no obvious symptom:
+
+- **Partial `define` names share one global namespace.** Every `_*.html` under
+  `web/views` is parsed into the same base template (`parseTemplates` in
+  `internal/serve/template.go`), so a duplicate name silently overwrites another
+  page's partial.
+- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks
+  the two agree at compile time; a mismatch logs `missing template` and returns a
+  500 at request time.
+- **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
+  Without it the browser drops the tag and posts to `/csp-report`.
+- **A new Stimulus controller is inert until registered in `index.ts`.**

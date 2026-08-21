@@ -38,6 +38,8 @@ web/views/foods/edit.html  ⇒  "foods/edit"  ⇒  handlers.FoodsEdit
 
 **Adding a view means two edits**: the file itself, and a `TemplateName` constant in `internal/handlers/constants.go`. Nothing checks these agree at compile time — a handler rendering a name with no template logs `missing template` and returns a 500.
 
+**The resource directory is not optional.** Views are globbed with `./web/views/**/*.html`, and Go's `filepath.Glob` treats `**` as a single path segment rather than a recursive match — so the pattern means exactly one directory below `web/views`. A template at `web/views/foo.html`, or nested two levels deep at `web/views/a/b/foo.html`, is silently never parsed: no error at boot, just a 500 the first time a handler asks for it. `layout.html` sits at the top level only because `parseTemplates` globs it separately.
+
 ### Partials
 
 Files named `_*.html` anywhere under `web/views` are parsed into the shared base template. That means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
