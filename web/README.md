@@ -42,7 +42,9 @@ web/views/foods/edit.html  ⇒  "foods/edit"  ⇒  handlers.FoodsEdit
 
 ### Partials
 
-Files named `_*.html` anywhere under `web/views` are parsed into the shared base template. That means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
+Files named `_*.html` **in a resource directory under `web/views`** are parsed into the shared base template. Partials are globbed with `./web/views/**/_*.html`, so the one-level rule above applies to them too: a partial at `web/views/_foo.html` matches neither the partials glob nor the views glob, and every page using it fails at render.
+
+Being parsed into one shared base means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
 
 Names currently in use:
 

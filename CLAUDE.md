@@ -184,10 +184,15 @@ know them going in.
 
 Four frontend failures that produce no build error and no obvious symptom:
 
-- **Partial `define` names share one global namespace.** Every `_*.html` under
-  `web/views` is parsed into the same base template (`parseTemplates` in
-  `internal/serve/template.go`), so a duplicate name silently overwrites another
-  page's partial.
+- **Partial `define` names share one global namespace.** Every `_*.html` in a
+  resource directory under `web/views` is parsed into the same base template
+  (`parseTemplates` in `internal/serve/template.go`), so a duplicate name
+  silently overwrites another page's partial.
+- **Templates live exactly one directory below `web/views`.** Both globs in
+  `template.go` use `**`, which Go's `filepath.Glob` treats as a single path
+  segment, not a recursive match. A view or partial placed directly in
+  `web/views`, or nested two levels deep, is never parsed and surfaces only as a
+  failed render.
 - **A view needs a matching `handlers.TemplateName` constant.** Nothing checks
   the two agree at compile time; a mismatch logs `missing template` and returns a
   500 at request time.
