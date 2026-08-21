@@ -47,6 +47,7 @@
   --color-success-bg: #f0fdf4;
   --color-success-border: #bbf7d0;
   --color-success-text: #15803d;
+  --color-backdrop: rgb(244 244 245 / 62%);
   --shadow-1: 0 1px 3px rgb(0 0 0 / 8%), 0 1px 2px rgb(0 0 0 / 5%);
   --shadow-2: 0 4px 6px rgb(0 0 0 / 7%), 0 2px 4px rgb(0 0 0 / 5%);
 }
@@ -77,6 +78,7 @@ html.theme-dark {
   --color-success-bg: #14321f;
   --color-success-border: #166534;
   --color-success-text: #86efac;
+  --color-backdrop: rgb(15 23 42 / 62%);
   --shadow-1: 0 1px 3px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-2: 0 4px 6px rgb(0 0 0 / 40%), 0 2px 4px rgb(0 0 0 / 30%);
 }
@@ -1316,4 +1318,62 @@ button.card-action-link:hover {
   display: flex;
   justify-content: space-between;
   font-size: var(--font-size-1);
+}
+
+/* Global loading overlay, shown by loadingController while a Turbo request is
+   in flight. It sits above every other layer (dropdowns and help panels use
+   z-index 100) and swallows clicks so a slow request cannot be submitted twice.
+
+   Idle state is `display: none`, not `visibility: hidden`: an always-present
+   hidden element keeps its spin animation "running" on a timeline the browser
+   never advances while nothing paints, so the ring showed up frozen for the
+   first fraction of a second it was visible. Taking it out of the box tree
+   cancels the animation and restarts it from 0 the moment the overlay appears. */
+.loading-overlay {
+  display: none;
+}
+
+.loading-overlay.is-active {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-backdrop);
+  animation: loading-fade-in 120ms ease-out;
+}
+
+.loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--color-border-strong);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: loading-spin 700ms linear infinite;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loading-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Reduce-motion still spins: a small rotating ring is the signal itself, and
+   swapping it for an opacity pulse reads as a fade rather than as progress.
+   The rotation is slowed instead. */
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay.is-active {
+    animation: none;
+  }
+
+  .loading-spinner {
+    animation-duration: 1.4s;
+  }
 }

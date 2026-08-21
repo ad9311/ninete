@@ -199,3 +199,6 @@ Four frontend failures that produce no build error and no obvious symptom:
 - **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
   Without it the browser drops the tag and posts to `/csp-report`.
 - **A new Stimulus controller is inert until registered in `index.ts`.**
+- **Loading feedback is already global.** `loadingController` shows a spinner
+  overlay for every Turbo request; a new form or listing needs nothing added.
+  Only markup that opts out of Turbo loses it.
