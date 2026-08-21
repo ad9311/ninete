@@ -230,6 +230,10 @@ func (q *TxQueries) InsertRecurrentExpense(
 	return re.toRecurrentExpense(), err
 }
 
+// updateRecurrentExpense archives the row when the edited limit is already met.
+// "archived_at" is what the cron job reads, so an edit that leaves the row unable
+// to ever run again has to stamp it — otherwise the row reads as active and
+// silently stops generating expenses.
 const updateRecurrentExpense = `
 UPDATE "recurrent_expenses"
 SET "category_id"          = ?,
@@ -238,6 +242,11 @@ SET "category_id"          = ?,
     "period"               = ?,
     "last_copy_created_at" = COALESCE(?, "last_copy_created_at"),
     "occurrence_limit"     = ?,
+    "archived_at"          = CASE
+                               WHEN ? > 0 AND ? <= "occurrence_count"
+                               THEN COALESCE("archived_at", ?)
+                               ELSE "archived_at"
+                             END,
     "updated_at"           = ?
 WHERE "id" = ? AND "user_id" = ?
 RETURNING ` + recurrentExpenseColumns + `;
@@ -250,6 +259,7 @@ func (q *Queries) UpdateRecurrentExpense(
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re recurrentExpense
+	now := newUpdatedAt()
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.db.QueryRowContext(
@@ -261,7 +271,10 @@ func (q *Queries) UpdateRecurrentExpense(
 			params.Period,
 			params.LastCopyCreatedAt,
 			params.OccurrenceLimit,
-			newUpdatedAt(),
+			params.OccurrenceLimit,
+			params.OccurrenceLimit,
+			now,
+			now,
 			params.ID,
 			params.UserID,
 		)
@@ -290,6 +303,7 @@ func (q *TxQueries) UpdateRecurrentExpense(
 	params UpdateRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re recurrentExpense
+	now := newUpdatedAt()
 
 	err := q.wrapQuery(updateRecurrentExpense, func() error {
 		row := q.tx.QueryRowContext(
@@ -301,7 +315,10 @@ func (q *TxQueries) UpdateRecurrentExpense(
 			params.Period,
 			params.LastCopyCreatedAt,
 			params.OccurrenceLimit,
-			newUpdatedAt(),
+			params.OccurrenceLimit,
+			params.OccurrenceLimit,
+			now,
+			now,
 			params.ID,
 			params.UserID,
 		)
@@ -404,7 +421,6 @@ const selectAllDueRecurrentExpenses = `
 SELECT ` + recurrentExpenseColumns + `
 FROM "recurrent_expenses"
 WHERE "archived_at" IS NULL
-  AND ("occurrence_limit" = 0 OR "occurrence_count" < "occurrence_limit")
   AND ("last_copy_created_at" IS NULL
    OR (
         (CAST(strftime('%Y', datetime(?, 'unixepoch')) AS int) -
@@ -522,7 +538,7 @@ UPDATE "recurrent_expenses"
 SET "archived_at"      = NULL,
     "occurrence_count" = 0,
     "updated_at"       = ?
-WHERE "id" = ? AND "user_id" = ?
+WHERE "id" = ? AND "user_id" = ? AND "archived_at" IS NOT NULL
 RETURNING ` + recurrentExpenseColumns + `;
 `
 

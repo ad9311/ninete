@@ -127,7 +127,14 @@
               <td>{{ .Description }}</td>
               <td class="amount-value">{{ .Amount | currency }}</td>
               <td>{{ .Period }}</td>
-              <td>{{ .OccurrenceCount }} of {{ .OccurrenceLimit }}</td>
+              <td>
+                {{ if .OccurrenceLimit }}
+                  {{ .OccurrenceCount }} of
+                  {{ .OccurrenceLimit }}
+                {{ else }}
+                  <span class="chip chip-empty">Unlimited</span>
+                {{ end }}
+              </td>
               <td>
                 {{ if .Tags }}
                   <div class="chip-list">

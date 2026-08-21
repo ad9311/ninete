@@ -12,7 +12,7 @@ type RecurrentExpenseParams struct {
 	Period uint `validate:"required,gt=0"`
 	// OccurrenceLimit caps how many expenses this recurrent expense generates
 	// before it archives itself. Zero means unlimited.
-	OccurrenceLimit uint     `validate:"gte=0"`
+	OccurrenceLimit uint     `validate:"-"`
 	Tags            []string `validate:"-"`
 }
 

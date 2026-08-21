@@ -85,6 +85,7 @@ func (s *Spec) SetRecurrentExpenseLastCopy(
 		Amount:            re.Amount,
 		Period:            re.Period,
 		LastCopyCreatedAt: sql.NullInt64{Int64: lastCopy, Valid: true},
+		OccurrenceLimit:   re.OccurrenceLimit,
 	})
 	require.NoError(t, err)
 

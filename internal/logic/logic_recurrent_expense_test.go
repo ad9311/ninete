@@ -652,6 +652,87 @@ func TestRecurrentExpenseOccurrenceLimit(t *testing.T) {
 			},
 		},
 		{
+			name: "should_archive_when_the_limit_is_lowered_to_the_count",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(t, user.ID, newLimitedParams("limit lowered 1", 5))
+
+				_, err := s.Store.CopyDueRecurrentExpenses(ctx, march)
+				require.NoError(t, err)
+				_, err = s.Store.CopyDueRecurrentExpenses(ctx, april)
+				require.NoError(t, err)
+
+				lowered, err := s.Store.UpdateRecurrentExpense(
+					ctx,
+					re.ID,
+					user.ID,
+					newLimitedParams("limit lowered 1", 2),
+				)
+				require.NoError(t, err)
+				require.Equal(t, uint(2), lowered.OccurrenceCount)
+				require.NotNil(t, lowered.ArchivedAt)
+
+				_, err = s.Store.CopyDueRecurrentExpenses(ctx, may)
+				require.NoError(t, err)
+
+				updated, err := s.Store.FindRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, uint(2), updated.OccurrenceCount)
+			},
+		},
+		{
+			name: "should_not_archive_when_the_limit_is_lowered_above_the_count",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(t, user.ID, newLimitedParams("limit lowered 2", 5))
+
+				_, err := s.Store.CopyDueRecurrentExpenses(ctx, march)
+				require.NoError(t, err)
+
+				lowered, err := s.Store.UpdateRecurrentExpense(
+					ctx,
+					re.ID,
+					user.ID,
+					newLimitedParams("limit lowered 2", 3),
+				)
+				require.NoError(t, err)
+				require.Equal(t, uint(1), lowered.OccurrenceCount)
+				require.Nil(t, lowered.ArchivedAt)
+			},
+		},
+		{
+			name: "should_keep_an_archived_row_archived_when_the_limit_is_raised",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(t, user.ID, newLimitedParams("limit raised 1", 1))
+
+				_, err := s.Store.CopyDueRecurrentExpenses(ctx, march)
+				require.NoError(t, err)
+
+				raised, err := s.Store.UpdateRecurrentExpense(
+					ctx,
+					re.ID,
+					user.ID,
+					newLimitedParams("limit raised 1", 4),
+				)
+				require.NoError(t, err)
+				require.NotNil(t, raised.ArchivedAt)
+			},
+		},
+		{
+			name: "should_not_unarchive_an_active_recurrent_expense",
+			fn: func(t *testing.T) {
+				re := s.CreateRecurrentExpense(t, user.ID, newLimitedParams("limit active unarchive 1", 5))
+
+				_, err := s.Store.CopyDueRecurrentExpenses(ctx, march)
+				require.NoError(t, err)
+
+				_, err = s.Store.UnarchiveRecurrentExpense(ctx, re.ID, user.ID)
+				require.ErrorIs(t, err, sql.ErrNoRows)
+
+				untouched, err := s.Store.FindRecurrentExpense(ctx, re.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, uint(1), untouched.OccurrenceCount)
+			},
+		},
+		{
 			name: "should_not_unarchive_another_users_recurrent_expense",
 			fn: func(t *testing.T) {
 				other := s.CreateUser(t, repo.InsertUserParams{
