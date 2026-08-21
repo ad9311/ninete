@@ -85,6 +85,58 @@ func TestDeleteAllMoodEntries(t *testing.T) {
 	require.Equal(t, 1, otherCount)
 }
 
+func TestDeleteAllRecurrentExpenses(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+
+	user := s.CreateAuthUser(t, "acct_rec_user", "acct_rec_user@example.com", "password_1")
+	otherUser := s.CreateAuthUser(t, "acct_rec_other", "acct_rec_other@example.com", "password_2")
+	category := s.CreateCategory(t, "acct recurrent expense category")
+
+	userParams := newRecurrentExpenseParams(category.ID, "acct user recurrent expense", 700, 1)
+	userParams.Tags = []string{"acct_rec_tag_a"}
+	userRecurrentExpense := s.CreateRecurrentExpense(t, user.ID, userParams)
+
+	otherParams := newRecurrentExpenseParams(category.ID, "acct other recurrent expense", 800, 1)
+	otherParams.Tags = []string{"acct_rec_tag_b"}
+	otherRecurrentExpense := s.CreateRecurrentExpense(t, otherUser.ID, otherParams)
+
+	err := s.Store.DeleteAllRecurrentExpenses(ctx, user.ID)
+	require.NoError(t, err)
+
+	userCount, err := s.Queries.CountRecurrentExpensesByUser(ctx, user.ID)
+	require.NoError(t, err)
+	require.Zero(t, userCount)
+
+	// Taggings key on the id rather than a foreign key, so a leftover row would
+	// hand its tags to whichever recurrent expense SQLite gives that rowid next.
+	orphaned, err := s.Queries.CountTaggingsByTarget(
+		ctx,
+		repo.TaggableTypeRecurrentExpense,
+		userRecurrentExpense.ID,
+	)
+	require.NoError(t, err)
+	require.Zero(t, orphaned)
+
+	// The user's tags themselves survive (only taggings are cleaned).
+	tagCount, err := s.Queries.CountTagsByUser(ctx, user.ID)
+	require.NoError(t, err)
+	require.Equal(t, 1, tagCount)
+
+	// The other user's data is untouched.
+	otherCount, err := s.Queries.CountRecurrentExpensesByUser(ctx, otherUser.ID)
+	require.NoError(t, err)
+	require.Equal(t, 1, otherCount)
+
+	otherTaggings, err := s.Queries.CountTaggingsByTarget(
+		ctx,
+		repo.TaggableTypeRecurrentExpense,
+		otherRecurrentExpense.ID,
+	)
+	require.NoError(t, err)
+	require.Equal(t, 1, otherTaggings)
+}
+
 func TestDeleteAllTagsCascadesTaggings(t *testing.T) {
 	s := spec.New(t)
 	ctx := t.Context()

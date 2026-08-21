@@ -10,7 +10,8 @@ import (
 
 type RecurrentExpenseParams struct {
 	ExpenseBaseParams
-	Period uint `validate:"required,gt=0"`
+	Period uint     `validate:"required,gt=0"`
+	Tags   []string `validate:"-"`
 }
 
 func (s *Store) FindRecurrentExpenses(
@@ -43,6 +44,21 @@ func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.
 	return recurrentExpense, nil
 }
 
+func (s *Store) FindRecurrentExpenseTags(ctx context.Context, recurrentExpenseID, userID int) ([]repo.Tag, error) {
+	tags, err := s.queries.SelectTagsForTaggable(
+		ctx,
+		repo.TaggableTypeRecurrentExpense,
+		"recurrent_expenses",
+		recurrentExpenseID,
+		userID,
+	)
+	if err != nil {
+		return tags, err
+	}
+
+	return tags, nil
+}
+
 func (s *Store) CreateRecurrentExpense(
 	ctx context.Context,
 	userID int,
@@ -54,12 +70,28 @@ func (s *Store) CreateRecurrentExpense(
 		return recurrentExpense, err
 	}
 
-	recurrentExpense, err := s.queries.InsertRecurrentExpense(ctx, repo.InsertRecurrentExpenseParams{
-		UserID:      userID,
-		CategoryID:  params.CategoryID,
-		Description: params.Description,
-		Amount:      params.Amount,
-		Period:      params.Period,
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		recurrentExpense, txErr = tq.InsertRecurrentExpense(ctx, repo.InsertRecurrentExpenseParams{
+			UserID:      userID,
+			CategoryID:  params.CategoryID,
+			Description: params.Description,
+			Amount:      params.Amount,
+			Period:      params.Period,
+		})
+		if txErr != nil {
+			return txErr
+		}
+
+		return s.replaceTagsTx(
+			ctx,
+			tq,
+			repo.TaggableTypeRecurrentExpense,
+			recurrentExpense.ID,
+			userID,
+			params.Tags,
+		)
 	})
 	if err != nil {
 		return recurrentExpense, err
@@ -79,13 +111,29 @@ func (s *Store) UpdateRecurrentExpense(
 		return recurrentExpense, err
 	}
 
-	recurrentExpense, err := s.queries.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
-		ID:          id,
-		UserID:      userID,
-		CategoryID:  params.CategoryID,
-		Description: params.Description,
-		Amount:      params.Amount,
-		Period:      params.Period,
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		recurrentExpense, txErr = tq.UpdateRecurrentExpense(ctx, repo.UpdateRecurrentExpenseParams{
+			ID:          id,
+			UserID:      userID,
+			CategoryID:  params.CategoryID,
+			Description: params.Description,
+			Amount:      params.Amount,
+			Period:      params.Period,
+		})
+		if txErr != nil {
+			return txErr
+		}
+
+		return s.replaceTagsTx(
+			ctx,
+			tq,
+			repo.TaggableTypeRecurrentExpense,
+			recurrentExpense.ID,
+			userID,
+			params.Tags,
+		)
 	})
 	if err != nil {
 		return recurrentExpense, err
@@ -94,13 +142,27 @@ func (s *Store) UpdateRecurrentExpense(
 	return recurrentExpense, nil
 }
 
+// DeleteRecurrentExpense removes the record and its taggings together. The
+// taggings row points at the id, not at a foreign key, so leaving it behind
+// would hand its tags to whichever recurrent expense SQLite gives that rowid next.
 func (s *Store) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
-	i, err := s.queries.DeleteRecurrentExpense(ctx, id, userID)
+	var deletedID int
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		deletedID, txErr = tq.DeleteRecurrentExpense(ctx, id, userID)
+		if txErr != nil {
+			return txErr
+		}
+
+		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeRecurrentExpense, deletedID)
+	})
 	if err != nil {
 		return 0, err
 	}
 
-	return i, nil
+	return deletedID, nil
 }
 
 func (s *Store) DeleteAllRecurrentExpenses(ctx context.Context, userID int) error {
@@ -138,13 +200,24 @@ func (s *Store) CopyDueRecurrentExpenses(ctx context.Context, now time.Time) (in
 
 func (s *Store) copyRecurrentExpense(ctx context.Context, re repo.RecurrentExpense, expenseDate int64) error {
 	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
-		_, err := tq.InsertExpense(ctx, repo.InsertExpenseParams{
+		expense, err := tq.InsertExpense(ctx, repo.InsertExpenseParams{
 			UserID:      re.UserID,
 			CategoryID:  re.CategoryID,
 			Description: re.Description,
 			Amount:      re.Amount,
 			Date:        expenseDate,
 		})
+		if err != nil {
+			return err
+		}
+
+		err = tq.CopyTaggings(
+			ctx,
+			repo.TaggableTypeRecurrentExpense,
+			re.ID,
+			repo.TaggableTypeExpense,
+			expense.ID,
+		)
 		if err != nil {
 			return err
 		}

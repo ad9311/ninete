@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -124,12 +125,7 @@ func TestPostRecurrentExpenses(t *testing.T) {
 				cookies := s.AuthCookies(t, "rexp_post_1@example.com", "rexp_password_1")
 				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
 
-				form := url.Values{
-					"category_id": {fmt.Sprintf("%d", category.ID)},
-					"description": {"New recurrent expense"},
-					"amount":      {"5000"},
-					"period":      {"30"},
-				}
+				form := recurrentExpenseFormValues(category.ID, "New recurrent expense", "5000", "30", "")
 				req := spec.NewPostRequest("/recurrent-expenses", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -145,17 +141,57 @@ func TestPostRecurrentExpenses(t *testing.T) {
 				cookies := s.AuthCookies(t, "rexp_post_2@example.com", "rexp_password_2")
 				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
 
-				form := url.Values{
-					"category_id": {"0"},
-					"description": {""},
-					"amount":      {"0"},
-					"period":      {"0"},
-				}
+				form := recurrentExpenseFormValues(0, "", "0", "0", "")
 				req := spec.NewPostRequest("/recurrent-expenses", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusBadRequest, rec.Code)
+			},
+		},
+		{
+			name: "should_attach_tags_from_the_form",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_post_3", "rexp_post_3@example.com", "rexp_password_3")
+				category := s.CreateCategory(t, "rexp_post_cat_3")
+				cookies := s.AuthCookies(t, "rexp_post_3@example.com", "rexp_password_3")
+				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
+
+				form := recurrentExpenseFormValues(
+					category.ID,
+					"Tagged recurrent expense",
+					"5000",
+					"30",
+					"Rent; fixed",
+				)
+				req := spec.NewPostRequest("/recurrent-expenses", form.Encode(), cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+
+				recurrentExpense := findRecurrentExpenseByDescription(t, s, user.ID, "Tagged recurrent expense")
+				require.Equal(
+					t,
+					[]string{"fixed", "rent"},
+					recurrentExpenseTagNames(t, s, recurrentExpense.ID, user.ID),
+				)
+			},
+		},
+		{
+			name: "should_round_trip_the_tags_input_when_the_form_is_invalid",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "rexp_post_4", "rexp_post_4@example.com", "rexp_password_4")
+				cookies := s.AuthCookies(t, "rexp_post_4@example.com", "rexp_password_4")
+				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
+
+				form := recurrentExpenseFormValues(0, "", "0", "0", "kept_tag")
+				req := spec.NewPostRequest("/recurrent-expenses", form.Encode(), cookies, csrfToken)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusBadRequest, rec.Code)
+				require.Contains(t, rec.Body.String(), "kept_tag")
 			},
 		},
 	}
@@ -249,6 +285,24 @@ func TestGetRecurrentExpensesEdit(t *testing.T) {
 				require.Equal(t, http.StatusNotFound, rec.Code)
 			},
 		},
+		{
+			name: "should_prefill_the_tags_input_with_the_current_tags",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_edit_3", "rexp_edit_3@example.com", "rexp_password_3")
+				category := s.CreateCategory(t, "rexp_edit_cat_3")
+				params := newRecurrentExpenseParams(category.ID, "Prefilled recurrent tags", 400, 14)
+				params.Tags = []string{"prefill_tag"}
+				rexp := s.CreateRecurrentExpense(t, user.ID, params)
+				cookies := s.AuthCookies(t, "rexp_edit_3@example.com", "rexp_password_3")
+
+				req := spec.NewGetRequest(fmt.Sprintf("/recurrent-expenses/%d/edit", rexp.ID), cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), "prefill_tag")
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -275,12 +329,7 @@ func TestPostRecurrentExpensesUpdate(t *testing.T) {
 				cookies := s.AuthCookies(t, "rexp_update_1@example.com", "rexp_password_1")
 				csrfToken, cookies := s.CSRFFrom(t, fmt.Sprintf("/recurrent-expenses/%d/edit", rexp.ID), cookies)
 
-				form := url.Values{
-					"category_id": {fmt.Sprintf("%d", category.ID)},
-					"description": {"After recurrent update"},
-					"amount":      {"7500"},
-					"period":      {"14"},
-				}
+				form := recurrentExpenseFormValues(category.ID, "After recurrent update", "7500", "14", "")
 				req := spec.NewPostRequest(fmt.Sprintf("/recurrent-expenses/%d", rexp.ID), form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
@@ -296,17 +345,43 @@ func TestPostRecurrentExpensesUpdate(t *testing.T) {
 				cookies := s.AuthCookies(t, "rexp_update_2@example.com", "rexp_password_2")
 				csrfToken, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
 
-				form := url.Values{
-					"category_id": {"1"},
-					"description": {"Does not matter"},
-					"amount":      {"1000"},
-					"period":      {"7"},
-				}
+				form := recurrentExpenseFormValues(1, "Does not matter", "1000", "7", "")
 				req := spec.NewPostRequest("/recurrent-expenses/999999", form.Encode(), cookies, csrfToken)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusNotFound, rec.Code)
+			},
+		},
+		{
+			name: "should_replace_tags_from_the_form",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "rexp_update_3", "rexp_update_3@example.com", "rexp_password_3")
+				category := s.CreateCategory(t, "rexp_update_cat_3")
+				params := newRecurrentExpenseParams(category.ID, "Retagged recurrent expense", 600, 7)
+				params.Tags = []string{"old_tag"}
+				rexp := s.CreateRecurrentExpense(t, user.ID, params)
+				cookies := s.AuthCookies(t, "rexp_update_3@example.com", "rexp_password_3")
+				csrfToken, cookies := s.CSRFFrom(t, fmt.Sprintf("/recurrent-expenses/%d/edit", rexp.ID), cookies)
+
+				form := recurrentExpenseFormValues(
+					category.ID,
+					"Retagged recurrent expense",
+					"600",
+					"7",
+					"new_tag",
+				)
+				req := spec.NewPostRequest(
+					fmt.Sprintf("/recurrent-expenses/%d", rexp.ID),
+					form.Encode(),
+					cookies,
+					csrfToken,
+				)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, []string{"new_tag"}, recurrentExpenseTagNames(t, s, rexp.ID, user.ID))
 			},
 		},
 	}
@@ -378,4 +453,46 @@ func newRecurrentExpenseParams(
 		},
 		Period: period,
 	}
+}
+
+func recurrentExpenseFormValues(categoryID int, description, amount, period, tags string) url.Values {
+	return url.Values{
+		"category_id": {fmt.Sprintf("%d", categoryID)},
+		"description": {description},
+		"amount":      {amount},
+		"period":      {period},
+		"tags":        {tags},
+	}
+}
+
+func findRecurrentExpenseByDescription(
+	t *testing.T,
+	s spec.Spec,
+	userID int,
+	description string,
+) repo.RecurrentExpense {
+	t.Helper()
+
+	recurrentExpenses, err := s.Store.FindRecurrentExpenses(t.Context(), repo.QueryOptions{
+		Filters: repo.Filters{
+			FilterFields: []repo.FilterField{
+				{Name: "user_id", Value: userID, Operator: "="},
+				{Name: "description", Value: description, Operator: "="},
+			},
+			Connector: "AND",
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, recurrentExpenses, 1)
+
+	return recurrentExpenses[0]
+}
+
+func recurrentExpenseTagNames(t *testing.T, s spec.Spec, recurrentExpenseID, userID int) []string {
+	t.Helper()
+
+	tags, err := s.Store.FindRecurrentExpenseTags(t.Context(), recurrentExpenseID, userID)
+	require.NoError(t, err)
+
+	return logic.ExtractTagNames(tags)
 }

@@ -38,6 +38,15 @@
     value="{{ .recurrentExpense.Amount }}"
   />
   <label>
+    Tags
+    <input
+      type="text"
+      placeholder="Semicolon separated"
+      name="tags"
+      value="{{ .tagsInput }}"
+    />
+  </label>
+  <label>
     Period (months)
     <input
       type="number"

@@ -162,14 +162,14 @@ func (q *Queries) CountRecurrentExpenses(ctx context.Context, filters Filters) (
 	return c, err
 }
 
-func (q *Queries) InsertRecurrentExpense(
+func (q *TxQueries) InsertRecurrentExpense(
 	ctx context.Context,
 	params InsertRecurrentExpenseParams,
 ) (RecurrentExpense, error) {
 	var re recurrentExpense
 
 	err := q.wrapQuery(insertRecurrentExpense, func() error {
-		row := q.db.QueryRowContext(
+		row := q.tx.QueryRowContext(
 			ctx,
 			insertRecurrentExpense,
 			params.UserID,
@@ -281,11 +281,11 @@ func (q *TxQueries) UpdateRecurrentExpense(
 	return re.toRecurrentExpense(), err
 }
 
-func (q *Queries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
+func (q *TxQueries) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int, error) {
 	var i int
 
 	err := q.wrapQuery(deleteRecurrentExpense, func() error {
-		row := q.db.QueryRowContext(ctx, deleteRecurrentExpense, id, userID)
+		row := q.tx.QueryRowContext(ctx, deleteRecurrentExpense, id, userID)
 
 		return row.Scan(&i)
 	})
@@ -307,10 +307,19 @@ func (q *Queries) CountRecurrentExpensesByUser(ctx context.Context, userID int) 
 	return c, err
 }
 
+const deleteRecurrentExpenseTaggingsByUser = `
+DELETE FROM "taggings"
+WHERE "taggable_type" = 'recurrent_expense'
+  AND "taggable_id" IN (SELECT "id" FROM "recurrent_expenses" WHERE "user_id" = ?)`
+
 const deleteAllRecurrentExpensesByUser = `DELETE FROM "recurrent_expenses" WHERE "user_id" = ?`
 
 func (q *TxQueries) DeleteAllRecurrentExpensesByUser(ctx context.Context, userID int) error {
 	return q.wrapQuery(deleteAllRecurrentExpensesByUser, func() error {
+		if _, err := q.tx.ExecContext(ctx, deleteRecurrentExpenseTaggingsByUser, userID); err != nil {
+			return err
+		}
+
 		_, err := q.tx.ExecContext(ctx, deleteAllRecurrentExpensesByUser, userID)
 
 		return err

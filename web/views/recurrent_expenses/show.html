@@ -52,6 +52,20 @@
           <th>Period (months)</th>
           <td>{{ .recurrentExpense.Period }}</td>
         </tr>
+        <tr>
+          <th>Tags</th>
+          <td>
+            {{ if .recurrentExpense.Tags }}
+              <div class="chip-list">
+                {{ range .recurrentExpense.Tags }}
+                  <span class="chip chip-tag">{{ . }}</span>
+                {{ end }}
+              </div>
+            {{ else }}
+              <span class="chip chip-empty">No tags</span>
+            {{ end }}
+          </td>
+        </tr>
       </tbody>
     </table>
     <form
