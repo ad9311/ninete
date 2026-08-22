@@ -24,7 +24,7 @@ VERSION_LDFLAGS   := -X $(INTERNAL_PATH)/prog.Version=$(VERSION) \
                      -X $(INTERNAL_PATH)/prog.BuildTime=$(BUILD_TIME)
 
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js version
+.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js version snapshot
 
 # ========= App / Dev =========
 build: ## Build the application binary
@@ -63,6 +63,9 @@ seed: build-migrate ## Seed the database
 
 stamp: build-migrate ## Claim the database for the current ENV
 	ENV=development ./build/migrate stamp
+
+snapshot: build-migrate ## Write a snapshot of the development database
+	ENV=development ./build/migrate snapshot
 
 build-task: ## Build the task binary
 	@echo "Building task binary..."
