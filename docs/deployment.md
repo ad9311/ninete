@@ -224,7 +224,27 @@ Single SQLite file, WAL mode. The `-wal` file settles around 4 MB because
 larger than the database is expected here, not a symptom.
 
 Migration commands always go through the `migrate.sh` wrapper so the env file is
-loaded: `status`, `up`, `down` (one step).
+loaded. `cmd/migrate/main.go` registers them:
+
+| Command | What it does |
+| --- | --- |
+| `status` | Lists migrations and whether each is applied |
+| `up` | Applies pending migrations |
+| `down` | Steps back one migration |
+| `create` | Creates a new migration file |
+| `seed` | Runs the database seeds |
+| `snapshot` | Writes a `VACUUM INTO` copy into `${SNAPSHOT_DIR:-<db-dir>/snapshots}`, prunes to the last 5, and prints the new path |
+| `db-version` | Prints the migration version the database is at |
+| `schema-version` | Prints the newest migration the *binary* carries, reading no database |
+| `stamp` | Claims an unstamped database for `ENV` (see **Environment stamp** in `CLAUDE.md`) |
+
+`internal/cmd.Run` adds `help` and `version` to every command binary on top of
+these, which is why `migrate version` answers without being listed above.
+
+`db-version` and `schema-version` exist for `rollback.sh`: it asks the archived
+binary what schema it carries and the live database where it is, and compares
+them. `schema-version` needs neither `ENV` nor a database, which is what makes it
+safe to ask of a binary that is not installed.
 
 ### Backups
 
@@ -354,10 +374,19 @@ Two things that keep this honest:
 ```
 rollback.sh                             list archived versions, newest first
 rollback.sh v0.1.0                      reinstall that version's binaries
-rollback.sh v0.1.0 --with-database      also restore the pre-deploy snapshot
-                   --snapshot PATH      restore a specific snapshot file
-                   --force              install despite a schema mismatch
+rollback.sh v0.1.0 --with-database      also restore the newest snapshot
+rollback.sh v0.1.0 --snapshot PATH      restore a specific snapshot file
+rollback.sh v0.1.0 --force              install despite a schema mismatch
 ```
+
+`--snapshot` implies `--with-database` — it names *which* snapshot rather than
+adding to it, so passing it alone still replaces the live database. Without it,
+`--with-database` takes the newest `snapshot-*.db` in
+`${SNAPSHOT_DIR:-<db-dir>/snapshots}`, matching `snapshotDir()` in
+`internal/db/snapshot.go` — a file in that directory under any other name is not
+a candidate. `--snapshot` accepts a file from anywhere, under any name, as long
+as it is a SQLite database — the manual `VACUUM INTO` copy under **Backups**, for
+instance.
 
 ### Why it needs no sudoers change
 
@@ -389,6 +418,35 @@ real data loss and the script says so before asking.
 Removing the sidecars is not tidiness. A clean shutdown checkpoints and removes
 them, but a killed process leaves them behind, and a stale WAL replaying onto a
 restored database is exactly the corruption `VACUUM INTO` exists to avoid.
+
+### If a restore fails partway
+
+Two mechanisms cover a restore that dies partway: staging keeps the source file
+reachable, and an `EXIT` trap keeps a failure between `systemctl stop` and
+`systemctl start` from leaving the app down and silent.
+
+The chosen snapshot is copied to `<db-path>.restore` **before** the service is
+stopped, and the live database is written from that staged copy. The safety
+snapshot taken mid-restore prunes to the retention limit of 5, and without the
+staging step it could delete the very file being restored — reachable by pointing
+`--snapshot` at one of the older kept snapshots. The staged file is removed on
+success; **a leftover `.restore` file beside the database means a rollback died
+mid-restore**, and its contents are what the database was supposed to become.
+
+An `EXIT` trap restarts the service if anything fails while it is stopped, and
+says so:
+
+```
+ERROR: the rollback failed while ninete.service was stopped; starting it again.
+       The database may be mid-restore — check it before trusting it.
+```
+
+The service comes back, but the database is whatever the failure left behind.
+Check it (`PRAGMA integrity_check`, and that the row counts look like the
+snapshot or the original) before trusting it. The safety snapshot is the way back
+if it does not — but it is taken *after* the service stops, so a failure before
+that point (the staging copy, or `systemctl stop` itself) leaves no new snapshot;
+in that case the live database was never touched.
 
 ### The schema guard
 
