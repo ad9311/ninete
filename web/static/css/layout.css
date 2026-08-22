@@ -47,6 +47,7 @@
   --color-success-bg: #f0fdf4;
   --color-success-border: #bbf7d0;
   --color-success-text: #15803d;
+  --color-backdrop: rgb(244 244 245 / 62%);
   --shadow-1: 0 1px 3px rgb(0 0 0 / 8%), 0 1px 2px rgb(0 0 0 / 5%);
   --shadow-2: 0 4px 6px rgb(0 0 0 / 7%), 0 2px 4px rgb(0 0 0 / 5%);
 }
@@ -77,6 +78,7 @@ html.theme-dark {
   --color-success-bg: #14321f;
   --color-success-border: #166534;
   --color-success-text: #86efac;
+  --color-backdrop: rgb(15 23 42 / 62%);
   --shadow-1: 0 1px 3px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-2: 0 4px 6px rgb(0 0 0 / 40%), 0 2px 4px rgb(0 0 0 / 30%);
 }
@@ -1316,4 +1318,70 @@ button.card-action-link:hover {
   display: flex;
   justify-content: space-between;
   font-size: var(--font-size-1);
+}
+
+/* The loading spinner. This is Turbo's own progress-bar element restyled, not
+   an overlay of ours: Turbo creates `.turbo-progress-bar`, shows it once a
+   visit or form submission has been in flight for
+   Turbo.config.drive.progressBarDelay (set in index.ts), and removes it from
+   the DOM when the navigation ends. Driving it from the outside is what failed
+   before — Turbo replaces <body> mid-navigation, and a cached revisit renders
+   its preview before the delay is up — so all of that timing stays Turbo's and
+   only the appearance is ours.
+
+   Two things follow from restyling Turbo's element rather than adding one:
+
+   - Turbo animates the bar's fill by writing `style.width` inline, so the width
+     override needs `!important` to stretch it to a full-viewport backdrop.
+     Nothing else here is fighting an inline style.
+   - The element is created on show and removed on hide, so the spin animation
+     starts from 0 every time. A permanently mounted hidden element would keep
+     an animation the browser reports as running but never advances while
+     nothing paints, and the ring renders frozen for its first moments.
+
+   Covering the viewport also restores the click-blocking the overlay had: the
+   element sits at z-index 2147483647 (Turbo's default rule) and swallows
+   pointer events, so a slow request cannot be submitted twice. Drop the
+   `width`/`height`/`background` declarations to get a centred spinner with no
+   backdrop and no click-blocking. */
+.turbo-progress-bar {
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100%;
+  background: var(--color-backdrop);
+
+  /* Turbo's default rule also transitions `width`, which is meaningless now
+     that the width is pinned. Its hide() sets opacity to 0 and unmounts the
+     element shortly after, so this only has to outlast nothing. */
+  transition: opacity 150ms ease-in;
+}
+
+.turbo-progress-bar::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: -1.25rem 0 0 -1.25rem;
+  border: 3px solid var(--color-border-strong);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: loading-spin 700ms linear infinite;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Reduce-motion still spins: a small rotating ring is the signal itself, and
+   swapping it for an opacity pulse reads as a fade rather than as progress.
+   The rotation is slowed instead. */
+@media (prefers-reduced-motion: reduce) {
+  .turbo-progress-bar::before {
+    animation-duration: 1.4s;
+  }
 }

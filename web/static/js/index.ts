@@ -1,5 +1,12 @@
-import "@hotwired/turbo";
+import { config as turboConfig } from "@hotwired/turbo";
 import { Application } from "@hotwired/stimulus";
+
+// Turbo owns the loading indicator's timing: it shows .turbo-progress-bar for
+// any visit or form submission still in flight after this delay, driven from
+// inside its own visit lifecycle, so cached-snapshot previews, prefetches and
+// aborted visits are all handled for us. 500 ms is Turbo's default and reads as
+// sluggish here. layout.css restyles that element into the loading spinner.
+turboConfig.drive.progressBarDelay = 250;
 
 document.addEventListener("turbo:before-fetch-request", (event: Event) => {
   const detail = (event as CustomEvent).detail;

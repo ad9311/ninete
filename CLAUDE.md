@@ -181,8 +181,12 @@ know them going in.
 - Route definitions are the source of truth in `internal/serve/routes.go`.
 - **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
 - Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
+- **Loading feedback is already global.** A spinner covers every Turbo visit
+  and form submission; a new form or listing needs nothing added. It is Turbo's
+  `.turbo-progress-bar` element restyled in `layout.css`, not an overlay of
+  ours. Only markup that opts out of Turbo loses it.
 
-Four frontend failures that produce no build error and no obvious symptom:
+Frontend failures that produce no build error and no obvious symptom:
 
 - **Partial `define` names share one global namespace.** Every `_*.html` in a
   resource directory under `web/views` is parsed into the same base template
