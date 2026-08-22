@@ -121,7 +121,8 @@ with no error from SQLite or the driver.
 | Macros | `/macros`, `/macros/goals`, `/macros/stats`, `/macros/{id}` | `handle_macros.go`, `macro_shared.go` | `logic_macro.go` |
 | Foods | `/foods`, `/foods/{id}` | `handle_foods.go` | `logic_food.go` |
 | Moods | `/moods`, `/moods/stats`, `/moods/{id}` | `handle_mood_entries.go` | `logic_mood_entry.go`, `mood.go` |
-| Account | `/account`, `/account/delete-data` and its `delete-all` endpoints | `handle_account.go` | `logic_account.go` |
+| Account | `/account` | `handle_account.go` | — |
+| Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
 | Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
 
