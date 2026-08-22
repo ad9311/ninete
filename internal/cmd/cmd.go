@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"sort"
+
+	"github.com/ad9311/ninete/internal/prog"
 )
 
 type Command struct {
@@ -25,6 +27,23 @@ func Run(appName string, cmds []*Command) (int, error) {
 		Description: "Prints all available commands",
 		Run: func() error {
 			reg.printUsage()
+
+			return nil
+		},
+	})
+
+	// Registered here rather than per binary so every command binary reports its
+	// build identity the same way. It must not touch the app or the database:
+	// asking which binary is installed has to work on a host whose environment or
+	// database is broken.
+	//
+	// This reaches `migrate` and `task`. `ninete` never calls Run, so it carries
+	// its own copy in cmd/ninete/main.go; the two must print the same thing.
+	cmds = append(cmds, &Command{
+		Name:        "version",
+		Description: "Prints the build version",
+		Run: func() error {
+			fmt.Println(prog.VersionString())
 
 			return nil
 		},

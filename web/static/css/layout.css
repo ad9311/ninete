@@ -945,6 +945,22 @@ button:focus-visible {
   max-width: var(--size-form);
 }
 
+/* Build identity, rendered by common/_footer.html. Deliberately quiet: it is a
+   diagnostic for the owner, not content. */
+.site-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-6);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.site-footer-version {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-1);
+  font-variant-numeric: tabular-nums;
+}
+
 .form-error-text {
   color: var(--color-danger);
 }

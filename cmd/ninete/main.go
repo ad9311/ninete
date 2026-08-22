@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -13,6 +14,20 @@ import (
 
 func main() {
 	var exitCode int
+
+	// Handled before prog.Load, which requires ENV to be set: asking an installed
+	// binary what it is must work without the service's environment.
+	//
+	// This is the second of two implementations. `migrate` and `task` get their
+	// `version` command from the registry in internal/cmd, which this binary does
+	// not use — it is a server, not a subcommand dispatcher, so a registry built
+	// for one command would buy nothing. Keep the output identical to
+	// cmd.Run's: both print prog.VersionString() and nothing else.
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Println(prog.VersionString())
+
+		os.Exit(0)
+	}
 
 	app, err := prog.Load()
 	if err != nil {
@@ -30,7 +45,7 @@ func main() {
 }
 
 func start(app *prog.App) (int, error) {
-	app.Logger.Log("Booting up application...")
+	app.Logger.Logf("Booting up application... %s", prog.VersionString())
 
 	sqlDB, err := db.Open()
 	if err != nil {

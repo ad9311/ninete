@@ -77,16 +77,18 @@ seven-day lifetime, `HttpOnly`, `SameSite=Lax`, persistent, named
 - Parse command names from args.
 - Print usage/help.
 - Execute selected command and return exit codes.
+- Register a `version` command on every binary using `Run`, printing `prog.VersionString()` without touching config or the database.
 
 ### `internal/prog`
 - **Role**: Runtime primitives.
-- **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`.
+- **Key files**: `internal/prog/prog.go`, `internal/prog/logger.go`, `internal/prog/utility.go`, `internal/prog/version.go`.
 - **Responsibilities**:
 - Load environment configuration.
 - Validate `ENV` (`production`, `development`, `test`).
 - Load `.env` outside production.
 - Provide app logger (`Logger`) with query timing support.
 - Shared utility parsing/conversion helpers (`SetInt`, `LoadList`, `FindRelativePath`).
+- Expose the link-time build identity (`Version`, `Commit`, `BuildTime`, `VersionString`), stamped with `-X` and falling back to `dev`/`unknown` when unstamped.
 
 ### `internal/db`
 - **Role**: Database setup and maintenance.

@@ -15,7 +15,7 @@ Parsed by `internal/serve/template.go`. Route definitions live in `internal/serv
 
 ### Layout
 
-`web/views/layout.html` defines `layout` and is the only file containing `<html>`. It renders the `header` partial and a `{{ block "main" . }}`.
+`web/views/layout.html` defines `layout` and is the only file containing `<html>`. It renders the `header` partial, a `{{ block "main" . }}`, and the `footer` partial.
 
 Every page view is the same two lines of scaffolding around its content:
 
@@ -51,6 +51,7 @@ Names currently in use:
 | Name | File | Purpose |
 | --- | --- | --- |
 | `header` | `common/_header.html` | Site header, rendered by the layout |
+| `footer` | `common/_footer.html` | Site footer carrying the build stamp, rendered by the layout |
 | `csrf` | `common/_csrf.html` | Hidden CSRF field for forms |
 | `form_error` | `common/_form_error.html` | Renders `.error` |
 | `submit_button`, `delete_button` | `common/_form_buttons.html` | Shared form buttons |
@@ -70,6 +71,7 @@ Handlers render a `map[string]any` built by `h.tmplData(r)`. It always carries:
 | `error` | Empty string unless an error path set it |
 | `isUserSignedIn` | Auth state |
 | `currentUser` | `*logic.User`, nil for guests |
+| `version` | Build stamp (`prog.Version`), rendered by the `footer` partial and the `version` meta tag |
 
 Handlers add their own keys on top. A listing page typically adds its rows, `categories`, `pagination` and `basePath`.
 

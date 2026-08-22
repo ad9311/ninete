@@ -14,6 +14,7 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/prog"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
@@ -118,6 +119,7 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"error":          "",
 			"isUserSignedIn": isUserSignedIn,
 			"currentUser":    currentUser,
+			"version":        prog.Version,
 		}
 
 		ctx = context.WithValue(ctx, handlers.KeyCurrentUser, currentUser)
