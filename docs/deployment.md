@@ -233,15 +233,18 @@ loaded. `cmd/migrate/main.go` registers them:
 | `down` | Steps back one migration |
 | `create` | Creates a new migration file |
 | `seed` | Runs the database seeds |
-| `snapshot` | Writes a `VACUUM INTO` copy beside the database, prunes to the last 5, and prints the new path |
+| `snapshot` | Writes a `VACUUM INTO` copy into `${SNAPSHOT_DIR:-<db-dir>/snapshots}`, prunes to the last 5, and prints the new path |
 | `db-version` | Prints the migration version the database is at |
 | `schema-version` | Prints the newest migration the *binary* carries, reading no database |
 | `stamp` | Claims an unstamped database for `ENV` (see **Environment stamp** in `CLAUDE.md`) |
 
-The last two exist for `rollback.sh`: it asks the archived binary what schema it
-carries and the live database where it is, and compares them. `schema-version`
-needs neither `ENV` nor a database, which is what makes it safe to ask of a
-binary that is not installed.
+`internal/cmd.Run` adds `help` and `version` to every command binary on top of
+these, which is why `migrate version` answers without being listed above.
+
+`db-version` and `schema-version` exist for `rollback.sh`: it asks the archived
+binary what schema it carries and the live database where it is, and compares
+them. `schema-version` needs neither `ENV` nor a database, which is what makes it
+safe to ask of a binary that is not installed.
 
 ### Backups
 
@@ -378,10 +381,12 @@ rollback.sh v0.1.0 --force              install despite a schema mismatch
 
 `--snapshot` implies `--with-database` — it names *which* snapshot rather than
 adding to it, so passing it alone still replaces the live database. Without it,
-`--with-database` takes the newest file in `${SNAPSHOT_DIR:-<db-dir>/snapshots}`,
-matching `snapshotDir()` in `internal/db/snapshot.go`. A snapshot from anywhere
-else works too, as long as it is a SQLite file — the manual `VACUUM INTO` copy
-under **Backups**, for instance.
+`--with-database` takes the newest `snapshot-*.db` in
+`${SNAPSHOT_DIR:-<db-dir>/snapshots}`, matching `snapshotDir()` in
+`internal/db/snapshot.go` — a file in that directory under any other name is not
+a candidate. `--snapshot` accepts a file from anywhere, under any name, as long
+as it is a SQLite database — the manual `VACUUM INTO` copy under **Backups**, for
+instance.
 
 ### Why it needs no sudoers change
 
@@ -416,8 +421,9 @@ restored database is exactly the corruption `VACUUM INTO` exists to avoid.
 
 ### If a restore fails partway
 
-Two mechanisms exist so a failure between `systemctl stop` and `systemctl start`
-does not leave the app down and silent.
+Two mechanisms cover a restore that dies partway: staging keeps the source file
+reachable, and an `EXIT` trap keeps a failure between `systemctl stop` and
+`systemctl start` from leaving the app down and silent.
 
 The chosen snapshot is copied to `<db-path>.restore` **before** the service is
 stopped, and the live database is written from that staged copy. The safety
@@ -437,8 +443,10 @@ ERROR: the rollback failed while ninete.service was stopped; starting it again.
 
 The service comes back, but the database is whatever the failure left behind.
 Check it (`PRAGMA integrity_check`, and that the row counts look like the
-snapshot or the original) before trusting it. The safety snapshot taken at the
-start of the restore is the way back if it does not.
+snapshot or the original) before trusting it. The safety snapshot is the way back
+if it does not — but it is taken *after* the service stops, so a failure before
+that point (the staging copy, or `systemctl stop` itself) leaves no new snapshot;
+in that case the live database was never touched.
 
 ### The schema guard
 

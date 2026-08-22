@@ -28,11 +28,14 @@ FORCE=0
 
 usage() {
     cat <<USAGE
-Usage: rollback.sh                             list archived versions
-       rollback.sh <version>                   reinstall that version's binaries
-       rollback.sh <version> --with-database   also restore the pre-deploy snapshot
-                             [--snapshot PATH] restore a specific snapshot file
-                             [--force]         install despite a schema mismatch
+Usage: rollback.sh                              list archived versions
+       rollback.sh <version>                    reinstall that version's binaries
+       rollback.sh <version> --with-database    also restore the newest snapshot
+       rollback.sh <version> --snapshot PATH    restore a specific snapshot file
+       rollback.sh <version> --force            install despite a schema mismatch
+
+--snapshot implies --with-database: it names which snapshot to restore rather
+than adding to it, so passing it alone still replaces the live database.
 
 Rolling back the binaries alone is safe and loses nothing. --with-database
 replaces the live database and loses every write made since the snapshot was
