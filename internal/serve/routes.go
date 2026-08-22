@@ -36,6 +36,7 @@ func (s *Server) setUpRoutes() {
 
 		root.Route("/account", func(account chi.Router) {
 			account.Get("/", s.handlers.GetAccount)
+			account.Get("/delete-data", s.handlers.GetAccountDeleteData)
 
 			account.Post("/expenses/delete-all", s.handlers.PostAccountDeleteExpenses)
 			account.Post("/recurrent-expenses/delete-all", s.handlers.PostAccountDeleteRecurrentExpenses)

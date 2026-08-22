@@ -1325,6 +1325,53 @@ button.card-action-link:hover {
   margin: 0;
 }
 
+/* Settings menu: rows on the account page that navigate rather than act. Each
+   row is the whole anchor, so the click target is the card row and not a small
+   icon. */
+.settings-menu {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settings-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-1);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.settings-menu-item:hover,
+.settings-menu-item:focus-visible {
+  background: var(--color-surface-muted);
+  border-color: var(--color-text-muted);
+}
+
+.settings-menu-text {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.settings-menu-title {
+  font-weight: 700;
+}
+
+.settings-menu-hint {
+  font-size: var(--font-size-1);
+  color: var(--color-text-muted);
+}
+
+.settings-menu-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--color-text-muted);
+}
+
 .summary-list {
   display: grid;
   gap: var(--space-2);

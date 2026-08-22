@@ -29,11 +29,9 @@ func TestGetAccount(t *testing.T) {
 			},
 		},
 		{
-			name: "should_render_account_page_with_counts",
+			name: "should_render_account_menu",
 			fn: func(t *testing.T) {
-				user := s.CreateAuthUser(t, "acct_page_1", "acct_page_1@example.com", "acct_password_1")
-				category := s.CreateCategory(t, "acct page category")
-				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "acct page expense", 500, 1735689600))
+				s.CreateAuthUser(t, "acct_page_1", "acct_page_1@example.com", "acct_password_1")
 				cookies := s.AuthCookies(t, "acct_page_1@example.com", "acct_password_1")
 
 				req := spec.NewGetRequest("/account", cookies)
@@ -43,6 +41,50 @@ func TestGetAccount(t *testing.T) {
 				require.Equal(t, http.StatusOK, rec.Code)
 				body := rec.Body.String()
 				require.Contains(t, body, "Account")
+				require.Contains(t, body, `href="/account/exports"`)
+				require.Contains(t, body, `href="/account/delete-data"`)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestGetAccountDeleteData(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_redirect_to_login_when_unauthenticated",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/account/delete-data", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, "/login", rec.Header().Get("Location"))
+			},
+		},
+		{
+			name: "should_render_delete_data_page_with_counts",
+			fn: func(t *testing.T) {
+				user := s.CreateAuthUser(t, "acct_del_page", "acct_del_page@example.com", "acct_password_1")
+				category := s.CreateCategory(t, "acct del page category")
+				s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "acct del page expense", 500, 1735689600))
+				cookies := s.AuthCookies(t, "acct_del_page@example.com", "acct_password_1")
+
+				req := spec.NewGetRequest("/account/delete-data", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				body := rec.Body.String()
 				require.Contains(t, body, "Delete everything")
 				require.Contains(t, body, "1 record(s)")
 			},
@@ -62,14 +104,14 @@ func TestPostAccountDeleteExpenses(t *testing.T) {
 	category := s.CreateCategory(t, "acct del exp category")
 	s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "expense to wipe", 500, 1735689600))
 	cookies := s.AuthCookies(t, "acct_del_exp@example.com", "acct_password_1")
-	csrfToken, cookies := s.CSRFFrom(t, "/account", cookies)
+	csrfToken, cookies := s.CSRFFrom(t, "/account/delete-data", cookies)
 
 	req := spec.NewPostRequest("/account/expenses/delete-all", "", cookies, csrfToken)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusSeeOther, rec.Code)
-	require.Equal(t, "/account", rec.Header().Get("Location"))
+	require.Equal(t, "/account/delete-data", rec.Header().Get("Location"))
 
 	count, err := s.Queries.CountExpensesByUser(t.Context(), user.ID)
 	require.NoError(t, err)
@@ -89,14 +131,14 @@ func TestPostAccountDeleteAll(t *testing.T) {
 	s.CreateExpense(t, otherUser.ID, newExpenseParams(category.ID, "theirs", 600, 1735689600))
 
 	cookies := s.AuthCookies(t, "acct_del_all@example.com", "acct_password_1")
-	csrfToken, cookies := s.CSRFFrom(t, "/account", cookies)
+	csrfToken, cookies := s.CSRFFrom(t, "/account/delete-data", cookies)
 
 	req := spec.NewPostRequest("/account/delete-all", "", cookies, csrfToken)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
 
 	require.Equal(t, http.StatusSeeOther, rec.Code)
-	require.Equal(t, "/account", rec.Header().Get("Location"))
+	require.Equal(t, "/account/delete-data", rec.Header().Get("Location"))
 
 	counts, err := s.Store.FindAccountDataCounts(t.Context(), user.ID)
 	require.NoError(t, err)

@@ -25,7 +25,8 @@ type TemplateName string
 
 const (
 	// Account templates.
-	AccountIndex TemplateName = "account/index"
+	AccountIndex      TemplateName = "account/index"
+	AccountDeleteData TemplateName = "account/delete_data"
 
 	// Dashboard templates.
 	DashboardIndex TemplateName = "dashboard/index"

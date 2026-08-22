@@ -5,20 +5,24 @@ import (
 )
 
 func (h *Handler) GetAccount(w http.ResponseWriter, r *http.Request) {
+	h.renderPage(w, r, http.StatusOK, AccountIndex)
+}
+
+func (h *Handler) GetAccountDeleteData(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
 
 	counts, err := h.store.FindAccountDataCounts(ctx, user.ID)
 	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, AccountIndex, err)
+		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return
 	}
 
 	data["counts"] = counts
 
-	h.render(w, http.StatusOK, AccountIndex, data)
+	h.render(w, http.StatusOK, AccountDeleteData, data)
 }
 
 func (h *Handler) PostAccountDeleteExpenses(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +35,7 @@ func (h *Handler) PostAccountDeleteExpenses(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +48,7 @@ func (h *Handler) PostAccountDeleteRecurrentExpenses(w http.ResponseWriter, r *h
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteMacroEntries(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +61,7 @@ func (h *Handler) PostAccountDeleteMacroEntries(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteMacroGoals(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +74,7 @@ func (h *Handler) PostAccountDeleteMacroGoals(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteExpenseBudgets(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +87,7 @@ func (h *Handler) PostAccountDeleteExpenseBudgets(w http.ResponseWriter, r *http
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteFoods(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +100,7 @@ func (h *Handler) PostAccountDeleteFoods(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteMoodEntries(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +113,7 @@ func (h *Handler) PostAccountDeleteMoodEntries(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteTags(w http.ResponseWriter, r *http.Request) {
@@ -122,7 +126,7 @@ func (h *Handler) PostAccountDeleteTags(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
 func (h *Handler) PostAccountDeleteAll(w http.ResponseWriter, r *http.Request) {
@@ -135,5 +139,5 @@ func (h *Handler) PostAccountDeleteAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/account", http.StatusSeeOther)
+	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
