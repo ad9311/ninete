@@ -122,7 +122,7 @@ with no error from SQLite or the driver.
 | Foods | `/foods`, `/foods/{id}` | `handle_foods.go` | `logic_food.go` |
 | Moods | `/moods`, `/moods/stats`, `/moods/{id}` | `handle_mood_entries.go` | `logic_mood_entry.go`, `mood.go` |
 | Account | `/account` and its `delete-all` endpoints | `handle_account.go` | `logic_account.go` |
-| Exports | `/exports`, `/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
+| Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
 
 Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).

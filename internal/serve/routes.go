@@ -36,6 +36,7 @@ func (s *Server) setUpRoutes() {
 
 		root.Route("/account", func(account chi.Router) {
 			account.Get("/", s.handlers.GetAccount)
+
 			account.Post("/expenses/delete-all", s.handlers.PostAccountDeleteExpenses)
 			account.Post("/recurrent-expenses/delete-all", s.handlers.PostAccountDeleteRecurrentExpenses)
 			account.Post("/macro-entries/delete-all", s.handlers.PostAccountDeleteMacroEntries)
@@ -45,11 +46,11 @@ func (s *Server) setUpRoutes() {
 			account.Post("/moods/delete-all", s.handlers.PostAccountDeleteMoodEntries)
 			account.Post("/tags/delete-all", s.handlers.PostAccountDeleteTags)
 			account.Post("/delete-all", s.handlers.PostAccountDeleteAll)
-		})
 
-		root.Route("/exports", func(exports chi.Router) {
-			exports.Get("/", s.handlers.GetExports)
-			exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
+			account.Route("/exports", func(exports chi.Router) {
+				exports.Get("/", s.handlers.GetExports)
+				exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
+			})
 		})
 
 		root.Route("/expenses", func(expenses chi.Router) {

@@ -5,9 +5,26 @@
       <h1 id="account-card-title" class="card-title">Account</h1>
     </header>
     <p class="card-empty">
-      Permanently delete your data. Each action removes every record of that
-      type for your account and cannot be undone.
+      Export your data, or permanently delete it. Each delete action removes
+      every record of that type for your account and cannot be undone.
     </p>
+  </section>
+
+  <section class="card" aria-labelledby="account-exports-title">
+    <header class="card-header">
+      <h2 id="account-exports-title" class="card-title">Exports</h2>
+      <nav class="card-actions" aria-label="Exports">
+        <a
+          href="/account/exports"
+          class="card-action-link"
+          aria-label="Go to exports"
+          title="Go to exports"
+        >
+          <i data-lucide="download" class="card-action-icon"></i>
+        </a>
+      </nav>
+    </header>
+    <p class="card-empty">Download your data as JSON files.</p>
   </section>
 
   <div class="card-grid">
