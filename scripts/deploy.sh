@@ -34,13 +34,20 @@ confirm_version() {
         warnings+=("HEAD is not tagged; tag and push before deploying to stamp a release version")
     fi
 
-    if [ ${#warnings[@]} -eq 0 ] || [ "$ASSUME_YES" -eq 1 ]; then
+    if [ ${#warnings[@]} -eq 0 ]; then
         return 0
     fi
 
+    # Printed before the --yes check on purpose. --yes waives the prompt, not the
+    # warnings: an unattended deploy is exactly the case where the log is the only
+    # record that the build was dirty or untagged.
     for warning in "${warnings[@]}"; do
         echo "    WARNING: $warning"
     done
+
+    if [ "$ASSUME_YES" -eq 1 ]; then
+        return 0
+    fi
 
     # A deploy with no terminal — a timer, a pipe — must not block on a prompt.
     # The warnings are already printed and the version stamp records the same

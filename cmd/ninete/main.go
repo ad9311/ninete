@@ -17,6 +17,12 @@ func main() {
 
 	// Handled before prog.Load, which requires ENV to be set: asking an installed
 	// binary what it is must work without the service's environment.
+	//
+	// This is the second of two implementations. `migrate` and `task` get their
+	// `version` command from the registry in internal/cmd, which this binary does
+	// not use — it is a server, not a subcommand dispatcher, so a registry built
+	// for one command would buy nothing. Keep the output identical to
+	// cmd.Run's: both print prog.VersionString() and nothing else.
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		fmt.Println(prog.VersionString())
 

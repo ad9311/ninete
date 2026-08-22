@@ -51,6 +51,7 @@ Names currently in use:
 | Name | File | Purpose |
 | --- | --- | --- |
 | `header` | `common/_header.html` | Site header, rendered by the layout |
+| `footer` | `common/_footer.html` | Site footer carrying the build stamp, rendered by the layout |
 | `csrf` | `common/_csrf.html` | Hidden CSRF field for forms |
 | `form_error` | `common/_form_error.html` | Renders `.error` |
 | `submit_button`, `delete_button` | `common/_form_buttons.html` | Shared form buttons |

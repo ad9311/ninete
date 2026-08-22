@@ -1,7 +1,6 @@
 package prog_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/prog"
@@ -24,17 +23,22 @@ func TestVersionString(t *testing.T) {
 			},
 		},
 		{
-			// The -X flags are set by scripts/build.sh and the Makefile, never by
-			// `go test`, so an unstamped build must still produce a usable line
-			// rather than empty fields.
+			// Invariant guard, not a bug reproduction. `go test` passes no
+			// -ldflags (see the test target in the Makefile), so these variables
+			// hold their declared defaults here and the exact fallbacks can be
+			// asserted. Nothing may depend on the stamp being present, so the
+			// fallbacks must stay non-empty and must not drift.
 			name: "falls back to placeholders when unstamped",
 			fn: func(t *testing.T) {
-				out := prog.VersionString()
+				require.Equal(t, "dev", prog.Version)
+				require.Equal(t, "unknown", prog.Commit)
+				require.Equal(t, "unknown", prog.BuildTime)
 
-				require.NotEmpty(t, prog.Version)
-				require.NotEmpty(t, prog.Commit)
-				require.NotEmpty(t, prog.BuildTime)
-				require.False(t, strings.Contains(out, "= "))
+				require.Equal(
+					t,
+					"version=dev commit=unknown built=unknown",
+					prog.VersionString(),
+				)
 			},
 		},
 	}

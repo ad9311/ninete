@@ -173,6 +173,10 @@ Each step is also runnable on its own: `pull.sh`, `build-js.sh`, `build.sh`,
 `migrate.sh <cmd>`, `task.sh <name>`. The last two print help when given no
 arguments.
 
+`deploy.sh` takes arguments too: `--yes` (or `-y`) waives the version
+confirmation described under **Versioning**, and anything else exits 1 with a
+usage line. The warnings themselves are printed either way.
+
 The scripts live in this repository under `scripts/`, and the host reaches them
 through a symlink so the path it invokes is stable. Three consequences for anyone
 editing them:
@@ -302,10 +306,11 @@ when the stamp says something is off:
 - `HEAD` is not tagged
 
 Neither is an error, so it asks rather than refusing — untagged deploys are the
-normal case. `deploy.sh --yes` (or `-y`) skips the prompt, and a run with no
-terminal prints the warnings and continues rather than blocking, so a timer or a
-piped invocation cannot hang on it. Declining exits 1 before anything is built or
-migrated.
+normal case. `deploy.sh --yes` (or `-y`) waives the prompt, and a run with no
+terminal continues rather than blocking, so a timer or a piped invocation cannot
+hang on it. **Both still print the warnings**: they are waiving the question, not
+the finding, and an unattended deploy is the case where the log is the only
+record. Declining exits 1 before anything is built or migrated.
 
 A `-dirty` version in production means the running binary matches no commit.
 Investigate rather than ignore it.
