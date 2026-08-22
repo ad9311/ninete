@@ -2,9 +2,64 @@
 set -euo pipefail
 
 SCRIPTS="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(cd -P "$SCRIPTS/.." && pwd)"
 
 BUILT_BIN_APP_PATH="/srv/ninete/bin/ninete"
 MAIN_APP_PATH="/usr/local/bin/ninete"
+
+# Set by --yes/-y to skip the confirmation prompt.
+ASSUME_YES=0
+
+# Reports what this deploy would stamp into the binaries, and stops for
+# confirmation when that stamp says something is off: an untagged HEAD, or a
+# dirty checkout. Neither is an error — untagged deploys are the normal case and
+# `git describe` still yields an exact identity — so this only asks, it never
+# refuses on its own.
+#
+# It runs after pull.sh, because the version is a property of the code that was
+# just fetched, and before build.sh and migrate.sh, so declining costs nothing
+# beyond an advanced checkout.
+confirm_version() {
+    local version warnings=() reply
+
+    version="$(git -C "$APP_DIR" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+
+    echo "==> Deploying version $version"
+
+    if [ -n "$(git -C "$APP_DIR" status --porcelain 2>/dev/null)" ]; then
+        warnings+=("checkout has uncommitted changes; the build will be stamped -dirty")
+    fi
+
+    if ! git -C "$APP_DIR" describe --exact-match --tags HEAD >/dev/null 2>&1; then
+        warnings+=("HEAD is not tagged; tag and push before deploying to stamp a release version")
+    fi
+
+    if [ ${#warnings[@]} -eq 0 ] || [ "$ASSUME_YES" -eq 1 ]; then
+        return 0
+    fi
+
+    for warning in "${warnings[@]}"; do
+        echo "    WARNING: $warning"
+    done
+
+    # A deploy with no terminal — a timer, a pipe — must not block on a prompt.
+    # The warnings are already printed and the version stamp records the same
+    # facts, so continuing is the safe default there.
+    if [ ! -t 0 ]; then
+        echo "    (non-interactive, continuing)"
+
+        return 0
+    fi
+
+    read -r -p "    Continue? [y/N] " reply
+    case "$reply" in
+        [yY] | [yY][eE][sS]) return 0 ;;
+        *)
+            echo "==> Deployment aborted."
+            exit 1
+            ;;
+    esac
+}
 
 main() {
     if [ "$EUID" -eq 0 ]; then
@@ -12,7 +67,19 @@ main() {
         exit 1
     fi
 
+    for arg in "$@"; do
+        case "$arg" in
+            --yes | -y) ASSUME_YES=1 ;;
+            *)
+                echo "ERROR: unknown option '$arg'. Usage: deploy.sh [--yes|-y]"
+                exit 1
+                ;;
+        esac
+    done
+
     "$SCRIPTS/pull.sh"
+
+    confirm_version
 
     echo "==> Building javascript..."
     "$SCRIPTS/build-js.sh"

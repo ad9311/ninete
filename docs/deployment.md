@@ -140,10 +140,16 @@ A single script on the host runs the whole procedure, in order:
 
 1. `pull.sh` — `git pull --ff-only`. Fails rather than merging, so a dirty or
    diverged checkout stops the deploy instead of resolving itself.
-2. `build-js.sh` — `bun install` then `make build-static-js`. The JS bundle is
+2. `confirm_version` (in `deploy.sh`) — prints the version this deploy will stamp,
+   and asks for confirmation when the checkout is dirty or `HEAD` is not tagged.
+   Placed here deliberately: the version is a property of the code `pull.sh` just
+   fetched, and declining before `build.sh` and `migrate.sh` costs nothing but an
+   advanced checkout. See **Versioning** below.
+3. `build-js.sh` — `bun install` then `make build-static-js`. The JS bundle is
    git-ignored, so it must be built on the host.
-3. `build.sh` — builds `migrate`, `task`, and `ninete` with
-   `CGO_ENABLED=1 CC=gcc -trimpath -ldflags='-s -w' -buildvcs=false`, then
+4. `build.sh` — builds `migrate`, `task`, and `ninete` with
+   `CGO_ENABLED=1 CC=gcc -trimpath -buildvcs=false` and an `-ldflags` argument
+   carrying `-s -w` plus the version stamp (see **Versioning** below), then
    re-applies restrictive permissions to the output directory.
 
    The flags are held in bash arrays rather than strings. `-ldflags` is a single
@@ -151,8 +157,8 @@ A single script on the host runs the whole procedure, in order:
    splitting cannot carry one — passing `-ldflags=-s -ldflags=-w` instead means Go
    keeps only the last, silently dropping `-s`. That was the case until
    2026-08-17 and cost ~1.1 MB of symbol table in every production binary.
-4. `migrate.sh up` — applies pending migrations.
-5. Copy the new binary into place as root and restart the unit.
+5. `migrate.sh up` — applies pending migrations.
+6. Copy the new binary into place as root and restart the unit.
 
 Every script refuses to run as root (`$EUID` check at the top).
 
@@ -246,11 +252,92 @@ Available tasks are registered in `cmd/task/main.go`:
 - `create_invitation_code` — interactive, prompts on stdin. Run by hand.
 - `test` — a no-op hook for development. Not for production use.
 
+## Versioning
+
+Every binary carries the identity of the commit it was built from. Three
+variables in `internal/prog/version.go` — `Version`, `Commit`, `BuildTime` — are
+set at link time with `-X`, by `scripts/build.sh` on the host and by the Makefile
+locally. Both derive the values from git:
+
+```
+Version    git describe --tags --always --dirty    v0.1.0-7-gdf3dbdc-dirty
+Commit     git rev-parse --short HEAD              df3dbdc
+BuildTime  date -u +%Y-%m-%dT%H:%M:%SZ             2026-08-22T14:58:37Z
+```
+
+`Version` is the primary identifier and needs no bookkeeping: the nearest tag,
+how many commits have landed since it, the commit itself, and `-dirty` when the
+checkout had uncommitted changes. An untagged commit still gets an exact
+identity, so there is no state to forget to bump and nothing that can go stale.
+
+Tags are SemVer-shaped (`v0.1.0`) and cut by hand when a release feels like one,
+with `git tag -a` on `main` followed by `git push --tags`. They are a convenience
+for reading `Version`, not a compatibility contract — this app has one user and
+no consumers. **Schema compatibility is tracked separately** by `PRAGMA
+user_version` in the migrations; do not conflate the two.
+
+### Release order
+
+Tag before deploying, not after:
+
+```
+git checkout main && git pull
+git tag -a v0.1.0 -m "..."      # on the merge commit
+git push --tags
+<deploy on the host>
+```
+
+`pull.sh` runs `git pull --ff-only`, and git auto-follows tags that point into the
+history it fetches, so a tag pushed beforehand arrives with the commit. Tag
+afterwards and the host will not see it until some later fetch — the binary is
+identical either way, only the label it reports differs.
+
+Not every deploy needs a tag. An untagged commit still gets an exact identity
+(`v0.1.0-3-gabc1234`); that is the point of deriving from `git describe`.
+
+`deploy.sh` prints the version it is about to build and stops for confirmation
+when the stamp says something is off:
+
+- the checkout has uncommitted changes (the build would be stamped `-dirty`)
+- `HEAD` is not tagged
+
+Neither is an error, so it asks rather than refusing — untagged deploys are the
+normal case. `deploy.sh --yes` (or `-y`) skips the prompt, and a run with no
+terminal prints the warnings and continues rather than blocking, so a timer or a
+piped invocation cannot hang on it. Declining exits 1 before anything is built or
+migrated.
+
+A `-dirty` version in production means the running binary matches no commit.
+Investigate rather than ignore it.
+
+Reading the version:
+
+- The web binary logs it on boot, on the `Booting up application...` line.
+- All three binaries answer `version` as a subcommand
+  (`/usr/local/bin/ninete version`, `migrate version`, `task version`). It runs
+  before any config or database access, so it still answers on a host whose env
+  file or database is broken.
+- `make version` prints what the current checkout *would* build, without building.
+
+Two things that keep this honest:
+
+- **`-buildvcs=false` stays.** Go's own VCS stamping is off and these `-X` values
+  are the only source of build identity. Turning `buildvcs` on would add a second,
+  differently-derived answer to the same question.
+- **Unstamped builds are legal.** The defaults (`dev`, `unknown`, `unknown`) mean
+  `go test`, `go run`, and a hand-typed `go build` all work with no flags. Nothing
+  may depend on the stamp being present — it is diagnostic, never load-bearing.
+
 ## Rollback
 
-There is no automated rollback. To revert: check out the previous commit in the
-host's clone, re-run `build.sh`, copy the binary into place as root, and restart
-the unit.
+There is no automated rollback, and no archive of previous binaries — `deploy.sh`
+overwrites `/usr/local/bin/ninete` in place. To revert: check out the previous
+commit in the host's clone, re-run `build.sh`, copy the binary into place as root,
+and restart the unit.
+
+The version stamp helps you decide *what* to revert to, not how: read the running
+build with `ninete version` or from the boot log, then pick the commit or tag to
+check out. It does not shorten the procedure below.
 
 The full deploy script cannot be used for this — its first step is
 `git pull --ff-only`, which would drag the checkout straight back to the tip of the

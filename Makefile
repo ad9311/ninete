@@ -12,15 +12,26 @@ SHELL_FILES       := $(wildcard scripts/*.sh)
 pkg               ?= ./...
 func              ?=
 
+# ========= Version =========
+# Build identity, injected into internal/prog with -X. Derived from git so it
+# cannot go stale; every value falls back to a literal when git is unavailable,
+# because a build must never depend on the repository being readable.
+VERSION           := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+COMMIT            := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_TIME        := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+VERSION_LDFLAGS   := -X $(INTERNAL_PATH)/prog.Version=$(VERSION) \
+                     -X $(INTERNAL_PATH)/prog.Commit=$(COMMIT) \
+                     -X $(INTERNAL_PATH)/prog.BuildTime=$(BUILD_TIME)
+
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js
+.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js version
 
 # ========= App / Dev =========
 build: ## Build the application binary
 	@echo "Building binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	@$(GO_BUILD_ENVS) go build -o ./build/dev ./cmd/ninete/main.go
+	@$(GO_BUILD_ENVS) go build -ldflags "$(VERSION_LDFLAGS)" -o ./build/dev ./cmd/ninete/main.go
 
 dev: build-static-js build ## Run the app in development mode
 	@echo "Starting application..."
@@ -30,7 +41,7 @@ build-migrate: ## Build the migrate binary
 	@echo "Building migrate binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	$(GO_BUILD_ENVS) go build -o ./build/migrate ./cmd/migrate/main.go
+	$(GO_BUILD_ENVS) go build -ldflags "$(VERSION_LDFLAGS)" -o ./build/migrate ./cmd/migrate/main.go
 
 migrate: build-migrate ## Run all migrations up
 	@echo "Running migrations..."
@@ -57,7 +68,7 @@ build-task: ## Build the task binary
 	@echo "Building task binary..."
 	@mkdir -p ./build
 	@mkdir -p ./data/db/dev
-	$(GO_BUILD_ENVS) go build -o ./build/task ./cmd/task/main.go
+	$(GO_BUILD_ENVS) go build -ldflags "$(VERSION_LDFLAGS)" -o ./build/task ./cmd/task/main.go
 
 task: build-task ## Run a task
 	@echo "Running $(name) task..."
@@ -130,6 +141,10 @@ lint-sh: ## Run shellcheck over the deployment scripts
 	fi; \
 	echo "Running shellcheck..."; \
 	shellcheck $(SHELL_FILES)
+
+# ========= Version =========
+version: ## Print the version this checkout would build
+	@echo "$(VERSION) ($(COMMIT)) $(BUILD_TIME)"
 
 # ========= Help =========
 help: ## Show this help message

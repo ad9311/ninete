@@ -127,6 +127,7 @@ The development build:
 ### Other useful commands:
 
 - `make build` — Build the binary without running
+- `make version` — Print the version this checkout would build
 - `make build-static-js` — Build only the static JS bundle
 - `make lint` — Run golangci-lint and shellcheck without fixing
 - `make lint-fix` — Run all formatters and linters with automatic fixes

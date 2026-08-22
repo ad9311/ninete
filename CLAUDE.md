@@ -13,7 +13,7 @@ if a document is added, add it here too, or nobody will find it.
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
-| `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, backups, rollback | Answering anything about production, or editing `scripts/` |
+| `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
 | `web/README.md` | Templates and static assets: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration | **Before editing anything under `web/`** |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
@@ -140,6 +140,7 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
+- **Build identity is stamped, not stored.** `internal/prog.Version`/`Commit`/`BuildTime` are set with `-X` from `git describe`, by `scripts/build.sh` and the Makefile. There is no `VERSION` file to bump, and `package.json`'s `version` field describes nothing — do not treat it as the app's version. Unstamped builds fall back to `dev`/`unknown`, so nothing may depend on the stamp being present. `docs/deployment.md` has the details.
 - Any temporary file should go under `./tmp/`
 - Adding a document to the repository means adding a row to the Documentation map above. A document nobody can find is a document nobody reads.
 

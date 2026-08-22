@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/ad9311/ninete/internal/db"
@@ -13,6 +14,14 @@ import (
 
 func main() {
 	var exitCode int
+
+	// Handled before prog.Load, which requires ENV to be set: asking an installed
+	// binary what it is must work without the service's environment.
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Println(prog.VersionString())
+
+		os.Exit(0)
+	}
 
 	app, err := prog.Load()
 	if err != nil {
@@ -30,7 +39,7 @@ func main() {
 }
 
 func start(app *prog.App) (int, error) {
-	app.Logger.Log("Booting up application...")
+	app.Logger.Logf("Booting up application... %s", prog.VersionString())
 
 	sqlDB, err := db.Open()
 	if err != nil {
