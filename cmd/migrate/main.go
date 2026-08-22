@@ -41,6 +41,21 @@ func main() {
 			Description: "Claim the database for the current ENV",
 			Run:         db.StampDatabase,
 		},
+		{
+			Name:        "snapshot",
+			Description: "Write a consistent copy of the database and prune old ones",
+			Run:         db.SnapshotDatabase,
+		},
+		{
+			Name:        "db-version",
+			Description: "Print the migration version the database is at",
+			Run:         db.PrintDBVersion,
+		},
+		{
+			Name:        "schema-version",
+			Description: "Print the newest migration this binary carries",
+			Run:         db.PrintSchemaVersion,
+		},
 	})
 	if err != nil {
 		prog.QuickLogger().Errorf("%v", err)

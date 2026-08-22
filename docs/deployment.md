@@ -157,8 +157,14 @@ A single script on the host runs the whole procedure, in order:
    splitting cannot carry one — passing `-ldflags=-s -ldflags=-w` instead means Go
    keeps only the last, silently dropping `-s`. That was the case until
    2026-08-17 and cost ~1.1 MB of symbol table in every production binary.
-5. `migrate.sh up` — applies pending migrations.
-6. Copy the new binary into place as root and restart the unit.
+5. `migrate.sh snapshot` — writes a `VACUUM INTO` copy of the database *before*
+   any migration runs. This is what `rollback.sh --with-database` restores.
+6. `migrate.sh up` — applies pending migrations.
+7. `archive_build` (in `deploy.sh`) — copies all three binaries plus a manifest to
+   `/srv/ninete/bin/archive/<version>/`, keeping the last 3 versions. That
+   directory is owned by the deploy account and mode 700, so archiving needs no
+   sudo. See **Rollback** below.
+8. Copy the new binary into place as root and restart the unit.
 
 Every script refuses to run as root (`$EUID` check at the top).
 
@@ -171,7 +177,8 @@ error for the few seconds before the restart lands.
 
 Each step is also runnable on its own: `pull.sh`, `build-js.sh`, `build.sh`,
 `migrate.sh <cmd>`, `task.sh <name>`. The last two print help when given no
-arguments.
+arguments. `rollback.sh` is not part of a deploy and is only ever run by hand;
+with no arguments it lists what it could roll back to.
 
 `deploy.sh` takes arguments too: `--yes` (or `-y`) waives the version
 confirmation described under **Versioning**, and anything else exits 1 with a
@@ -224,6 +231,12 @@ loaded: `status`, `up`, `down` (one step).
 Production is backed up nightly to off-site object storage on a systemd timer.
 Host specifics — paths, credentials, retention, and the restore procedure — are
 in `deployment.local.md`.
+
+These are separate from the **pre-deploy snapshots** `migrate.sh snapshot` writes
+to `snapshots/` beside the database file (override with `SNAPSHOT_DIR`). The two
+answer different questions: the nightly backup is for losing the host, the
+snapshot is for a migration that went wrong twenty seconds ago. Snapshots are
+local, keep only the last 5, and are not a substitute for the off-site copy.
 
 The one rule that constrains code: never snapshot the database with `cp`. A plain
 copy of a database with a live WAL can capture a torn state. Use SQLite's own
@@ -335,20 +348,88 @@ Two things that keep this honest:
 
 ## Rollback
 
-There is no automated rollback, and no archive of previous binaries — `deploy.sh`
-overwrites `/usr/local/bin/ninete` in place. To revert: check out the previous
-commit in the host's clone, re-run `build.sh`, copy the binary into place as root,
-and restart the unit.
+`rollback.sh` reinstalls a previously deployed build. It is never run by a deploy
+— only by hand, on the host.
 
-The version stamp helps you decide *what* to revert to, not how: read the running
-build with `ninete version` or from the boot log, then pick the commit or tag to
-check out. It does not shorten the procedure below.
+```
+rollback.sh                             list archived versions, newest first
+rollback.sh v0.1.0                      reinstall that version's binaries
+rollback.sh v0.1.0 --with-database      also restore the pre-deploy snapshot
+                   --snapshot PATH      restore a specific snapshot file
+                   --force              install despite a schema mismatch
+```
 
-The full deploy script cannot be used for this — its first step is
-`git pull --ff-only`, which would drag the checkout straight back to the tip of the
-branch.
+### Why it needs no sudoers change
 
-Two caveats. `git checkout <commit>` leaves a detached HEAD, so the next `pull.sh`
-fails until you `git checkout main`. And **migrations are not rolled back by this
-procedure** — if the bad deploy applied one, decide deliberately whether the old
-binary tolerates the new schema, or run `migrate.sh down` first.
+The host grants the deploy account four *exact command lines* (see
+`deployment.local.md`), and a rollback runs the same four. It stages the archived
+binary at `/srv/ninete/bin/ninete` first — that directory is owned by the deploy
+account and mode 700, so no privilege is involved — and then installs it with the
+identical `cp`/`chown`/`chmod`/`systemctl restart` the deploy uses.
+
+The one exception is `--with-database`, which needs `systemctl stop` and `start`,
+and those are deliberately *not* in the NOPASSWD grant. It will prompt for the
+deploy account's sudo password. That is the accepted trade: a database restore
+should not be as frictionless as a binary swap.
+
+### Two tiers, and why they are separate
+
+**Binaries only** — the common case. No migration was involved, or the one that
+ran is additive. Reversible, loses nothing, takes seconds. All three binaries are
+reinstalled, not just the web one: cron runs `task` and `migrate.sh` runs
+`migrate`, so rolling back the app alone leaves a mismatched set.
+
+**`--with-database`** — for a migration that turned out to be wrong. It stops the
+service, snapshots the *current* database (so the restore is itself reversible),
+removes the `-wal` and `-shm` sidecars, copies the snapshot over the database, and
+starts the service. **Every write made since that snapshot is lost.** For a
+single-user app rolling back within minutes that is usually nothing, but it is a
+real data loss and the script says so before asking.
+
+Removing the sidecars is not tidiness. A clean shutdown checkpoints and removes
+them, but a killed process leaves them behind, and a stale WAL replaying onto a
+restored database is exactly the corruption `VACUUM INTO` exists to avoid.
+
+### The schema guard
+
+Before installing anything, `rollback.sh` asks the **archived** `migrate` binary
+which migration it was built with (`migrate schema-version`, which reads only its
+embedded migrations and so needs neither ENV nor a database) and compares that
+with the live `migrate.sh db-version`. If the database has moved past the target,
+it refuses:
+
+```
+    schema: target carries 20260817000100, database is at 20260821090000
+    ERROR: the database has migrated past this version.
+```
+
+The answer comes from the artifact being installed rather than from bookkeeping
+that could have drifted from it. `--with-database` resolves the mismatch properly;
+`--force` overrides it, and is for when you have read the migration and know the
+old code tolerates the new schema.
+
+### Down migrations
+
+`migrate.sh down` still exists and steps back one migration. Prefer the snapshot:
+a `Down` that drops a column deletes data *by design* — the schema is reversible,
+the data is not. Use `down` when you have read that specific migration and know it
+is safe, and the snapshot when you have not.
+
+### What it does not cover
+
+- **Versions deployed before archiving existed** are not in the archive. The first
+  deploy after this change archives only itself, so the build it replaced still
+  needs the manual procedure below.
+- **`rollback.sh` never calls `pull.sh`.** That is deliberate — `git pull
+  --ff-only` would drag the checkout back to the tip of the branch.
+- The host's git checkout is left untouched, so unlike the old procedure there is
+  no detached HEAD to clean up afterwards and no rebuild on the box.
+
+### Manual fallback
+
+If the archive does not have what you need: check out the previous commit or tag
+in the host's clone, re-run `build.sh`, copy the binary into place as root, and
+restart the unit. `git checkout <commit>` leaves a detached HEAD, so the next
+`pull.sh` fails until you `git checkout main`. Migrations are not rolled back by
+this procedure — decide deliberately whether the old binary tolerates the current
+schema, or restore a snapshot first.
