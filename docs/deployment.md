@@ -396,7 +396,8 @@ Before installing anything, `rollback.sh` asks the **archived** `migrate` binary
 which migration it was built with (`migrate schema-version`, which reads only its
 embedded migrations and so needs neither ENV nor a database) and compares that
 with the live `migrate.sh db-version`. If the database has moved past the target,
-it refuses:
+it refuses — unless `--with-database` was given, in which case the snapshot about
+to be restored predates the offending migration and the guard only warns:
 
 ```
     schema: target carries 20260817000100, database is at 20260821090000

@@ -8,10 +8,14 @@ ENV_FILE="/etc/ninete/env"
 APP_BIN_DIR="/srv/ninete/bin"
 ARCHIVE_DIR="$APP_BIN_DIR/archive"
 
-BUILT_BIN_APP_PATH="/srv/ninete/bin/ninete"
+BUILT_BIN_APP_PATH="$APP_BIN_DIR/ninete"
 MAIN_APP_PATH="/usr/local/bin/ninete"
 
 SERVICE="ninete.service"
+
+# Set between `systemctl stop` and `systemctl start` so the EXIT trap can bring
+# the service back if anything in between fails under `set -e`.
+SERVICE_STOPPED=0
 
 # Must match deploy.sh: a rollback installs the whole set, not just the web
 # binary, so cron and migrate.sh do not end up running newer code than the app.
@@ -96,6 +100,16 @@ check_schema() {
         return 0
     fi
 
+    # --with-database is the documented cure for this exact mismatch: the
+    # snapshot it restores predates the migration that moved the database past
+    # the target. Refusing here would make the advice impossible to follow.
+    if [ "$RESTORE_DB" -eq 1 ]; then
+        echo "    NOTE: the database has migrated past this version, but the snapshot"
+        echo "          about to be restored predates that migration."
+
+        return 0
+    fi
+
     echo "    ERROR: the database has migrated past this version."
     echo "           Its code has never seen schema $live and may fail to read it."
     echo "           Re-run with --with-database to restore the pre-deploy snapshot,"
@@ -104,6 +118,19 @@ check_schema() {
     [ "$FORCE" -eq 1 ] || exit 1
 
     echo "    (--force given, continuing)"
+}
+
+# Armed for the whole run. Between `systemctl stop` and `systemctl start` any
+# failure aborts under `set -e`, and without this the app is left down with no
+# hint as to why. Silent unless the service was actually stopped.
+#
+# shellcheck disable=SC2329 # invoked by the EXIT trap in main(), not by name
+restart_on_failure() {
+    [ "$SERVICE_STOPPED" -eq 1 ] || return 0
+
+    echo "ERROR: the rollback failed while $SERVICE was stopped; starting it again."
+    echo "       The database may be mid-restore — check it before trusting it."
+    sudo systemctl start "$SERVICE" || true
 }
 
 confirm() {
@@ -148,7 +175,7 @@ install_binaries() {
 #   - the -wal and -shm sidecars are removed, because a stale WAL replaying onto
 #     a restored database is exactly the corruption this is meant to avoid.
 restore_database() {
-    local snapshot="$1" magic
+    local snapshot="$1" magic staged
 
     if [ ! -f "$snapshot" ]; then
         echo "ERROR: snapshot '$snapshot' does not exist."
@@ -161,15 +188,26 @@ restore_database() {
         exit 1
     fi
 
+    # Staged outside the snapshot directory before anything else runs: the
+    # safety snapshot below prunes to the retention limit, and would otherwise
+    # be able to delete the very file being restored (reachable with
+    # --snapshot pointing at one of the older kept snapshots).
+    staged="$DATABASE_URL.restore"
+    cp "$snapshot" "$staged"
+
     echo "==> Stopping $SERVICE (this asks for your sudo password)..."
     sudo systemctl stop "$SERVICE"
+    SERVICE_STOPPED=1
 
     echo "==> Snapshotting the current database before replacing it..."
     "$SCRIPTS/migrate.sh" snapshot
 
     echo "==> Restoring $snapshot over $DATABASE_URL..."
     rm -f "$DATABASE_URL-wal" "$DATABASE_URL-shm"
-    cp "$snapshot" "$DATABASE_URL"
+    # cp, not mv: the destination inode keeps the ownership and mode the
+    # service unit expects.
+    cp "$staged" "$DATABASE_URL"
+    rm -f "$staged"
 }
 
 parse_args() {
@@ -215,6 +253,8 @@ main() {
         exit 1
     fi
 
+    trap restart_on_failure EXIT
+
     parse_args "$@"
 
     if [ -z "$TARGET" ]; then
@@ -242,7 +282,9 @@ main() {
 
         snapshot="$SNAPSHOT"
         if [ -z "$snapshot" ]; then
-            snapshot="$(list_snapshots "$(dirname "$DATABASE_URL")/snapshots" | head -n 1)"
+            # Must match snapshotDir() in internal/db/snapshot.go, which honours
+            # SNAPSHOT_DIR before falling back to a directory beside the database.
+            snapshot="$(list_snapshots "${SNAPSHOT_DIR:-$(dirname "$DATABASE_URL")/snapshots}" | head -n 1)"
         fi
 
         if [ -z "$snapshot" ]; then
@@ -260,6 +302,7 @@ main() {
 
         echo "==> Starting $SERVICE..."
         sudo systemctl start "$SERVICE"
+        SERVICE_STOPPED=0
     else
         confirm "    Reinstall $TARGET binaries and restart?"
 

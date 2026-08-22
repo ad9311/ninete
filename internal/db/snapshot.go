@@ -77,15 +77,16 @@ func SnapshotDatabase() error {
 		return fmt.Errorf("%w: %w", ErrSnapshotFailed, err)
 	}
 
-	pruned, err := pruneSnapshots(dir)
-	if err != nil {
-		return err
-	}
-
 	// Printed rather than logged: deploy.sh reports the path it just created.
 	fmt.Println(path)
 
-	if pruned > 0 {
+	// Pruning is housekeeping and must not fail the command: the snapshot is
+	// already on disk, and rollback.sh takes one with the service stopped, where
+	// a non-zero exit aborts the restore over a file it could not delete.
+	pruned, err := pruneSnapshots(dir)
+	if err != nil {
+		app.Logger.Errorf("%v", err)
+	} else if pruned > 0 {
 		app.Logger.Logf("Pruned %d old snapshot(s), keeping %d", pruned, snapshotRetention)
 	}
 
@@ -199,8 +200,15 @@ func uniqueSnapshotPath(dir, version string) (string, error) {
 
 	path := filepath.Join(dir, base+snapshotExtension)
 	for i := 2; ; i++ {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) {
 			return path, nil
+		}
+
+		// Anything other than "not there" is a real failure — an unreadable
+		// directory, say. Trying 50 more names would only bury it.
+		if err != nil {
+			return "", fmt.Errorf("%w: %w", ErrSnapshotFailed, err)
 		}
 
 		if i > maxSnapshotNameAttempts {

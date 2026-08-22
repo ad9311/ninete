@@ -7,7 +7,7 @@ APP_DIR="$(cd -P "$SCRIPTS/.." && pwd)"
 APP_BIN_DIR="/srv/ninete/bin"
 ARCHIVE_DIR="$APP_BIN_DIR/archive"
 
-BUILT_BIN_APP_PATH="/srv/ninete/bin/ninete"
+BUILT_BIN_APP_PATH="$APP_BIN_DIR/ninete"
 MAIN_APP_PATH="/usr/local/bin/ninete"
 
 # Binaries kept per archived version. All three, not just the web binary: cron
@@ -84,8 +84,12 @@ confirm_version() {
 # Reads the migration version the database is currently at. migrate.sh prints
 # progress around the command, so the bare number is selected rather than assumed
 # to be the last line.
+#
+# `|| true` is load-bearing: this only feeds the manifest, and under `pipefail`
+# a `grep` that matches nothing would otherwise fail the assignment it is called
+# from and abort the whole deploy — silently, since stderr is discarded.
 db_version() {
-    "$SCRIPTS/migrate.sh" db-version 2>/dev/null | grep -E "^[0-9]+$" | tail -n 1
+    "$SCRIPTS/migrate.sh" db-version 2>/dev/null | grep -E "^[0-9]+$" | tail -n 1 || true
 }
 
 # Keeps a copy of every binary this deploy built, so a rollback is a file copy
