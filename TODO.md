@@ -22,3 +22,39 @@ tagged an expense by hand.
 
 Deleting *all* expenses is already safe — `DeleteAllExpensesByUser`
 (`internal/repo/expense.go`) clears the taggings first.
+
+## A unique-name collision will read as a server fault on the API
+
+`Store.CreateFood` and `Store.UpdateFood` (`internal/logic/logic_food.go`) let SQLite's
+`UNIQUE constraint failed: foods.name` propagate untouched, and the same holds for
+every other table with a unique index. The pages render that string; the API's
+`WriteAPIError` deliberately will not, so an unnamed collision becomes a generic
+`500` instead — correct about not leaking, wrong about whose fault it is.
+
+Whoever ports Foods in Phase 2 of `docs/spa-migration.md` should turn the
+collision into a sentinel in `internal/logic/errs.go`, name it in the endpoint's
+`userErrors`, and let it answer `422` with a message that does not quote the
+constraint. Fixing it in the logic layer improves the existing pages too.
+
+## A nested validation failure publishes the inner struct's field name
+
+`ValidationError.Fields` (`internal/logic/logic.go`) is keyed by
+`validator.FieldError.Field()`, which is the leaf Go field name — it says nothing
+about which struct the field belongs to. Every `ValidateStruct` call a use-case
+makes on a *secondary* params struct therefore lands in the same flat map as the
+request's own fields.
+
+The reachable case today is tags. `ensureTagsForUserTx` (`internal/logic/logic_tag.go`)
+validates one `TagParams{Name: name}` per tag, and `normalizeTagNames` does not
+truncate, so `POST /expenses` (or a mood entry, or a recurrent expense) carrying a
+tag longer than 20 characters fails with `[Name:max]` — `fields` comes back as
+`{"name": "max"}`. None of those payloads has a `name` key; the offending value
+arrived under `tags`. A client that highlights inputs by field key marks nothing,
+and on an endpoint that *does* own a `name` field it would mark the wrong input.
+
+The same shape would appear for any future nested params struct sharing a field
+name with its parent, where the two entries would silently overwrite each other.
+
+Phase 2 should decide how a nested failure names itself — map the tag case onto
+`tags`, or key nested entries by a path rather than the leaf name — before the
+first endpoint that accepts tags is ported.
