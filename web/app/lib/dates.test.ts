@@ -31,7 +31,7 @@ const CALENDAR_CASES = [
 ];
 
 describe("the test zone", () => {
-  // If this fails, vitest.config.ts stopped applying TZ and every test below
+  // If this fails, vitest.config.mts stopped applying TZ and every test below
   // has quietly become a no-op: under UTC they all pass whether the formatters
   // use UTC getters or local ones. That is the entire reason for the config.
   it("is not UTC", () => {
@@ -54,6 +54,24 @@ describe("formatDateUTC", () => {
     const unix = utcMidnight(2026, 8, 22);
 
     expect(formatDateUTC(new Date(unix * 1000))).toBe(formatDateUTC(unix));
+  });
+});
+
+describe("a value that is not a date", () => {
+  // Every one of these rendered as "undefined NaN, NaN" or "0NaN-NaN-NaN"
+  // before the guard — strings that reach the page looking like content.
+  it.each([
+    { name: "NaN", value: NaN },
+    { name: "an invalid Date", value: new Date("nope") },
+  ])("is rejected rather than formatted: $name", ({ value }) => {
+    expect(() => formatDateUTC(value)).toThrow(RangeError);
+    expect(() => formatDate(value)).toThrow(RangeError);
+    expect(() => formatDateTime(value)).toThrow(RangeError);
+    expect(() => unixToCalendarDate(value)).toThrow(RangeError);
+  });
+
+  it("still accepts the epoch itself", () => {
+    expect(unixToCalendarDate(0)).toBe("1970-01-01");
   });
 });
 
@@ -86,9 +104,14 @@ describe("formatDateTime", () => {
     { hour: 12, minute: 0, second: 0, text: "Aug 22, 2026 12:00:00 PM" },
     { hour: 13, minute: 5, second: 9, text: "Aug 22, 2026 1:05:09 PM" },
     { hour: 23, minute: 59, second: 59, text: "Aug 22, 2026 11:59:59 PM" },
-  ])("renders $hour:$minute:$second as $text", ({ hour, minute, second, text }) => {
-    expect(formatDateTime(new Date(2026, 7, 22, hour, minute, second))).toBe(text);
-  });
+  ])(
+    "renders $hour:$minute:$second as $text",
+    ({ hour, minute, second, text }) => {
+      expect(formatDateTime(new Date(2026, 7, 22, hour, minute, second))).toBe(
+        text,
+      );
+    },
+  );
 });
 
 describe("calendarDateToUnix", () => {
@@ -102,8 +125,18 @@ describe("calendarDateToUnix", () => {
   it("rejects a date that is not YYYY-MM-DD", () => {
     expect(() => calendarDateToUnix("22-08-2026")).toThrow(RangeError);
     expect(() => calendarDateToUnix("2026-8-22")).toThrow(RangeError);
-    expect(() => calendarDateToUnix("2026-08-22T00:00:00Z")).toThrow(RangeError);
+    expect(() => calendarDateToUnix("2026-08-22T00:00:00Z")).toThrow(
+      RangeError,
+    );
     expect(() => calendarDateToUnix("")).toThrow(RangeError);
+  });
+
+  it("accepts a year below 100 rather than reading it as 19xx", () => {
+    // Date.UTC(26, 7, 22) is 1926, which would fail the round-trip check and
+    // reject a well-formed date as impossible.
+    expect(
+      new Date(calendarDateToUnix("0026-08-22") * 1000).toISOString(),
+    ).toBe("0026-08-22T00:00:00.000Z");
   });
 
   it("rejects a date that does not exist instead of rolling it over", () => {
@@ -153,10 +186,22 @@ describe("addDays", () => {
     expect(addDays(from, days)).toBe(to);
   });
 
-  it.each(["2026-03-08", "2026-04-05", "2026-09-27", "2026-11-01"])(
-    "crosses the DST transition at %s without losing a day",
-    (date) => {
-      expect(addDays(addDays(date, 1), -1)).toBe(date);
+  // The round-trip addDays(addDays(d, 1), -1) === d holds for a local-getter
+  // implementation too, so it proves nothing. Name the day on each side of the
+  // transition instead: a local implementation lands on the transition day
+  // itself, or repeats it.
+  it.each([
+    { before: "2026-03-07", day: "2026-03-08", after: "2026-03-09" }, // US spring forward
+    { before: "2026-04-04", day: "2026-04-05", after: "2026-04-06" }, // NZ DST ends
+    { before: "2026-09-26", day: "2026-09-27", after: "2026-09-28" }, // NZ DST starts
+    { before: "2026-10-31", day: "2026-11-01", after: "2026-11-02" }, // US fall back
+  ])(
+    "crosses the DST transition at $day without losing a day",
+    ({ before, day, after }) => {
+      expect(addDays(before, 1)).toBe(day);
+      expect(addDays(day, 1)).toBe(after);
+      expect(addDays(after, -1)).toBe(day);
+      expect(addDays(day, -1)).toBe(before);
     },
   );
 });

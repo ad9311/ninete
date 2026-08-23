@@ -44,7 +44,18 @@ const SECONDS_PER_DAY = 86400;
 export type UnixOrDate = number | Date;
 
 function toDate(value: UnixOrDate): Date {
-  return value instanceof Date ? value : new Date(value * 1000);
+  const date = value instanceof Date ? value : new Date(value * 1000);
+
+  // Without this every formatter answers an undefined value with the string
+  // "undefined NaN, NaN" and unixToCalendarDate with "0NaN-NaN-NaN", both of
+  // which render into the page as if they were dates. A missing or non-numeric
+  // field is a bug in the caller; surface it the way calendarDateToUnix
+  // surfaces an impossible date.
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError(`not a date: ${String(value)}`);
+  }
+
+  return date;
 }
 
 /**
@@ -115,10 +126,16 @@ export function calendarDateToUnix(calendarDate: string): number {
   const year = Number(parts[1]);
   const month = Number(parts[2]);
   const day = Number(parts[3]);
-  const unix = Date.UTC(year, month - 1, day) / 1000;
 
-  // Date.UTC rolls a nonsense date over instead of rejecting it: month 13
-  // becomes January of the next year, February 31st becomes March. Round-trip
+  // Date.UTC maps a year of 0-99 to 1900+year, so Date.UTC(26, ...) is 1926 and
+  // the round-trip below would reject "0026-08-22" as impossible. setUTCFullYear
+  // takes the year literally.
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  const unix = date.getTime() / 1000;
+
+  // Date rolls a nonsense date over instead of rejecting it: month 13 becomes
+  // January of the next year, February 31st becomes March. Round-trip
   // the result so an impossible date is an error rather than a silently
   // different one.
   if (unixToCalendarDate(unix) !== calendarDate) {
