@@ -22,3 +22,16 @@ tagged an expense by hand.
 
 Deleting *all* expenses is already safe — `DeleteAllExpensesByUser`
 (`internal/repo/expense.go`) clears the taggings first.
+
+## A unique-name collision will read as a server fault on the API
+
+`Store.CreateFood` and `Store.UpdateFood` (`internal/logic/logic_food.go`) let SQLite's
+`UNIQUE constraint failed: foods.name` propagate untouched, and the same holds for
+every other table with a unique index. The pages render that string; the API's
+`WriteAPIError` deliberately will not, so an unnamed collision becomes a generic
+`500` instead — correct about not leaking, wrong about whose fault it is.
+
+Whoever ports Foods in Phase 2 of `docs/spa-migration.md` should turn the
+collision into a sentinel in `internal/logic/errs.go`, name it in the endpoint's
+`userErrors`, and let it answer `422` with a message that does not quote the
+constraint. Fixing it in the logic layer improves the existing pages too.

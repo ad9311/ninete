@@ -195,9 +195,32 @@ the 1 MB request body cap.
 Today a failed create re-renders the page with `error` set, which is why forms read their
 values back from the template map. In the SPA the client holds the form state, so:
 
-- API returns `422` with `{"error": "...", "fields": {"amount": "must be positive"}}`.
+- API returns `422` with `{"error": "...", "fields": {"amount": "required"}}`.
 - `500` stays a generic message; do not leak `err.Error()` for unexpected failures.
 - Keep the message text identical to today's, so the port is verifiable by eye.
+
+**Built in Phase 0.3.** `logic.ValidationError` (`internal/logic/logic.go`) carries the failed
+fields beside the flat message the templates already print — `Error()` is byte-for-byte what it
+was, so no page changed. `Handler.WriteAPIError` (`internal/handlers/api.go`) is the only
+mapping from a store error to a response:
+
+| Error | Answer |
+| --- | --- |
+| `*logic.ValidationError` | `422`, `fields` filled from the validator |
+| `sql.ErrNoRows` | `404` |
+| An error the endpoint named in `userErrors` | `422` with that error's own message |
+| Anything else | logged in full, `500` with a generic message |
+
+**Nothing is user-facing by default.** That is the point of the last row: today a failed insert
+re-renders the form with the driver's text, so a `UNIQUE` violation names the table and column
+on a public page. An endpoint opts a message in by naming its sentinel, which also documents
+what that endpoint expects to go wrong.
+
+**`fields` keys are snake_case** — `protein_g`, `saturated_fat_g` — matching the existing form
+field names and the columns behind them, derived from the Go field by `snakeFieldName`. The
+value is the validator's rule (`required`, `gte`, `email`), not a sentence: the client phrases
+it, and no message text is invented server-side. **JSON request and response bodies use the same
+snake_case names**, so the client sends back exactly the keys it was told about.
 
 ### 3.6 Dates — the part that must not break
 

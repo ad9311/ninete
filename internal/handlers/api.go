@@ -1,8 +1,12 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
+
+	"github.com/ad9311/ninete/internal/logic"
 )
 
 // APIError is the envelope every /api/* failure uses. Fields carries per-field
@@ -29,6 +33,44 @@ func (h *Handler) WriteJSON(w http.ResponseWriter, status int, body any) {
 // unexpected internal error here: the message reaches the browser.
 func (h *Handler) WriteJSONError(w http.ResponseWriter, status int, err error) {
 	h.WriteJSON(w, status, APIError{Error: err.Error()})
+}
+
+// WriteAPIError is the single mapping from a store error to a response. A
+// validation failure becomes 422 carrying the per-field rules, a missing row
+// becomes 404, and anything not named is treated as a server fault: logged in
+// full, answered with a generic message.
+//
+// userErrors names the errors this endpoint knows are the caller's fault, which
+// answer 422 with their own text — the same messages the pages render today.
+// Nothing is user-facing by default, so an unexpected driver error cannot
+// describe itself to the browser the way a re-rendered form does.
+func (h *Handler) WriteAPIError(w http.ResponseWriter, err error, userErrors ...error) {
+	var validationErr *logic.ValidationError
+	if errors.As(err, &validationErr) {
+		h.WriteJSON(w, http.StatusUnprocessableEntity, APIError{
+			Error:  validationErr.Error(),
+			Fields: validationErr.Fields,
+		})
+
+		return
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		h.WriteJSONError(w, http.StatusNotFound, ErrAPIRouteNotFound)
+
+		return
+	}
+
+	for _, userErr := range userErrors {
+		if errors.Is(err, userErr) {
+			h.WriteJSONError(w, http.StatusUnprocessableEntity, userErr)
+
+			return
+		}
+	}
+
+	h.app.Logger.Errorf("unhandled API error: %v", err)
+	h.WriteJSONError(w, http.StatusInternalServerError, ErrAPIUnavailable)
 }
 
 // APIUnauthorized answers a request that is not signed in. It must never send a
