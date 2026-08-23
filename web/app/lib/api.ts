@@ -64,7 +64,10 @@ export interface RequestOptions {
 }
 
 function buildURL(path: string, params?: RequestOptions["params"]): string {
-  const url = path.startsWith(API_PREFIX) ? path : `${API_PREFIX}${path}`;
+  // Match the prefix as a whole path segment. A plain startsWith would treat a
+  // future "/api-tokens" as already prefixed and fetch it unprefixed.
+  const prefixed = path === API_PREFIX || path.startsWith(`${API_PREFIX}/`);
+  const url = prefixed ? path : `${API_PREFIX}${path}`;
   if (!params) {
     return url;
   }
