@@ -48,9 +48,11 @@ than pass because a DOM happened to be present. A component test opts in with
 
 `make lint-fix` covers `.svelte`: `prettier-plugin-svelte` formats the whole
 file, and eslint runs `svelte-eslint-parser` with the TS parser nested inside
-it, so both `@typescript-eslint` and the 37 `eslint-plugin-svelte` rules apply
-— the latter through `processor: "svelte/svelte"`, which is also what makes
-`<!-- eslint-disable-next-line -->` work inside markup.
+it, so both `@typescript-eslint` and the 37 `eslint-plugin-svelte` rules apply.
+`processor: "svelte/svelte"` is set as well; it is not what makes the rules
+fire, it is what makes `<!-- eslint-disable-next-line svelte/... -->` inside
+markup be honoured. Rune modules (`*.svelte.js`, `*.svelte.ts`) get the same
+treatment through their own config block.
 
 One gap: stylelint reads `web/static/css/**/*.css` only and has no Svelte
 processor, so a `<style>` block inside a component is formatted but not

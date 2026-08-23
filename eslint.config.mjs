@@ -46,9 +46,12 @@ export default [
       ecmaVersion: "latest",
       sourceType: "module",
     },
-    // Extracts each script block for the rules below, and is also what makes
-    // `<!-- eslint-disable-next-line -->` work inside markup. Without it the
-    // svelte rules load but see nothing to report.
+    // What this does, checked rather than assumed: the rules below fire without
+    // it — they come from the parser's AST — and what it adds is directive
+    // support, so `<!-- eslint-disable-next-line svelte/... -->` inside markup
+    // is honoured instead of ignored. Removing it does not silence the rules;
+    // it silences every suppression comment, which is the harder failure to
+    // notice.
     processor: "svelte/svelte",
     plugins: {
       "@typescript-eslint": tsPlugin,
@@ -62,6 +65,28 @@ export default [
       // rules while leaving the TS ones firing, so nothing looks wrong. Take
       // the rules from the last entry of the array, which is the one holding
       // them (`svelte:recommended:rules`).
+      ...svelteRecommendedRules,
+    },
+  },
+  {
+    // Rune modules — `*.svelte.js` / `*.svelte.ts`. They are not components, so
+    // the block above does not match them, and the plain-TS block does: without
+    // this they parse with the TS parser and get zero svelte rules, silently,
+    // because runes are syntactically ordinary function calls. Must sit after
+    // the TS block to win for these files.
+    files: ["web/**/*.svelte.{js,ts}"],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: { parser: tsParser },
+      ecmaVersion: "latest",
+      sourceType: "module",
+    },
+    plugins: {
+      "@typescript-eslint": tsPlugin,
+      svelte: sveltePlugin,
+    },
+    rules: {
+      ...tsPlugin.configs.recommended.rules,
       ...svelteRecommendedRules,
     },
   },

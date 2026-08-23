@@ -684,9 +684,12 @@ make every later phase mechanical.
   earlier plan assumed this was not available; it is, and it was one `bun add` away. Two
   traps worth knowing, both of which shipped broken in review and were caught afterwards:
   `eslint-plugin-svelte` v3 exports flat-config *arrays*, so `configs.recommended` has no
-  `.rules` and spreading it disables all 37 rules as a silent no-op, and the rules do nothing
-  without `processor: "svelte/svelte"`. A config that lints `.svelte` files without error is
-  not evidence either is wired up — check against a deliberate violation.
+  `.rules` and spreading it disables all 37 rules as a silent no-op, and a hand-rolled block
+  matching only `*.svelte` leaves rune modules (`*.svelte.js`, `*.svelte.ts`) to the plain-TS
+  block with no svelte rules at all — runes are ordinary function calls, so nothing complains.
+  A config that lints without error is not evidence it is wired up; check against a deliberate
+  violation. (`processor: "svelte/svelte"` belongs in the config too, but for suppression
+  comments inside markup — the rules themselves fire without it.)
 - Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
   component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
   on `layout.css` class names); wire it up if that changes.

@@ -56,7 +56,10 @@ jobs:
   # Not `make test-js`, which runs both zones but stops at the first failure:
   # knowing whether a date bug fails east of UTC, west of it, or both is the
   # most useful single fact about it, so the second zone has to run either way.
-  # `if: always()` is what preserves that here.
+  # `!cancelled()` is what preserves that, and not `always()`: always() also
+  # runs the step when the run has been cancelled, so a superseded push would
+  # keep a runner busy finishing tests for a commit nobody is waiting on, and a
+  # failed checkout or install would produce a second, misleading failure.
   js-tests:
     name: js-tests
     runs-on: ubuntu-latest
@@ -77,7 +80,7 @@ jobs:
           TEST_TZ: Pacific/Auckland
 
       - name: Run JS tests (America/Los_Angeles)
-        if: always()
+        if: ${{ !cancelled() }}
         run: bun run test:js
         env:
           TEST_TZ: America/Los_Angeles
