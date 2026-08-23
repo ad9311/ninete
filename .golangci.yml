@@ -11,7 +11,8 @@ formatters:
     - goimports
   settings:
     gofumpt:
-      extra-rules: true
+      extra:
+        group-params: true
 
 linters:
   enable:
@@ -48,3 +49,14 @@ linters:
       - linters: [gosec]
         path: 'internal/repo/token.go'
         text: 'G101'
+      # Every query in internal/repo concatenates a sub-query built by
+      # QueryOptions, which interpolates only whitelisted column names,
+      # operators, connectors and sort orders and emits LIMIT/OFFSET as
+      # integers; values are always bound as "?" placeholders. See
+      # internal/repo/query_options.go. gosec cannot see the whitelist and
+      # flags every call site, so the rule is excluded for the package rather
+      # than annotated 13 times. The exclusion is scoped to internal/repo: a
+      # query assembled anywhere else is still reported.
+      - linters: [gosec]
+        path: 'internal/repo/'
+        text: 'G20[12]'
