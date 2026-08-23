@@ -76,7 +76,9 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) csrf(next http.Handler) http.Handler {
+// newCSRFHandler builds the shared nosurf handler. Both chains use the same
+// cookie, so a token minted while rendering a page is the token the API accepts.
+func (s *Server) newCSRFHandler(next http.Handler) *nosurf.CSRFHandler {
 	csrfHandler := nosurf.New(next)
 	// Browsers post CSP reports automatically with no CSRF token.
 	csrfHandler.ExemptPath(cspReportPath)
@@ -89,6 +91,67 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 	})
 
 	return csrfHandler
+}
+
+func (s *Server) csrf(next http.Handler) http.Handler {
+	return s.newCSRFHandler(next)
+}
+
+// apiCSRF is the same protection with a JSON rejection, so a client parsing the
+// body sees the standard error envelope instead of nosurf's plain text.
+func (s *Server) apiCSRF(next http.Handler) http.Handler {
+	csrfHandler := s.newCSRFHandler(next)
+	csrfHandler.SetFailureHandler(http.HandlerFunc(s.handlers.APIForbidden))
+
+	return csrfHandler
+}
+
+// guestAPIRoutes stay reachable while signed out. The handlers land in Phase 6
+// of docs/spa-migration.md; the exemption is declared with the middleware so
+// adding them does not mean reordering the chain.
+var guestAPIRoutes = map[string]bool{
+	"/api/login":    true,
+	"/api/register": true,
+}
+
+// apiAuth is the API's answer to AuthMiddleware: 401 with a JSON body instead
+// of a redirect (§3.1). It also puts the signed-in user into KeyCurrentUser,
+// which the API chain would otherwise never set — that happens in setTmplData,
+// which the API chain deliberately skips, and every resource handler opens with
+// getCurrentUser, which panics when the key is absent.
+func (s *Server) apiAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if guestAPIRoutes[r.URL.Path] {
+			next.ServeHTTP(w, r)
+
+			return
+		}
+
+		ctx := r.Context()
+		if !s.Session.GetBool(ctx, handlers.SessionIsUserSignedIn) {
+			s.handlers.APIUnauthorized(w, r)
+
+			return
+		}
+
+		user, err := s.store.FindUser(ctx, s.Session.GetInt(ctx, handlers.SessionUserID))
+		if err != nil {
+			// A session pointing at a user who no longer exists is a stale
+			// credential, not a server fault.
+			if errors.Is(err, sql.ErrNoRows) {
+				s.handlers.APIUnauthorized(w, r)
+
+				return
+			}
+
+			s.app.Logger.Errorf("failed to find current user %v", err)
+			s.handlers.APIInternalError(w, r)
+
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, handlers.KeyCurrentUser, &user)))
+	})
 }
 
 func (s *Server) setTmplData(next http.Handler) http.Handler {
@@ -316,6 +379,10 @@ func (s *Server) setUpMiddlewares() {
 	s.Router.Use(s.baseSecurityHeaders)
 }
 
+// requestTimeout bounds a request in either chain. Exports materialize their
+// whole payload inside it — see docs/spa-migration.md §3.3.
+const requestTimeout = 5 * time.Second
+
 // setUpAppMiddlewares is the chain for routes that render the app. Static assets
 // are mounted outside of it, so serving a stylesheet no longer loads the session
 // and looks up the current user.
@@ -323,11 +390,27 @@ func (s *Server) setUpAppMiddlewares(root chi.Router) {
 	root.Use(s.Session.LoadAndSave)
 	root.Use(s.limitRequestBody)
 
-	root.Use(s.WithTimeout(5 * time.Second))
+	root.Use(s.WithTimeout(requestTimeout))
 
 	root.Use(s.contentSecurityPolicy)
 	root.Use(s.csrf)
 
 	root.Use(s.setTmplData)
 	root.Use(s.AuthMiddleware)
+}
+
+// setUpAPIMiddlewares is the chain for the JSON API. It shares the session, the
+// body cap, the timeout and the CSRF protection of the page chain, and drops
+// the two pieces that assume HTML: setTmplData (no templates, no template map)
+// and AuthMiddleware (which redirects rather than answering 401).
+//
+// There is no CSP here on purpose: the policy exists to constrain a rendered
+// document, and a JSON response has none. baseSecurityHeaders still applies, so
+// the responses keep nosniff.
+func (s *Server) setUpAPIMiddlewares(api chi.Router) {
+	api.Use(s.Session.LoadAndSave)
+	api.Use(s.limitRequestBody)
+	api.Use(s.WithTimeout(requestTimeout))
+	api.Use(s.apiCSRF)
+	api.Use(s.apiAuth)
 }

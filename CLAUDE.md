@@ -17,6 +17,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
 | `web/README.md` | Templates and static assets: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration | **Before editing anything under `web/`** |
+| `web/app/README.md` | Layout and naming rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, and why sources sit outside the served `web/static/` tree | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
 

@@ -468,7 +468,14 @@ needed it (the searchable selects and the date pickers, most likely) instead of 
 ## 5. Phases
 
 Each phase ends with a green `make test`, `make lint-fix`, and a working app. No phase leaves
-`main` unshippable. Every phase is one PR.
+its base branch unshippable. Every phase is one PR.
+
+**Base branch: `spa-base`, not `main`.** `spa-base` is cut from `main` and every `spa/*` phase
+branch targets it; `main` receives the whole migration in one merge at the end. It is not called
+`spa` because git refs are a directory hierarchy and `spa/phase-0-groundwork` already occupies
+that name. Phase PRs land against `spa-base`, so `git merge main` into `spa-base` is the way an
+unrelated `main` change reaches the migration — not the other way around. Do not open a phase PR
+against `main`.
 
 ### Phase 0 — Groundwork (no view changes)
 
@@ -660,22 +667,24 @@ helpers, `tmplData`, the template loader in `internal/serve/template.go`).
 
 ## 7. Decisions made (do not revisit)
 
-1. **SPA is staged under `/app/*`** until Phase 7, then moves to `/`. Every phase stays
+1. **All phase work merges into `spa-base`, not `main`** (§5). `main` sees the migration once,
+   at the end.
+2. **SPA is staged under `/app/*`** until Phase 7, then moves to `/`. Every phase stays
    revertable by deleting a route.
-2. **Router is hand-rolled and path-based.** No router dependency.
-3. **`vitest` + `@testing-library/svelte` land in Phase 0**, configured with a non-UTC `TZ` (see
+3. **Router is hand-rolled and path-based.** No router dependency.
+4. **`vitest` + `@testing-library/svelte` land in Phase 0**, configured with a non-UTC `TZ` (see
    §3.6) so date bugs fail on the first run rather than in production.
-4. **Tailwind is deferred** to a separate post-migration project. Components reference the
+5. **Tailwind is deferred** to a separate post-migration project. Components reference the
    existing `layout.css` class names unchanged.
-5. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
-   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 4
+6. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
+   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 5
    in disguise. If one is adopted afterwards it should be headless (Melt UI, Bits UI), added a
    component at a time, and checked against `/csp-report` first.
-6. **Sources live in `web/app/`, outside the served `web/static/` tree** (§3.9), with
+7. **Sources live in `web/app/`, outside the served `web/static/` tree** (§3.9), with
    `routes/<resource>/` mirroring `web/views/<resource>/` one file per action. Only build output
    stays under `web/static/js/build/`. Settled in Phase 0, not discovered in Phase 2.
-7. **Auth stays cookie-session.** No JWT, no token in `localStorage`.
-8. **`tz_offset` is retired from the API in Phase 3**, replaced by client-computed explicit
+8. **Auth stays cookie-session.** No JWT, no token in `localStorage`.
+9. **`tz_offset` is retired from the API in Phase 3**, replaced by client-computed explicit
    bounds. The server-side helpers (`computeDateRange`, `parseTZOffset`) stay until Phase 7
    because the templates are Phase 3's oracle, and quick-add keeps a client zone offset for its
    relative dates regardless — see §3.6.

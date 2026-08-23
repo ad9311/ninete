@@ -9,6 +9,7 @@ import (
 
 func (s *Server) setUpRoutes() {
 	s.setUpFileServer()
+	s.setUpAPIRoutes()
 
 	s.Router.Group(func(root chi.Router) {
 		s.setUpAppMiddlewares(root)
@@ -132,6 +133,28 @@ func (s *Server) setUpRoutes() {
 				moods.Post("/delete", s.handlers.PostMoodEntriesDelete)
 			})
 		})
+	})
+}
+
+// setUpAPIRoutes mounts the JSON API the SPA talks to. It is a sibling of the
+// page group, not a child: the two chains differ (see setUpAPIMiddlewares), and
+// an /api route must never fall through to a rendered template.
+//
+// Resource routes arrive from Phase 2 of docs/spa-migration.md onward; the one
+// route here is what the Phase 1 shell reads its current user from.
+func (s *Server) setUpAPIRoutes() {
+	s.Router.Route("/api", func(api chi.Router) {
+		s.setUpAPIMiddlewares(api)
+
+		// Registered on the group so an unmatched API path answers with the
+		// JSON envelope instead of the HTML 404 page. They only take effect
+		// once the group has at least one route: a chi sub-router with none
+		// never builds its middleware chain and answers straight from the
+		// fallback, skipping auth and CSRF.
+		api.NotFound(s.handlers.APINotFound)
+		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
+
+		api.Get("/session", s.handlers.GetAPISession)
 	})
 }
 

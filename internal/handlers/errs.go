@@ -18,6 +18,13 @@ var (
 
 	ErrTooManyAttempts = errors.New("too many attempts, please wait a moment and try again")
 
+	// API errors. Their messages reach the browser as a JSON body, so they say
+	// what the client can act on and nothing about the server.
+	ErrUnauthorized     = errors.New("authentication required")
+	ErrInvalidCSRFToken = errors.New("invalid or missing CSRF token")
+	ErrAPIRouteNotFound = errors.New("resource not found")
+	ErrAPIUnavailable   = errors.New("the request could not be completed, please try again")
+
 	ErrSearchDateFormat    = errors.New("dates must use the YYYY-MM-DD format")
 	ErrSearchDateRange     = errors.New("the from date must be on or before the to date")
 	ErrUnknownDateRange    = errors.New("unknown date range")
