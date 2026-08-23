@@ -27,6 +27,9 @@ const (
 	// Account templates.
 	AccountIndex TemplateName = "account/index"
 
+	// Delete data templates.
+	DeleteDataIndex TemplateName = "delete_data/index"
+
 	// Dashboard templates.
 	DashboardIndex TemplateName = "dashboard/index"
 

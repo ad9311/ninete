@@ -22,7 +22,7 @@ func TestGetExports(t *testing.T) {
 		{
 			name: "should_redirect_to_login_when_unauthenticated",
 			fn: func(t *testing.T) {
-				req := spec.NewGetRequest("/exports", nil)
+				req := spec.NewGetRequest("/account/exports", nil)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
@@ -36,7 +36,7 @@ func TestGetExports(t *testing.T) {
 				s.CreateAuthUser(t, "exp_idx_1", "exp_idx_1@example.com", "exp_password_1")
 				cookies := s.AuthCookies(t, "exp_idx_1@example.com", "exp_password_1")
 
-				req := spec.NewGetRequest("/exports", cookies)
+				req := spec.NewGetRequest("/account/exports", cookies)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
@@ -61,7 +61,7 @@ func TestGetExportsExpenses(t *testing.T) {
 		{
 			name: "should_redirect_to_login_when_unauthenticated",
 			fn: func(t *testing.T) {
-				req := spec.NewGetRequest("/exports/expenses.json", nil)
+				req := spec.NewGetRequest("/account/exports/expenses.json", nil)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
@@ -85,7 +85,7 @@ func TestGetExportsExpenses(t *testing.T) {
 				})
 				cookies := s.AuthCookies(t, "exp_dl_1@example.com", "exp_password_1")
 
-				req := spec.NewGetRequest("/exports/expenses.json", cookies)
+				req := spec.NewGetRequest("/account/exports/expenses.json", cookies)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
@@ -130,7 +130,7 @@ func TestGetExportsExpenses(t *testing.T) {
 				})
 				cookies := s.AuthCookies(t, "exp_dl_2@example.com", "exp_password_2")
 
-				req := spec.NewGetRequest("/exports/expenses.json", cookies)
+				req := spec.NewGetRequest("/account/exports/expenses.json", cookies)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 

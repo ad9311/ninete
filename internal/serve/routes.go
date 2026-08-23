@@ -36,20 +36,22 @@ func (s *Server) setUpRoutes() {
 
 		root.Route("/account", func(account chi.Router) {
 			account.Get("/", s.handlers.GetAccount)
-			account.Post("/expenses/delete-all", s.handlers.PostAccountDeleteExpenses)
-			account.Post("/recurrent-expenses/delete-all", s.handlers.PostAccountDeleteRecurrentExpenses)
-			account.Post("/macro-entries/delete-all", s.handlers.PostAccountDeleteMacroEntries)
-			account.Post("/macro-goals/delete-all", s.handlers.PostAccountDeleteMacroGoals)
-			account.Post("/expense-budgets/delete-all", s.handlers.PostAccountDeleteExpenseBudgets)
-			account.Post("/foods/delete-all", s.handlers.PostAccountDeleteFoods)
-			account.Post("/moods/delete-all", s.handlers.PostAccountDeleteMoodEntries)
-			account.Post("/tags/delete-all", s.handlers.PostAccountDeleteTags)
-			account.Post("/delete-all", s.handlers.PostAccountDeleteAll)
-		})
+			account.Get("/delete-data", s.handlers.GetDeleteData)
 
-		root.Route("/exports", func(exports chi.Router) {
-			exports.Get("/", s.handlers.GetExports)
-			exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
+			account.Post("/expenses/delete-all", s.handlers.PostDeleteDataExpenses)
+			account.Post("/recurrent-expenses/delete-all", s.handlers.PostDeleteDataRecurrentExpenses)
+			account.Post("/macro-entries/delete-all", s.handlers.PostDeleteDataMacroEntries)
+			account.Post("/macro-goals/delete-all", s.handlers.PostDeleteDataMacroGoals)
+			account.Post("/expense-budgets/delete-all", s.handlers.PostDeleteDataExpenseBudgets)
+			account.Post("/foods/delete-all", s.handlers.PostDeleteDataFoods)
+			account.Post("/moods/delete-all", s.handlers.PostDeleteDataMoodEntries)
+			account.Post("/tags/delete-all", s.handlers.PostDeleteDataTags)
+			account.Post("/delete-all", s.handlers.PostDeleteDataAll)
+
+			account.Route("/exports", func(exports chi.Router) {
+				exports.Get("/", s.handlers.GetExports)
+				exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
+			})
 		})
 
 		root.Route("/expenses", func(expenses chi.Router) {
