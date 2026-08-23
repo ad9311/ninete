@@ -12,7 +12,7 @@ if a document is added, add it here too, or nobody will find it.
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
-| `docs/spa-migration.md` | The staged plan for replacing the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), where `.svelte` sources live, why Tailwind and component libraries are deferred, phases, decisions already made | Before any frontend work while the migration is running |
+| `docs/spa-migration.md` | The staged plan for replacing the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), where `.svelte` sources live, why Tailwind and component libraries are deferred, phases, decisions already made, **and the scope reduction dropping macros/foods/moods (§0)** | Before any frontend work while the migration is running |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
@@ -23,6 +23,8 @@ if a document is added, add it here too, or nobody will find it.
 
 ## Project Scope
 NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods). It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
+
+**Macros, foods and moods are being dropped.** The decision is recorded in `docs/spa-migration.md` §0; the code is still present and removal lands in that plan's Phase 0B, with the tables dropped in Phase 8. Do not extend those features and do not port them to the SPA. Expenses and what hangs off them — recurrent expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are what the app keeps.
 
 The app is still built multi-user and must stay that way: auth flows exist, and every table holding personal data is scoped by `user_id` (`categories` is the one shared lookup table). That scoping is an ownership and correctness boundary — a query that forgets `user_id` is a bug that leaks or destroys another account's data — and it is cheap to maintain. It is not an ambition to serve many people at once.
 

@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Phase 0 not started.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.3 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -12,6 +12,10 @@ facts this plan states about the bundler were verified there. Treat that branch 
 to read, not a branch to merge: Phase 0 re-lands only the build tooling, deliberately, without
 the experiment route.
 
+**Before anything else, read §0 (Scope reduction).** Macros, foods and mood entries are being
+dropped from the app. Roughly a third of the inventory this plan was originally sized against
+is not going to be ported, and the phase order changed because of it.
+
 **Before writing any view code, read §3.6 (Dates).** It is the one section where a mistake is
 invisible in review, invisible under the default `TZ=UTC` test run, and wrong for the user.
 Expenses are the app's core feature and every one of them hangs off a calendar date.
@@ -22,10 +26,62 @@ port, not in the design — that is the only reason this migration is checkable 
 
 ---
 
+## 0. Scope reduction — macros, foods and moods are being dropped
+
+Decided 2026-08-23, after Phase 0.3 landed. **The app keeps expenses and what hangs off them.**
+
+| Kept | Dropped |
+| --- | --- |
+| Expenses, recurrent expenses, expense budgets, tags, categories, dashboard, account, delete-data, exports, auth | Macros (entries, goals, stats), Foods, Mood entries |
+
+This is not a migration decision — those features are going away whether or not the SPA
+happens. It is recorded here because it changes what the migration has to port, and because
+doing it in the wrong order wastes a phase.
+
+**Removal happens in two steps, deliberately split.**
+
+1. **Code removal — Phase 0B, before any resource is ported.** Routes, handlers, logic, views,
+   Stimulus controllers, nav links, and the macro half of the dashboard.
+2. **Table removal — Phase 8, at the very end.** `foods`, `macro_entries`, `macro_goals`,
+   `mood_entries`, and the `taggings` rows pointing at mood entries. Irreversible, and gated on
+   an export.
+
+**Why the code cannot wait for the cleanup phase.** Phase 2's pilot resource *was* Foods, and
+Phase 4 ported macros and moods with their Chart.js views. Deferring removal means porting 18
+of 47 views and 6 of 18 controllers into a codebase that then deletes them — and worse, setting
+the conventions every other resource copies on a resource nobody will maintain. Phase 7's
+catch-all route cannot coexist with template-only routes either, so "the cleanup phase" was
+never actually available: Phase 7 was the real deadline.
+
+**Why the tables can wait, and must.** Dropping them destroys the macro and mood history, and
+`/account/exports/expenses.json` exports expenses only — there is no backup path for that data
+today. Keeping the tables through the migration costs nothing: the `internal/repo` files stay
+compiled with no callers, and `TestColumnConstantsMatchSchema` keeps guarding the schema.
+**Before Phase 8 drops them, export that history to a file and confirm with the owner that it
+is kept.** If the data is not wanted, say so explicitly in Phase 8's PR rather than letting it
+go silently.
+
+**Freeze-rule exception.** The freeze rule above forbids behavior changes to existing views.
+Phase 0B is its one deliberate exception, and it is a deletion rather than a change. After it,
+the freeze rule applies again in full to everything left.
+
+**What this removes, counted** — so §2's inventory can be checked rather than trusted:
+
+| | Before | Dropped | After |
+| --- | --- | --- | --- |
+| Template files | 47 | 18 | 29 |
+| Stimulus controllers | 18 | 6 | 12 |
+| Routes | 67 | 32 | 35 |
+| Handler test files | 14 | 4 | 10 |
+
+---
+
 ## 1. Goal and end state
 
 Today: Go `html/template` renders every page, Turbo intercepts navigation and form posts,
-Stimulus adds per-page interactivity. 47 template files, 18 Stimulus controllers, 67 routes.
+Stimulus adds per-page interactivity. 47 template files, 18 Stimulus controllers, 67 routes —
+29, 12 and 35 once Phase 0B removes the dropped features (§0). Every count below this line is
+the post-§0 one.
 
 End state:
 
@@ -35,7 +91,8 @@ End state:
 - Session cookie auth, CSRF, and the CSP survive unchanged in shape — see §3.
 
 Non-goals: server-side rendering of components, SvelteKit (Go serves the HTML), offline
-support, multi-user features, any visual redesign.
+support, multi-user features, any visual redesign, and reviving macros, foods or moods in any
+form (§0).
 
 ---
 
@@ -43,36 +100,41 @@ support, multi-user features, any visual redesign.
 
 Nothing below is optional. A phase is done when its rows are ticked.
 
-### 2.1 Views (47 files, `web/views/`)
+### 2.1 Views (29 files after §0, `web/views/`)
+
+Macros, foods and mood entries are absent from this table on purpose: Phase 0B deletes them
+(§0). If you are looking at a row that is not here, it is not being ported.
 
 | Resource | Files | Notes |
 | --- | --- | --- |
 | `layout.html` | 1 | Becomes the shell. Last thing to change, §Phase 7 |
 | `common/` | `_csrf`, `_footer`, `_form_buttons`, `_form_error`, `_header`, `_pagination` | Become shared components |
 | `login`, `register` | 2 | Guest routes. Special: CSRF/session rotation, §3.2 |
-| `dashboard` | 1 | Reads expense + macro stores |
+| `dashboard` | 1 | Expense summary only; the macro half goes in Phase 0B |
 | `expenses` | `index`, `new`, `edit`, `show`, `stats`, `budgets`, `_form`, `_quick_form` | Largest resource. Search, filters, sort, pagination |
 | `recurrent_expenses` | `index`, `archived`, `new`, `edit`, `show`, `_form` | |
-| `macros` | `index`, `new`, `edit`, `show`, `goals`, `stats`, `_form` | Charts |
-| `foods` | `index`, `new`, `edit`, `show`, `_form` | Feeds macro prefill via `?from_food=&amount=` |
-| `mood_entries` | `index`, `new`, `edit`, `show`, `stats`, `_form` | Charts |
 | `account`, `delete_data`, `exports` | 3 | Destructive posts; file download |
 | `error`, `not_found` | 2 | Become client-side error states + a server fallback |
 
 
-### 2.2 Stimulus controllers (18, `web/static/js/controllers/`)
+### 2.2 Stimulus controllers (12 after §0, `web/static/js/controllers/`)
 
 Each becomes either component-local state or a shared util. None survive as controllers.
 
-`amount`, `chart`, `dashboardDate`, `date`, `dateHelp`, `filter`, `localDate`, `macroCalc`,
-`macroDate`, `macroSelect`, `macroTrend`, `moodChart`, `nav`, `quickExpense`, `searchPanel`,
-`sort`, `submitOnChange`, `theme`.
+`amount`, `chart`, `dashboardDate`, `date`, `dateHelp`, `filter`, `localDate`, `nav`,
+`quickExpense`, `searchPanel`, `sort`, `theme`.
 
-Two need decisions rather than a port:
+Deleted unported in Phase 0B: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`,
+`moodChart`, `submitOnChange`. The last one is the trap — `submitOnChange` reads as a generic
+utility but its only two uses are `macros/index` and `macros/stats`, so it goes with them;
+`filter` is the equivalent control expenses keeps.
+
+Two of the survivors need decisions rather than a port:
 - `theme` — writes `localStorage`, and `layout.html:9-22` has an inline anti-FOUC script that
   must stay server-rendered even in the SPA.
-- `chart`/`macroTrend`/`moodChart` — Chart.js instances; in Svelte these become components
-  with `$effect` lifecycle. Chart.js stays, it is not the problem being solved here.
+- `chart` — a Chart.js instance; in Svelte it becomes a component with `$effect` lifecycle.
+  After §0 its only remaining use is `expenses/stats`, so Chart.js arrives in Phase 3 rather
+  than Phase 4. It stays as a dependency; it is not the problem being solved here.
 
 ### 2.3 Server-side behavior that has no client equivalent yet
 
@@ -94,7 +156,8 @@ Two need decisions rather than a port:
 
 ### 2.5 Tests
 
-Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, ~14 files).
+Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, 14 files;
+10 after Phase 0B deletes the macro, food and mood ones).
 They keep working against JSON with changed assertions. There is **no** frontend test tooling
 today — adding it is Phase 0's optional tail, see §5.
 
@@ -216,26 +279,32 @@ re-renders the form with the driver's text, so a `UNIQUE` violation names the ta
 on a public page. An endpoint opts a message in by naming its sentinel, which also documents
 what that endpoint expects to go wrong.
 
-**`fields` keys are snake_case** — `protein_g`, `saturated_fat_g` — matching the existing form
-field names and the columns behind them, derived from the Go field by `snakeFieldName`. The
+**`fields` keys are snake_case** — `category_id`, `occurrence_limit` — matching the existing
+form field names and the columns behind them, derived from the Go field by `snakeFieldName`. The
 value is the validator's rule (`required`, `gte`, `email`), not a sentence: the client phrases
 it, and no message text is invented server-side. **JSON request and response bodies use the same
 snake_case names**, so the client sends back exactly the keys it was told about.
 
 ### 3.6 Dates — the part that must not break
 
-**Read this section before touching anything in Expenses, Macros or Moods.** Dates are the
-one area where a port can look completely correct, pass every test, and still be wrong by one
-day for the user — silently, and only sometimes. Expenses are the app's core feature and every
-expense is filed under a calendar date that decides which billing window it lands in. An
-off-by-one here does not look like a bug, it looks like the user misremembering.
+**Read this section before touching anything dated: expenses, budgets, the dashboard, or the
+recurrent-expense cron.** Dates are the one area where a port can look completely correct,
+pass every test, and still be wrong by one day for the user — silently, and only sometimes.
+Expenses are the app's core feature and every expense is filed under a calendar date that
+decides which billing window it lands in. An off-by-one here does not look like a bug, it looks
+like the user misremembering.
 
 #### The two kinds of value, which must never be confused
 
 | Kind | Examples | Stored as | Means |
 | --- | --- | --- | --- |
-| **Calendar date** | `expenses.date`, macro day, mood `logged_at` day | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
+| **Calendar date** | `expenses.date`, `recurrent_expenses.last_copy_created_at`, budget month bounds | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
 | **Instant** | `created_at`, `updated_at`, export `exported_at` | epoch seconds of a real moment | a point in time, displayed in the viewer's zone |
+
+After §0, calendar dates survive in exactly two places — `expenses.date` and
+`recurrent_expenses.last_copy_created_at` — which narrows this section's blast radius but does
+not soften any of its rules. `last_copy_created_at` is the one to watch: the name says instant,
+the value is a calendar date.
 
 Both are `INTEGER` in SQLite and both are `int64` in Go, so **the type system will not catch a
 mix-up**. The distinction lives only in how each value is formatted and compared. Every date bug
@@ -256,7 +325,10 @@ Ranges — `computeDateRange` (`expense_shared.go:86`) builds `[start, end)` hal
 UTC midnight, using `tz_offset` **only** to decide which month "now" falls in for the client.
 
 Search — `expense_search.go:115` parses `YYYY-MM-DD` with `time.Parse` (UTC) and takes `.Unix()`.
-Moods — `handle_mood_entries.go:344` makes the end exclusive with `AddDate(0, 0, 1)`.
+Recurrent copies — `logic_recurrent_expense.go:180` files every generated expense at
+`time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)` and stores the same value in
+`last_copy_created_at`. That is a calendar date computed server-side, with no client zone
+involved, and it stays that way — the SPA must not start sending an offset into it.
 
 **Half-open `[start, end)` is the convention everywhere. Do not introduce an inclusive end.**
 
@@ -394,7 +466,7 @@ web/
     routes/
       expenses/             Index.svelte, New.svelte, Edit.svelte, Show.svelte,
                             Stats.svelte, Budgets.svelte, Form.svelte, QuickForm.svelte
-      foods/ macros/ moods/ recurrent_expenses/ account/ auth/ dashboard/
+      recurrent_expenses/ account/ auth/ dashboard/
   static/
     js/build/               ← emitted bundle + CSS sibling + manifest; the only served JS
   views/
@@ -505,7 +577,7 @@ against `main`.
 Branch: `spa/phase-0-groundwork`. Nothing a user can see changes in this phase. Its job is to
 make every later phase mechanical.
 
-**0.1 Build tooling**
+**0.1 Build tooling** — landed (#113)
 - `bun add svelte bun-plugin-svelte` and `bun add -d vitest @testing-library/svelte`.
 - `web/build.ts`: `Bun.build()` with `SveltePlugin`, outdir `web/static/js/build`. Point
   `build-static-js` in the `Makefile` at `bun run web/build.ts`. Entry in this phase is still the
@@ -524,21 +596,22 @@ make every later phase mechanical.
   and `routes_test.go` reads the same manifest instead of a literal path.
 - Reference implementation: `web/build.ts` on `experiment/svelte-api`.
 
-**0.2 API route group**
+**0.2 API route group** — landed (#113)
 - `/api/*` under its own middleware stack in `internal/serve/routes.go`: session load, body
   limit, timeout, CSRF — but **not** `setTmplData`, and **not** the HTML `AuthMiddleware`.
 - API auth middleware: `401` + JSON body, never a `Location` header (§3.1).
 - **It must also put the signed-in user into `KeyCurrentUser`.** Dropping `setTmplData` drops the
   only place that happens (`internal/serve/middleware.go:125`), and `getCurrentUser`
   (`handle_auth.go:119-127`) **panics** when the key is absent. Every resource handler opens with
-  `user := getCurrentUser(r)`, so without this the first `GET /api/foods` in Phase 2 panics into a
-  500 that looks like a Svelte or fetch bug. Do the `FindUser` half of `setTmplData` — session
-  lookup, `sql.ErrNoRows` handled the same way — and skip the template map.
+  `user := getCurrentUser(r)`, so without this the first `GET /api/recurrent-expenses` in
+  Phase 2 panics into a 500 that looks like a Svelte or fetch bug. Do the `FindUser` half of
+  `setTmplData` — session lookup, `sql.ErrNoRows` handled the same way — and skip the template
+  map.
 - The auth rate limit currently guarding `POST /login` and `POST /register` must guard their
   API equivalents when those land in Phase 6, still sharing **one** middleware value — see the
   invariant in `CLAUDE.md`.
 
-**0.3 JSON handler plumbing**
+**0.3 JSON handler plumbing** — landed (#114)
 - Naming: `internal/handlers/handle_api_<resource>.go`, keeping the `handle_` convention.
 - One shared JSON write helper and one error mapper: `422` with `{"error", "fields"}` for
   validation, `404`, `500` with a generic message (never `err.Error()` for unexpected
@@ -577,6 +650,61 @@ Exit criteria:
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
 
+### Phase 0B — Retire macros, foods and moods (code only)
+
+Branch: `spa/retire-macros-foods-moods`. One PR. The only phase that removes a feature instead
+of porting one, and the only deliberate exception to the freeze rule (§0). **It must land
+before Phase 2**, which was going to pilot on Foods.
+
+Delete, in one change:
+
+- Routes: the `/macros`, `/foods` and `/moods` groups in `internal/serve/routes.go`, plus the
+  four `POST /account/{macro-entries,macro-goals,foods,moods}/delete-all` endpoints. 32 routes.
+- Handlers: `handle_macros.go`, `macro_shared.go`, `handle_foods.go`, `handle_mood_entries.go`
+  and their four test files.
+- Logic: `logic_macro.go`, `logic_food.go`, `logic_mood_entry.go`, `mood.go` and their tests.
+- Views: `web/views/macros/`, `web/views/foods/`, `web/views/mood_entries/` — 18 files — and the
+  three nav links at `common/_header.html:25-27`.
+- Controllers: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`, `moodChart`,
+  `submitOnChange`, with their `window.Stimulus.register` lines in `web/static/js/index.ts`
+  (see §2.2 on why `submitOnChange` goes too).
+- The `TemplateName` constants for every deleted view. A leftover constant compiles fine and
+  fails at request time, which is the failure mode `CLAUDE.md` warns about.
+- `repo.TaggableTypeMoodEntry`, and the mood branch of `logic_tag.go` / `repo/tagging.go`.
+  `TaggableTypeExpense` and `TaggableTypeRecurrentExpense` stay.
+- The macro half of the dashboard: `dashboardMacros`, `buildDashboardMacros`,
+  `computeMacroProgress` and the `macros` key in `handle_dashboard.go:20-42,135-163`, plus the
+  matching block in `dashboard/index.html`. **This is what makes the dashboard a valid Phase 4
+  oracle again** — a like-for-like port cannot be checked against a page whose right half is
+  about to disappear.
+- The delete-data counts for the dropped resources: `MacroEntries`, `MacroGoals`, `Foods`,
+  `MoodEntries` in `logic_account.go`, and their rows in `delete_data/index.html`.
+
+Keep, deliberately:
+
+- **The tables and every existing migration.** No migration is written in this phase (§0).
+- `internal/repo/{food,macro_entry,macro_goal,mood_entry}.go` with their column constants, so
+  `TestColumnConstantsMatchSchema` keeps guarding the schema until Phase 8 drops it. They end
+  up with no callers; that is intended, and `unused` does not flag exported methods. If the
+  linter does complain, delete the method rather than reviving a caller.
+- `internal/spec` factories only where a surviving repo test still uses them.
+
+One consequence to state rather than discover: **`POST /account/delete-all` stops clearing the
+dropped tables.** Rows in them outlive "delete all my data" until Phase 8 drops the tables.
+For a single-user app with the owner making the call that is acceptable, but it should be a
+decision, not a surprise.
+
+Also in this PR: `CLAUDE.md`'s feature/route map and its tags cross-cutting note (the
+project-scope paragraph already carries the decision); `web/README.md` wherever it names a
+deleted controller; and `docs/architecture.md` if it maps the dropped packages.
+
+Exit criteria:
+- `make test`, `make test-js` and `make lint-fix` green.
+- `/macros`, `/foods` and `/moods` return 404, and nothing in the nav links to them.
+- The dashboard renders the expense summary alone.
+- `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` comes
+  back empty. `internal/repo` and `internal/db` are expected to still match — that is §0's split.
+
 ### Phase 1 — Shell and router, coexisting with templates
 
 Serve the SPA under `/app/*` while every existing route keeps working. Shell template (with the
@@ -594,23 +722,35 @@ the filename through `setTmplData`, both shells read it from the template map, a
 `routes_test.go:99` reads the manifest instead of the literal `/static/js/build/index.js`.
 
 Exit: `/app` renders the real chrome around a placeholder route, a hard refresh on a nested
-path like `/app/foods/1/edit` still resolves, every template route is untouched, and no template
-or test hardcodes the bundle filename.
+path like `/app/recurrent-expenses/1/edit` still resolves, every template route is untouched,
+and no template or test hardcodes the bundle filename.
 
-### Phase 2 — First real resource: Foods
+### Phase 2 — First real resource: Recurrent expenses
 
-Smallest full CRUD (`index`, `new`, `edit`, `show`, `_form`) with no charts and no pagination
-complexity. It is the first resource to fill in `web/app/routes/<resource>/` (§3.9), so it sets
-the conventions that live *inside* that shape — form handling, validation display, list/detail
-data flow — while the file layout itself is already fixed. Nine resources copy whatever this PR
-does, so review it as a template, not as one page.
+Foods was the pilot because it was the smallest full CRUD; §0 deletes it, so the pilot moves to
+recurrent expenses — now the only resource left with a complete `index`/`new`/`edit`/`show`/
+`_form` set and neither charts nor search. It costs one thing Foods did not: **tags arrive in
+Phase 2 instead of Phase 3.** That is a fair trade rather than a regression, because tags are
+shared with expenses and are easier to get right against the simpler resource.
 
-Exit: every Foods view works under `/app/foods`, with `422` validation shown inline.
+It is the first resource to fill in `web/app/routes/<resource>/` (§3.9), so it sets the
+conventions that live *inside* that shape — form handling, validation display, list/detail data
+flow, the tag input, and the `filter` control that `recurrent_expenses/index` and `archived`
+both use — while the file layout itself is already fixed. Every remaining resource copies
+whatever this PR does, so review it as a template, not as one page.
+
+It also carries `last_copy_created_at`, a calendar date wearing an instant's name (§3.6), which
+makes it a useful first exercise of `dates.ts` against real data.
+
+Exit: every recurrent-expense view works under `/app/recurrent-expenses`, including the
+archived listing and archive/unarchive, with `422` validation shown inline.
 
 ### Phase 3 — Expenses
 
-The hard one, and deliberately early so its surprises land before nine more resources depend on
-the conventions: search, filters, sort, pagination, quick-add form, stats, budgets, tags.
+The hard one, and deliberately early so its surprises land before the rest depend on the
+conventions: search, filters, sort, pagination, quick-add form, stats, budgets, tags. Chart.js
+arrives here rather than in Phase 4, since `expenses/stats` is the only `chart` use left after
+§0.
 
 This is also the phase that retires `tz_offset` **on the API side** (§3.6): named ranges resolve
 client-side to explicit `[start, end)` UTC-midnight bounds. The template path keeps computing
@@ -622,15 +762,15 @@ both versions side by side** against the same data at `TZ=UTC+13` and `TZ=UTC-8`
 listing, the show page, the stats buckets and the budgets page. While the templates still
 exist, they are a working oracle; after Phase 7 they are not.
 
-### Phase 4 — Remaining resources
+### Phase 4 — Dashboard
 
-Recurrent expenses, macros (+ goals, + stats charts), mood entries (+ stats charts), dashboard.
-Chart.js components land here. Parallelizable; each resource is its own PR.
+All that §0 leaves here: the expense summary and its date picker (`dashboardDate`). Recurrent
+expenses moved to Phase 2 and the other three resources are gone, so this is a small phase —
+which is fine, it is not worth folding into Phase 3 given the dashboard is its own view with
+its own range logic.
 
-Each of these carries its own dated fields — macro day (`handle_macros.go:349`), mood
-`logged_at` with its exclusive end (`handle_mood_entries.go:344`), recurrent-expense next-run
-dates. Apply §3.6's rules per resource and re-run the two-zone check; do not assume Phase 3
-settled it for them.
+`handle_dashboard.go:50-52` computes its range from `tz_offset`. Apply §3.6's rules and re-run
+the two-zone check here specifically; do not assume Phase 3 settled it.
 
 ### Phase 5 — Account, delete-data, exports
 
@@ -659,20 +799,39 @@ Deleting the templates removes the oracle, so do not combine this with any behav
 
 Exit: `web/views/` holds the shell and nothing else.
 
-### Phase 8 — Cleanup and documentation
+### Phase 8 — Cleanup, documentation, and dropping the retired tables
 
 Rewrite `web/README.md` (its template-partial namespace and Turbo/Stimulus sections become
 wrong), update `CLAUDE.md`'s route map, UI/Assets section and the render-helper invariant,
 update `docs/architecture.md`'s request flow. Remove dead Go helpers (`render.go`'s page
 helpers, `tmplData`, the template loader in `internal/serve/template.go`).
 
+Then the second half of §0's removal — **the only irreversible step in this plan**:
+
+- **Export first.** `foods`, `macro_entries`, `macro_goals` and `mood_entries` hold history no
+  export path covers. Dump them to a file, confirm with the owner that it is kept somewhere,
+  and only then write the migration. A `Down` section is not a backup: it recreates empty
+  tables.
+- One migration dropping those four tables and the `taggings` rows with
+  `taggable_type = 'mood_entry'`, incrementing `PRAGMA user_version`, with a `Down` that
+  recreates the empty tables and says in a comment that the data does not come back.
+- Delete `internal/repo/{food,macro_entry,macro_goal,mood_entry}.go`, their column constants
+  and their tests **in the same change** — otherwise `TestColumnConstantsMatchSchema` runs a
+  column constant against a table that no longer exists.
+- The deploy ordering in `CLAUDE.md` says migrations apply while the previous binary is still
+  serving, so a migration that removes something the running code reads errors until the
+  restart. This one is safe precisely because Phase 0B removed every caller a release earlier:
+  the running binary still contains those repo methods and never invokes them. That ordering is
+  the reason for the two-step split, not an accident of it.
+
 ---
 
 ## 6. Risks, honestly
 
-- **Duration.** 47 views, 18 controllers, 67 routes. This is months of evenings, not a weekend.
-  The phase split exists so that stopping after any phase leaves a working app — Phase 4 is
-  where it is safe to pause indefinitely.
+- **Duration.** 29 views, 12 controllers, 35 routes after §0 — about a third less than this
+  plan was originally sized for, but still months of evenings rather than a weekend. The phase
+  split exists so that stopping after any phase leaves a working app; Phase 4 is where it is
+  safe to pause indefinitely.
 - **Doubling the handler layer.** Between Phase 0 and Phase 7, HTML handlers and API handlers
   both exist. That is the cost of not doing a big-bang rewrite, and the reason for the freeze
   rule: two implementations of a *stationary* target stay in sync; two implementations of a
@@ -711,3 +870,12 @@ helpers, `tmplData`, the template loader in `internal/serve/template.go`).
    bounds. The server-side helpers (`computeDateRange`, `parseTZOffset`) stay until Phase 7
    because the templates are Phase 3's oracle, and quick-add keeps a client zone offset for its
    relative dates regardless — see §3.6.
+10. **Macros, foods and moods are dropped from the app** (§0, decided 2026-08-23). They are not
+    ported, not stubbed and not revisited. Expenses and what hangs off them — recurrent
+    expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are kept.
+11. **The removal is split in two: code in Phase 0B, tables in Phase 8.** Code goes early
+    because deferring it means porting views that get deleted; tables go last because dropping
+    them destroys history with no export path, and because the running binary must lose its
+    callers a release before the schema loses the tables.
+12. **The Phase 2 pilot resource is recurrent expenses**, replacing Foods. Tags therefore land
+    in Phase 2 rather than Phase 3.
