@@ -12,6 +12,7 @@ if a document is added, add it here too, or nobody will find it.
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
+| `docs/spa-migration.md` | The staged plan for replacing the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), where `.svelte` sources live, why Tailwind and component libraries are deferred, phases, decisions already made | Before any frontend work while the migration is running |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
