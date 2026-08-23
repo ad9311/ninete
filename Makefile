@@ -101,9 +101,9 @@ deps: ## Install and tidy dependencies
 	go mod download
 	go mod tidy
 
-build-static-js: ## Build web/static/js/index.ts into web/static/js/build/index.js with bun
+build-static-js: ## Build the frontend entrypoints into web/static/js/build with bun
 	@echo "Building static JS bundle..."
-	bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+	bun run web/build.ts
 
 # ========= Tests ===========
 # build-static-js is a dependency because internal/serve asserts that /static/*
