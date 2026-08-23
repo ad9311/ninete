@@ -3,7 +3,6 @@ package handlers_test
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -52,8 +51,6 @@ func TestWriteAPIError(t *testing.T) {
 	validationErr := store.ValidateStruct(apiErrorParams{SaturatedFatG: -1})
 	require.Error(t, validationErr)
 
-	errUserFacing := errors.New("that name is already taken")
-
 	cases := []struct {
 		name string
 		fn   func(*testing.T)
@@ -84,10 +81,11 @@ func TestWriteAPIError(t *testing.T) {
 		{
 			name: "should_answer_a_named_user_error_with_its_own_message",
 			fn: func(t *testing.T) {
-				status, body := writeAPIError(t, fmt.Errorf("%w", errUserFacing), errUserFacing)
+				err := fmt.Errorf("sign up: %w", logic.ErrAccountExists)
+				status, body := writeAPIError(t, err, logic.ErrAccountExists)
 
 				require.Equal(t, http.StatusUnprocessableEntity, status)
-				require.Equal(t, "that name is already taken", body.Error)
+				require.Equal(t, logic.ErrAccountExists.Error(), body.Error)
 			},
 		},
 		{
@@ -97,7 +95,9 @@ func TestWriteAPIError(t *testing.T) {
 			// here.
 			name: "should_not_leak_an_unnamed_error_to_the_client",
 			fn: func(t *testing.T) {
-				dbErr := errors.New("UNIQUE constraint failed: foods.name")
+				// The driver's error is dynamic; a static one stands in for
+				// it so the message under test is the one that must not leak.
+				dbErr := fmt.Errorf("UNIQUE constraint failed: foods.name: %w", sql.ErrConnDone)
 				status, body := writeAPIError(t, dbErr)
 
 				require.Equal(t, http.StatusInternalServerError, status)
@@ -110,10 +110,11 @@ func TestWriteAPIError(t *testing.T) {
 			// message to pass through.
 			name: "should_treat_an_unnamed_user_error_as_a_fault",
 			fn: func(t *testing.T) {
-				status, body := writeAPIError(t, errUserFacing)
+				err := fmt.Errorf("sign up: %w", logic.ErrAccountExists)
+				status, body := writeAPIError(t, err)
 
 				require.Equal(t, http.StatusInternalServerError, status)
-				require.NotEqual(t, errUserFacing.Error(), body.Error)
+				require.NotContains(t, body.Error, logic.ErrAccountExists.Error())
 			},
 		},
 	}

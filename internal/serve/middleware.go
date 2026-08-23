@@ -106,20 +106,20 @@ func (s *Server) apiCSRF(next http.Handler) http.Handler {
 	return csrfHandler
 }
 
-// guestAPIRoutes stay reachable while signed out. The handlers land in Phase 6
-// of docs/spa-migration.md; the exemption is declared with the middleware so
-// adding them does not mean reordering the chain.
-var guestAPIRoutes = map[string]bool{
-	"/api/login":    true,
-	"/api/register": true,
-}
-
 // apiAuth is the API's answer to AuthMiddleware: 401 with a JSON body instead
 // of a redirect (§3.1). It also puts the signed-in user into KeyCurrentUser,
 // which the API chain would otherwise never set — that happens in setTmplData,
 // which the API chain deliberately skips, and every resource handler opens with
 // getCurrentUser, which panics when the key is absent.
 func (s *Server) apiAuth(next http.Handler) http.Handler {
+	// The handlers land in Phase 6 of docs/spa-migration.md; the exemption is
+	// declared with the middleware so adding them does not mean reordering the
+	// chain. Built once per chain, like AuthMiddleware's own guest set.
+	guestAPIRoutes := map[string]bool{
+		"/api/login":    true,
+		"/api/register": true,
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if guestAPIRoutes[r.URL.Path] {
 			next.ServeHTTP(w, r)
