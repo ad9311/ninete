@@ -1,6 +1,13 @@
+# Deny everything, then allow back the source trees. An allowlist rather than a
+# denylist so a new top-level directory is not silently formatted, and so the
+# build output under web/static/js/build/ stays out.
 *
 !web/
+!web/*.ts
+!web/app/
+!web/app/**
 !web/static/
 !web/static/**
 !web/views/
 !web/views/**
+web/static/js/build/**

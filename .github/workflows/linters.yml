@@ -56,6 +56,25 @@ jobs:
       - name: Run ShellCheck
         run: make lint-sh
 
+  # The formatters had no CI job until Phase 0.6, which is how an unformatted
+  # file reached spa-base: `make lint-fix` formats, but nothing checked that
+  # someone had run it.
+  prettier:
+    name: prettier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: bun run format:static:check
+
   eslint:
     name: eslint
     runs-on: ubuntu-latest

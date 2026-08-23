@@ -118,6 +118,16 @@ test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose m
 	@mkdir -p ./data/db/test
 	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)
 
+# Both zones, not just the configured default: a calendar date formatted with
+# local getters still reads correctly east of UTC and only breaks west of it, so
+# the Los Angeles run is the one that catches most of §3.6. Each is well under a
+# second. CI runs them as separate jobs so a failure names its zone.
+test-js: ## Runs the JS/Svelte tests in both configured zones
+	@echo "Running JS tests (Pacific/Auckland)..."
+	bun run test:js
+	@echo "Running JS tests (America/Los_Angeles)..."
+	TEST_TZ=America/Los_Angeles bun run test:js
+
 # ========= Linting =========
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."

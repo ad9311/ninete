@@ -629,7 +629,7 @@ make every later phase mechanical.
   failures), all in `internal/handlers/` alongside `render.go`.
 - Sentinel errors go in the existing `errs.go`, not inline.
 
-**0.4 Client fetch wrapper**
+**0.4 Client fetch wrapper** — landed (#116)
 - `web/app/lib/api.ts`: `X-CSRF-Token` from `<meta name="csrf-token">`, `401` →
   `window.location.assign("/login")`, JSON error envelope parsing, typed helpers.
 - The shell gains the `<meta>` tag in Phase 1; until then read it from `layout.html`, which
@@ -645,16 +645,31 @@ make every later phase mechanical.
   `vitest.config.mts` — the runner config the tests need — while the `make test-js` target and
   the CI wiring stay in 0.6.
 
-**0.6 Test setup**
+**0.6 Test setup** — landed
 - `vitest` + `@testing-library/svelte`, with `TZ=Pacific/Auckland` in the config and a second
   CI run at `TZ=America/Los_Angeles`. Under CI's default `TZ=UTC` every date bug in §3.6
   passes silently, which is the entire reason this is Phase 0 work and not Phase 5 work.
-- A `make test-js` target, wired into CI next to `make test`.
+- A `make test-js` target, wired into CI next to `make test`. The target runs both zones
+  locally; CI runs them as two matrix jobs so a failure names its zone.
+- `jsdom` and `@sveltejs/vite-plugin-svelte` land here too. Without them
+  `@testing-library/svelte` is installed but unusable — vitest has no way to compile a
+  component — so Phase 1 would have discovered the gap while writing the shell. Svelte 5 picks
+  its server or client build by export condition, so `resolve.conditions: ["browser"]` is
+  required or every component test fails on a missing `mount` rather than on its assertions.
+- The Node environment stays the default and component tests opt into jsdom per file, so a
+  `lib/` module that reaches for `document` fails rather than passing on a DOM it should not
+  have (§3.9 rule 3).
+- `web/app/toolchain/` holds a probe component and its test: a canary for the setup itself,
+  verified to fail when the browser condition is removed.
+- `prettier-plugin-svelte` and `eslint-plugin-svelte` land here as well, so `.svelte` is
+  formatted and linted like everything else and `make lint-fix` needs no manual step. The
+  earlier plan assumed this was not available; it is, and it was one `bun add` away.
 
 **0.7 Documentation**
-- `web/README.md`: how the Svelte build works, the `web/app/` layout from §3.9 (including why
-  sources sit outside the served `web/static/` tree), the `.svelte` files are
-  not covered by prettier/eslint caveat.
+- `web/README.md`: how the Svelte build works and the `web/app/` layout from §3.9 (including
+  why sources sit outside the served `web/static/` tree). The "`.svelte` is not covered by
+  prettier/eslint" caveat this item used to carry no longer applies — 0.6 wired both up, so
+  there is nothing to warn about.
 - `CLAUDE.md`: the `/api/*` group in the route map.
 
 Exit criteria:

@@ -47,3 +47,32 @@ jobs:
           mkdir -p ./data/db/test
           CGO_ENABLED=1 go build -o ./build/dev ./cmd/ninete/main.go
           ENV=test go test ./...
+
+  js-tests:
+    name: js-tests (${{ matrix.tz }})
+    runs-on: ubuntu-latest
+    strategy:
+      # Not fail-fast: which zone a date bug shows up in is the most useful
+      # single fact about it, and cancelling the other job hides it.
+      fail-fast: false
+      matrix:
+        # Both signs of UTC offset. See the comment in vitest.config.mts: a
+        # calendar date formatted with local getters still reads correctly in
+        # Auckland and breaks in Los Angeles, so the second entry is the one
+        # earning its runtime.
+        tz: [Pacific/Auckland, America/Los_Angeles]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # TEST_TZ rather than TZ, so the runner's own zone cannot replace it.
+      - name: Run JS tests
+        run: bun run test:js
+        env:
+          TEST_TZ: ${{ matrix.tz }}
