@@ -16,7 +16,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
-| `web/README.md` | Templates and static assets: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration | **Before editing anything under `web/`** |
+| `web/README.md` | Templates, static assets and the Svelte build: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration, how `web/app/` reaches the browser and why sources stay out of `web/static/` | **Before editing anything under `web/`** |
 | `web/app/README.md` | Layout and naming rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, and why sources sit outside the served `web/static/` tree | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
@@ -129,6 +129,25 @@ with no error from SQLite or the driver.
 | Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
 | Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
+| API (SPA) | `/api/session`, and the resource routes Phase 2 onward adds | `api.go`, `handle_api_session.go` | reuses the page handlers' stores |
+
+**The `/api/*` group is a sibling of the page group, not a child** (`setUpAPIRoutes`). The two
+middleware chains differ, and an `/api` route must never fall through to a rendered template.
+`setUpAPIMiddlewares` shares the session, body cap, timeout and CSRF of the page chain and drops
+the two pieces that assume HTML: `setTmplData` (no templates) and `AuthMiddleware` (which
+redirects rather than answering `401`). Three consequences worth knowing before adding a route:
+
+- **`apiAuth` must keep putting the user in `KeyCurrentUser`.** Dropping `setTmplData` drops the
+  only other place that happens, and `getCurrentUser` *panics* when the key is absent — so a
+  handler opening with `user := getCurrentUser(r)` would 500 in a way that looks like a client
+  bug.
+- **`api.NotFound`/`api.MethodNotAllowed` are registered on the group** so an unmatched path
+  answers with the JSON envelope. They only take effect once the group has at least one real
+  route: a chi sub-router with none never builds its middleware chain.
+- **Responses go through `api.go`** — `WriteJSON`, `WriteJSONError`, `WriteAPIError` — which maps
+  validation to `422` with `{"error", "fields"}` and unexpected failures to a generic `500` that
+  never quotes `err.Error()`. There is no CSP on this chain by design; a JSON response has no
+  document to constrain.
 
 Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 
