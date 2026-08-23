@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.3 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.5 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -402,10 +402,16 @@ labels.
 
 #### How this gets verified (not optional)
 
-- **Run the frontend tests under a non-UTC zone.** `TZ=Pacific/Auckland` (UTC+12/+13, and it
-  observes DST) makes every "local getter used on a calendar date" bug fail immediately. Under
-  `TZ=UTC` — the CI default — all of them pass. Add `TZ` to the vitest config in Phase 0, and a
-  second CI run at `TZ=America/Los_Angeles` for the negative-offset direction.
+- **Run the frontend tests under a non-UTC zone — both signs, and the negative one matters
+  most.** Under `TZ=UTC`, the CI default, every bug in this section passes. `vitest.config.mts`
+  pins `Pacific/Auckland` (UTC+12/+13, and it observes DST) and reads `TEST_TZ` — not `TZ`, which
+  a developer's machine would silently supply — so a second run at `America/Los_Angeles` covers
+  the other direction.
+  **The west-of-UTC run is the one that catches calendar-date bugs.** A calendar date is stored
+  at UTC midnight, which in Auckland is still the same day locally, so a formatter wrongly using
+  local getters reads *correctly* there. Measured against `dates.test.ts` by switching
+  `formatDateUTC` to local getters: Los Angeles fails 12 cases, Auckland fails 1. Do not treat
+  the negative-offset run as the optional half.
 - **Boundary cases each dated resource must cover:** the 1st and last day of a month; a date in
   a DST transition week for the local zone; a range crossing a year boundary; an expense
   entered near local midnight (the case where the user's calendar day and UTC's disagree).
@@ -629,12 +635,15 @@ make every later phase mechanical.
 - The shell gains the `<meta>` tag in Phase 1; until then read it from `layout.html`, which
   already has `cspNonce` and can carry `csrfToken` the same way.
 
-**0.5 Dates module (see §3.6 before writing it)**
+**0.5 Dates module (see §3.6 before writing it)** — landed (#117)
 - `web/app/lib/dates.ts`: all three formatters from `localDateController.ts` ported verbatim —
   `formatDateUTC` (UTC getters, calendar dates), `formatDate` and `formatDateTime` (local
-  getters, an instant's text and its `title` tooltip) — plus `YYYY-MM-DD` ⇄ epoch helpers for the
-  API boundary.
-- Tests for all three, including the month-boundary and DST cases named in §3.6.
+  getters, an instant's text and its `title` tooltip) — plus the `YYYY-MM-DD` ⇄ epoch helpers for
+  the API boundary: `calendarDateToUnix` (rejects a rolled-over date such as `2026-02-31` rather
+  than answering March 3rd), `unixToCalendarDate`, `todayCalendarDate` and `addDays`.
+- Tests for all three, including the month-boundary and DST cases named in §3.6. Landed with
+  `vitest.config.mts` — the runner config the tests need — while the `make test-js` target and
+  the CI wiring stay in 0.6.
 
 **0.6 Test setup**
 - `vitest` + `@testing-library/svelte`, with `TZ=Pacific/Auckland` in the config and a second
