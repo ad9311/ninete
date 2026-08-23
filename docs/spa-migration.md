@@ -71,7 +71,7 @@ the freeze rule applies again in full to everything left.
 | --- | --- | --- | --- |
 | Template files | 47 | 18 | 29 |
 | Stimulus controllers | 18 | 6 | 12 |
-| Routes | 67 | 32 | 35 |
+| Routes | 67 | 29 | 38 |
 | Handler test files | 14 | 4 | 10 |
 
 ---
@@ -80,7 +80,7 @@ the freeze rule applies again in full to everything left.
 
 Today: Go `html/template` renders every page, Turbo intercepts navigation and form posts,
 Stimulus adds per-page interactivity. 47 template files, 18 Stimulus controllers, 67 routes —
-29, 12 and 35 once Phase 0B removes the dropped features (§0). Every count below this line is
+29, 12 and 38 once Phase 0B removes the dropped features (§0). Every count below this line is
 the post-§0 one.
 
 End state:
@@ -148,7 +148,7 @@ Two of the survivors need decisions rather than a port:
 | Icons rendered on `turbo:load` | `index.ts` + `icons.ts` | Per-component icon rendering |
 | Loading spinner | Turbo's `.turbo-progress-bar`, restyled in `layout.css` | Own component, §3.7 |
 | Export download | `/account/exports/expenses.json`, `data-turbo="false"` | Plain anchor, unchanged |
-| 32 `http.Redirect` calls after POST | `internal/handlers/*.go` | API returns the created/updated resource; client navigates |
+| 22 `http.Redirect` calls after POST | `internal/handlers/*.go` | API returns the created/updated resource; client navigates |
 
 ### 2.4 Styles
 
@@ -298,13 +298,18 @@ like the user misremembering.
 
 | Kind | Examples | Stored as | Means |
 | --- | --- | --- | --- |
-| **Calendar date** | `expenses.date`, `recurrent_expenses.last_copy_created_at`, budget month bounds | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
+| **Calendar date** | `expenses.date`, `recurrent_expenses.last_copy_created_at` | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
 | **Instant** | `created_at`, `updated_at`, export `exported_at` | epoch seconds of a real moment | a point in time, displayed in the viewer's zone |
 
-After §0, calendar dates survive in exactly two places — `expenses.date` and
+After §0, calendar dates survive in exactly two *stored* places — `expenses.date` and
 `recurrent_expenses.last_copy_created_at` — which narrows this section's blast radius but does
 not soften any of its rules. `last_copy_created_at` is the one to watch: the name says instant,
 the value is a calendar date.
+
+Budget and dashboard month bounds are calendar dates too, but they are **computed, never
+stored** — `expense_budgets` has no date column at all, only `amount` against a
+`(user_id, category_id)` pair. They are query bounds built by `computeDateRange`, so they obey
+every rule below without appearing in the table above.
 
 Both are `INTEGER` in SQLite and both are `int64` in Go, so **the type system will not catch a
 mix-up**. The distinction lives only in how each value is formatted and compared. Every date bug
@@ -659,19 +664,26 @@ before Phase 2**, which was going to pilot on Foods.
 Delete, in one change:
 
 - Routes: the `/macros`, `/foods` and `/moods` groups in `internal/serve/routes.go`, plus the
-  four `POST /account/{macro-entries,macro-goals,foods,moods}/delete-all` endpoints. 32 routes.
+  four `POST /account/{macro-entries,macro-goals,foods,moods}/delete-all` endpoints. 29 routes
+  (10 macros, 7 foods, 8 moods, 4 delete-all).
 - Handlers: `handle_macros.go`, `macro_shared.go`, `handle_foods.go`, `handle_mood_entries.go`
   and their four test files.
-- Logic: `logic_macro.go`, `logic_food.go`, `logic_mood_entry.go`, `mood.go` and their tests.
+- Logic: `logic_macro.go`, `logic_food.go`, `logic_mood_entry.go`, `mood.go` and their tests,
+  plus `ErrInvalidMood` in `internal/logic/errs.go` — a sentinel in a shared file, so deleting
+  the file that raises it leaves the error behind.
 - Views: `web/views/macros/`, `web/views/foods/`, `web/views/mood_entries/` — 18 files — and the
   three nav links at `common/_header.html:25-27`.
 - Controllers: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`, `moodChart`,
   `submitOnChange`, with their `window.Stimulus.register` lines in `web/static/js/index.ts`
   (see §2.2 on why `submitOnChange` goes too).
-- The `TemplateName` constants for every deleted view. A leftover constant compiles fine and
-  fails at request time, which is the failure mode `CLAUDE.md` warns about.
-- `repo.TaggableTypeMoodEntry`, and the mood branch of `logic_tag.go` / `repo/tagging.go`.
-  `TaggableTypeExpense` and `TaggableTypeRecurrentExpense` stay.
+- In `internal/handlers/constants.go`: the `TemplateName` constants for every deleted view, and
+  the `KeyMacroEntry` / `KeyFood` / `KeyMoodEntry` context keys that go with the deleted context
+  middlewares. A leftover template constant compiles fine and fails at request time, which is
+  the failure mode `CLAUDE.md` warns about.
+- `repo.TaggableTypeMoodEntry` (`repo/tagging.go:13`). That constant is the *only* mood-specific
+  code in the tagging layer — `logic_tag.go` and the rest of `repo/tagging.go` are generic over
+  `taggableType` and need no edit. `TaggableTypeExpense` and `TaggableTypeRecurrentExpense` stay,
+  and Phase 8's migration matches the literal `'mood_entry'` rather than the deleted constant.
 - The macro half of the dashboard: `dashboardMacros`, `buildDashboardMacros`,
   `computeMacroProgress` and the `macros` key in `handle_dashboard.go:20-42,135-163`, plus the
   matching block in `dashboard/index.html`. **This is what makes the dashboard a valid Phase 4
@@ -679,6 +691,24 @@ Delete, in one change:
   about to disappear.
 - The delete-data counts for the dropped resources: `MacroEntries`, `MacroGoals`, `Foods`,
   `MoodEntries` in `logic_account.go`, and their rows in `delete_data/index.html`.
+
+**Surviving test files that break, and must be edited in the same change.** These are not in
+the four deleted `handle_*_test.go` files, so they are easy to miss; each one fails the
+"`make test` green" exit criterion below on its own.
+
+- `internal/handlers/helpers_internal_test.go` — holds `TestComputeMacroProgress` and
+  `TestComputeDayWindow`, which call `computeMacroProgress`, `macroProgressData` and
+  `computeDayWindow`. All three live in `handle_macros.go`, so deleting it stops the `handlers`
+  package **compiling**, not just failing. Delete both tests; the rest of the file stays.
+- `internal/serve/api_routes_test.go:122` — mints its CSRF token with
+  `s.CSRFFrom(t, "/foods/new", cookies)`, a route this phase deletes. `CSRFFrom` does
+  `require.NotEmpty(..., "csrf_token not found in response body")`, and the 404 page carries no
+  form, so it fails rather than skips. Repoint it at a surviving form page —
+  `/recurrent-expenses/new` is the closest equivalent.
+- `internal/logic/logic_account_test.go` — asserts the counts and the delete-all behavior for
+  all four dropped resources. Trim it to the surviving ones.
+- `internal/handlers/handle_dashboard_test.go` and `handle_delete_data_test.go` — assert the
+  macro half of the dashboard and the deleted `delete-all` endpoints respectively.
 
 Keep, deliberately:
 
@@ -689,10 +719,14 @@ Keep, deliberately:
   linter does complain, delete the method rather than reviving a caller.
 - `internal/spec` factories only where a surviving repo test still uses them.
 
-One consequence to state rather than discover: **`POST /account/delete-all` stops clearing the
-dropped tables.** Rows in them outlive "delete all my data" until Phase 8 drops the tables.
-For a single-user app with the owner making the call that is acceptable, but it should be a
-decision, not a surprise.
+One thing to get right rather than discover: **`POST /account/delete-all` must keep clearing the
+dropped tables.** `DeleteAllUserData` (`logic_account.go:58-83`) calls
+`DeleteAllMacroEntriesByUser`, `DeleteAllMacroGoalsByUser`, `DeleteAllFoodsByUser` and
+`DeleteAllMoodEntriesByUser`, and those repo methods are on the keep list above — so leaving the
+four calls in place costs nothing and keeps "delete all my data" honest between this phase and
+Phase 8. Only the *counts* come out (they feed a page that no longer lists those resources).
+Do not delete the calls as part of tidying up the counts: that would silently leave personal
+data behind for however many months Phase 8 is away.
 
 Also in this PR: `CLAUDE.md`'s feature/route map and its tags cross-cutting note (the
 project-scope paragraph already carries the decision); `web/README.md` wherever it names a
@@ -702,8 +736,12 @@ Exit criteria:
 - `make test`, `make test-js` and `make lint-fix` green.
 - `/macros`, `/foods` and `/moods` return 404, and nothing in the nav links to them.
 - The dashboard renders the expense summary alone.
-- `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` comes
-  back empty. `internal/repo` and `internal/db` are expected to still match — that is §0's split.
+- `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` returns
+  only the known survivors below. `internal/repo` and `internal/db` are expected to still match —
+  that is §0's split. It does **not** come back empty, and nothing should be rewritten to make it:
+  `handle_exports_test.go` uses `"food"` as a literal tag name in an expenses export test, and
+  `api_test.go` uses `select food` / `foods.name` as fixture strings for the JSON error mapper.
+  Both are surviving expenses/API tests that merely contain the word. Any *other* hit is a leak.
 
 ### Phase 1 — Shell and router, coexisting with templates
 
@@ -828,7 +866,7 @@ Then the second half of §0's removal — **the only irreversible step in this p
 
 ## 6. Risks, honestly
 
-- **Duration.** 29 views, 12 controllers, 35 routes after §0 — about a third less than this
+- **Duration.** 29 views, 12 controllers, 38 routes after §0 — about a third less than this
   plan was originally sized for, but still months of evenings rather than a weekend. The phase
   split exists so that stopping after any phase leaves a working app; Phase 4 is where it is
   safe to pause indefinitely.
