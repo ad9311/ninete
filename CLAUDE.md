@@ -143,6 +143,8 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
   install it (`brew install shellcheck`) before editing `scripts/` — CI runs a
   pinned version and will not skip.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
+- `make test` is the Go suite only. Anything touching `web/app/` also needs `make test-js`,
+  which runs the frontend suite in both configured time zones — see `web/app/README.md`.
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.
 - Use those `errs.go` errors directly or wrap them (for example: `fmt.Errorf("%w", err)`).
 - **Build identity is stamped, not stored.** `internal/prog.Version`/`Commit`/`BuildTime` are set with `-X` from `git describe`, by `scripts/build.sh` and the Makefile. There is no `VERSION` file to bump, and `package.json`'s `version` field describes nothing — do not treat it as the app's version. Unstamped builds fall back to `dev`/`unknown`, so nothing may depend on the stamp being present. `docs/deployment.md` has the details.

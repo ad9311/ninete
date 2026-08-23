@@ -130,6 +130,7 @@ The development build:
 - `make version` — Print the version this checkout would build
 - `make snapshot` — Write a snapshot of the development database
 - `make build-static-js` — Build only the static JS bundle
+- `make test-js` — Run the frontend tests in both configured time zones
 - `make lint` — Run golangci-lint and shellcheck without fixing
 - `make lint-fix` — Run all formatters and linters with automatic fixes
 - `make lint-sh` — Run shellcheck over `scripts/*.sh` alone
@@ -175,6 +176,25 @@ make test pkg=./internal/logic/...
 
 Tests use an isolated test database (`./data/db/test/`), which is automatically cleaned before each run.
 
+`make test` covers the Go suite only. The frontend tests under `web/app/` run
+separately:
+
+```bash
+make test-js
+```
+
+That runs the suite twice, once in `Pacific/Auckland` and once in
+`America/Los_Angeles`. Both signs of UTC offset are needed: a calendar date
+formatted with local getters still reads correctly east of UTC and only breaks
+west of it, so neither run alone is enough. Set `TEST_TZ` to run a single zone
+by hand (`TEST_TZ=Europe/Madrid bun run test:js`). CI runs both as two steps of
+one job.
+
+`TEST_TZ=UTC` is the one value that does not work: `dates.test.ts` asserts the
+zone is not UTC, deliberately, because every date bug the suite exists to catch
+passes silently at offset zero. That guard failing is the suite telling you it
+has been neutered.
+
 ## Development Workflow
 
 After implementing changes:
@@ -187,6 +207,7 @@ After implementing changes:
 2. **Run tests**:
    ```bash
    make test
+   make test-js
    ```
 
 3. **Verify the app** runs without errors:

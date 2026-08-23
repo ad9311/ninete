@@ -496,6 +496,21 @@ Four rules that follow:
    vitest without a DOM.
 4. **Filenames: `PascalCase.svelte` for components, `camelCase.ts` for modules** — matching the
    existing `web/static/js/` convention (`localDateController.ts`, `icons.ts`).
+5. **Tests sit beside what they test, named after it.** `dates.ts` is tested by `dates.test.ts`
+   in the same directory, `Form.svelte` by `Form.test.ts` — the test mirrors the tested file's
+   name, so rule 4's two casings need no separate rule here and the pair sorts together. There is
+   no `web/app/spec/`: it would be the wrong parallel to `internal/spec`, which holds setup and
+   factories rather than tests, and the Go convention this repo already follows puts test files
+   in the directory of the code they test. Two answers to "where do tests go" in one repository
+   costs every future reader more than either answer does. Shared frontend test helpers, when
+   they are needed, belong in `lib/` like any other module.
+
+   The cost is real and was weighed: colocation puts `Index.test.ts` next to `Index.svelte`,
+   which makes rule 1's eye-check against `web/views/<resource>/` busier. It is accepted because
+   the oracle for a ported view is the frozen template, not a unit test — the dense testing lives
+   in `lib/` (`dates.ts` alone holds 59 of the suite's 60 cases), so `routes/` should stay thin
+   on test files. If a resource directory ever does fill with them, that is the signal to
+   revisit this, not a reason to pre-emptively split the tree now.
 
 `web/static/js/index.ts` and `web/static/js/controllers/` stay where they are until Phase 7,
 which deletes them. During the coexistence phases there are two entry points; `web/build.ts`
@@ -629,7 +644,7 @@ make every later phase mechanical.
   failures), all in `internal/handlers/` alongside `render.go`.
 - Sentinel errors go in the existing `errs.go`, not inline.
 
-**0.4 Client fetch wrapper**
+**0.4 Client fetch wrapper** — landed (#116)
 - `web/app/lib/api.ts`: `X-CSRF-Token` from `<meta name="csrf-token">`, `401` →
   `window.location.assign("/login")`, JSON error envelope parsing, typed helpers.
 - The shell gains the `<meta>` tag in Phase 1; until then read it from `layout.html`, which
@@ -645,16 +660,45 @@ make every later phase mechanical.
   `vitest.config.mts` — the runner config the tests need — while the `make test-js` target and
   the CI wiring stay in 0.6.
 
-**0.6 Test setup**
+**0.6 Test setup** — landed
 - `vitest` + `@testing-library/svelte`, with `TZ=Pacific/Auckland` in the config and a second
   CI run at `TZ=America/Los_Angeles`. Under CI's default `TZ=UTC` every date bug in §3.6
   passes silently, which is the entire reason this is Phase 0 work and not Phase 5 work.
-- A `make test-js` target, wired into CI next to `make test`.
+- A `make test-js` target, wired into CI next to `make test`. Both run the two zones. CI does
+  it as two steps in one job rather than a matrix — the suite takes under a second, so a second
+  job would only repeat the checkout and install — and the second step carries `if: always()`
+  so a failure in one zone still reports the other. `make test-js` cannot do that, since make
+  stops at the first failing line.
+- `jsdom` and `@sveltejs/vite-plugin-svelte` land here too. Without them
+  `@testing-library/svelte` is installed but unusable — vitest has no way to compile a
+  component — so Phase 1 would have discovered the gap while writing the shell. Svelte 5 picks
+  its server or client build by export condition, so `resolve.conditions: ["browser"]` is
+  required or every component test fails on a missing `mount` rather than on its assertions.
+- The Node environment stays the default and component tests opt into jsdom per file, so a
+  `lib/` module that reaches for `document` fails rather than passing on a DOM it should not
+  have (§3.9 rule 3).
+- `web/app/toolchain/` holds a probe component and its test: a canary for the setup itself,
+  verified to fail when the browser condition is removed.
+- `prettier-plugin-svelte` and `eslint-plugin-svelte` land here as well, so `.svelte` is
+  formatted and linted like everything else and `make lint-fix` needs no manual step. The
+  earlier plan assumed this was not available; it is, and it was one `bun add` away. Two
+  traps worth knowing, both of which shipped broken in review and were caught afterwards:
+  `eslint-plugin-svelte` v3 exports flat-config *arrays*, so `configs.recommended` has no
+  `.rules` and spreading it disables all 37 rules as a silent no-op, and a hand-rolled block
+  matching only `*.svelte` leaves rune modules (`*.svelte.js`, `*.svelte.ts`) to the plain-TS
+  block with no svelte rules at all — runes are ordinary function calls, so nothing complains.
+  A config that lints without error is not evidence it is wired up; check against a deliberate
+  violation. (`processor: "svelte/svelte"` belongs in the config too, but for suppression
+  comments inside markup — the rules themselves fire without it.)
+- Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
+  component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
+  on `layout.css` class names); wire it up if that changes.
 
 **0.7 Documentation**
-- `web/README.md`: how the Svelte build works, the `web/app/` layout from §3.9 (including why
-  sources sit outside the served `web/static/` tree), the `.svelte` files are
-  not covered by prettier/eslint caveat.
+- `web/README.md`: how the Svelte build works and the `web/app/` layout from §3.9 (including
+  why sources sit outside the served `web/static/` tree). The "`.svelte` is not covered by
+  prettier/eslint" caveat this item used to carry no longer applies — 0.6 wired both up, so
+  there is nothing to warn about.
 - `CLAUDE.md`: the `/api/*` group in the route map.
 
 Exit criteria:

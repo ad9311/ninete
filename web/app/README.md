@@ -22,12 +22,42 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   - `icons.ts` — moved from `web/static/js/` (Phase 1)
 - `components/` — shared, resource-agnostic components only
 - `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action
+- `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
+  for the test setup itself (Phase 0.6): they fail when vitest can no longer
+  compile a component, when it resolves Svelte's server build instead of the
+  client one, or when the jsdom opt-in stops working. Nothing else imports them
 
 The directory is not bundled until Phase 1; `lib/dates.ts` is unit-tested
 without a bundle from Phase 0.5.
 
-Tests are colocated as `*.test.ts` and run with `npx vitest run`
-(`vitest.config.mts`). They run under `Pacific/Auckland` by default; set
-`TEST_TZ=America/Los_Angeles` for the west-of-UTC direction, which is the one
-that catches calendar dates formatted with local getters. `TEST_TZ` rather than
-`TZ` so the developer's own zone cannot silently replace it.
+## Tests
+
+Each test sits beside what it tests and takes its name — `dates.ts` /
+`dates.test.ts`, `Probe.svelte` / `Probe.test.ts` (§3.9 rule 5). Run them with
+`make test-js`, which runs the suite twice
+— `Pacific/Auckland`, then `America/Los_Angeles`. Both signs of UTC offset are
+needed: a calendar date formatted with local getters still reads correctly east
+of UTC and only breaks west of it. `bun run test:js` runs the default zone
+alone, and `TEST_TZ` overrides it. `TEST_TZ` rather than `TZ` so the developer's
+own zone cannot silently replace it.
+
+The default environment is Node, not jsdom, because `lib/` holds no components
+and a module there that reaches for `document` should fail its own test rather
+than pass because a DOM happened to be present. A component test opts in with
+`// @vitest-environment jsdom` on the first line of the file.
+
+`make lint-fix` covers `.svelte`: `prettier-plugin-svelte` formats the whole
+file, and eslint runs `svelte-eslint-parser` with the TS parser nested inside
+it, so both `@typescript-eslint` and the 37 `eslint-plugin-svelte` rules apply.
+`processor: "svelte/svelte"` is set as well; it is not what makes the rules
+fire, it is what makes `<!-- eslint-disable-next-line svelte/... -->` inside
+markup be honoured. Rune modules (`*.svelte.js`, `*.svelte.ts`) get the same
+treatment through their own config block.
+
+One gap: stylelint reads `web/static/css/**/*.css` only and has no Svelte
+processor, so a `<style>` block inside a component is formatted but not
+stylelinted. A handful of `eslint-plugin-svelte` rules cover part of that
+ground (`svelte/no-dupe-style-properties`,
+`svelte/no-unknown-style-directive-property`). No component has a `<style>`
+block yet — §5 decision 5 keeps them on `layout.css` class names — so wire
+stylelint up if that changes rather than before.
