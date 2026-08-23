@@ -677,7 +677,7 @@ helpers, `tmplData`, the template loader in `internal/serve/template.go`).
 5. **Tailwind is deferred** to a separate post-migration project. Components reference the
    existing `layout.css` class names unchanged.
 6. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
-   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 4
+   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 5
    in disguise. If one is adopted afterwards it should be headless (Melt UI, Bits UI), added a
    component at a time, and checked against `/csp-report` first.
 7. **Sources live in `web/app/`, outside the served `web/static/` tree** (§3.9), with

@@ -6,7 +6,7 @@
   "scripts": {
     "format:static": "prettier --write \"web/**/*.{js,ts,css,html}\"",
     "format:static:check": "prettier --check \"web/**/*.{js,ts,css,html}\"",
-    "lint:js": "eslint \"web/static/js/**/*.{ts,tsx}\"",
+    "lint:js": "eslint \"web/**/*.{ts,tsx}\"",
     "lint:css": "stylelint \"web/static/css/**/*.css\""
   },
   "repository": {

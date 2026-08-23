@@ -4,7 +4,10 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
-    files: ["web/static/js/**/*.{ts,tsx}"],
+    // Every TS source under web/: the Stimulus entry, the build script, and
+    // the Svelte sources in web/app/. Scoping this to web/static/js/ let
+    // web/build.ts through unlinted.
+    files: ["web/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       ecmaVersion: "latest",

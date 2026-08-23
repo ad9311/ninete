@@ -36,7 +36,7 @@ jobs:
       # The JS bundle is git-ignored, and internal/serve asserts that
       # /static/* serves it. Without this step that test 404s.
       - name: Build static JS bundle
-        run: bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+        run: bun run web/build.ts
 
       - name: Create .env file
         run: cp .env.example .env
