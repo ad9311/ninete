@@ -799,8 +799,37 @@ Also in this PR: `CLAUDE.md`'s feature/route map and its tags cross-cutting note
 project-scope paragraph already carries the decision); `web/README.md` wherever it names a
 deleted controller; and `docs/architecture.md` if it maps the dropped packages.
 
+**Wire up type checking here, once the deletions land.** Nothing type-checks the frontend today:
+`make lint-fix` does not, no CI job does, and `web/build.ts` uses `Bun.build()`, which strips
+types rather than checking them — so a type error ships silently and is caught only by whoever
+has an editor open. This belongs in *this* phase for two reasons. The blocker disappears with the
+deletions: the single error `tsc --noEmit` reports today is
+`macroCalcController.ts(62,14) Property 'Turbo' does not exist on Window`, and that file is on
+the deletion list above, so the check goes from red to green for free. And the value is entirely
+forward-looking — a type checker pays in proportion to how much code is written *after* it is
+turned on, and Phases 1–6 are where the router, the shell and every ported resource get written.
+Turned on afterwards it would audit finished code; turned on here it guards the whole port. It is
+the one item on `TODO.md` whose worth decays by waiting, which is why it is scheduled rather than
+left there.
+
+Two tools, not one:
+
+- `tsc --noEmit` covers `.ts`. `tsconfig.json` already includes `web/app/**/*.ts`, so this is a
+  script and a `lint-fix` step, nothing more.
+- **`svelte-check` covers `.svelte`, and `tsc` cannot.** tsc does not parse components at all and
+  `tsconfig.json`'s `include` lists no `.svelte` pattern, so a `tsc`-only setup would leave every
+  component unchecked while looking complete — the same shape as the lint config in 0.6 that
+  reported success with all its rules off. `bun add -d svelte-check`, and check the pair against a
+  deliberate type error before believing either.
+
+The API boundary is what this is really for: a response crosses Go → JSON → TypeScript with no
+compiler on either side of the wire, so a renamed field in a Go struct arrives as `undefined` in
+a component. Nothing else in the chain catches that.
+
 Exit criteria:
 - `make test`, `make test-js` and `make lint-fix` green.
+- Type checking runs and passes: `tsc --noEmit` for `.ts`, `svelte-check` for `.svelte`, both in
+  `make lint-fix` and in CI.
 - `/macros`, `/foods` and `/moods` return 404, and nothing in the nav links to them.
 - The dashboard renders the expense summary alone.
 - `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` returns
