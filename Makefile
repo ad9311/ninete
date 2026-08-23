@@ -124,13 +124,16 @@ lint: ## Run golangci-lint
 	golangci-lint run
 	@$(MAKE) --no-print-directory lint-sh
 
+# The bun steps run before golangci on purpose: make stops at the first failing
+# recipe line, so a Go lint failure used to skip the static formatting entirely
+# and leave web/ unformatted with no sign anything had been skipped.
 lint-fix: ## Run golangci-lint with automatic fixes
-	@echo "Running golangci-lint (with --fix)..."
-	golangci-lint run --fix
 	@echo "Running static formatter and linters with bun..."
 	bun run format:static
 	bun run lint:css
 	bun run lint:js
+	@echo "Running golangci-lint (with --fix)..."
+	golangci-lint run --fix
 	@$(MAKE) --no-print-directory lint-sh
 
 # Runs last in lint/lint-fix, and skips itself when shellcheck is absent, so a

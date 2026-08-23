@@ -82,6 +82,10 @@ func (s *Server) newCSRFHandler(next http.Handler) *nosurf.CSRFHandler {
 	csrfHandler := nosurf.New(next)
 	// Browsers post CSP reports automatically with no CSRF token.
 	csrfHandler.ExemptPath(cspReportPath)
+	// Secure is a method call rather than a literal, which gosec cannot follow, so it
+	// reads the cookie as missing the attribute. It is set in production and left off
+	// locally so the cookie survives plain HTTP in development.
+	// #nosec G124 -- HttpOnly and SameSite are set here; Secure follows the environment.
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
 		Path:     "/",

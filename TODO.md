@@ -58,3 +58,21 @@ name with its parent, where the two entries would silently overwrite each other.
 Phase 2 should decide how a nested failure names itself — map the tag case onto
 `tags`, or key nested entries by a path rather than the leaf name — before the
 first endpoint that accepts tags is ported.
+
+## `SelectTagsForTaggable` takes its owner table as a plain string
+
+`SelectTagsForTaggable` (`internal/repo/tagging.go`) interpolates its
+`ownerTable` argument straight into the `INNER JOIN` of
+`selectTagsForTaggableBase` with `fmt.Sprintf`. Every caller today passes a
+literal — `"expenses"`, `"mood_entries"`, `"recurrent_expenses"` — so nothing is
+wrong at runtime, but the safety is a convention rather than something the type
+system or a whitelist enforces, unlike every other query in the package, where
+`QueryOptions` validates column names against `validExpenseFields()` and friends.
+
+The gosec exclusion added for `internal/repo` in `.golangci.yml` covers this
+call site along with the `QueryOptions` ones, so a future caller that passed a
+non-literal here would not be flagged.
+
+Give `ownerTable` a defined type with constants beside `TaggableTypeExpense`,
+so the pairing of taggable type and owner table is expressed once and a caller
+cannot supply an arbitrary string.
