@@ -501,8 +501,16 @@ Four rules that follow:
    name, so rule 4's two casings need no separate rule here and the pair sorts together. There is
    no `web/app/spec/`: it would be the wrong parallel to `internal/spec`, which holds setup and
    factories rather than tests, and the Go convention this repo already follows puts test files
-   in the directory of the code they test. Shared frontend test helpers, when they are needed,
-   belong in `lib/` like any other module.
+   in the directory of the code they test. Two answers to "where do tests go" in one repository
+   costs every future reader more than either answer does. Shared frontend test helpers, when
+   they are needed, belong in `lib/` like any other module.
+
+   The cost is real and was weighed: colocation puts `Index.test.ts` next to `Index.svelte`,
+   which makes rule 1's eye-check against `web/views/<resource>/` busier. It is accepted because
+   the oracle for a ported view is the frozen template, not a unit test — the dense testing lives
+   in `lib/` (`dates.ts` alone holds 59 of the suite's 60 cases), so `routes/` should stay thin
+   on test files. If a resource directory ever does fill with them, that is the signal to
+   revisit this, not a reason to pre-emptively split the tree now.
 
 `web/static/js/index.ts` and `web/static/js/controllers/` stay where they are until Phase 7,
 which deletes them. During the coexistence phases there are two entry points; `web/build.ts`
