@@ -2,6 +2,11 @@
 # denylist so a new top-level directory is not silently formatted, and so the
 # build output under web/static/js/build/ stays out.
 *
+# Repo-root config files. Anchored with a leading slash so these do not un-ignore
+# the same extensions inside node_modules.
+!/*.mjs
+!/*.mts
+!/*.json
 !web/
 !web/*.ts
 !web/app/

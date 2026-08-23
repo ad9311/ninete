@@ -681,7 +681,15 @@ make every later phase mechanical.
   verified to fail when the browser condition is removed.
 - `prettier-plugin-svelte` and `eslint-plugin-svelte` land here as well, so `.svelte` is
   formatted and linted like everything else and `make lint-fix` needs no manual step. The
-  earlier plan assumed this was not available; it is, and it was one `bun add` away.
+  earlier plan assumed this was not available; it is, and it was one `bun add` away. Two
+  traps worth knowing, both of which shipped broken in review and were caught afterwards:
+  `eslint-plugin-svelte` v3 exports flat-config *arrays*, so `configs.recommended` has no
+  `.rules` and spreading it disables all 37 rules as a silent no-op, and the rules do nothing
+  without `processor: "svelte/svelte"`. A config that lints `.svelte` files without error is
+  not evidence either is wired up — check against a deliberate violation.
+- Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
+  component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
+  on `layout.css` class names); wire it up if that changes.
 
 **0.7 Documentation**
 - `web/README.md`: how the Svelte build works and the `web/app/` layout from §3.9 (including

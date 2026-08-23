@@ -187,7 +187,13 @@ That runs the suite twice, once in `Pacific/Auckland` and once in
 `America/Los_Angeles`. Both signs of UTC offset are needed: a calendar date
 formatted with local getters still reads correctly east of UTC and only breaks
 west of it, so neither run alone is enough. Set `TEST_TZ` to run a single zone
-by hand (`TEST_TZ=UTC bun run test:js`). CI runs the two as separate jobs.
+by hand (`TEST_TZ=Europe/Madrid bun run test:js`). CI runs both as two steps of
+one job.
+
+`TEST_TZ=UTC` is the one value that does not work: `dates.test.ts` asserts the
+zone is not UTC, deliberately, because every date bug the suite exists to catch
+passes silently at offset zero. That guard failing is the suite telling you it
+has been neutered.
 
 ## Development Workflow
 

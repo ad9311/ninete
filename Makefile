@@ -124,7 +124,7 @@ test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose m
 # second. CI runs them as separate jobs so a failure names its zone.
 test-js: ## Runs the JS/Svelte tests in both configured zones
 	@echo "Running JS tests (Pacific/Auckland)..."
-	bun run test:js
+	TEST_TZ=Pacific/Auckland bun run test:js
 	@echo "Running JS tests (America/Los_Angeles)..."
 	TEST_TZ=America/Los_Angeles bun run test:js
 

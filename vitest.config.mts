@@ -1,4 +1,5 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { defaultClientConditions } from "vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -10,10 +11,21 @@ export default defineConfig({
   // read it.
   plugins: [svelte({ configFile: false })],
   // Svelte 5 ships separate server and client entry points and picks between
-  // them by export condition. Without this vitest resolves the server one, which
-  // renders to a string and has no `mount`, so every component test fails on a
-  // missing export rather than on anything it asserts.
-  resolve: { conditions: ["browser"] },
+  // them by export condition. Without the browser condition vitest resolves the
+  // server one, which renders to a string and has no `mount`, so every component
+  // test fails on a missing export rather than on anything it asserts.
+  //
+  // Spread rather than `["browser"]`: `resolve.conditions` replaces Vite's
+  // defaults, so naming only "browser" would drop `module` and
+  // `development|production` and let a dependency resolve differently here than
+  // it does anywhere else. `defaultClientConditions` already contains "browser".
+  //
+  // Global rather than scoped to the component tests: everything in web/app/
+  // ships to a browser (`web/build.ts` sets `target: "browser"`), so client
+  // resolution is the honest default for all of it. It is unrelated to which
+  // globals exist — that is `environment`, below, and a node-environment test
+  // still has no `document` regardless of what conditions resolved.
+  resolve: { conditions: [...defaultClientConditions] },
   test: {
     include: ["web/app/**/*.test.ts"],
     // Node, not jsdom, is the default on purpose: §3.9 rule 3 says `lib/` holds

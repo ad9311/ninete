@@ -46,7 +46,16 @@ and a module there that reaches for `document` should fail its own test rather
 than pass because a DOM happened to be present. A component test opts in with
 `// @vitest-environment jsdom` on the first line of the file.
 
-`make lint-fix` covers everything here, `.svelte` included:
-`prettier-plugin-svelte` formats the markup and the script block, and eslint
-runs `svelte-eslint-parser` with the TS parser nested inside it, so
-`@typescript-eslint` rules apply to `<script lang="ts">` too.
+`make lint-fix` covers `.svelte`: `prettier-plugin-svelte` formats the whole
+file, and eslint runs `svelte-eslint-parser` with the TS parser nested inside
+it, so both `@typescript-eslint` and the 37 `eslint-plugin-svelte` rules apply
+— the latter through `processor: "svelte/svelte"`, which is also what makes
+`<!-- eslint-disable-next-line -->` work inside markup.
+
+One gap: stylelint reads `web/static/css/**/*.css` only and has no Svelte
+processor, so a `<style>` block inside a component is formatted but not
+stylelinted. A handful of `eslint-plugin-svelte` rules cover part of that
+ground (`svelte/no-dupe-style-properties`,
+`svelte/no-unknown-style-directive-property`). No component has a `<style>`
+block yet — §5 decision 5 keeps them on `layout.css` class names — so wire
+stylelint up if that changes rather than before.
