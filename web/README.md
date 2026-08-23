@@ -1,11 +1,18 @@
-# `web/` — Templates and Static Assets
+# `web/` — Templates, Static Assets and Svelte Sources
 
 Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers conventions and the invariants that must not be broken, and `docs/architecture.md` covers layering and the Go-side request flow; this file covers what you need before editing anything under `web/`.
 
-Two directories:
+Three directories:
 
 - `web/views/` — Go `html/template` files rendered server-side.
 - `web/static/` — CSS, the TypeScript bundle, and images, served from `/static/*`.
+- `web/app/` — Svelte sources for the SPA. **Never served.** Build output only ever lands in
+  `web/static/js/build/`.
+
+`web/app/` exists because the app is mid-migration: `docs/spa-migration.md` is replacing the
+templates and Turbo with a Svelte SPA, in phases, on the `spa-base` branch. Read that document
+before frontend work — in particular §0, which drops macros, foods and moods, and the freeze
+rule, which says a template being ported must not change while it is being ported.
 
 ---
 
@@ -149,3 +156,49 @@ Linted with `eslint`, formatted with `prettier` (the `prettier-plugin-go-templat
 ### Images — `web/static/img/`
 
 Currently just `favicon.ico`, referenced by the layout.
+
+---
+
+## `web/app` — Svelte sources
+
+Layout and naming rules live in `docs/spa-migration.md` §3.9 and are summarised in
+`web/app/README.md`; this section covers how the code gets from here into the browser.
+
+### Why sources sit outside `web/static/`
+
+`setUpFileServer` mounts the whole of `web/static/` verbatim
+(`http.FileServer(http.Dir("./web/static/"))`), so **everything under it is publicly fetchable**
+— `GET /static/js/index.ts` serves TypeScript source today. Nothing secret lives in a component,
+so this is tidiness rather than a vulnerability, but there is no reason to ship sources once a
+build step exists. Only build output belongs under `web/static/`.
+
+### The build
+
+`web/build.ts` drives `Bun.build()`. It is a script rather than a `bun build` command line
+because Svelte components need `bun-plugin-svelte`, and the CLI has no flag for a plugin.
+
+```
+web/app/**          sources (this tree, plus web/static/js/index.ts today)
+       ↓  bun run web/build.ts   (make build-static-js)
+web/static/js/build/index.js     minified bundle, git-ignored, served from /static/*
+```
+
+- **The bundle is git-ignored.** Run `make build-static-js` after editing any `.ts` or
+  `.svelte`; `make dev` does it as part of its build, and the test suite depends on it because
+  `internal/serve` asserts `/static/*` serves the bundle.
+- **Entry points change per phase.** Today the only entry is the Stimulus `web/static/js/index.ts`.
+  Phase 1 adds `web/app/index.ts` beside it, and Phase 7 removes the Stimulus one — during the
+  coexistence phases `web/build.ts` builds both.
+- **Filenames are not content-hashed yet.** That waits for Phase 1, because `layout.html`
+  hardcodes `src="/static/js/build/index.js"` and `internal/serve/routes_test.go` asserts that
+  exact path returns 200; a hashed name alone would ship a shell with no JS. The mechanism it
+  needs is a manifest written beside the bundle and read by Go at startup.
+
+### Tests and lint
+
+`make test-js`, not `make test` — the Go suite does not run the frontend tests. `make lint-fix`
+covers `.svelte` as well as `.ts`.
+
+Both have details that matter and are documented once, in **`web/app/README.md`**: why the tests
+run in two time zones, what lint does and does not reach, and where test files live. Read that
+rather than assuming from here.

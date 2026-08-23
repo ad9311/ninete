@@ -692,21 +692,35 @@ make every later phase mechanical.
   comments inside markup — the rules themselves fire without it.)
 - Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
   component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
-  on `layout.css` class names); wire it up if that changes.
+  on `layout.css` class names); wire it up if that changes. `web/app/README.md` is where this
+  is kept current — the note here records the decision, not the state.
 
-**0.7 Documentation**
-- `web/README.md`: how the Svelte build works and the `web/app/` layout from §3.9 (including
-  why sources sit outside the served `web/static/` tree). The "`.svelte` is not covered by
-  prettier/eslint" caveat this item used to carry no longer applies — 0.6 wired both up, so
-  there is nothing to warn about.
-- `CLAUDE.md`: the `/api/*` group in the route map.
+**0.7 Documentation** — landed
+- `web/README.md`: gains a `web/app` section covering the build chain, why sources sit outside
+  the served `web/static/` tree, `make test-js`, and what lint covers. Its title and the
+  documentation-map row in `CLAUDE.md` now say the file describes three directories, not two.
+  The "`.svelte` is not covered by prettier/eslint" caveat this item used to carry no longer
+  applies — 0.6 wired both up.
+- `CLAUDE.md`: the `/api/*` group in the route map, plus the three things that bite when adding
+  a route to it — `apiAuth` having to populate `KeyCurrentUser` or `getCurrentUser` panics, the
+  group-level `NotFound`/`MethodNotAllowed` needing at least one real route to take effect, and
+  responses going through `api.go`'s writers.
 
-Exit criteria:
+Exit criteria — all met, Phase 0 complete:
 - `make build-static-js`, `make test`, `make test-js` and `make lint-fix` all green.
-- A signed-out request to any `/api/*` route returns `401` JSON with no `Location`.
-- A signed-in POST to an `/api/*` route without `X-CSRF-Token` is rejected.
+- A signed-out request to any `/api/*` route returns `401` JSON with no `Location`. Covered by
+  `TestAPIRoutesUseTheirOwnChain` (`internal/serve/api_routes_test.go`), which asserts the empty
+  `Location` header directly rather than only the status.
+- A signed-in POST to an `/api/*` route without `X-CSRF-Token` is rejected — same test, which
+  also checks that a token minted on a page *is* accepted, so the two chains share one cookie.
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
+
+Phase 1 is next in numbering and is the first phase a user could see: the shell, the router, and
+the SPA staged under `/app/*`. **Phase 0B, the section immediately below, is not skipped** — it
+is unnumbered because it can land at any point before Phase 2, which is the phase that would
+otherwise have piloted on Foods. Doing it before Phase 1 means the shell's nav is built once
+against the surviving routes rather than built and then trimmed.
 
 ### Phase 0B — Retire macros, foods and moods (code only)
 
