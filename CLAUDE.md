@@ -16,8 +16,8 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
-| `web/README.md` | Templates, static assets and the Svelte build: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration, how `web/app/` reaches the browser and why sources stay out of `web/static/` | **Before editing anything under `web/`** |
-| `web/app/README.md` | Layout and naming rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, and why sources sit outside the served `web/static/` tree | Before adding a file under `web/app/` |
+| `web/README.md` | How the three directories under `web/` work and how code reaches the browser: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration, the Svelte build chain | **Before editing anything under `web/`** |
+| `web/app/README.md` | Working rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, where tests go, and what lint and formatting cover | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
 
@@ -190,16 +190,16 @@ Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`lo
 - ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
 - Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
-- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `errs.go` (sentinel errors).
+- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `errs.go` (sentinel errors), `api.go` (JSON writers and the `/api/*` error mapping).
 - Reads and deletes hang off `*Queries`; inserts and updates that participate in a transaction hang off `*TxQueries`. Multi-step writes go through `queries.WithTx`.
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
 **`web/README.md` is the reference for everything under `web/`. Read it before
-editing a template, a stylesheet or a controller** — it covers the template data
-contract, the partial namespace, the Turbo/Stimulus wiring and the editing loop.
-What follows is the shape, plus the four things that fail silently if you do not
-know them going in.
+editing a template, a stylesheet, a controller or a Svelte component** — it
+covers the template data contract, the partial namespace, the Turbo/Stimulus
+wiring, the Svelte build chain and the editing loop. What follows is the shape,
+plus the things that fail silently if you do not know them going in.
 
 - Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
 - Shared layout lives in `web/views/layout.html`.
@@ -208,6 +208,15 @@ know them going in.
 - Route definitions are the source of truth in `internal/serve/routes.go`.
 - **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
 - Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
+- **Svelte sources live in `web/app/`, and are never served.** The SPA migration
+  (`docs/spa-migration.md`) is replacing the templates and Turbo with Svelte, phase by phase, on
+  the `spa-base` branch. `web/app/README.md` has the layout rules.
+- **The bundle is generated and git-ignored: run `make build-static-js` after editing any `.ts`
+  or `.svelte`.** `make dev` and `make test` do it for you; running `go test` directly does not,
+  and `internal/serve` asserts `/static/*` serves the bundle — so a skipped rebuild surfaces as
+  a red Go suite on a path unrelated to the change.
+- **`make test` does not run the frontend suite.** `make test-js` does, in two time zones. See
+  `docs/spa-migration.md` §3.6 before touching anything dated.
 - **Loading feedback is already global.** A spinner covers every Turbo visit
   and form submission; a new form or listing needs nothing added. It is Turbo's
   `.turbo-progress-bar` element restyled in `layout.css`, not an overlay of

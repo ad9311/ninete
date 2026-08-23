@@ -692,7 +692,8 @@ make every later phase mechanical.
   comments inside markup — the rules themselves fire without it.)
 - Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
   component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
-  on `layout.css` class names); wire it up if that changes.
+  on `layout.css` class names); wire it up if that changes. `web/app/README.md` is where this
+  is kept current — the note here records the decision, not the state.
 
 **0.7 Documentation** — landed
 - `web/README.md`: gains a `web/app` section covering the build chain, why sources sit outside
@@ -715,8 +716,11 @@ Exit criteria — all met, Phase 0 complete:
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
 
-Phase 1 is next and is the first phase a user could see: the shell, the router, and the SPA
-staged under `/app/*`.
+Phase 1 is next in numbering and is the first phase a user could see: the shell, the router, and
+the SPA staged under `/app/*`. **Phase 0B, the section immediately below, is not skipped** — it
+is unnumbered because it can land at any point before Phase 2, which is the phase that would
+otherwise have piloted on Foods. Doing it before Phase 1 means the shell's nav is built once
+against the surviving routes rather than built and then trimmed.
 
 ### Phase 0B — Retire macros, foods and moods (code only)
 

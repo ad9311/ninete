@@ -194,20 +194,11 @@ web/static/js/build/index.js     minified bundle, git-ignored, served from /stat
   exact path returns 200; a hashed name alone would ship a shell with no JS. The mechanism it
   needs is a manifest written beside the bundle and read by Go at startup.
 
-### Tests
+### Tests and lint
 
-`make test-js`, not `make test` — the Go suite does not run them. It runs the suite twice, in
-`Pacific/Auckland` and `America/Los_Angeles`, because a calendar date formatted with local
-getters reads correctly east of UTC and breaks west of it, and under CI's default `TZ=UTC` every
-such bug passes silently. `docs/spa-migration.md` §3.6 is required reading before touching
-anything dated.
+`make test-js`, not `make test` — the Go suite does not run the frontend tests. `make lint-fix`
+covers `.svelte` as well as `.ts`.
 
-### Formatting and linting
-
-`make lint-fix` covers `.svelte` as well as `.ts`: `prettier-plugin-svelte` formats, and eslint
-runs `svelte-eslint-parser` with the TypeScript parser nested inside it, so both
-`@typescript-eslint` and the `eslint-plugin-svelte` rules apply to a component's script block.
-
-The one gap is CSS: stylelint reads `web/static/css/**/*.css` only and has no Svelte processor,
-so a `<style>` block inside a component is formatted but not stylelinted. No component has one —
-components reference `layout.css` class names instead — so wire stylelint up if that changes.
+Both have details that matter and are documented once, in **`web/app/README.md`**: why the tests
+run in two time zones, what lint does and does not reach, and where test files live. Read that
+rather than assuming from here.
