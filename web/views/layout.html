@@ -7,6 +7,9 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta name="csp-nonce" content="{{ .cspNonce }}" />
       <meta name="version" content="{{ .version }}" />
+      <!-- The SPA's fetch wrapper reads the CSRF token here: nosurf keeps it in
+        an HttpOnly cookie, so JS has no other way to see it. -->
+      <meta name="csrf-token" content="{{ .csrfToken }}" />
       <script nonce="{{ .cspNonce }}">
         (function () {
           try {
