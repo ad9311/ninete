@@ -11,6 +11,7 @@
   "include": [
     "web/static/js/**/*.ts",
     "web/static/js/**/*.tsx",
-    "web/static/js/**/*.d.ts"
+    "web/static/js/**/*.d.ts",
+    "web/app/**/*.ts"
   ]
 }
