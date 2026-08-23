@@ -79,10 +79,17 @@ cannot supply an arbitrary string.
 
 ## Nothing type-checks the frontend
 
-`tsc --noEmit` is not run by `make lint-fix`, by any CI job, or by the build:
-`web/build.ts` uses `Bun.build()`, which strips types rather than checking them,
-so a type error ships silently. `tsconfig.json` is correct and already includes
-`web/app/**/*.ts` — it is simply never invoked outside an editor.
+**Scheduled: Phase 0B of `docs/spa-migration.md`.** Kept here so it is not lost if that phase
+is re-planned; the reasoning for the timing lives there.
+
+`tsc --noEmit` is not run by `make lint-fix`, by any CI job, or by the build: `web/build.ts`
+uses `Bun.build()`, which strips types rather than checking them, so a type error ships
+silently and is caught only by whoever has an editor open on the file.
+
+It needs two tools. `tsc --noEmit` covers `.ts` and `tsconfig.json` already includes
+`web/app/**/*.ts`. It does **not** cover components — tsc cannot parse `.svelte`, and the
+`include` list has no `.svelte` pattern — so `svelte-check` is required alongside it, or every
+component stays unchecked behind a green check.
 
 The check does not pass today. One error stands:
 
@@ -91,16 +98,7 @@ web/static/js/controllers/macroCalcController.ts(62,14): error TS2339:
 Property 'Turbo' does not exist on type 'Window & typeof globalThis'.
 ```
 
-`web/static/js/global.d.ts` declares `Window.Stimulus` but not `Window.Turbo`,
-and `macroCalc` is the only controller reaching for the global — the other seven
-call sites import `Turbo` from `@hotwired/turbo` directly.
-
-That single error needs no fix: `macroCalc` is one of the controllers Phase 0B
-deletes (`docs/spa-migration.md`, Phase 0B, "Controllers"), so the file and the
-error leave together. Wiring `tsc` in should therefore happen **after** Phase 0B,
-where it costs one line in `package.json`, a step in `make lint-fix` and a CI
-job, and nothing else. Doing it before means either fixing a file that is about
-to be deleted or landing a CI job that is red on arrival.
-
-Until then a type error in `web/app/` is caught only by whoever has an editor
-open on the file.
+`web/static/js/global.d.ts` declares `Window.Stimulus` but not `Window.Turbo`, and `macroCalc`
+is the only controller reaching for the global — the other seven call sites import `Turbo` from
+`@hotwired/turbo` directly. It needs no fix: that file is on Phase 0B's deletion list, so the
+error leaves with it.
