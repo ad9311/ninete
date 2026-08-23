@@ -496,6 +496,13 @@ Four rules that follow:
    vitest without a DOM.
 4. **Filenames: `PascalCase.svelte` for components, `camelCase.ts` for modules** — matching the
    existing `web/static/js/` convention (`localDateController.ts`, `icons.ts`).
+5. **Tests sit beside what they test, named after it.** `dates.ts` is tested by `dates.test.ts`
+   in the same directory, `Form.svelte` by `Form.test.ts` — the test mirrors the tested file's
+   name, so rule 4's two casings need no separate rule here and the pair sorts together. There is
+   no `web/app/spec/`: it would be the wrong parallel to `internal/spec`, which holds setup and
+   factories rather than tests, and the Go convention this repo already follows puts test files
+   in the directory of the code they test. Shared frontend test helpers, when they are needed,
+   belong in `lib/` like any other module.
 
 `web/static/js/index.ts` and `web/static/js/controllers/` stay where they are until Phase 7,
 which deletes them. During the coexistence phases there are two entry points; `web/build.ts`
@@ -649,8 +656,11 @@ make every later phase mechanical.
 - `vitest` + `@testing-library/svelte`, with `TZ=Pacific/Auckland` in the config and a second
   CI run at `TZ=America/Los_Angeles`. Under CI's default `TZ=UTC` every date bug in §3.6
   passes silently, which is the entire reason this is Phase 0 work and not Phase 5 work.
-- A `make test-js` target, wired into CI next to `make test`. The target runs both zones
-  locally; CI runs them as two matrix jobs so a failure names its zone.
+- A `make test-js` target, wired into CI next to `make test`. Both run the two zones. CI does
+  it as two steps in one job rather than a matrix — the suite takes under a second, so a second
+  job would only repeat the checkout and install — and the second step carries `if: always()`
+  so a failure in one zone still reports the other. `make test-js` cannot do that, since make
+  stops at the first failing line.
 - `jsdom` and `@sveltejs/vite-plugin-svelte` land here too. Without them
   `@testing-library/svelte` is installed but unusable — vitest has no way to compile a
   component — so Phase 1 would have discovered the gap while writing the shell. Svelte 5 picks

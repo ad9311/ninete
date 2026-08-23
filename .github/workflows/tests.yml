@@ -48,19 +48,18 @@ jobs:
           CGO_ENABLED=1 go build -o ./build/dev ./cmd/ninete/main.go
           ENV=test go test ./...
 
+  # Both signs of UTC offset, as two steps in one job rather than a matrix. The
+  # suite takes under a second, so parallelism buys nothing and a second job
+  # would repeat the ~10s of checkout and install for it. See the comment in
+  # vitest.config.mts for why one zone is not enough.
+  #
+  # Not `make test-js`, which runs both zones but stops at the first failure:
+  # knowing whether a date bug fails east of UTC, west of it, or both is the
+  # most useful single fact about it, so the second zone has to run either way.
+  # `if: always()` is what preserves that here.
   js-tests:
-    name: js-tests (${{ matrix.tz }})
+    name: js-tests
     runs-on: ubuntu-latest
-    strategy:
-      # Not fail-fast: which zone a date bug shows up in is the most useful
-      # single fact about it, and cancelling the other job hides it.
-      fail-fast: false
-      matrix:
-        # Both signs of UTC offset. See the comment in vitest.config.mts: a
-        # calendar date formatted with local getters still reads correctly in
-        # Auckland and breaks in Los Angeles, so the second entry is the one
-        # earning its runtime.
-        tz: [Pacific/Auckland, America/Los_Angeles]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -72,7 +71,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       # TEST_TZ rather than TZ, so the runner's own zone cannot replace it.
-      - name: Run JS tests
+      - name: Run JS tests (Pacific/Auckland)
         run: bun run test:js
         env:
-          TEST_TZ: ${{ matrix.tz }}
+          TEST_TZ: Pacific/Auckland
+
+      - name: Run JS tests (America/Los_Angeles)
+        if: always()
+        run: bun run test:js
+        env:
+          TEST_TZ: America/Los_Angeles

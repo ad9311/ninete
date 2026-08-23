@@ -32,7 +32,9 @@ without a bundle from Phase 0.5.
 
 ## Tests
 
-Colocated as `*.test.ts` and run with `make test-js`, which runs the suite twice
+Each test sits beside what it tests and takes its name — `dates.ts` /
+`dates.test.ts`, `Probe.svelte` / `Probe.test.ts` (§3.9 rule 5). Run them with
+`make test-js`, which runs the suite twice
 — `Pacific/Auckland`, then `America/Los_Angeles`. Both signs of UTC offset are
 needed: a calendar date formatted with local getters still reads correctly east
 of UTC and only breaks west of it. `bun run test:js` runs the default zone
