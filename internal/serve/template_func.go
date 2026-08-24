@@ -3,7 +3,6 @@ package serve
 import (
 	"fmt"
 	"html/template"
-	"math"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/prog"
-	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -32,8 +30,6 @@ func TemplateFuncMap() template.FuncMap {
 		"perPageChoices":   handlers.PerPageChoices,
 		"add":              func(a, b int) int { return a + b },
 		"sub":              func(a, b int) int { return a - b },
-		"titleize":         cases.Title(language.English).String,
-		"truncateFloat":    truncateFloat,
 	}
 }
 
@@ -118,12 +114,6 @@ func sumTotal(rows any) uint64 {
 	}
 
 	return total
-}
-
-func truncateFloat(x float64) string {
-	truncated := math.Trunc(x*10) / 10
-
-	return strconv.FormatFloat(truncated, 'f', -1, 64)
 }
 
 func filterParams(pg handlers.PaginationData) string {

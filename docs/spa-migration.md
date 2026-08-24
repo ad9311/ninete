@@ -70,7 +70,7 @@ landed, so the freeze rule now applies again in full to everything left.
 | | Before | Dropped | After |
 | --- | --- | --- | --- |
 | Template files | 47 | 18 | 29 |
-| Stimulus controllers | 18 | 6 | 12 |
+| Stimulus controllers | 18 | 7 | 11 |
 | Routes | 67 | 29 | 38 |
 | Handler test files | 14 | 4 | 10 |
 
@@ -80,7 +80,7 @@ landed, so the freeze rule now applies again in full to everything left.
 
 Today: Go `html/template` renders every page, Turbo intercepts navigation and form posts,
 Stimulus adds per-page interactivity. Phase 0B has landed, so the counts are now 29 template
-files, 12 Stimulus controllers and 38 routes — down from 47, 18 and 67 before the §0 removal.
+files, 11 Stimulus controllers and 38 routes — down from 47, 18 and 67 before the §0 removal.
 Every count below this line is the post-§0 one, and all three were verified against the tree
 after 0B rather than projected.
 
@@ -118,17 +118,20 @@ Macros, foods and mood entries are absent from this table on purpose: Phase 0B d
 | `error`, `not_found` | 2 | Become client-side error states + a server fallback |
 
 
-### 2.2 Stimulus controllers (12 after §0, `web/static/js/controllers/`)
+### 2.2 Stimulus controllers (11 after §0, `web/static/js/controllers/`)
 
 Each becomes either component-local state or a shared util. None survive as controllers.
 
-`amount`, `chart`, `dashboardDate`, `date`, `dateHelp`, `filter`, `localDate`, `nav`,
-`quickExpense`, `searchPanel`, `sort`, `theme`.
+`amount`, `chart`, `date`, `dateHelp`, `filter`, `localDate`, `nav`, `quickExpense`,
+`searchPanel`, `sort`, `theme`.
 
 Deleted unported in Phase 0B: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`,
-`moodChart`, `submitOnChange`. The last one was the trap — `submitOnChange` reads as a generic
-utility but its only two uses were `macros/index` and `macros/stats`, so it went with them;
-`filter` is the equivalent control expenses keeps.
+`moodChart`, `submitOnChange`, `dashboardDate`. The first trap was `submitOnChange` — it reads
+as a generic utility but its only two uses were `macros/index` and `macros/stats`, so it went
+with them; `filter` is the equivalent control expenses keeps. The second was `dashboardDate`,
+whose name suggests it belongs to the surviving half of the dashboard: its only mount was the
+nutrition card, and `?date` was read only by the macro half, so the controller became
+unreachable the moment that section went and was deleted with it.
 
 Two of the survivors need decisions rather than a port:
 - `theme` — writes `localStorage`, and `layout.html:9-22` has an inline anti-FOUC script that
@@ -742,8 +745,8 @@ Delete, in one change:
 - Views: `web/views/macros/`, `web/views/foods/`, `web/views/mood_entries/` — 18 files — and the
   three nav links at `common/_header.html:25-27`.
 - Controllers: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`, `moodChart`,
-  `submitOnChange`, with their `window.Stimulus.register` lines in `web/static/js/index.ts`
-  (see §2.2 on why `submitOnChange` goes too).
+  `submitOnChange`, `dashboardDate`, with their `window.Stimulus.register` lines in
+  `web/static/js/index.ts` (see §2.2 on why `submitOnChange` and `dashboardDate` go too).
 - In `internal/handlers/constants.go`: the `TemplateName` constants for every deleted view, and
   the `KeyMacroEntry` / `KeyFood` / `KeyMoodEntry` context keys that go with the deleted context
   middlewares. A leftover template constant compiles fine and fails at request time, which is
@@ -843,6 +846,18 @@ kind of thing the next deletion phase (Phase 8) will hit again:
   seeds those tables through `repo.TxQueries` directly, since the logic stores and the spec
   factories for them are gone, and reads their counts from `repo.Queries` since the
   `AccountDataCounts` fields are gone too.
+- **Assets outlive the markup that used them, and nothing fails when they do.** Four sweeps that
+  no compiler, linter or test would have flagged: `dashboardDate` (above); the `apple`,
+  `calendar`, `salad`, `smile` and `utensils` icons in `web/static/js/icons.ts`, still imported
+  from `lucide` and still bundled with no `data-lucide` left referencing them; `.btn-align-end`
+  in `layout.css`, whose only user was `mood_entries/stats.html`; and the `truncateFloat` and
+  `titleize` template funcs in `internal/serve/template_func.go`, whose only callers were the
+  dashboard's macro card, `macros/index` and `macros/stats`. Phase 8 should re-run the same
+  three checks — icon name against `data-lucide`, CSS class against `web/`, template func
+  against `web/views` — rather than trusting the build.
+- `README.md` advertised Nutrition and Moods in its feature list and "macro progress" on the
+  dashboard. It is the one document a newcomer reads first, and it was the only one still
+  describing the app as four areas rather than two.
 
 Exit criteria:
 - `make test`, `make test-js` and `make lint-fix` green.
@@ -924,7 +939,8 @@ exist, they are a working oracle; after Phase 7 they are not.
 
 ### Phase 4 — Dashboard
 
-All that §0 leaves here: the expense summary and its date picker (`dashboardDate`). Recurrent
+All that §0 leaves here: the expense summary. Its date picker went with the nutrition card in
+Phase 0B — the summary reads `tz_offset`, never `date`, so there is nothing to port. Recurrent
 expenses moved to Phase 2 and the other three resources are gone, so this is a small phase —
 which is fine, it is not worth folding into Phase 3 given the dashboard is its own view with
 its own range logic.

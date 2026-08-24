@@ -1,17 +1,14 @@
 # NINETE
 
-A personal tracking app, built around four areas:
+A personal tracking app, built around two areas:
 
 - **Expenses** — categories and tags, quick entry, search by description, tag or
   date range, per-category monthly budgets, and stats.
 - **Recurrent expenses** — copied into real expenses on a schedule by a task,
   carrying their tags, and archived once they hit an optional occurrence limit.
-- **Nutrition** — macro entries against daily goals, plus a personal food library
-  used to prefill them.
-- **Moods** — tagged daily entries with stats.
 
-Alongside those: a dashboard summarizing spend and macro progress, a JSON export
-of expenses, and an account page for bulk-deleting any of the data above.
+Alongside those: a dashboard summarizing spend, a JSON export of expenses, and an
+account page for bulk-deleting any of the data above.
 
 In practice it runs single-user. Data stays user-scoped for correctness, but the app is tuned for one person's responsiveness rather than for concurrent capacity — see the Project Scope section of [`CLAUDE.md`](CLAUDE.md) and [`docs/performance.md`](docs/performance.md) before optimizing anything.
 

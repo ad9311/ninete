@@ -965,10 +965,6 @@ button:focus-visible {
   color: var(--color-danger);
 }
 
-.btn-align-end {
-  align-self: flex-end;
-}
-
 @media (width <= 48rem) {
   .page-shell {
     padding-top: var(--space-5);

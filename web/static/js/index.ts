@@ -21,7 +21,6 @@ import FilterController from "./controllers/filterController";
 import NavController from "./controllers/navController";
 import SortController from "./controllers/sortController";
 import ChartController from "./controllers/chartController";
-import DashboardDateController from "./controllers/dashboardDateController";
 import LocalDateController from "./controllers/localDateController";
 import ThemeController from "./controllers/themeController";
 import QuickExpenseController from "./controllers/quickExpenseController";
@@ -31,7 +30,6 @@ import { initIcons } from "./icons";
 
 window.Stimulus = Application.start();
 window.Stimulus.register("date", DateController);
-window.Stimulus.register("dashboard-date", DashboardDateController);
 window.Stimulus.register("amount", AmountController);
 window.Stimulus.register("filter", FilterController);
 window.Stimulus.register("nav", NavController);

@@ -1,8 +1,6 @@
 import {
   createIcons,
   AlignLeft,
-  Apple,
-  Calendar,
   CalendarRange,
   ChartColumn,
   ChevronDown,
@@ -12,22 +10,17 @@ import {
   Plus,
   Repeat,
   Rows3,
-  Salad,
   Search,
-  Smile,
   SquareArrowOutUpRight,
   SquarePen,
   Tag,
   Target,
   Trash2,
-  Utensils,
   Wallet,
 } from "lucide";
 
 const icons = {
   AlignLeft,
-  Apple,
-  Calendar,
   CalendarRange,
   ChartColumn,
   ChevronDown,
@@ -37,15 +30,12 @@ const icons = {
   Plus,
   Repeat,
   Rows3,
-  Salad,
   Search,
-  Smile,
   SquareArrowOutUpRight,
   SquarePen,
   Tag,
   Target,
   Trash2,
-  Utensils,
   Wallet,
 };
 
