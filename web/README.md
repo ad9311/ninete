@@ -11,7 +11,7 @@ Three directories:
 
 `web/app/` exists because the app is mid-migration: `docs/spa-migration.md` is replacing the
 templates and Turbo with a Svelte SPA, in phases, on the `spa-base` branch. Read that document
-before frontend work — in particular §0, which drops macros, foods and moods, and the freeze
+before frontend work — in particular §0, which dropped macros, foods and moods, and the freeze
 rule, which says a template being ported must not change while it is being ported.
 
 ---
@@ -40,7 +40,7 @@ Path pattern is `web/views/<resource>/<action>.html`.
 The template key is `<directory>/<basename>` (`viewKey` in `template.go`), which is exactly the value of the matching `handlers.TemplateName` constant:
 
 ```
-web/views/foods/edit.html  ⇒  "foods/edit"  ⇒  handlers.FoodsEdit
+web/views/expenses/edit.html  ⇒  "expenses/edit"  ⇒  handlers.ExpensesEdit
 ```
 
 **Adding a view means two edits**: the file itself, and a `TemplateName` constant in `internal/handlers/constants.go`. Nothing checks these agree at compile time — a handler rendering a name with no template logs `missing template` and returns a 500.
@@ -63,7 +63,7 @@ Names currently in use:
 | `form_error` | `common/_form_error.html` | Renders `.error` |
 | `submit_button`, `delete_button` | `common/_form_buttons.html` | Shared form buttons |
 | `pagination` | `common/_pagination.html` | Pager controls |
-| `expense_form`, `food_form`, … | `<resource>/_form.html` | Per-resource form bodies |
+| `expense_form`, `recurrent_expense_form`, … | `<resource>/_form.html` | Per-resource form bodies |
 
 Cross-resource partials go in `web/views/common/`; resource-specific ones sit next to the views that use them.
 

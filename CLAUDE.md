@@ -22,9 +22,9 @@ if a document is added, add it here too, or nobody will find it.
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
 
 ## Project Scope
-NINETE is a personal tracking app (expenses, macros/nutrition, foods, moods). It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
+NINETE is a personal tracking app for expenses. It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
 
-**Macros, foods and moods are being dropped.** The decision is recorded in `docs/spa-migration.md` §0; the code is still present and removal lands in that plan's Phase 0B, with the tables dropped in Phase 8. Do not extend those features and do not port them to the SPA. Expenses and what hangs off them — recurrent expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are what the app keeps.
+**Macros, foods and moods have been dropped.** The decision is recorded in `docs/spa-migration.md` §0 and the code was removed in that plan's Phase 0B. The *tables* survive until Phase 8, along with `internal/repo/{macro_entry,macro_goal,food,mood_entry}.go` and their column constants, so `TestColumnConstantsMatchSchema` keeps guarding the schema; those repo files have no callers on purpose. Do not revive the features and do not port them to the SPA. Expenses and what hangs off them — recurrent expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are what the app keeps.
 
 The app is still built multi-user and must stay that way: auth flows exist, and every table holding personal data is scoped by `user_id` (`categories` is the one shared lookup table). That scoping is an ownership and correctness boundary — a query that forgets `user_id` is a bug that leaks or destroys another account's data — and it is cheap to maintain. It is not an ambition to serve many people at once.
 
@@ -119,12 +119,9 @@ with no error from SQLite or the driver.
 | Area | Routes | Handlers | Logic |
 | --- | --- | --- | --- |
 | Auth | `/login`, `/register`, `/logout` | `handle_auth.go` | `logic_auth.go`, `logic_invitation_code.go` |
-| Dashboard | `/dashboard` | `handle_dashboard.go` | reuses expense + macro stores |
+| Dashboard | `/dashboard` | `handle_dashboard.go` | reuses the expense stores |
 | Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/budgets`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `handle_expense_budgets.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go`, `logic_expense_budget.go` |
 | Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/archived`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
-| Macros | `/macros`, `/macros/goals`, `/macros/stats`, `/macros/{id}` | `handle_macros.go`, `macro_shared.go` | `logic_macro.go` |
-| Foods | `/foods`, `/foods/{id}` | `handle_foods.go` | `logic_food.go` |
-| Moods | `/moods`, `/moods/stats`, `/moods/{id}` | `handle_mood_entries.go` | `logic_mood_entry.go`, `mood.go` |
 | Account | `/account` | `handle_account.go` | — |
 | Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
 | Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
@@ -149,18 +146,23 @@ redirects rather than answering `401`). Three consequences worth knowing before 
   never quotes `err.Error()`. There is no CSP on this chain by design; a JSON response has no
   document to constrain.
 
-Cross-cutting: tags attach to expenses, recurrent expenses and mood entries (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
+Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 
 ## Engineering Workflow
 - **Always write in English.** Code, comments, identifiers, commit messages, PR titles and
   descriptions, documentation, migration names, log messages, and user-facing strings are all
   English, with no exceptions. This holds regardless of the language a request is written in.
 - Use `Makefile` targets as the default way to run project commands.
-- After implementing changes, run `make lint-fix`. It covers Go, CSS, JS, and the
-  shell scripts under `scripts/` (`make lint-sh` runs shellcheck alone). The shell
+- After implementing changes, run `make lint-fix`. It covers Go, CSS, JS, type
+  checking, and the shell scripts under `scripts/` (`make lint-sh` runs shellcheck alone). The shell
   step runs last and skips with a warning when shellcheck is not installed, so
   install it (`brew install shellcheck`) before editing `scripts/` — CI runs a
   pinned version and will not skip.
+- **Type checking is two tools, not one.** `bun run typecheck:ts` (`tsc --noEmit`)
+  covers `.ts`; `bun run typecheck:svelte` (`svelte-check`) covers `.svelte`,
+  which `tsc` cannot parse at all. Both run in `make lint-fix` and in the
+  `typecheck` CI job. Dropping either half leaves that language unchecked while
+  the run still goes green.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - `make test` is the Go suite only. Anything touching `web/app/` also needs `make test-js`,
   which runs the frontend suite in both configured time zones — see `web/app/README.md`.

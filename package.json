@@ -8,6 +8,8 @@
     "format:static:check": "prettier --check \"web/**/*.{js,ts,svelte,css,html}\" \"*.{mjs,mts,json}\"",
     "lint:js": "eslint \"web/**/*.{ts,tsx,svelte}\"",
     "lint:css": "stylelint \"web/static/css/**/*.css\"",
+    "typecheck:ts": "tsc --noEmit",
+    "typecheck:svelte": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "test:js": "vitest run"
   },
   "repository": {
@@ -37,6 +39,7 @@
     "prettier-plugin-svelte": "^4.1.1",
     "stylelint": "^17.1.1",
     "stylelint-config-standard": "^40.0.0",
+    "svelte-check": "^4.7.6",
     "svelte-eslint-parser": "^1.8.1",
     "typescript": "^5.9.3",
     "vite": "^8.2.2",

@@ -54,6 +54,21 @@ fire, it is what makes `<!-- eslint-disable-next-line svelte/... -->` inside
 markup be honoured. Rune modules (`*.svelte.js`, `*.svelte.ts`) get the same
 treatment through their own config block.
 
+Type checking is separate from linting and takes two tools, because `tsc` cannot
+parse a component at all. `bun run typecheck:ts` (`tsc --noEmit`) covers `.ts`;
+`bun run typecheck:svelte` (`svelte-check`) covers `.svelte`. Both run in
+`make lint-fix` and in the `typecheck` CI job, and both were checked against a
+deliberate type error rather than a clean exit: an error planted in `Probe.svelte`
+is reported by `svelte-check` and passes `tsc` silently, which is the whole reason
+for the second tool. `tsconfig.json` lists `web/app/**/*.svelte` in `include` —
+`tsc` ignores it (not an extension it compiles) and `svelte-check` reads it, so
+the component file set is written down rather than inferred.
+
+The API boundary is what this really guards. A response crosses Go → JSON →
+TypeScript with no compiler on either side of the wire, so a renamed field in a
+Go struct arrives as `undefined` in a component and nothing else in the chain
+notices.
+
 One gap: stylelint reads `web/static/css/**/*.css` only and has no Svelte
 processor, so a `<style>` block inside a component is formatted but not
 stylelinted. A handful of `eslint-plugin-svelte` rules cover part of that

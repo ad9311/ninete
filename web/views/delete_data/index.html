@@ -53,38 +53,6 @@
       </form>
     </section>
 
-    <section class="card" aria-labelledby="account-macro-entries-title">
-      <header class="card-header">
-        <h2 id="account-macro-entries-title" class="card-title">
-          Macro Entries
-        </h2>
-      </header>
-      <span class="card-delta">{{ .counts.MacroEntries }} record(s)</span>
-      <form
-        action="/account/macro-entries/delete-all"
-        method="post"
-        data-turbo-confirm="Delete ALL your macro entries? This cannot be undone."
-      >
-        {{ template "csrf" . }}
-        {{ template "delete_button" . }}
-      </form>
-    </section>
-
-    <section class="card" aria-labelledby="account-macro-goals-title">
-      <header class="card-header">
-        <h2 id="account-macro-goals-title" class="card-title">Macro Goals</h2>
-      </header>
-      <span class="card-delta">{{ .counts.MacroGoals }} record(s)</span>
-      <form
-        action="/account/macro-goals/delete-all"
-        method="post"
-        data-turbo-confirm="Delete your macro goals? This cannot be undone."
-      >
-        {{ template "csrf" . }}
-        {{ template "delete_button" . }}
-      </form>
-    </section>
-
     <section class="card" aria-labelledby="account-expense-budgets-title">
       <header class="card-header">
         <h2 id="account-expense-budgets-title" class="card-title">
@@ -96,36 +64,6 @@
         action="/account/expense-budgets/delete-all"
         method="post"
         data-turbo-confirm="Delete your expense budgets? This cannot be undone."
-      >
-        {{ template "csrf" . }}
-        {{ template "delete_button" . }}
-      </form>
-    </section>
-
-    <section class="card" aria-labelledby="account-foods-title">
-      <header class="card-header">
-        <h2 id="account-foods-title" class="card-title">Foods</h2>
-      </header>
-      <span class="card-delta">{{ .counts.Foods }} record(s)</span>
-      <form
-        action="/account/foods/delete-all"
-        method="post"
-        data-turbo-confirm="Delete ALL your foods? This cannot be undone."
-      >
-        {{ template "csrf" . }}
-        {{ template "delete_button" . }}
-      </form>
-    </section>
-
-    <section class="card" aria-labelledby="account-moods-title">
-      <header class="card-header">
-        <h2 id="account-moods-title" class="card-title">Moods</h2>
-      </header>
-      <span class="card-delta">{{ .counts.MoodEntries }} record(s)</span>
-      <form
-        action="/account/moods/delete-all"
-        method="post"
-        data-turbo-confirm="Delete ALL your mood entries? This cannot be undone."
       >
         {{ template "csrf" . }}
         {{ template "delete_button" . }}

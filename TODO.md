@@ -25,16 +25,20 @@ Deleting *all* expenses is already safe — `DeleteAllExpensesByUser`
 
 ## A unique-name collision will read as a server fault on the API
 
-`Store.CreateFood` and `Store.UpdateFood` (`internal/logic/logic_food.go`) let SQLite's
-`UNIQUE constraint failed: foods.name` propagate untouched, and the same holds for
-every other table with a unique index. The pages render that string; the API's
-`WriteAPIError` deliberately will not, so an unnamed collision becomes a generic
-`500` instead — correct about not leaking, wrong about whose fault it is.
+Every table with a unique index lets SQLite's `UNIQUE constraint failed: ...`
+propagate untouched out of the logic layer. The pages render that string; the
+API's `WriteAPIError` deliberately will not, so an unnamed collision becomes a
+generic `500` instead — correct about not leaking, wrong about whose fault it is.
 
-Whoever ports Foods in Phase 2 of `docs/spa-migration.md` should turn the
-collision into a sentinel in `internal/logic/errs.go`, name it in the endpoint's
-`userErrors`, and let it answer `422` with a message that does not quote the
-constraint. Fixing it in the logic layer improves the existing pages too.
+The case this was first written against was `Store.CreateFood`/`UpdateFood`,
+which Phase 0B deleted. It survives on the tables expenses still uses: `tags`
+is unique per `(user_id, lower(name))`, and `categories` on `lower(name)`.
+
+Whoever ports the first endpoint that can hit one — Phase 2 of
+`docs/spa-migration.md` — should turn the collision into a sentinel in
+`internal/logic/errs.go`, name it in the endpoint's `userErrors`, and let it
+answer `422` with a message that does not quote the constraint. Fixing it in the
+logic layer improves the existing pages too.
 
 ## A nested validation failure publishes the inner struct's field name
 
@@ -46,7 +50,7 @@ request's own fields.
 
 The reachable case today is tags. `ensureTagsForUserTx` (`internal/logic/logic_tag.go`)
 validates one `TagParams{Name: name}` per tag, and `normalizeTagNames` does not
-truncate, so `POST /expenses` (or a mood entry, or a recurrent expense) carrying a
+truncate, so `POST /expenses` (or a recurrent expense) carrying a
 tag longer than 20 characters fails with `[Name:max]` — `fields` comes back as
 `{"name": "max"}`. None of those payloads has a `name` key; the offending value
 arrived under `tags`. A client that highlights inputs by field key marks nothing,
@@ -64,7 +68,7 @@ first endpoint that accepts tags is ported.
 `SelectTagsForTaggable` (`internal/repo/tagging.go`) interpolates its
 `ownerTable` argument straight into the `INNER JOIN` of
 `selectTagsForTaggableBase` with `fmt.Sprintf`. Every caller today passes a
-literal — `"expenses"`, `"mood_entries"`, `"recurrent_expenses"` — so nothing is
+literal — `"expenses"` and `"recurrent_expenses"` — so nothing is
 wrong at runtime, but the safety is a convention rather than something the type
 system or a whitelist enforces, unlike every other query in the package, where
 `QueryOptions` validates column names against `validExpenseFields()` and friends.
@@ -76,29 +80,3 @@ non-literal here would not be flagged.
 Give `ownerTable` a defined type with constants beside `TaggableTypeExpense`,
 so the pairing of taggable type and owner table is expressed once and a caller
 cannot supply an arbitrary string.
-
-## Nothing type-checks the frontend
-
-**Scheduled: Phase 0B of `docs/spa-migration.md`.** Kept here so it is not lost if that phase
-is re-planned; the reasoning for the timing lives there.
-
-`tsc --noEmit` is not run by `make lint-fix`, by any CI job, or by the build: `web/build.ts`
-uses `Bun.build()`, which strips types rather than checking them, so a type error ships
-silently and is caught only by whoever has an editor open on the file.
-
-It needs two tools. `tsc --noEmit` covers `.ts` and `tsconfig.json` already includes
-`web/app/**/*.ts`. It does **not** cover components — tsc cannot parse `.svelte`, and the
-`include` list has no `.svelte` pattern — so `svelte-check` is required alongside it, or every
-component stays unchecked behind a green check.
-
-The check does not pass today. One error stands:
-
-```
-web/static/js/controllers/macroCalcController.ts(62,14): error TS2339:
-Property 'Turbo' does not exist on type 'Window & typeof globalThis'.
-```
-
-`web/static/js/global.d.ts` declares `Window.Stimulus` but not `Window.Turbo`, and `macroCalc`
-is the only controller reaching for the global — the other seven call sites import `Turbo` from
-`@hotwired/turbo` directly. It needs no fix: that file is on Phase 0B's deletion list, so the
-error leaves with it.

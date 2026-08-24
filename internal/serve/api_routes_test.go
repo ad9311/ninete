@@ -119,7 +119,7 @@ func TestAPIRoutesUseTheirOwnChain(t *testing.T) {
 			name: "should_accept_an_unsafe_request_carrying_the_page_csrf_token",
 			fn: func(t *testing.T) {
 				cookies := s.AuthCookies(t, "api_chain@test.com", "Password123!")
-				token, cookies := s.CSRFFrom(t, "/foods/new", cookies)
+				token, cookies := s.CSRFFrom(t, "/recurrent-expenses/new", cookies)
 
 				res, _ := doAPI(t, s, http.MethodPost, "/api/session", cookies, token)
 

@@ -142,6 +142,9 @@ lint-fix: ## Run golangci-lint with automatic fixes
 	bun run format:static
 	bun run lint:css
 	bun run lint:js
+	@echo "Running type checks..."
+	bun run typecheck:ts
+	bun run typecheck:svelte
 	@echo "Running golangci-lint (with --fix)..."
 	golangci-lint run --fix
 	@$(MAKE) --no-print-directory lint-sh

@@ -148,7 +148,7 @@ the CSP nonce rule.
 
 ### `internal/handlers`
 - **Role**: HTTP handlers and rendering.
-- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`, `internal/handlers/shared.go`, `internal/handlers/expense_shared.go`, `internal/handlers/macro_shared.go`, `internal/handlers/expense_search.go`.
+- **Key files**: `internal/handlers/handler.go`, `internal/handlers/render.go`, `internal/handlers/constants.go`, `internal/handlers/shared.go`, `internal/handlers/expense_shared.go`, `internal/handlers/expense_search.go`, `internal/handlers/api.go`.
 - **Responsibilities**:
 - Implement endpoint behavior.
 - Use `logic.Store` + session manager for app actions.
