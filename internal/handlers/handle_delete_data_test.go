@@ -83,8 +83,9 @@ func TestPostDeleteDataAll(t *testing.T) {
 	otherUser := s.CreateAuthUser(t, "acct_del_all_other", "acct_del_all_other@example.com", "acct_password_2")
 	category := s.CreateCategory(t, "acct del all category")
 
-	s.CreateExpense(t, user.ID, newExpenseParams(category.ID, "mine", 500, 1735689600))
-	s.CreateMoodEntry(t, user.ID, newMoodEntryParamsH("Happy", "mine", 1735689600, []string{"acct_wipe_tag"}))
+	taggedParams := newExpenseParams(category.ID, "mine", 500, 1735689600)
+	taggedParams.Tags = []string{"acct_wipe_tag"}
+	s.CreateExpense(t, user.ID, taggedParams)
 	s.CreateExpense(t, otherUser.ID, newExpenseParams(category.ID, "theirs", 600, 1735689600))
 
 	cookies := s.AuthCookies(t, "acct_del_all@example.com", "acct_password_1")
@@ -100,7 +101,6 @@ func TestPostDeleteDataAll(t *testing.T) {
 	counts, err := s.Store.FindAccountDataCounts(t.Context(), user.ID)
 	require.NoError(t, err)
 	require.Equal(t, 0, counts.Expenses)
-	require.Equal(t, 0, counts.MoodEntries)
 	require.Equal(t, 0, counts.Tags)
 
 	// The other user's data must remain intact.

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
-	"errors"
 	"net/http"
 	"sort"
 
@@ -17,13 +15,6 @@ type dashboardSummary struct {
 	TopCategories   []expenseCategoryRow
 }
 
-type dashboardMacros struct {
-	HasGoal       bool
-	Goal          repo.MacroGoal
-	TodayTotals   repo.MacroDayTotals
-	TodayProgress macroProgressData
-}
-
 func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 	data := h.tmplData(r)
 	user := getCurrentUser(r)
@@ -33,13 +24,7 @@ func (h *Handler) GetDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	macros, ok := h.buildDashboardMacros(w, r, user.ID, r.URL.Query().Get("date"))
-	if !ok {
-		return
-	}
-
 	data["summary"] = summary
-	data["macros"] = macros
 
 	h.render(w, http.StatusOK, DashboardIndex, data)
 }
@@ -129,37 +114,5 @@ func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, 
 		MonthChangeSign: sign,
 		MonthChangePct:  pct,
 		TopCategories:   catRows,
-	}, true
-}
-
-func (h *Handler) buildDashboardMacros(
-	w http.ResponseWriter, r *http.Request, userID int, dateStr string,
-) (dashboardMacros, bool) {
-	ctx := r.Context()
-
-	goal, err := h.store.FindMacroGoal(ctx, userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return dashboardMacros{}, true
-	}
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
-
-		return dashboardMacros{}, false
-	}
-
-	dayStart, nextDay, _ := computeDayWindow(dateStr)
-
-	todayTotals, err := h.store.FindMacroDayTotals(ctx, userID, dayStart, nextDay, "")
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, DashboardIndex, err)
-
-		return dashboardMacros{}, false
-	}
-
-	return dashboardMacros{
-		HasGoal:       true,
-		Goal:          goal,
-		TodayTotals:   todayTotals,
-		TodayProgress: computeMacroProgress(todayTotals, goal),
 	}, true
 }

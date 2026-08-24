@@ -1,36 +1,12 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
-
-func parseFloatField(r *http.Request, field string) (float64, error) {
-	v, err := strconv.ParseFloat(r.FormValue(field), 64)
-	if err != nil {
-		return 0, fmt.Errorf("%w %q: %w", ErrParseField, field, err)
-	}
-
-	return v, nil
-}
-
-func parseFloatFieldDefault(r *http.Request, field string) (float64, error) {
-	raw := r.FormValue(field)
-	if raw == "" {
-		return 0, nil
-	}
-
-	v, err := strconv.ParseFloat(raw, 64)
-	if err != nil {
-		return 0, fmt.Errorf("%w %q: %w", ErrParseField, field, err)
-	}
-
-	return v, nil
-}
 
 const defaultPerPage = 15
 

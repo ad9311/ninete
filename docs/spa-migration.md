@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.5 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7 and 0B landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -41,7 +41,7 @@ doing it in the wrong order wastes a phase.
 **Removal happens in two steps, deliberately split.**
 
 1. **Code removal — Phase 0B, before any resource is ported.** Routes, handlers, logic, views,
-   Stimulus controllers, nav links, and the macro half of the dashboard.
+   Stimulus controllers, nav links, and the macro half of the dashboard. **Done.**
 2. **Table removal — Phase 8, at the very end.** `foods`, `macro_entries`, `macro_goals`,
    `mood_entries`, and the `taggings` rows pointing at mood entries. Irreversible, and gated on
    an export.
@@ -62,8 +62,8 @@ is kept.** If the data is not wanted, say so explicitly in Phase 8's PR rather t
 go silently.
 
 **Freeze-rule exception.** The freeze rule above forbids behavior changes to existing views.
-Phase 0B is its one deliberate exception, and it is a deletion rather than a change. After it,
-the freeze rule applies again in full to everything left.
+Phase 0B was its one deliberate exception, and it was a deletion rather than a change. It has
+landed, so the freeze rule now applies again in full to everything left.
 
 **What this removes, counted** — so §2's inventory can be checked rather than trusted:
 
@@ -79,9 +79,10 @@ the freeze rule applies again in full to everything left.
 ## 1. Goal and end state
 
 Today: Go `html/template` renders every page, Turbo intercepts navigation and form posts,
-Stimulus adds per-page interactivity. 47 template files, 18 Stimulus controllers, 67 routes —
-29, 12 and 38 once Phase 0B removes the dropped features (§0). Every count below this line is
-the post-§0 one.
+Stimulus adds per-page interactivity. Phase 0B has landed, so the counts are now 29 template
+files, 12 Stimulus controllers and 38 routes — down from 47, 18 and 67 before the §0 removal.
+Every count below this line is the post-§0 one, and all three were verified against the tree
+after 0B rather than projected.
 
 End state:
 
@@ -102,7 +103,7 @@ Nothing below is optional. A phase is done when its rows are ticked.
 
 ### 2.1 Views (29 files after §0, `web/views/`)
 
-Macros, foods and mood entries are absent from this table on purpose: Phase 0B deletes them
+Macros, foods and mood entries are absent from this table on purpose: Phase 0B deleted them
 (§0). If you are looking at a row that is not here, it is not being ported.
 
 | Resource | Files | Notes |
@@ -110,7 +111,7 @@ Macros, foods and mood entries are absent from this table on purpose: Phase 0B d
 | `layout.html` | 1 | Becomes the shell. Last thing to change, §Phase 7 |
 | `common/` | `_csrf`, `_footer`, `_form_buttons`, `_form_error`, `_header`, `_pagination` | Become shared components |
 | `login`, `register` | 2 | Guest routes. Special: CSRF/session rotation, §3.2 |
-| `dashboard` | 1 | Expense summary only; the macro half goes in Phase 0B |
+| `dashboard` | 1 | Expense summary only; the macro half went in Phase 0B |
 | `expenses` | `index`, `new`, `edit`, `show`, `stats`, `budgets`, `_form`, `_quick_form` | Largest resource. Search, filters, sort, pagination |
 | `recurrent_expenses` | `index`, `archived`, `new`, `edit`, `show`, `_form` | |
 | `account`, `delete_data`, `exports` | 3 | Destructive posts; file download |
@@ -125,8 +126,8 @@ Each becomes either component-local state or a shared util. None survive as cont
 `quickExpense`, `searchPanel`, `sort`, `theme`.
 
 Deleted unported in Phase 0B: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`,
-`moodChart`, `submitOnChange`. The last one is the trap — `submitOnChange` reads as a generic
-utility but its only two uses are `macros/index` and `macros/stats`, so it goes with them;
+`moodChart`, `submitOnChange`. The last one was the trap — `submitOnChange` reads as a generic
+utility but its only two uses were `macros/index` and `macros/stats`, so it went with them;
 `filter` is the equivalent control expenses keeps.
 
 Two of the survivors need decisions rather than a port:
@@ -156,8 +157,8 @@ Two of the survivors need decisions rather than a port:
 
 ### 2.5 Tests
 
-Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, 14 files;
-10 after Phase 0B deletes the macro, food and mood ones).
+Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, 10 files
+after Phase 0B deleted the macro, food and mood ones).
 They keep working against JSON with changed assertions. There is **no** frontend test tooling
 today — adding it is Phase 0's optional tail, see §5.
 
@@ -717,16 +718,16 @@ Exit criteria — all met, Phase 0 complete:
 - The app looks and behaves exactly as it does today.
 
 Phase 1 is next in numbering and is the first phase a user could see: the shell, the router, and
-the SPA staged under `/app/*`. **Phase 0B, the section immediately below, is not skipped** — it
-is unnumbered because it can land at any point before Phase 2, which is the phase that would
-otherwise have piloted on Foods. Doing it before Phase 1 means the shell's nav is built once
-against the surviving routes rather than built and then trimmed.
+the SPA staged under `/app/*`. Phase 0B, the section immediately below, has already landed — it
+is unnumbered because it could go at any point before Phase 2, the phase that would otherwise
+have piloted on Foods. It went before Phase 1 so the shell's nav is built once against the
+surviving routes rather than built and then trimmed.
 
-### Phase 0B — Retire macros, foods and moods (code only)
+### Phase 0B — Retire macros, foods and moods (code only) — landed
 
 Branch: `spa/retire-macros-foods-moods`. One PR. The only phase that removes a feature instead
-of porting one, and the only deliberate exception to the freeze rule (§0). **It must land
-before Phase 2**, which was going to pilot on Foods.
+of porting one, and the only deliberate exception to the freeze rule (§0). It landed
+before Phase 2, which was going to pilot on Foods.
 
 Delete, in one change:
 
@@ -826,6 +827,23 @@ The API boundary is what this is really for: a response crosses Go → JSON → 
 compiler on either side of the wire, so a renamed field in a Go struct arrives as `undefined` in
 a component. Nothing else in the chain catches that.
 
+**Found while doing it, beyond what this section listed.** Recorded because each one is the
+kind of thing the next deletion phase (Phase 8) will hit again:
+
+- `helpers_internal_test.go` also held `TestComputeMacroTrendSummary` and `TestRoundMacro`,
+  not just the two tests named above. All four went; `TestNextSortOrder` is what remains.
+- `internal/spec/factory.go` had `CreateMacroEntry`, `SaveMacroGoal`, `CreateFood` and
+  `CreateMoodEntry`. No surviving test used them, so all four went.
+- `handle_delete_data_test.go` seeded its tag through a mood entry, using a helper defined in a
+  deleted test file. It now tags an expense instead.
+- **`TestDeleteAllUserData` was rewritten rather than trimmed.** It is the only thing proving
+  `DeleteAllUserData` still clears the four dropped tables — the "get right rather than
+  discover" item above — and trimming it to the surviving resources would have left that
+  behavior uncovered, which is exactly how the calls get deleted as dead code later. It now
+  seeds those tables through `repo.TxQueries` directly, since the logic stores and the spec
+  factories for them are gone, and reads their counts from `repo.Queries` since the
+  `AccountDataCounts` fields are gone too.
+
 Exit criteria:
 - `make test`, `make test-js` and `make lint-fix` green.
 - Type checking runs and passes: `tsc --noEmit` for `.ts`, `svelte-check` for `.svelte`, both in
@@ -835,9 +853,17 @@ Exit criteria:
 - `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` returns
   only the known survivors below. `internal/repo` and `internal/db` are expected to still match —
   that is §0's split. It does **not** come back empty, and nothing should be rewritten to make it:
-  `handle_exports_test.go` uses `"food"` as a literal tag name in an expenses export test, and
-  `api_test.go` uses `select food` / `foods.name` as fixture strings for the JSON error mapper.
-  Both are surviving expenses/API tests that merely contain the word. Any *other* hit is a leak.
+  - `handle_exports_test.go` uses `"food"` as a literal tag name in an expenses export test, and
+    `api_test.go` uses `select food` / `foods.name` as fixture strings for the JSON error mapper.
+    Both are surviving expenses/API tests that merely contain the word.
+  - `logic_account.go` still calls the four `DeleteAll*ByUser` repo methods, deliberately — see
+    the "get right rather than discover" note above — and carries a comment saying why.
+  - `logic_account_test.go` seeds and counts those four tables, because it is the only thing
+    covering that.
+
+  Any *other* hit is a leak. `helpers_internal_test.go` used `"mood"` as a sort-column fixture
+  string in `TestNextSortOrder`; it was renamed to `"date"` so the grep stays a signal rather
+  than something with a standing exception attached.
 
 ### Phase 1 — Shell and router, coexisting with templates
 

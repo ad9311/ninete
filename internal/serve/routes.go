@@ -41,11 +41,7 @@ func (s *Server) setUpRoutes() {
 
 			account.Post("/expenses/delete-all", s.handlers.PostDeleteDataExpenses)
 			account.Post("/recurrent-expenses/delete-all", s.handlers.PostDeleteDataRecurrentExpenses)
-			account.Post("/macro-entries/delete-all", s.handlers.PostDeleteDataMacroEntries)
-			account.Post("/macro-goals/delete-all", s.handlers.PostDeleteDataMacroGoals)
 			account.Post("/expense-budgets/delete-all", s.handlers.PostDeleteDataExpenseBudgets)
-			account.Post("/foods/delete-all", s.handlers.PostDeleteDataFoods)
-			account.Post("/moods/delete-all", s.handlers.PostDeleteDataMoodEntries)
 			account.Post("/tags/delete-all", s.handlers.PostDeleteDataTags)
 			account.Post("/delete-all", s.handlers.PostDeleteDataAll)
 
@@ -86,51 +82,6 @@ func (s *Server) setUpRoutes() {
 				recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
 				recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
 				recurrentExpenses.Post("/unarchive", s.handlers.PostRecurrentExpensesUnarchive)
-			})
-		})
-
-		root.Route("/macros", func(r chi.Router) {
-			r.Get("/", s.handlers.GetMacros)
-			r.Post("/", s.handlers.PostMacros)
-			r.Get("/new", s.handlers.GetMacrosNew)
-			r.Get("/goals", s.handlers.GetMacrosGoals)
-			r.Post("/goals", s.handlers.PostMacrosGoals)
-			r.Get("/stats", s.handlers.GetMacrosStats)
-			r.Route("/{id}", func(r chi.Router) {
-				r.Use(s.handlers.MacroEntryContext)
-				r.Get("/", s.handlers.GetMacroEntry)
-				r.Post("/", s.handlers.PostMacroEntryUpdate)
-				r.Get("/edit", s.handlers.GetMacroEntryEdit)
-				r.Post("/delete", s.handlers.PostMacroEntryDelete)
-			})
-		})
-
-		root.Route("/foods", func(foods chi.Router) {
-			foods.Get("/", s.handlers.GetFoods)
-			foods.Post("/", s.handlers.PostFoods)
-			foods.Get("/new", s.handlers.GetFoodsNew)
-			foods.Route("/{id}", func(foods chi.Router) {
-				foods.Use(s.handlers.FoodContext)
-
-				foods.Get("/", s.handlers.GetFood)
-				foods.Post("/", s.handlers.PostFoodUpdate)
-				foods.Get("/edit", s.handlers.GetFoodEdit)
-				foods.Post("/delete", s.handlers.PostFoodDelete)
-			})
-		})
-
-		root.Route("/moods", func(moods chi.Router) {
-			moods.Get("/", s.handlers.GetMoodEntries)
-			moods.Post("/", s.handlers.PostMoodEntries)
-			moods.Get("/new", s.handlers.GetMoodEntriesNew)
-			moods.Get("/stats", s.handlers.GetMoodEntriesStats)
-			moods.Route("/{id}", func(moods chi.Router) {
-				moods.Use(s.handlers.MoodEntryContext)
-
-				moods.Get("/", s.handlers.GetMoodEntry)
-				moods.Post("/", s.handlers.PostMoodEntriesUpdate)
-				moods.Get("/edit", s.handlers.GetMoodEntriesEdit)
-				moods.Post("/delete", s.handlers.PostMoodEntriesDelete)
 			})
 		})
 	})

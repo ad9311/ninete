@@ -47,63 +47,11 @@ func (h *Handler) PostDeleteDataRecurrentExpenses(w http.ResponseWriter, r *http
 	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
 }
 
-func (h *Handler) PostDeleteDataMacroEntries(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := getCurrentUser(r)
-
-	if err := h.store.DeleteAllMacroEntries(ctx, user.ID); err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
-
-		return
-	}
-
-	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
-}
-
-func (h *Handler) PostDeleteDataMacroGoals(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := getCurrentUser(r)
-
-	if err := h.store.DeleteAllMacroGoals(ctx, user.ID); err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
-
-		return
-	}
-
-	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
-}
-
 func (h *Handler) PostDeleteDataExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
 
 	if err := h.store.DeleteAllExpenseBudgets(ctx, user.ID); err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
-
-		return
-	}
-
-	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
-}
-
-func (h *Handler) PostDeleteDataFoods(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := getCurrentUser(r)
-
-	if err := h.store.DeleteAllFoods(ctx, user.ID); err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
-
-		return
-	}
-
-	http.Redirect(w, r, "/account/delete-data", http.StatusSeeOther)
-}
-
-func (h *Handler) PostDeleteDataMoodEntries(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	user := getCurrentUser(r)
-
-	if err := h.store.DeleteAllMoodEntries(ctx, user.ID); err != nil {
 		h.renderErr(w, r, http.StatusInternalServerError, ErrorIndex, err)
 
 		return

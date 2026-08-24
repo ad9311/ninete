@@ -10,7 +10,6 @@ import (
 
 const (
 	TaggableTypeExpense          = "expense"
-	TaggableTypeMoodEntry        = "mood_entry"
 	TaggableTypeRecurrentExpense = "recurrent_expense"
 )
 
