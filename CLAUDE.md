@@ -127,6 +127,7 @@ with no error from SQLite or the driver.
 | Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
 | API (SPA) | `/api/session`, and the resource routes Phase 2 onward adds | `api.go`, `handle_api_session.go` | reuses the page handlers' stores |
+| SPA shell | `/app`, `/app/*` (moves to `/` in Phase 7) | `handle_app.go` | — |
 
 **The `/api/*` group is a sibling of the page group, not a child** (`setUpAPIRoutes`). The two
 middleware chains differ, and an `/api` route must never fall through to a rendered template.

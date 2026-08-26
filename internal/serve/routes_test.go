@@ -1,13 +1,33 @@
 package serve_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
+
+// bundlePath reads the manifest the same way internal/serve does, so the test
+// checks a real deployed filename rather than a literal that would go stale
+// the moment web/build.ts's hashing changes it.
+func bundlePath(t *testing.T, entry string) string {
+	t.Helper()
+
+	data, err := os.ReadFile("./web/static/js/build/manifest.json")
+	require.NoError(t, err)
+
+	var manifest map[string]string
+	require.NoError(t, json.Unmarshal(data, &manifest))
+
+	name, ok := manifest[entry]
+	require.True(t, ok, "manifest missing entry %q", entry)
+
+	return "/static/js/build/" + name
+}
 
 func hasCookie(res *http.Response, name string) bool {
 	for _, c := range res.Cookies() {
@@ -96,7 +116,7 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_serve_assets_without_authentication",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, "/static/js/build/index.js", nil)
+				res := doGet(t, s, bundlePath(t, "index"), nil)
 
 				require.Equal(t, http.StatusOK, res.StatusCode)
 			},

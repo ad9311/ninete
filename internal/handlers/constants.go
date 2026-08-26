@@ -56,4 +56,9 @@ const (
 	// System templates.
 	ErrorIndex    TemplateName = "error/index"
 	NotFoundIndex TemplateName = "not_found/index"
+
+	// SPA shell. Served under /app/* until Phase 7 of docs/spa-migration.md
+	// moves it to "/"; the template carries its own <html> document rather than
+	// the shared "layout" chrome, since the Svelte app owns header/footer/nav.
+	AppIndex TemplateName = "app/index"
 )

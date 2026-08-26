@@ -24,12 +24,13 @@ type Server struct {
 	Router  chi.Router
 	Session *scs.SessionManager
 
-	templates map[handlers.TemplateName]*template.Template
-	handlers  *handlers.Handler
-	app       *prog.App
-	store     *logic.Store
-	host      string
-	port      string
+	templates     map[handlers.TemplateName]*template.Template
+	assetManifest assetManifest
+	handlers      *handlers.Handler
+	app           *prog.App
+	store         *logic.Store
+	host          string
+	port          string
 }
 
 // defaultHost keeps the listener on loopback, which is what Caddy proxies to and
@@ -76,8 +77,17 @@ func New(app *prog.App, store *logic.Store, db *sql.DB) *Server {
 		Store:          store,
 		Session:        s.Session,
 		TemplateByName: s.templateByName,
+		// The asset manifest is reloaded alongside the templates: bundle
+		// filenames carry a content hash, so a `make build-static-js` against a
+		// running development server changes them, and a manifest left at the
+		// value it was loaded with at startup would keep naming a file the
+		// rebuild has already replaced.
 		ReloadTemplates: func() error {
-			return s.LoadTemplates()
+			if err := s.LoadTemplates(); err != nil {
+				return err
+			}
+
+			return s.LoadAssetManifest()
 		},
 	})
 

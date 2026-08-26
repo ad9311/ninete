@@ -6,8 +6,14 @@ Only build output (`web/static/js/build/`) is served.
 
 Layout and naming rules: `docs/spa-migration.md` §3.9.
 
-- `index.ts` — entry point (added in Phase 1)
-- `App.svelte`, `router.ts` — shell and router (Phase 1)
+- `index.ts` — entry point (Phase 1). Mounts `App.svelte` onto `#app`, the
+  mount point `web/views/app/index.html` renders.
+- `App.svelte` — the shell's chrome (`Header`, `Footer`, `Spinner`) and the
+  router's `$state`-held current path (Phase 1).
+- `router.ts` — the hand-rolled path router: `BASE_PATH` (`/app` until Phase 7
+  moves it to `/`), the `routes` match table, `matchRoute`/`toRoutePath` (pure),
+  and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte wires up in
+  an effect. See `docs/spa-migration.md` §3.7.
 - `lib/` — plain `.ts` modules, no components
   - `api.ts` — the `/api/*` fetch wrapper (Phase 0.4). Every request goes
     through it: it attaches `X-CSRF-Token` from the shell's
@@ -19,16 +25,27 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1)
-- `components/` — shared, resource-agnostic components only
-- `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action
+  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
+    point imports it so far; it lives here so a ported view can share the same
+    lucide set without reaching back into `web/static/`.
+- `components/` — shared, resource-agnostic components only. Phase 1 adds
+  `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
+  ports `themeController`/`navController`), `Footer.svelte` (reads the shell's
+  `<meta name="version">`) and `Spinner.svelte` (the router-level pending flag,
+  §3.7). `ThemeSwitch` stays inlined in `Header.svelte` rather than its own
+  file: it has exactly one caller, and rule 2 below reserves this directory for
+  things more than one resource uses.
+- `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action.
+  Phase 1 adds only `Home.svelte`, the placeholder mounted at `/` until Phase 2
+  replaces the match table's single entry with a real resource.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the
-  client one, or when the jsdom opt-in stops working. Nothing else imports them
+  client one, or when the jsdom opt-in stops working.
 
-The directory is not bundled until Phase 1; `lib/dates.ts` is unit-tested
-without a bundle from Phase 0.5.
+The directory is bundled from Phase 1 onward (`web/build.ts` adds `index.ts` as
+a second entry point, alongside the Stimulus one); `lib/dates.ts` was
+unit-tested without a bundle since Phase 0.5.
 
 ## Tests
 

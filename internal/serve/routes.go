@@ -35,6 +35,12 @@ func (s *Server) setUpRoutes() {
 
 		root.Get("/dashboard", s.handlers.GetDashboard)
 
+		// The SPA shell (docs/spa-migration.md, Phase 1). Wildcarded so every
+		// nested client route resolves on a hard refresh; AuthMiddleware guards
+		// it the same as any other page since "/app*" is not a guest route.
+		root.Get("/app", s.handlers.GetApp)
+		root.Get("/app/*", s.handlers.GetApp)
+
 		root.Route("/account", func(account chi.Router) {
 			account.Get("/", s.handlers.GetAccount)
 			account.Get("/delete-data", s.handlers.GetDeleteData)
@@ -110,9 +116,10 @@ func (s *Server) setUpAPIRoutes() {
 }
 
 // staticCacheControl lets the browser reuse assets across page loads without a
-// request at all. The bundle filenames carry no content hash, so the window
-// stays short; once it lapses http.FileServer answers the revalidation with a
-// 304 off Last-Modified.
+// request at all. The bundle filenames are content-hashed (manifest.go), so a
+// deploy can no longer strand a stale bundle here; the stylesheet and the
+// images are not, which is why the window stays short. Once it lapses
+// http.FileServer answers the revalidation with a 304 off Last-Modified.
 const staticCacheControl = "public, max-age=300"
 
 // setUpFileServer mounts the assets on the root router, outside the app
