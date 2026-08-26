@@ -17,6 +17,23 @@ type APIError struct {
 	Fields map[string]string `json:"fields,omitempty"`
 }
 
+// DecodeJSON reads and decodes a JSON request body into dst, answering 400
+// with the same envelope every other failure uses when it cannot. The body is
+// always closed, matching what net/http does for every other request path.
+func (h *Handler) DecodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
+	defer func() {
+		_ = r.Body.Close()
+	}()
+
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		h.WriteJSONError(w, http.StatusBadRequest, ErrAPIInvalidJSON)
+
+		return false
+	}
+
+	return true
+}
+
 // WriteJSON is the single place an API response body is written. Status goes
 // out before the body, so a failure mid-encode can only truncate the payload,
 // never change the status the client already read.

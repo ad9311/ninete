@@ -1,7 +1,10 @@
 package spec
 
 import (
+	"bytes"
+	"encoding/json"
 	"html"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -78,6 +81,32 @@ func NewGetRequest(url string, cookies []*http.Cookie) *http.Request {
 func NewPostRequest(url, formBody string, cookies []*http.Cookie, csrfToken string) *http.Request {
 	req := httptest.NewRequest(http.MethodPost, url, strings.NewReader(formBody))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("X-CSRF-Token", csrfToken)
+
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	return req
+}
+
+// NewJSONRequest builds a request with a JSON body, CSRF header, same-origin
+// fetch metadata, and the given cookies — the /api/* equivalent of
+// NewPostRequest. A nil body sends no body at all, for GET/DELETE calls that
+// still need the CSRF and fetch-metadata headers apiCSRF checks.
+func NewJSONRequest(method, url string, body any, cookies []*http.Cookie, csrfToken string) *http.Request {
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			panic(err)
+		}
+		reader = bytes.NewReader(data)
+	}
+
+	req := httptest.NewRequest(method, url, reader)
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
 	req.Header.Set("X-CSRF-Token", csrfToken)
 

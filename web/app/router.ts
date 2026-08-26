@@ -4,6 +4,11 @@
 // (popstate, link interception) that keep it in sync with the URL.
 import type { Component } from "svelte";
 import Home from "./routes/Home.svelte";
+import RecurrentExpensesArchived from "./routes/recurrent_expenses/Archived.svelte";
+import RecurrentExpensesEdit from "./routes/recurrent_expenses/Edit.svelte";
+import RecurrentExpensesIndex from "./routes/recurrent_expenses/Index.svelte";
+import RecurrentExpensesNew from "./routes/recurrent_expenses/New.svelte";
+import RecurrentExpensesShow from "./routes/recurrent_expenses/Show.svelte";
 
 // The SPA is staged under /app/* until Phase 7 moves it to "/" (§7 decision
 // 2). Every route pattern below is relative to this — routes never mention it
@@ -13,18 +18,35 @@ export const BASE_PATH = "/app";
 export interface RouteDef {
   /** Pattern relative to BASE_PATH, e.g. "/recurrent-expenses/:id/edit". */
   path: string;
-  component: Component<Record<string, string>>;
+  // `any` rather than a shared props shape: each route declares whatever
+  // props it actually needs (an ":id" param, an optional "search" string),
+  // and there is no one type all of them satisfy — Home takes none, Show
+  // requires "id". App.svelte spreads matchRoute's params plus `search` at
+  // the call site, which is where a real mismatch would surface instead.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+  component: Component<any>;
 }
 
 export interface RouteMatch {
-  component: Component<Record<string, string>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see RouteDef above
+  component: Component<any>;
   params: Record<string, string>;
 }
 
-// The match table. Phase 2 onward adds entries here as each resource lands;
-// Phase 1 ships only the placeholder root so the mechanism exists before any
-// real route needs it.
-export const routes: RouteDef[] = [{ path: "/", component: Home }];
+// The match table. Phase 2 onward adds entries here as each resource lands.
+// Order matters: a literal segment ("archived", "new") must come before the
+// ":id" pattern that would otherwise swallow it as a param.
+export const routes: RouteDef[] = [
+  { path: "/", component: Home },
+  { path: "/recurrent-expenses", component: RecurrentExpensesIndex },
+  {
+    path: "/recurrent-expenses/archived",
+    component: RecurrentExpensesArchived,
+  },
+  { path: "/recurrent-expenses/new", component: RecurrentExpensesNew },
+  { path: "/recurrent-expenses/:id/edit", component: RecurrentExpensesEdit },
+  { path: "/recurrent-expenses/:id", component: RecurrentExpensesShow },
+];
 
 function compile(path: string): { regex: RegExp; keys: string[] } {
   const keys: string[] = [];

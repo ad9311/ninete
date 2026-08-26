@@ -118,6 +118,10 @@
       </button>
       <ul class="site-nav-dropdown" class:open={navOpen}>
         <li>
+          <a href={`${BASE_PATH}/recurrent-expenses`}>Recurrent Expenses</a>
+        </li>
+        <li class="site-nav-divider"></li>
+        <li>
           <form action="/logout" method="post" class="site-nav-logout">
             <input type="hidden" name="csrf_token" value={csrfToken()} />
             <button type="submit" class="site-nav-logout-btn">Logout</button>

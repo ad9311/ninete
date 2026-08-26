@@ -25,19 +25,46 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
-    point imports it so far; it lives here so a ported view can share the same
-    lucide set without reaching back into `web/static/`.
+  - `icons.ts` — moved from `web/static/js/` (Phase 1). Both entry points
+    import it; the Svelte side reaches it through `components/Icon.svelte`
+    rather than `createIcons()`'s DOM scan (Phase 2 — see below).
+  - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
+    (Phase 2). Categories are a shared lookup table (CLAUDE.md), not a
+    resource of their own, so this is the whole of it: an id and a name.
+  - `currency.ts` — money helpers matching `internal/serve/template_func.go`'s
+    `currency` and `amountController.ts`'s cents conversion (Phase 2):
+    `formatCurrency` for display, `centsToInputValue`/`inputValueToCents` for
+    a form field. Amounts are unsigned cents end to end, never a float.
+  - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
+    field the templates already use (Phase 2). Normalization (lowercase, trim,
+    dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
+    the same strings there and back.
 - `components/` — shared, resource-agnostic components only. Phase 1 adds
   `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
   ports `themeController`/`navController`), `Footer.svelte` (reads the shell's
   `<meta name="version">`) and `Spinner.svelte` (the router-level pending flag,
   §3.7). `ThemeSwitch` stays inlined in `Header.svelte` rather than its own
   file: it has exactly one caller, and rule 2 below reserves this directory for
-  things more than one resource uses.
+  things more than one resource uses. Phase 2 adds `Icon.svelte`: a single
+  lucide icon built with `createElement` and swapped into the DOM for the
+  placeholder element via an action, replacing `data-lucide` +
+  `createIcons()`'s scan (§2.3 of docs/spa-migration.md, "Per-component icon
+  rendering") — DOM APIs, not `{@html}`, so §3.4 rule 3's ban never enters it.
 - `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action.
   Phase 1 adds only `Home.svelte`, the placeholder mounted at `/` until Phase 2
   replaces the match table's single entry with a real resource.
+  `routes/recurrent_expenses/` (Phase 2, the pilot resource — §7 decision 12)
+  is the first full example: `Index.svelte`/`Archived.svelte` are thin
+  wrappers around a shared `List.svelte` (one table, parameterized by
+  `archived`, since §3.9 rule 1 keeps the two actions as separate files but
+  the markup is identical); `New.svelte`/`Edit.svelte` wrap a shared
+  `Form.svelte`; `Show.svelte` and `Form.svelte` are their own files;
+  `types.ts` mirrors `handle_api_recurrent_expenses.go`'s JSON shape exactly,
+  snake_case included (§3.5), so nothing maps between the wire format and what
+  a component reads. A resource's query string (filters, sort, pagination)
+  reaches its route as a `search` prop — `App.svelte` tracks it separately
+  from the matched path, since a page/sort/filter change must not remount the
+  routed component the way a real path change does.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

@@ -112,6 +112,20 @@ func (s *Server) setUpAPIRoutes() {
 		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
 
 		api.Get("/session", s.handlers.GetAPISession)
+		api.Get("/categories", s.handlers.GetAPICategories)
+
+		api.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
+			recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpenses)
+			recurrentExpenses.Post("/", s.handlers.PostAPIRecurrentExpenses)
+			recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
+				recurrentExpenses.Use(s.handlers.APIRecurrentExpenseContext)
+
+				recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpense)
+				recurrentExpenses.Patch("/", s.handlers.PatchAPIRecurrentExpense)
+				recurrentExpenses.Delete("/", s.handlers.DeleteAPIRecurrentExpense)
+				recurrentExpenses.Post("/unarchive", s.handlers.PostAPIRecurrentExpenseUnarchive)
+			})
+		})
 	})
 }
 
