@@ -72,6 +72,11 @@ func start(app *prog.App) (int, error) {
 		return 1, err
 	}
 
+	err = server.LoadAssetManifest()
+	if err != nil {
+		return 1, err
+	}
+
 	err = server.Start()
 	if err != nil {
 		return 1, err

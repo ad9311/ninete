@@ -35,6 +35,12 @@ func (s *Server) setUpRoutes() {
 
 		root.Get("/dashboard", s.handlers.GetDashboard)
 
+		// The SPA shell (docs/spa-migration.md, Phase 1). Wildcarded so every
+		// nested client route resolves on a hard refresh; AuthMiddleware guards
+		// it the same as any other page since "/app*" is not a guest route.
+		root.Get("/app", s.handlers.GetApp)
+		root.Get("/app/*", s.handlers.GetApp)
+
 		root.Route("/account", func(account chi.Router) {
 			account.Get("/", s.handlers.GetAccount)
 			account.Get("/delete-data", s.handlers.GetDeleteData)

@@ -1342,7 +1342,8 @@ button.card-action-link:hover {
    pointer events, so a slow request cannot be submitted twice. Drop the
    `width`/`height`/`background` declarations to get a centred spinner with no
    backdrop and no click-blocking. */
-.turbo-progress-bar {
+.turbo-progress-bar,
+.route-progress-bar {
   top: 0;
   left: 0;
   width: 100% !important;
@@ -1355,7 +1356,17 @@ button.card-action-link:hover {
   transition: opacity 150ms ease-in;
 }
 
-.turbo-progress-bar::before {
+/* Turbo sets position/z-index on .turbo-progress-bar itself via inline style
+   (CSSOM, not a stylesheet — see the comment above), which is outside this
+   file's reach. .route-progress-bar is a plain element Spinner.svelte
+   renders (docs/spa-migration.md §3.7), so it needs both declared here. */
+.route-progress-bar {
+  position: fixed;
+  z-index: 2147483647;
+}
+
+.turbo-progress-bar::before,
+.route-progress-bar::before {
   content: "";
   position: fixed;
   top: 50%;
@@ -1379,7 +1390,8 @@ button.card-action-link:hover {
    swapping it for an opacity pulse reads as a fade rather than as progress.
    The rotation is slowed instead. */
 @media (prefers-reduced-motion: reduce) {
-  .turbo-progress-bar::before {
+  .turbo-progress-bar::before,
+  .route-progress-bar::before {
     animation-duration: 1.4s;
   }
 }

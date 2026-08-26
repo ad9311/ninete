@@ -24,12 +24,13 @@ type Server struct {
 	Router  chi.Router
 	Session *scs.SessionManager
 
-	templates map[handlers.TemplateName]*template.Template
-	handlers  *handlers.Handler
-	app       *prog.App
-	store     *logic.Store
-	host      string
-	port      string
+	templates     map[handlers.TemplateName]*template.Template
+	assetManifest assetManifest
+	handlers      *handlers.Handler
+	app           *prog.App
+	store         *logic.Store
+	host          string
+	port          string
 }
 
 // defaultHost keeps the listener on loopback, which is what Caddy proxies to and

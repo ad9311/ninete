@@ -1,0 +1,72 @@
+package handlers_test
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/ad9311/ninete/internal/spec"
+	"github.com/stretchr/testify/require"
+)
+
+func TestGetApp(t *testing.T) {
+	s := spec.New(t)
+	handler := s.WrappedHandler()
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_redirect_to_login_when_unauthenticated",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/app", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, "/login", rec.Header().Get("Location"))
+			},
+		},
+		{
+			name: "should_render_the_shell_when_authenticated",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "app_user_1", "app_user_1@example.com", "app_password_1")
+				cookies := s.AuthCookies(t, "app_user_1@example.com", "app_password_1")
+
+				req := spec.NewGetRequest("/app", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<div id="app">`)
+				require.Contains(t, rec.Body.String(), `name="csrf-token"`)
+				// The manifest-resolved, content-hashed bundle path — never the
+				// literal /static/js/build/app.js a stale reference would leave
+				// behind.
+				require.Contains(t, rec.Body.String(), `src="/static/js/build/app-`)
+			},
+		},
+		{
+			// The client router owns everything past /app/*, so a hard refresh on
+			// a nested route (docs/spa-migration.md, Phase 1 exit criteria) must
+			// resolve to the same shell rather than 404ing.
+			name: "should_resolve_a_nested_client_route_on_hard_refresh",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "app_user_2", "app_user_2@example.com", "app_password_2")
+				cookies := s.AuthCookies(t, "app_user_2@example.com", "app_password_2")
+
+				req := spec.NewGetRequest("/app/recurrent-expenses/1/edit", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<div id="app">`)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}

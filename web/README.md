@@ -121,7 +121,7 @@ A template syntax error surfaces as a 500 with `ERROR EXECUTING TEMPLATE` in the
 
 Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see the "Static assets stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
 
-Responses carry `Cache-Control: public, max-age=300`. The window is short because the filenames are not content-hashed; a longer one would strand a stale bundle in the browser after a deploy.
+Responses carry `Cache-Control: public, max-age=300`. The bundle filenames are content-hashed (Phase 1), so the window is short only out of habit — a cache-busted deploy no longer strictly needs it, but nothing in the deploy story depends on raising it either.
 
 ### CSS — `web/static/css/layout.css`
 
@@ -138,10 +138,11 @@ TypeScript, bundled by Bun. Dependencies: `@hotwired/turbo` (navigation), `@hotw
 ```
 index.ts              entrypoint: starts Turbo + Stimulus, registers controllers
 controllers/*.ts      one Stimulus controller per file
-icons.ts              lucide initialization
 global.d.ts           window.Stimulus typing
-build/index.js        generated bundle — git-ignored
+build/index-<hash>.js generated bundle — git-ignored
 ```
+
+Icon initialization (`icons.ts`) moved to `web/app/lib/` in Phase 1: both entry points import it from there now, since sources outside `web/static/` are not publicly servable (§ below) and the SPA needs the same lucide set.
 
 Things that are easy to get wrong:
 
@@ -178,21 +179,29 @@ build step exists. Only build output belongs under `web/static/`.
 because Svelte components need `bun-plugin-svelte`, and the CLI has no flag for a plugin.
 
 ```
-web/app/**          sources (this tree, plus web/static/js/index.ts today)
+web/app/**  +  web/static/js/index.ts      sources (two entry points, coexisting until Phase 7)
        ↓  bun run web/build.ts   (make build-static-js)
-web/static/js/build/index.js     minified bundle, git-ignored, served from /static/*
+web/static/js/build/{index,app}-<hash>.js  minified bundles, git-ignored, served from /static/*
+web/static/js/build/manifest.json          {"index": "index-<hash>.js", "app": "app-<hash>.js"}
 ```
 
 - **The bundle is git-ignored.** Run `make build-static-js` after editing any `.ts` or
   `.svelte`; `make dev` does it as part of its build, and the test suite depends on it because
   `internal/serve` asserts `/static/*` serves the bundle.
-- **Entry points change per phase.** Today the only entry is the Stimulus `web/static/js/index.ts`.
-  Phase 1 adds `web/app/index.ts` beside it, and Phase 7 removes the Stimulus one — during the
-  coexistence phases `web/build.ts` builds both.
-- **Filenames are not content-hashed yet.** That waits for Phase 1, because `layout.html`
-  hardcodes `src="/static/js/build/index.js"` and `internal/serve/routes_test.go` asserts that
-  exact path returns 200; a hashed name alone would ship a shell with no JS. The mechanism it
-  needs is a manifest written beside the bundle and read by Go at startup.
+- **Two entry points, one per document.** `web/static/js/index.ts` (Stimulus, serving the
+  templates) and `web/app/index.ts` (Svelte, serving the `/app/*` shell) build independently —
+  `web/build.ts` calls `Bun.build()` once per entry so each gets its own content hash without name
+  collisions. Phase 7 removes the Stimulus one.
+- **Filenames are content-hashed (Phase 1).** `web/build.ts` writes `manifest.json` beside the
+  bundles; `internal/serve/manifest.go` reads it once at startup (`LoadAssetManifest`, called
+  next to `LoadTemplates`) and `setTmplData` puts each entry's resolved `/static/*` path into the
+  template map (`indexBundle`, `appBundle`) for the two shells to read. Neither `layout.html` nor
+  `web/views/app/index.html` hardcodes a filename, and `routes_test.go` reads the manifest rather
+  than asserting a literal path. A missing manifest is not always a boot error: `LoadAssetManifest`
+  treats it the way `parseTemplates` treats an empty views glob — a package testing far enough
+  from the repo root to have no `web/` tree at all (`internal/logic`, `internal/repo`) gets an
+  empty manifest rather than a hard failure, since those tests never render a page or ask for a
+  bundle path. A manifest that exists but fails to parse still is an error.
 
 ### Tests and lint
 

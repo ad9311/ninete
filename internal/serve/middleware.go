@@ -187,6 +187,8 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"isUserSignedIn": isUserSignedIn,
 			"currentUser":    currentUser,
 			"version":        prog.Version,
+			"indexBundle":    s.bundlePath("index"),
+			"appBundle":      s.bundlePath("app"),
 		}
 
 		ctx = context.WithValue(ctx, handlers.KeyCurrentUser, currentUser)

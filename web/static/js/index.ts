@@ -26,7 +26,7 @@ import ThemeController from "./controllers/themeController";
 import QuickExpenseController from "./controllers/quickExpenseController";
 import DateHelpController from "./controllers/dateHelpController";
 import SearchPanelController from "./controllers/searchPanelController";
-import { initIcons } from "./icons";
+import { initIcons } from "../../app/lib/icons";
 
 window.Stimulus = Application.start();
 window.Stimulus.register("date", DateController);
