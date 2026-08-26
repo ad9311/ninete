@@ -42,6 +42,23 @@ function compile(path: string): { regex: RegExp; keys: string[] } {
   return { regex: new RegExp(`^${pattern}$`), keys };
 }
 
+// decodeURIComponent throws URIError on a malformed escape ("%E0%A4%A"), and a
+// URL is whatever the address bar was typed with. Matching runs inside a
+// `$derived` in App.svelte, so an uncaught throw there takes down the whole
+// shell instead of the one route; the raw segment is the honest fallback.
+function decodeParam(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+/** Segment-boundary prefix test: "/apple" is not under a BASE_PATH of "/app". */
+function isUnderBasePath(pathname: string): boolean {
+  return pathname === BASE_PATH || pathname.startsWith(`${BASE_PATH}/`);
+}
+
 export function matchRoute(
   candidates: RouteDef[],
   path: string,
@@ -53,7 +70,7 @@ export function matchRoute(
 
     const params: Record<string, string> = {};
     keys.forEach((key, i) => {
-      params[key] = decodeURIComponent(found[i + 1]);
+      params[key] = decodeParam(found[i + 1]);
     });
 
     return { component: route.component, params };
@@ -64,7 +81,7 @@ export function matchRoute(
 
 /** Strips BASE_PATH and a trailing slash, so route patterns never mention it. */
 export function toRoutePath(pathname: string): string {
-  let path = pathname.startsWith(BASE_PATH)
+  let path = isUnderBasePath(pathname)
     ? pathname.slice(BASE_PATH.length)
     : pathname;
 
@@ -77,7 +94,7 @@ export function toRoutePath(pathname: string): string {
 
 /** Pushes a new history entry and notifies listeners registered with onPopState. */
 export function navigate(path: string): void {
-  const full = path.startsWith(BASE_PATH) ? path : `${BASE_PATH}${path}`;
+  const full = isUnderBasePath(path) ? path : `${BASE_PATH}${path}`;
   if (full === window.location.pathname) return;
 
   window.history.pushState({}, "", full);
@@ -105,10 +122,12 @@ function isNavigableClick(
   if (anchor.target && anchor.target !== "_self") return false;
   if (anchor.hasAttribute("download")) return false;
   if (anchor.origin !== window.location.origin) return false;
+  // An in-page anchor ("#section", or any href landing on the current path with
+  // a fragment) is the browser's job. Claiming it would preventDefault the
+  // scroll and re-render the route that is already on screen.
+  if (anchor.hash && anchor.pathname === window.location.pathname) return false;
 
-  return (
-    anchor.pathname === BASE_PATH || anchor.pathname.startsWith(`${BASE_PATH}/`)
-  );
+  return isUnderBasePath(anchor.pathname);
 }
 
 export function onLinkClick(handler: (path: string) => void): () => void {

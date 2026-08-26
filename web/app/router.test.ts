@@ -31,6 +31,13 @@ describe("toRoutePath", () => {
   it("leaves a path with no BASE_PATH prefix untouched", () => {
     expect(toRoutePath("/login")).toBe("/login");
   });
+
+  // BASE_PATH is a path segment, not a string prefix: "/apple" only shares
+  // characters with "/app", and slicing it blind yields the garbage route
+  // "le".
+  it("does not treat a longer first segment as the base path", () => {
+    expect(toRoutePath(`${BASE_PATH}le/x`)).toBe(`${BASE_PATH}le/x`);
+  });
 });
 
 describe("matchRoute", () => {
@@ -51,6 +58,13 @@ describe("matchRoute", () => {
   it("decodes a param", () => {
     const match = matchRoute(routes, "/recurrent-expenses/a%2Fb/edit");
     expect(match?.params.id).toBe("a/b");
+  });
+
+  // A malformed escape reaches this from the address bar, and matching runs
+  // inside App.svelte's `$derived` — a throw there blanks the whole shell.
+  it("falls back to the raw segment for a malformed escape", () => {
+    const match = matchRoute(routes, "/recurrent-expenses/%E0%A4%A/edit");
+    expect(match?.params.id).toBe("%E0%A4%A");
   });
 
   it("returns null for an unmatched path", () => {
@@ -158,6 +172,17 @@ describe("onLinkClick", () => {
     const off = onLinkClick((path) => seen.push(path));
 
     clickAnchor(`${BASE_PATH}/account`, { target: "_blank" });
+
+    expect(seen).toEqual([]);
+    off();
+  });
+
+  it("ignores an in-page fragment link", () => {
+    window.history.replaceState({}, "", `${BASE_PATH}/account`);
+    const seen: string[] = [];
+    const off = onLinkClick((path) => seen.push(path));
+
+    clickAnchor(`${BASE_PATH}/account#details`);
 
     expect(seen).toEqual([]);
     off();

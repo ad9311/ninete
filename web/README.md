@@ -142,7 +142,7 @@ global.d.ts           window.Stimulus typing
 build/index-<hash>.js generated bundle — git-ignored
 ```
 
-Icon initialization (`icons.ts`) moved to `web/app/lib/` in Phase 1: both entry points import it from there now, since sources outside `web/static/` are not publicly servable (§ below) and the SPA needs the same lucide set.
+Icon initialization (`icons.ts`) moved to `web/app/lib/` in Phase 1 and this entry point imports it from there. The move is ahead of its use: only the Stimulus entry pulls it in today, and it now lives where the SPA can share it once a ported view needs a lucide icon.
 
 Things that are easy to get wrong:
 
@@ -192,9 +192,15 @@ web/static/js/build/manifest.json          {"index": "index-<hash>.js", "app": "
   templates) and `web/app/index.ts` (Svelte, serving the `/app/*` shell) build independently —
   `web/build.ts` calls `Bun.build()` once per entry so each gets its own content hash without name
   collisions. Phase 7 removes the Stimulus one.
+- **A build keeps the previous generation.** `web/build.ts` prunes the output directory *after*
+  writing, and keeps the filenames the outgoing `manifest.json` named as well as the new ones.
+  `scripts/deploy.sh` builds the JS into the live checkout while the previous binary is still
+  serving pages that name the old hashes, and only restarts the service at the end — deleting
+  those files up front would answer every request in that window with a 404 for the bundle.
 - **Filenames are content-hashed (Phase 1).** `web/build.ts` writes `manifest.json` beside the
-  bundles; `internal/serve/manifest.go` reads it once at startup (`LoadAssetManifest`, called
-  next to `LoadTemplates`) and `setTmplData` puts each entry's resolved `/static/*` path into the
+  bundles; `internal/serve/manifest.go` reads it at startup (`LoadAssetManifest`, called
+  next to `LoadTemplates`, and again from the development template-reload hook so a rebuild's new
+  hashes are picked up without a restart) and `setTmplData` puts each entry's resolved `/static/*` path into the
   template map (`indexBundle`, `appBundle`) for the two shells to read. Neither `layout.html` nor
   `web/views/app/index.html` hardcodes a filename, and `routes_test.go` reads the manifest rather
   than asserting a literal path. A missing manifest is not always a boot error: `LoadAssetManifest`

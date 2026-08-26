@@ -2,6 +2,8 @@ package serve
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"os"
 )
 
@@ -16,9 +18,12 @@ const (
 type assetManifest map[string]string
 
 // LoadAssetManifest reads the manifest web/build.ts writes beside the bundles.
-// It runs once at startup, like LoadTemplates: every command that starts this
-// server rebuilds the JS first (make dev, make test), so the file is always
-// fresh when this is called.
+// It runs at startup, like LoadTemplates, and again from the development
+// template-reload hook (serve.go) because a rebuild changes the hashed
+// filenames.
+//
+// Call it after LoadTemplates: the missing-file branch reads s.templates to
+// tell the two cases apart.
 //
 // A missing file is not an error, the same way parseTemplates (template.go)
 // treats an empty views glob: internal/logic and internal/repo build
@@ -29,7 +34,19 @@ type assetManifest map[string]string
 func (s *Server) LoadAssetManifest() error {
 	data, err := os.ReadFile(assetManifestPath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
+			// Logged rather than swallowed whenever templates did load, which
+			// is what separates "this process has no web/ tree at all" from
+			// "the bundles were never built". In the second case this line is
+			// the only signal that every rendered page is about to ship with an
+			// empty <script src> and no JS behind it.
+			if len(s.templates) > 0 {
+				s.app.Logger.Errorf(
+					"asset manifest not found at %s, run make build-static-js",
+					assetManifestPath,
+				)
+			}
+
 			return nil
 		}
 

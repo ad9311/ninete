@@ -25,9 +25,9 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1). Both entry points
-    import it, so lucide's icon set is registered once regardless of which
-    document is loaded.
+  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
+    point imports it so far; it lives here so a ported view can share the same
+    lucide set without reaching back into `web/static/`.
 - `components/` — shared, resource-agnostic components only. Phase 1 adds
   `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
   ports `themeController`/`navController`), `Footer.svelte` (reads the shell's

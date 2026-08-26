@@ -12,16 +12,12 @@
 // land in manifest.json for Go to read at startup and hand to the templates
 // through setTmplData. Without the hash, /static/*'s max-age=300 leaves a
 // deploy serving a stale bundle for up to five minutes.
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { basename } from "node:path";
 import { SveltePlugin } from "bun-plugin-svelte";
 
 const outdir = "web/static/js/build";
-
-// Each run's filenames carry a fresh content hash, so a stale one from a
-// previous build would otherwise sit alongside the new one, unreferenced but
-// undeleted, forever.
-await rm(outdir, { recursive: true, force: true });
+const manifestPath = `${outdir}/manifest.json`;
 
 interface Entry {
   /** Manifest key, and the filename prefix before the content hash. */
@@ -34,6 +30,28 @@ const entries: Entry[] = [
   { name: "app", path: "web/app/index.ts" },
 ];
 
+// The generation this build replaces. It is read *before* anything is written
+// and kept alive afterwards on purpose: scripts/deploy.sh builds the JS into
+// the live checkout while the previous binary is still serving, and that binary
+// holds the previous manifest in memory until systemd restarts it at the end of
+// the deploy. Deleting the files it still names would answer every page load in
+// that window with a 404 for the bundle. One generation of slack covers it, and
+// the build after next reclaims the space.
+async function previousManifest(): Promise<Record<string, string>> {
+  const file = Bun.file(manifestPath);
+  if (!(await file.exists())) {
+    return {};
+  }
+
+  try {
+    return (await file.json()) as Record<string, string>;
+  } catch {
+    // An unreadable manifest only costs us the pruning hint.
+    return {};
+  }
+}
+
+const previous = await previousManifest();
 const manifest: Record<string, string> = {};
 
 for (const entry of entries) {
@@ -64,4 +82,20 @@ for (const entry of entries) {
   manifest[entry.name] = basename(entryPoint.path);
 }
 
-await Bun.write(`${outdir}/manifest.json`, JSON.stringify(manifest, null, 2));
+await Bun.write(manifestPath, JSON.stringify(manifest, null, 2));
+
+// Everything older than the two generations above is unreferenced by any
+// running or restartable binary, so it can go.
+const keep = new Set([
+  "manifest.json",
+  ...Object.values(manifest),
+  ...Object.values(previous),
+]);
+
+for (const name of await readdir(outdir)) {
+  if (keep.has(name)) {
+    continue;
+  }
+
+  await rm(`${outdir}/${name}`, { recursive: true, force: true });
+}

@@ -116,9 +116,10 @@ func (s *Server) setUpAPIRoutes() {
 }
 
 // staticCacheControl lets the browser reuse assets across page loads without a
-// request at all. The bundle filenames carry no content hash, so the window
-// stays short; once it lapses http.FileServer answers the revalidation with a
-// 304 off Last-Modified.
+// request at all. The bundle filenames are content-hashed (manifest.go), so a
+// deploy can no longer strand a stale bundle here; the stylesheet and the
+// images are not, which is why the window stays short. Once it lapses
+// http.FileServer answers the revalidation with a 304 off Last-Modified.
 const staticCacheControl = "public, max-age=300"
 
 // setUpFileServer mounts the assets on the root router, outside the app

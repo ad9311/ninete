@@ -50,6 +50,7 @@ func newLimitedServer(t *testing.T) *Server {
 
 	server := New(app, logic.New(app, repo.New(app, sqlDB)), sqlDB)
 	require.NoError(t, server.LoadTemplates())
+	require.NoError(t, server.LoadAssetManifest())
 
 	return server
 }
