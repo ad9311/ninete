@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7 and 0B landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B and 1 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -720,11 +720,11 @@ Exit criteria — all met, Phase 0 complete:
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
 
-Phase 1 is next in numbering and is the first phase a user could see: the shell, the router, and
-the SPA staged under `/app/*`. Phase 0B, the section immediately below, has already landed — it
-is unnumbered because it could go at any point before Phase 2, the phase that would otherwise
-have piloted on Foods. It went before Phase 1 so the shell's nav is built once against the
-surviving routes rather than built and then trimmed.
+Phase 1 was the first phase a user could see: the shell, the router, and the SPA staged under
+`/app/*`. Phase 0B, the section immediately below, landed before it — it is unnumbered because it
+could go at any point before Phase 2, the phase that would otherwise have piloted on Foods. It
+went before Phase 1 so the shell's nav is built once against the surviving routes rather than
+built and then trimmed. Phase 2 (recurrent expenses) is next.
 
 ### Phase 0B — Retire macros, foods and moods (code only) — landed
 
@@ -880,7 +880,7 @@ Exit criteria:
   string in `TestNextSortOrder`; it was renamed to `"date"` so the grep stays a signal rather
   than something with a standing exception attached.
 
-### Phase 1 — Shell and router, coexisting with templates
+### Phase 1 — Shell and router, coexisting with templates — landed (#123)
 
 Serve the SPA under `/app/*` while every existing route keeps working. Shell template (with the
 `<meta name="csrf-token">` tag from §3.2), hand-rolled path-based router, layout chrome
