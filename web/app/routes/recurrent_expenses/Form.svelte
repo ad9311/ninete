@@ -43,6 +43,7 @@
   let tagsInput = $state(seed ? joinTagNames(seed.tags) : "");
   let period = $state(seed?.period ?? 1);
   let occurrenceLimit = $state(seed?.occurrence_limit ?? 0);
+  let amountError = $state("");
 
   $effect(() => {
     let cancelled = false;
@@ -68,10 +69,17 @@
   function handleSubmit(event: SubmitEvent): void {
     event.preventDefault();
 
+    const amount = inputValueToCents(amountInput);
+    if (amount === null) {
+      amountError = "Amount must be a valid number.";
+      return;
+    }
+    amountError = "";
+
     onSubmit({
       category_id: categoryId,
       description,
-      amount: inputValueToCents(amountInput) ?? 0,
+      amount,
       period,
       occurrence_limit: occurrenceLimit,
       tags: parseTagsInput(tagsInput),
@@ -79,8 +87,8 @@
   }
 </script>
 
-{#if error}
-  <p class="form-error-text">{error}</p>
+{#if amountError || error}
+  <p class="form-error-text">{amountError || error}</p>
 {/if}
 
 <form onsubmit={handleSubmit}>

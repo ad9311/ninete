@@ -19,6 +19,12 @@
 
   function mount(node: HTMLElement) {
     const svg = createElement(icon, className ? { class: className } : {});
+    // createIcons() carried the placeholder's own attributes (here, just
+    // aria-hidden) onto the generated svg; this does the same so the icon
+    // stays hidden from assistive tech instead of reaching it unlabeled.
+    for (const attr of Array.from(node.attributes)) {
+      svg.setAttribute(attr.name, attr.value);
+    }
     node.replaceWith(svg);
 
     return {
