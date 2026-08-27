@@ -2,6 +2,8 @@
 // and §3.5 of docs/spa-migration.md; the comments record the parts that are
 // invisible in the code but expensive to rediscover.
 
+import { begin, end } from "./pending";
+
 const API_PREFIX = "/api";
 const LOGIN_PATH = "/login";
 
@@ -100,7 +102,7 @@ async function parseErrorBody(response: Response): Promise<APIRequestError> {
   );
 }
 
-async function request<T>(
+async function performRequest<T>(
   method: string,
   path: string,
   body?: unknown,
@@ -145,6 +147,30 @@ async function request<T>(
   return (await response.json()) as T;
 }
 
+// Every call goes through here, so this is the one place the loading backdrop
+// has to be driven from (lib/pending.ts) — a new route or a new resource gets
+// the feedback without wiring anything, which is the failure the router-owned
+// flag had. The counter spans the body read as well as the fetch, since a
+// streamed response is still a request in flight.
+//
+// try/finally rather than a release after the await: a rejected fetch, an abort
+// through `signal`, and the APIRequestError thrown for a non-2xx all have to
+// release the counter, and one missed release leaves the backdrop covering the
+// page for good.
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options: RequestOptions = {},
+): Promise<T> {
+  begin();
+  try {
+    return await performRequest<T>(method, path, body, options);
+  } finally {
+    end();
+  }
+}
+
 export function get<T>(path: string, options?: RequestOptions): Promise<T> {
   return request<T>("GET", path, undefined, options);
 }
@@ -157,12 +183,12 @@ export function post<T>(
   return request<T>("POST", path, body, options);
 }
 
-export function patch<T>(
+export function put<T>(
   path: string,
   body?: unknown,
   options?: RequestOptions,
 ): Promise<T> {
-  return request<T>("PATCH", path, body, options);
+  return request<T>("PUT", path, body, options);
 }
 
 // `delete` is reserved, so the helper is del — the HTTP method it sends is not.

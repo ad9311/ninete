@@ -23,6 +23,7 @@ var (
 	ErrInvalidCSRFToken = errors.New("invalid or missing CSRF token")
 	ErrAPIRouteNotFound = errors.New("resource not found")
 	ErrAPIUnavailable   = errors.New("the request could not be completed, please try again")
+	ErrAPIInvalidJSON   = errors.New("request body must be valid JSON")
 
 	ErrSearchDateFormat    = errors.New("dates must use the YYYY-MM-DD format")
 	ErrSearchDateRange     = errors.New("the from date must be on or before the to date")

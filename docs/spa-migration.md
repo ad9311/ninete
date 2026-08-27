@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7 and 0B landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1 and 2 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -428,9 +428,19 @@ labels.
 
 ### 3.7 Navigation and loading feedback
 
-The Turbo progress bar disappears with Turbo. Replacement: a router-level pending flag driving
-the same `.turbo-progress-bar` styling in `layout.css` (rename it). Also gone: Turbo's scroll
-restoration and link prefetching — both need explicit handling in the router if wanted.
+The Turbo progress bar disappears with Turbo. Replacement: a pending flag driving the same
+`.turbo-progress-bar` styling in `layout.css` (renamed `.route-progress-bar`). Also gone: Turbo's
+scroll restoration and link prefetching — both need explicit handling in the router if wanted.
+
+**The flag counts requests, not navigations** (revised in Phase 2). Phase 1 put a `pending`
+`$state` on the router in App.svelte and Phase 2 added four routes that fetch on mount without
+any of them setting it, so the backdrop never appeared once — the router knows a route changed,
+not that the route is still loading, and a flag it set would clear before the first row arrived.
+`lib/pending.ts` holds a counter of in-flight requests and `lib/api.ts` drives it from
+`request()`, so every route and every resource added later gets the feedback with no wiring.
+That is also what Turbo covered in practice: every visit and form submission it drew the bar for
+was an HTTP request. The 250ms delay before showing matches
+`Turbo.config.drive.progressBarDelay` in `web/static/js/index.ts`; hiding is immediate.
 
 Router: **hand-rolled, path-based** (decided). A `$state` holding `location.pathname`, a
 `popstate` listener, a click handler intercepting internal `<a>` clicks, and a match table —
@@ -720,11 +730,11 @@ Exit criteria — all met, Phase 0 complete:
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
 
-Phase 1 is next in numbering and is the first phase a user could see: the shell, the router, and
-the SPA staged under `/app/*`. Phase 0B, the section immediately below, has already landed — it
-is unnumbered because it could go at any point before Phase 2, the phase that would otherwise
-have piloted on Foods. It went before Phase 1 so the shell's nav is built once against the
-surviving routes rather than built and then trimmed.
+Phase 1 was the first phase a user could see: the shell, the router, and the SPA staged under
+`/app/*`. Phase 0B, the section immediately below, landed before it — it is unnumbered because it
+could go at any point before Phase 2, the phase that would otherwise have piloted on Foods. It
+went before Phase 1 so the shell's nav is built once against the surviving routes rather than
+built and then trimmed. Phase 2 (recurrent expenses) landed after it; Phase 3 is next.
 
 ### Phase 0B — Retire macros, foods and moods (code only) — landed
 
@@ -880,7 +890,7 @@ Exit criteria:
   string in `TestNextSortOrder`; it was renamed to `"date"` so the grep stays a signal rather
   than something with a standing exception attached.
 
-### Phase 1 — Shell and router, coexisting with templates
+### Phase 1 — Shell and router, coexisting with templates — landed (#123)
 
 Serve the SPA under `/app/*` while every existing route keeps working. Shell template (with the
 `<meta name="csrf-token">` tag from §3.2), hand-rolled path-based router, layout chrome
@@ -900,7 +910,7 @@ Exit: `/app` renders the real chrome around a placeholder route, a hard refresh 
 path like `/app/recurrent-expenses/1/edit` still resolves, every template route is untouched,
 and no template or test hardcodes the bundle filename.
 
-### Phase 2 — First real resource: Recurrent expenses
+### Phase 2 — First real resource: Recurrent expenses — landed (#124)
 
 Foods was the pilot because it was the smallest full CRUD; §0 deletes it, so the pilot moves to
 recurrent expenses — now the only resource left with a complete `index`/`new`/`edit`/`show`/

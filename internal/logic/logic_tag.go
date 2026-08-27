@@ -61,6 +61,14 @@ func ParseTagNames(raw string) []string {
 	return normalizeTagNames(rawTags)
 }
 
+// NormalizeTagNames applies ParseTagNames' rules (lowercase, trim, dedupe,
+// drop empty) to names that already arrive as a slice. The JSON API sends a
+// real array, so it must not join them into a string just to have them split
+// apart again — a tag containing a semicolon would be torn into two.
+func NormalizeTagNames(tagNames []string) []string {
+	return normalizeTagNames(tagNames)
+}
+
 func JoinTagNames(tagNames []string) string {
 	return strings.Join(tagNames, "; ")
 }
