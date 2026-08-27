@@ -210,6 +210,50 @@ func TestAPIExpenses(t *testing.T) {
 			},
 		},
 		{
+			// Reproduction, not an invariant guard: the client resolves its named
+			// range to start/end and never sends date_range, so expenseSearch's
+			// explicitRange used to read false on this chain and a text search
+			// deleted the bounds — the listing silently widened to all time.
+			name: "should_keep_explicit_date_bounds_when_a_text_search_is_active",
+			fn: func(t *testing.T) {
+				ownerID, cookies, _ := apiUser(
+					t, s, "api_exp_user_10", "api_exp_user_10@example.com", "api_exp_password_10",
+				)
+				category := s.CreateCategory(t, "api_exp_cat_10")
+
+				inRange := s.CreateExpense(t, ownerID, logic.ExpenseParams{
+					ExpenseBaseParams: logic.ExpenseBaseParams{
+						CategoryID: category.ID, Description: "Cinema tickets", Amount: 450,
+					},
+					Date: 1755993600, // 2025-08-24
+				})
+				s.CreateExpense(t, ownerID, logic.ExpenseParams{
+					ExpenseBaseParams: logic.ExpenseBaseParams{
+						CategoryID: category.ID, Description: "Cinema snacks", Amount: 1200,
+					},
+					Date: 1753488000, // 2025-07-26, a different month
+				})
+
+				start, end := monthBounds(time.Unix(1755993600, 0))
+				url := "/api/expenses?q=cinema&start=" + itoa64(start) + "&end=" + itoa64(end)
+
+				res, body := doJSON(t, handler, http.MethodGet, url, nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				var list apiExpenseListBody
+				require.NoError(t, json.Unmarshal(body, &list))
+				require.Len(t, list.Data, 1)
+				require.Equal(t, inRange.ID, list.Data[0].ID)
+
+				// Without bounds the same search still widens to all time, which is
+				// how the client asks for the all_time range.
+				res, body = doJSON(t, handler, http.MethodGet, "/api/expenses?q=cinema", nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
+				require.NoError(t, json.Unmarshal(body, &list))
+				require.Len(t, list.Data, 2)
+			},
+		},
+		{
 			name: "should_reject_an_invalid_date_range",
 			fn: func(t *testing.T) {
 				_, cookies, _ := apiUser(t, s, "api_exp_user_6", "api_exp_user_6@example.com", "api_exp_password_6")

@@ -149,9 +149,11 @@ type expenseBudgetsRequestBody struct {
 	Amounts map[string]uint64 `json:"amounts"`
 }
 
-// PutAPIExpenseBudgets is PostExpensesBudgets's JSON twin: an omitted or
-// zero-valued category clears its budget, matching SaveExpenseBudgets's
-// existing "zero deletes" contract.
+// PutAPIExpenseBudgets is PostExpensesBudgets's JSON twin: a zero amount
+// clears that category's budget, matching SaveExpenseBudgets's existing "zero
+// deletes" contract. An *omitted* category is left untouched rather than
+// cleared — SaveExpenseBudgets only visits the keys it is handed — so the
+// client posts every edit row, the way the template form posts every field.
 func (h *Handler) PutAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)

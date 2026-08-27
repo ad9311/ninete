@@ -2,7 +2,7 @@
   import { Eye, Repeat, Wallet } from "lucide";
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
-  import { navigate } from "../../router";
+  import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
   import type { Expense, ExpenseRequestBody } from "./types";
 
@@ -56,7 +56,7 @@
     <h1 id="edit-expense-card-title" class="card-title">Edit expense</h1>
     <nav class="card-actions" aria-label="Expense navigation">
       <a
-        href={`/app/expenses/${id}`}
+        href={`${BASE_PATH}/expenses/${id}`}
         class="card-action-link"
         aria-label="View expense"
         title="View expense"
@@ -64,7 +64,7 @@
         <Icon icon={Eye} class="card-action-icon" />
       </a>
       <a
-        href="/app/expenses"
+        href={`${BASE_PATH}/expenses`}
         class="card-action-link"
         aria-label="Expenses"
         title="Expenses"
@@ -72,7 +72,7 @@
         <Icon icon={Wallet} class="card-action-icon" />
       </a>
       <a
-        href="/app/recurrent-expenses"
+        href={`${BASE_PATH}/recurrent-expenses`}
         class="card-action-link"
         aria-label="Recurrent expenses"
         title="Recurrent expenses"

@@ -124,7 +124,7 @@
     <h1 id="expense-budgets-card-title" class="card-title">Expense budgets</h1>
     <nav class="card-actions" aria-label="Expense navigation">
       <a
-        href="/app/expenses"
+        href={`${BASE_PATH}/expenses`}
         class="card-action-link"
         aria-label="Expenses"
         title="Expenses"
@@ -132,7 +132,7 @@
         <Icon icon={Wallet} class="card-action-icon" />
       </a>
       <a
-        href="/app/expenses/stats"
+        href={`${BASE_PATH}/expenses/stats`}
         class="card-action-link"
         aria-label="Stats"
         title="Stats"

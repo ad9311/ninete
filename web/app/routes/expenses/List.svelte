@@ -249,7 +249,10 @@
     };
     // An active search forces the range select to all_time; dropping it here
     // too keeps Clear from leaving an unbounded, unfiltered listing behind.
-    if (searchActive && dateRangeValue === "all_time") {
+    // The URL's own value, not dateRangeValue: that derived reads "all_time"
+    // for *any* active search, so it would also throw away a range the user
+    // picked by hand (six_months + explicit bounds would snap to this_month).
+    if (searchActive && params.get("date_range") === "all_time") {
       overrides.date_range = undefined;
     }
 
@@ -315,12 +318,16 @@
       <label class="search-field search-field-date">
         <span class="sr-only">From date</span>
         <span class="search-date-label" aria-hidden="true">From</span>
+        <!-- The regex has to be an expression, not a quoted attribute: Svelte
+          reads {4} inside a plain attribute value as an interpolation and the
+          template's `\d{4}-\d{2}-\d{2}` would ship as `\d4-\d2-\d2`, which no
+          real date matches, so the field could never pass validation. -->
         <input
           type="text"
           bind:value={dateFromInput}
           placeholder="YYYY-MM-DD"
           inputmode="numeric"
-          pattern="\d{4}-\d{2}-\d{2}"
+          pattern={"\\d{4}-\\d{2}-\\d{2}"}
           title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
           maxlength="10"
         />
@@ -328,12 +335,13 @@
       <label class="search-field search-field-date">
         <span class="sr-only">To date</span>
         <span class="search-date-label" aria-hidden="true">To</span>
+        <!-- Expression form, same reason as the From field above. -->
         <input
           type="text"
           bind:value={dateToInput}
           placeholder="YYYY-MM-DD"
           inputmode="numeric"
-          pattern="\d{4}-\d{2}-\d{2}"
+          pattern={"\\d{4}-\\d{2}-\\d{2}"}
           title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
           maxlength="10"
         />

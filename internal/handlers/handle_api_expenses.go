@@ -67,7 +67,10 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 // explicit [start, end) bounds the client resolved client-side instead of
 // reading date_range and tz_offset. expenseSearch.apply layers its own
 // predicates on top identically for both paths.
-func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, error) {
+//
+// It reports whether the request carried bounds, which the caller has to feed
+// back into the search — see GetAPIExpenses.
+func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, bool, error) {
 	q := r.URL.Query()
 
 	sorting := repo.Sorting{Order: q.Get("sort_order"), Field: q.Get("sort_field")}
@@ -100,7 +103,7 @@ func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, error) 
 
 	start, end, hasBounds, err := parseAPIDateBounds(q)
 	if err != nil {
-		return opts, err
+		return opts, false, err
 	}
 	if hasBounds {
 		opts.Filters.FilterFields = append(opts.Filters.FilterFields,
@@ -109,7 +112,7 @@ func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, error) 
 		)
 	}
 
-	return opts, nil
+	return opts, hasBounds, nil
 }
 
 // ----------------------------------------------------------------------------- //
@@ -157,12 +160,19 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts, err := apiExpenseListOpts(r, user.ID)
+	opts, hasBounds, err := apiExpenseListOpts(r, user.ID)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 
 		return
 	}
+
+	// parseExpenseSearch reads explicitRange from date_range, which this chain
+	// never receives: the client resolves its named range to bounds itself
+	// (§3.6 of docs/spa-migration.md). Bounds present *is* the explicit range
+	// here, and without this a text search would take clearsPresetRange's
+	// implicit-widening branch and delete the very bounds the client asked for.
+	search.explicitRange = hasBounds
 	search.apply(&opts, user.ID)
 
 	totalCount, err := h.store.CountExpenses(ctx, opts.Filters)

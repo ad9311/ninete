@@ -7,7 +7,7 @@
   import { Repeat, Wallet } from "lucide";
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, post } from "../../lib/api";
-  import { navigate } from "../../router";
+  import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
   import QuickAddForm from "./QuickAddForm.svelte";
   import type { Expense, ExpenseRequestBody } from "./types";
@@ -60,7 +60,7 @@
         Quick
       </label>
       <a
-        href="/app/expenses"
+        href={`${BASE_PATH}/expenses`}
         class="card-action-link"
         aria-label="Expenses"
         title="Expenses"
@@ -68,7 +68,7 @@
         <Icon icon={Wallet} class="card-action-icon" />
       </a>
       <a
-        href="/app/recurrent-expenses"
+        href={`${BASE_PATH}/recurrent-expenses`}
         class="card-action-link"
         aria-label="Recurrent expenses"
         title="Recurrent expenses"

@@ -4,7 +4,7 @@
   import LocalDate from "../../components/LocalDate.svelte";
   import { APIRequestError, del, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
-  import { navigate } from "../../router";
+  import { BASE_PATH, navigate } from "../../router";
   import type { Expense } from "./types";
 
   let { id }: { id: string } = $props();
@@ -17,7 +17,11 @@
 
     get<Expense>(`/expenses/${id}`)
       .then((result) => {
-        if (!cancelled) expense = result;
+        if (cancelled) return;
+        expense = result;
+        // Cleared on success, same as Edit.svelte: without this a failed load
+        // leaves its banner over the next expense the route resolves to.
+        loadError = "";
       })
       .catch((err) => {
         if (cancelled) return;
@@ -50,7 +54,7 @@
     <h1 id="expense-card-title" class="card-title">Expense</h1>
     <nav class="card-actions" aria-label="Expense navigation">
       <a
-        href={`/app/expenses/${id}/edit`}
+        href={`${BASE_PATH}/expenses/${id}/edit`}
         class="card-action-link"
         aria-label="Edit expense"
         title="Edit expense"
@@ -58,7 +62,7 @@
         <Icon icon={SquarePen} class="card-action-icon" />
       </a>
       <a
-        href="/app/expenses"
+        href={`${BASE_PATH}/expenses`}
         class="card-action-link"
         aria-label="Expenses"
         title="Expenses"
@@ -66,7 +70,7 @@
         <Icon icon={Wallet} class="card-action-icon" />
       </a>
       <a
-        href="/app/recurrent-expenses"
+        href={`${BASE_PATH}/recurrent-expenses`}
         class="card-action-link"
         aria-label="Recurrent expenses"
         title="Recurrent expenses"
