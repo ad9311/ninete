@@ -25,7 +25,7 @@ type apiBudgetRow struct {
 	Pct          int                 `json:"pct"`
 	BarPct       int                 `json:"bar_pct"`
 	Over         bool                `json:"over"`
-	Months       []apiBudgetMonthRow `json:"months,omitempty"`
+	Months       []apiBudgetMonthRow `json:"months"`
 	MonthsOver   int                 `json:"months_over"`
 	MonthCount   int                 `json:"month_count"`
 	AvgPerMonth  uint64              `json:"avg_per_month"`

@@ -63,45 +63,20 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 	}
 }
 
-// apiExpenseListOpts is userScopedQueryOpts's /api/expenses twin: it takes the
-// explicit [start, end) bounds the client resolved client-side instead of
-// reading date_range and tz_offset. expenseSearch.apply layers its own
-// predicates on top identically for both paths.
+// apiExpenseListOpts is userScopedQueryOpts's /api/expenses twin: sorting,
+// pagination and the category filter are identical between the two paths, so
+// this delegates to userScopedQueryOpts with an empty defaultDateRange (the
+// API never sends date_range, so that resolves to no date filter at all) and
+// then layers on the explicit [start, end) bounds the client resolved
+// client-side instead of reading date_range and tz_offset. expenseSearch.apply
+// layers its own predicates on top identically for both paths.
 //
 // It reports whether the request carried bounds, which the caller has to feed
 // back into the search — see GetAPIExpenses.
 func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, bool, error) {
-	q := r.URL.Query()
+	opts := userScopedQueryOpts(r, userID, repo.Sorting{Field: "date", Order: "DESC"}, "")
 
-	sorting := repo.Sorting{Order: q.Get("sort_order"), Field: q.Get("sort_field")}
-	if sorting.Field == "" && sorting.Order == "" {
-		sorting = repo.Sorting{Field: "date", Order: "DESC"}
-	}
-
-	page := 1
-	if v, err := prog.ParseID(q.Get("page"), "Page"); err == nil && v > 0 {
-		page = v
-	}
-
-	opts := repo.QueryOptions{
-		Sorting: sorting,
-		Pagination: repo.Pagination{
-			Page:    page,
-			PerPage: normalizePerPage(q.Get("per_page")),
-		},
-	}
-	opts.Filters.Connector = "AND"
-	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
-		Name: "user_id", Value: userID, Operator: "=",
-	})
-
-	if categoryID, err := prog.ParseID(q.Get("category_id"), "Category ID"); err == nil && categoryID > 0 {
-		opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
-			Name: "category_id", Value: categoryID, Operator: "=",
-		})
-	}
-
-	start, end, hasBounds, err := parseAPIDateBounds(q)
+	start, end, hasBounds, err := parseAPIDateBounds(r.URL.Query())
 	if err != nil {
 		return opts, false, err
 	}
