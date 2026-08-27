@@ -3,6 +3,12 @@
 // this module supplies the pure matching logic plus the two DOM listeners
 // (popstate, link interception) that keep it in sync with the URL.
 import type { Component } from "svelte";
+import Budgets from "./routes/expenses/Budgets.svelte";
+import ExpensesEdit from "./routes/expenses/Edit.svelte";
+import ExpensesIndex from "./routes/expenses/Index.svelte";
+import ExpensesNew from "./routes/expenses/New.svelte";
+import ExpensesShow from "./routes/expenses/Show.svelte";
+import Stats from "./routes/expenses/Stats.svelte";
 import Home from "./routes/Home.svelte";
 import RecurrentExpensesArchived from "./routes/recurrent_expenses/Archived.svelte";
 import RecurrentExpensesEdit from "./routes/recurrent_expenses/Edit.svelte";
@@ -38,6 +44,12 @@ export interface RouteMatch {
 // ":id" pattern that would otherwise swallow it as a param.
 export const routes: RouteDef[] = [
   { path: "/", component: Home },
+  { path: "/expenses", component: ExpensesIndex },
+  { path: "/expenses/new", component: ExpensesNew },
+  { path: "/expenses/stats", component: Stats },
+  { path: "/expenses/budgets", component: Budgets },
+  { path: "/expenses/:id/edit", component: ExpensesEdit },
+  { path: "/expenses/:id", component: ExpensesShow },
   { path: "/recurrent-expenses", component: RecurrentExpensesIndex },
   {
     path: "/recurrent-expenses/archived",

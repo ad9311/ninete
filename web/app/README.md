@@ -38,10 +38,24 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     `currency` and `amountController.ts`'s cents conversion (Phase 2):
     `formatCurrency` for display, `centsToInputValue`/`inputValueToCents` for
     a form field. Amounts are unsigned cents end to end, never a float.
+    `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
+    "left" amount) — `Intl`'s currency formatting already prints a leading
+    `-` for a negative value, so there is no second formatter (Phase 3).
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
     field the templates already use (Phase 2). Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
     the same strings there and back.
+  - `dateRanges.ts` — the client-side twin of `computeDateRange`
+    (`internal/handlers/expense_shared.go`), ported one for one down to the
+    month arithmetic (Phase 3, §3.6 "Retiring `tz_offset` on the API side").
+    `computeDateRange(key)` resolves a named range (`this_month`, `six_months`,
+    ...) to explicit UTC-midnight `[start, end)` epoch-second bounds using the
+    browser's own local calendar — the same role `tz_offset` played
+    server-side — and the API only ever receives those bounds, never the key.
+    `DATE_RANGE_OPTIONS`/`BUDGET_DATE_RANGE_OPTIONS` are the two option tables
+    (`dateRangeLabels`/`budgetDateRanges`) a select needs; the budget table
+    also carries each range's month vs. months mode, since the API can no
+    longer derive it from a key it never receives.
 - `components/` — shared, resource-agnostic components only. Phase 1 adds
   `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
   ports `themeController`/`navController`), `Footer.svelte` (reads the shell's
@@ -54,6 +68,13 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   placeholder element via an action, replacing `data-lucide` +
   `createIcons()`'s scan (§2.3 of docs/spa-migration.md, "Per-component icon
   rendering") — DOM APIs, not `{@html}`, so §3.4 rule 3's ban never enters it.
+  Phase 3 adds two more, both used by more than one resource already:
+  `LocalDate.svelte` ports `localDateController.ts`'s two display modes — a
+  calendar date with UTC getters, or an instant with local getters and a
+  `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte` ports
+  `dateHelpController.ts`'s tap-triggered popover (quick-add's date-format
+  help, the expense search panel's date-bounds help), closing on outside
+  click or Escape.
 - `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action.
   Phase 1 adds only `Home.svelte`, the placeholder mounted at `/` until Phase 2
   replaces the match table's single entry with a real resource.
@@ -69,6 +90,21 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   reaches its route as a `search` prop — `App.svelte` tracks it separately
   from the matched path, since a page/sort/filter change must not remount the
   routed component the way a real path change does.
+  `routes/expenses/` (Phase 3) is the largest example: `List.svelte` adds a
+  search panel (description, tag, explicit `date_from`/`date_to`, a
+  billed/created toggle) on top of the category and date-range filters
+  Phase 2's List introduced, since the named date range now resolves
+  client-side via `lib/dateRanges.ts` instead of riding along as
+  `date_range`+`tz_offset`; `Form.svelte` adds a calendar-date field
+  (`lib/dates.ts`'s `calendarDateToUnix`/`todayCalendarDate`); `New.svelte`
+  toggles between it and `QuickAddForm.svelte`, which posts to
+  `/expenses/quick` with an explicit `tz_offset` (§3.6's "Consumer 2" — quick
+  add keeps a client zone even though the named ranges retire theirs) and
+  shows a category picker on the first `category_id` field error, mirroring
+  the template's re-render-to-ask-for-a-category flow without a page
+  reload; `Stats.svelte` and `Budgets.svelte` are their own routes, the
+  latter sending the `mode` (`month`/`months`) explicitly since the API
+  no longer receives the range key it used to derive that from.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -130,6 +131,28 @@ func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
 	default:
 		return dateRange{}, false
 	}
+}
+
+// parseAPIDateBounds reads the explicit [start, end) bounds an /api/expenses*
+// request carries instead of date_range+tz_offset (§3.6 of
+// docs/spa-migration.md, "Retiring tz_offset on the API side"): the client
+// already knows its own zone, so it resolves the named range to UTC-midnight
+// epoch bounds before the fetch. Neither param present means "no bound" (the
+// all_time case); either present alone, or start on or after end, is
+// malformed input rather than a silent fallback.
+func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
+	rawStart, rawEnd := q.Get("start"), q.Get("end")
+	if rawStart == "" && rawEnd == "" {
+		return 0, 0, false, nil
+	}
+
+	start, startErr := strconv.ParseInt(rawStart, 10, 64)
+	end, endErr := strconv.ParseInt(rawEnd, 10, 64)
+	if startErr != nil || endErr != nil || start >= end {
+		return 0, 0, false, ErrAPIInvalidDateRange
+	}
+
+	return start, end, true, nil
 }
 
 func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {

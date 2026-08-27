@@ -114,6 +114,22 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)
 
+		api.Route("/expenses", func(expenses chi.Router) {
+			expenses.Get("/", s.handlers.GetAPIExpenses)
+			expenses.Post("/", s.handlers.PostAPIExpenses)
+			expenses.Post("/quick", s.handlers.PostAPIExpensesQuick)
+			expenses.Get("/stats", s.handlers.GetAPIExpensesStats)
+			expenses.Get("/budgets", s.handlers.GetAPIExpenseBudgets)
+			expenses.Put("/budgets", s.handlers.PutAPIExpenseBudgets)
+			expenses.Route("/{id}", func(expenses chi.Router) {
+				expenses.Use(s.handlers.APIExpenseContext)
+
+				expenses.Get("/", s.handlers.GetAPIExpense)
+				expenses.Put("/", s.handlers.PutAPIExpense)
+				expenses.Delete("/", s.handlers.DeleteAPIExpense)
+			})
+		})
+
 		api.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
 			recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpenses)
 			recurrentExpenses.Post("/", s.handlers.PostAPIRecurrentExpenses)
