@@ -117,9 +117,11 @@
         {session.username} <span class="site-nav-caret">▾</span>
       </button>
       <ul class="site-nav-dropdown" class:open={navOpen}>
+        <li><a href={`${BASE_PATH}/expenses`}>Expenses</a></li>
         <li>
           <a href={`${BASE_PATH}/recurrent-expenses`}>Recurrent Expenses</a>
         </li>
+        <li><a href={`${BASE_PATH}/expenses/budgets`}>Expense Budgets</a></li>
         <li class="site-nav-divider"></li>
         <li>
           <form action="/logout" method="post" class="site-nav-logout">

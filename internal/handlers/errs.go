@@ -30,4 +30,10 @@ var (
 	ErrUnknownDateRange    = errors.New("unknown date range")
 	ErrBudgetCategoryField = errors.New("invalid budget field name")
 	ErrSearchTermTooLong   = errors.New("search terms must be at most 50 characters")
+
+	// ErrAPIInvalidDateRange is the /api/expenses* twin of ErrUnknownDateRange:
+	// the client resolves a named range to explicit bounds itself (§3.6 of
+	// docs/spa-migration.md), so the API only ever sees start/end and rejects
+	// anything that is not a well-formed half-open range.
+	ErrAPIInvalidDateRange = errors.New("start and end must both be set, with start before end")
 )
