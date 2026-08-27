@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -102,11 +101,12 @@ func (b recurrentExpenseRequestBody) toParams() logic.RecurrentExpenseParams {
 		},
 		Period:          b.Period,
 		OccurrenceLimit: b.OccurrenceLimit,
-		// Reuses logic.ParseTagNames' normalization (lowercase, trim, dedupe,
-		// drop empty) rather than a second implementation of it in this file —
-		// the semicolon join is what that function expects, not a delimiter
-		// the client chose.
-		Tags: logic.ParseTagNames(strings.Join(b.Tags, ";")),
+		// Reuses the same normalization the form path gets from
+		// logic.ParseTagNames (lowercase, trim, dedupe, drop empty) rather
+		// than a second implementation of it here. The slice overload is the
+		// one to call: joining on ";" and re-splitting would tear a tag that
+		// contains a semicolon into two.
+		Tags: logic.NormalizeTagNames(b.Tags),
 	}
 }
 
@@ -250,7 +250,13 @@ func (h *Handler) PostAPIRecurrentExpenses(w http.ResponseWriter, r *http.Reques
 	h.respondWithRecurrentExpense(w, r, recurrentExpense)
 }
 
-func (h *Handler) PatchAPIRecurrentExpense(w http.ResponseWriter, r *http.Request) {
+// PutAPIRecurrentExpense replaces the record. It is PUT rather than PATCH
+// because recurrentExpenseRequestBody has no pointer fields: an omitted key
+// decodes to the zero value and is written as one, so a body carrying only
+// "amount" would clear the tags and reset occurrence_limit to 0 (unlimited).
+// That matches the template form's POST, which also submits every field. A
+// real partial update means pointer fields here and a merge in toParams.
+func (h *Handler) PutAPIRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
 	recurrentExpense := getRecurrentExpense(r)

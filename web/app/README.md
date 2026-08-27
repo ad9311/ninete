@@ -25,9 +25,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1). Both entry points
-    import it; the Svelte side reaches it through `components/Icon.svelte`
-    rather than `createIcons()`'s DOM scan (Phase 2 — see below).
+  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
+    point imports it: it is the `createIcons()` DOM scan, which has no
+    lifecycle event to hang on in the SPA. The Svelte side imports the icon
+    nodes it needs straight from `lucide` and renders them through
+    `components/Icon.svelte` (Phase 2 — see below), so this file goes away with
+    the last template.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
     (Phase 2). Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
@@ -42,8 +45,9 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
 - `components/` — shared, resource-agnostic components only. Phase 1 adds
   `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
   ports `themeController`/`navController`), `Footer.svelte` (reads the shell's
-  `<meta name="version">`) and `Spinner.svelte` (the router-level pending flag,
-  §3.7). `ThemeSwitch` stays inlined in `Header.svelte` rather than its own
+  `<meta name="version">`) and `Spinner.svelte` (the loading backdrop, §3.7 —
+  App.svelte subscribes it to `lib/pending.ts`, which `lib/api.ts` drives; no
+  route sets it by hand). `ThemeSwitch` stays inlined in `Header.svelte` rather than its own
   file: it has exactly one caller, and rule 2 below reserves this directory for
   things more than one resource uses. Phase 2 adds `Icon.svelte`: a single
   lucide icon built with `createElement` and swapped into the DOM for the

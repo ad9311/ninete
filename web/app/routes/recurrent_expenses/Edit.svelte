@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Eye, Repeat } from "lucide";
   import Icon from "../../components/Icon.svelte";
-  import { APIRequestError, get, patch } from "../../lib/api";
+  import { APIRequestError, get, put } from "../../lib/api";
   import { navigate } from "../../router";
   import Form from "./Form.svelte";
   import type { RecurrentExpense, RecurrentExpenseRequestBody } from "./types";
@@ -18,7 +18,9 @@
 
     get<RecurrentExpense>(`/recurrent-expenses/${id}`)
       .then((result) => {
-        if (!cancelled) recurrentExpense = result;
+        if (cancelled) return;
+        recurrentExpense = result;
+        loadError = "";
       })
       .catch((err) => {
         if (cancelled) return;
@@ -40,7 +42,7 @@
     submitError = "";
 
     try {
-      await patch<RecurrentExpense>(`/recurrent-expenses/${id}`, body);
+      await put<RecurrentExpense>(`/recurrent-expenses/${id}`, body);
       navigate(`/recurrent-expenses/${id}`);
     } catch (err) {
       submitError =
@@ -78,12 +80,19 @@
   {#if loadError}
     <p class="form-error-text">{loadError}</p>
   {:else if recurrentExpense}
-    <Form
-      initial={recurrentExpense}
-      submitLabel="Submit"
-      error={submitError}
-      {pending}
-      onSubmit={handleSubmit}
-    />
+    <!-- Form seeds its fields from `initial` once and then diverges as the
+      user types, so a new record arriving in the same component instance
+      (App.svelte reuses one across a param-only route change) has to remount
+      it — otherwise the fields would still hold the previous record while the
+      submit would have written those values to this one. -->
+    {#key recurrentExpense.id}
+      <Form
+        initial={recurrentExpense}
+        submitLabel="Submit"
+        error={submitError}
+        {pending}
+        onSubmit={handleSubmit}
+      />
+    {/key}
   {/if}
 </section>

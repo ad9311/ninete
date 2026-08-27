@@ -2,6 +2,7 @@
   import Header from "./components/Header.svelte";
   import Footer from "./components/Footer.svelte";
   import Spinner from "./components/Spinner.svelte";
+  import { subscribe as subscribePending } from "./lib/pending";
   import {
     routes,
     matchRoute,
@@ -18,9 +19,12 @@
   // through as its own prop is what lets a route react to that anyway: it
   // always changes, so Svelte always re-renders whatever reads it.
   let search = $state(window.location.search);
-  // No route in the Phase 1 match table loads async data yet; the flag exists
-  // now so Spinner's wiring does not have to be revisited when Phase 2 adds a
-  // route that does (§3.7 of docs/spa-migration.md).
+  // §3.7 calls this a router-level flag, but the router is the wrong owner: it
+  // knows a route changed, not that the route is still fetching, so a flag it
+  // set would clear before the first row arrived. lib/pending.ts counts
+  // requests in flight instead and lib/api.ts drives it, which is also what
+  // Turbo's bar effectively covered — every visit and form submission it
+  // showed for was an HTTP request.
   let pending = $state(false);
 
   function syncLocation(nextPath: string): void {
@@ -31,10 +35,14 @@
   $effect(() => {
     const offPopState = onPopState(syncLocation);
     const offLinkClick = onLinkClick(syncLocation);
+    const offPending = subscribePending((visible) => {
+      pending = visible;
+    });
 
     return () => {
       offPopState();
       offLinkClick();
+      offPending();
     };
   });
 

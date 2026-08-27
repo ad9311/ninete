@@ -141,7 +141,7 @@ func TestAPIRecurrentExpenses(t *testing.T) {
 				require.NoError(t, json.Unmarshal(body, &shown))
 				require.Equal(t, created.ID, shown.ID)
 
-				res, body = doJSON(t, handler, http.MethodPatch, showURL, map[string]any{
+				res, body = doJSON(t, handler, http.MethodPut, showURL, map[string]any{
 					"category_id":      category.ID,
 					"description":      "Streaming (annual)",
 					"amount":           19999,

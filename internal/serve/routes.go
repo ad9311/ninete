@@ -121,7 +121,7 @@ func (s *Server) setUpAPIRoutes() {
 				recurrentExpenses.Use(s.handlers.APIRecurrentExpenseContext)
 
 				recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpense)
-				recurrentExpenses.Patch("/", s.handlers.PatchAPIRecurrentExpense)
+				recurrentExpenses.Put("/", s.handlers.PutAPIRecurrentExpense)
 				recurrentExpenses.Delete("/", s.handlers.DeleteAPIRecurrentExpense)
 				recurrentExpenses.Post("/unarchive", s.handlers.PostAPIRecurrentExpenseUnarchive)
 			})

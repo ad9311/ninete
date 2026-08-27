@@ -22,7 +22,12 @@
 
     get<RecurrentExpense>(`/recurrent-expenses/${id}`)
       .then((result) => {
-        if (!cancelled) recurrentExpense = result;
+        if (cancelled) return;
+        recurrentExpense = result;
+        // Clearing on success matters as much as setting on failure: a
+        // retried unarchive that works must not leave the previous
+        // attempt's banner sitting above the record it just fixed.
+        error = "";
       })
       .catch((err) => {
         if (cancelled) return;
@@ -51,6 +56,7 @@
       recurrentExpense = await post<RecurrentExpense>(
         `/recurrent-expenses/${id}/unarchive`,
       );
+      error = "";
     } catch (err) {
       error =
         err instanceof APIRequestError ? err.message : "Something went wrong.";

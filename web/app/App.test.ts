@@ -2,11 +2,13 @@
 import { cleanup, render, screen } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.svelte";
+import { PROGRESS_DELAY_MS, reset as resetPending } from "./lib/pending";
 import { BASE_PATH } from "./router";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  resetPending();
   document.head.innerHTML = "";
 });
 
@@ -73,6 +75,38 @@ describe("App", () => {
     expect(screen.getByText("Not found.")).toBeTruthy();
     // The placeholder root route did not render alongside it.
     expect(screen.queryByText(/SPA is under construction/)).toBeNull();
+  });
+
+  // Regression: Phase 1 left `pending` as a router-owned $state nothing ever
+  // assigned, so the backdrop never rendered once — including for the four
+  // Phase 2 routes that fetch on mount. Driving it from lib/api.ts is what
+  // makes this pass; it fails if App.svelte stops subscribing.
+  it("covers the page while a request is in flight", async () => {
+    let settle: (value: Response) => void = () => {};
+    const inFlight = new Promise<Response>((resolve) => {
+      settle = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(inFlight));
+
+    const { container } = render(App);
+
+    expect(container.querySelector(".route-progress-bar")).toBeNull();
+
+    // Header.svelte's session fetch is still open. Outlast the anti-flash
+    // delay and the backdrop has to appear without any route touching a flag.
+    await new Promise((resolve) => setTimeout(resolve, PROGRESS_DELAY_MS + 10));
+
+    expect(container.querySelector(".route-progress-bar")).toBeTruthy();
+
+    settle(
+      new Response(JSON.stringify({ id: 1, username: "ada", email: "a@b.c" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    await screen.findByText(/ada/);
+
+    expect(container.querySelector(".route-progress-bar")).toBeNull();
   });
 
   it("leaves the nav out when the session request fails", async () => {
