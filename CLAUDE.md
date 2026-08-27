@@ -126,7 +126,7 @@ with no error from SQLite or the driver.
 | Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
 | Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
 | Infrastructure | `/`, `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
-| API (SPA) | `/api/session`, `/api/categories`, `/api/recurrent-expenses`, `/api/expenses` (+ `/quick`, `/stats`, `/budgets`), and the resource routes later phases add | `api.go`, `handle_api_session.go`, `handle_api_categories.go`, `handle_api_recurrent_expenses.go`, `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`, `handle_api_expense_budgets.go` | reuses the page handlers' stores |
+| API (SPA) | `/api/session`, `/api/categories`, `/api/dashboard`, `/api/recurrent-expenses`, `/api/expenses` (+ `/quick`, `/stats`, `/budgets`), and the resource routes later phases add | `api.go`, `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`, `handle_api_recurrent_expenses.go`, `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`, `handle_api_expense_budgets.go` | reuses the page handlers' stores |
 | SPA shell | `/app`, `/app/*` (moves to `/` in Phase 7) | `handle_app.go` | — |
 
 **The `/api/*` group is a sibling of the page group, not a child** (`setUpAPIRoutes`). The two

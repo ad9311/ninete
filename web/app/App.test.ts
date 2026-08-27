@@ -49,7 +49,7 @@ beforeEach(() => {
 });
 
 describe("App", () => {
-  it("renders the chrome, the placeholder route and the signed-in nav", async () => {
+  it("renders the chrome, the dashboard route and the signed-in nav", async () => {
     mockSession({ id: 1, username: "ada", email: "ada@example.com" });
 
     render(App);
@@ -58,7 +58,7 @@ describe("App", () => {
       screen.getByRole("link", { name: "NINETE" }).getAttribute("href"),
     ).toBe(BASE_PATH);
     expect(screen.getByText("v-test")).toBeTruthy();
-    expect(screen.getByText(/SPA is under construction/)).toBeTruthy();
+    expect(screen.getByText("This month's spending")).toBeTruthy();
 
     // GetAPISession resolves asynchronously (Header.svelte's $effect); the
     // username-carrying nav only appears once that promise settles.
@@ -73,8 +73,8 @@ describe("App", () => {
     render(App);
 
     expect(screen.getByText("Not found.")).toBeTruthy();
-    // The placeholder root route did not render alongside it.
-    expect(screen.queryByText(/SPA is under construction/)).toBeNull();
+    // The dashboard root route did not render alongside it.
+    expect(screen.queryByText("This month's spending")).toBeNull();
   });
 
   // Regression: Phase 1 left `pending` as a router-owned $state nothing ever
