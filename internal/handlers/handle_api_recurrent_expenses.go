@@ -154,7 +154,7 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 
 	archived, _ := strconv.ParseBool(r.URL.Query().Get("archived"))
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"}, "")
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"})
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.RecurrentExpenseArchivedFilter(archived))
 
 	totalCount, err := h.store.CountRecurrentExpenses(ctx, opts.Filters)
@@ -201,7 +201,7 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 
 	h.WriteJSON(w, http.StatusOK, apiRecurrentExpenseListResponse{
 		Data:       data,
-		Pagination: newAPIPagination(newPaginationData(r, opts, totalCount, "")),
+		Pagination: newAPIPagination(newPaginationData(r, opts, totalCount)),
 	})
 }
 

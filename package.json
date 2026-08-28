@@ -2,7 +2,7 @@
   "name": "ninete",
   "version": "1.0.0",
   "description": "",
-  "main": "web/static/js/index.ts",
+  "main": "web/app/index.ts",
   "scripts": {
     "format:static": "prettier --write \"web/**/*.{js,ts,svelte,css,html}\" \"*.{mjs,mts,json}\"",
     "format:static:check": "prettier --check \"web/**/*.{js,ts,svelte,css,html}\" \"*.{mjs,mts,json}\"",
@@ -27,7 +27,6 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@testing-library/svelte": "^5.4.2",
-    "@types/hotwired__turbo": "^8.0.6",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9",
@@ -46,8 +45,6 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.2.2",
-    "@hotwired/turbo": "^8.0.23",
     "bun-plugin-svelte": "^0.0.6",
     "chart.js": "^4.5.1",
     "lucide": "^1.16.0",

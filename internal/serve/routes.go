@@ -8,106 +8,29 @@ import (
 )
 
 func (s *Server) setUpRoutes() {
-	// One value for every credential route in both chains (the CLAUDE.md
-	// invariant). authRateLimit builds a counter per call, so calling it once
-	// per chain would hand a client the full allowance on /login *and* another
-	// on /api/login — the same doubling the invariant warns about between two
-	// routes, one level up.
-	credentialLimit := s.authRateLimit()
-
 	s.setUpFileServer()
-	s.setUpAPIRoutes(credentialLimit)
+	s.setUpAPIRoutes()
 
 	s.Router.Group(func(root chi.Router) {
 		s.setUpAppMiddlewares(root)
 
-		// Registered on the group so the fallbacks still get template data.
-		root.NotFound(s.handlers.NotFound)
-		root.MethodNotAllowed(s.handlers.MethodNotAllowed)
-
-		root.Get("/", s.handlers.GetRoot)
-
 		root.Post(cspReportPath, s.handlers.PostCSPReport)
-
-		root.Get("/login", s.handlers.GetLogin)
-		root.Get("/register", s.handlers.GetRegister)
 		root.Post("/logout", s.handlers.PostLogout)
 
-		// Only the routes that check a credential are throttled. Rendering the
-		// forms stays free. Both routes share one middleware value, so a client
-		// gets a single budget across them instead of one each.
-		root.With(credentialLimit).Post("/login", s.handlers.PostLogin)
-		root.With(credentialLimit).Post("/register", s.handlers.PostRegister)
-
-		root.Get("/dashboard", s.handlers.GetDashboard)
-
-		// The SPA shell (docs/spa-migration.md, Phase 1). Wildcarded so every
-		// nested client route resolves on a hard refresh; AuthMiddleware guards
-		// it like any other page, except for "/app/login" and "/app/register"
-		// (Phase 6), which it exempts the same way it does "/login" and
-		// "/register".
-		root.Get("/app", s.handlers.GetApp)
-		root.Get("/app/*", s.handlers.GetApp)
-
-		root.Route("/account", func(account chi.Router) {
-			account.Get("/", s.handlers.GetAccount)
-			account.Get("/delete-data", s.handlers.GetDeleteData)
-
-			account.Post("/expenses/delete-all", s.handlers.PostDeleteDataExpenses)
-			account.Post("/recurrent-expenses/delete-all", s.handlers.PostDeleteDataRecurrentExpenses)
-			account.Post("/expense-budgets/delete-all", s.handlers.PostDeleteDataExpenseBudgets)
-			account.Post("/tags/delete-all", s.handlers.PostDeleteDataTags)
-			account.Post("/delete-all", s.handlers.PostDeleteDataAll)
-
-			account.Route("/exports", func(exports chi.Router) {
-				exports.Get("/", s.handlers.GetExports)
-				exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
-			})
-		})
-
-		root.Route("/expenses", func(expenses chi.Router) {
-			expenses.Get("/", s.handlers.GetExpenses)
-			expenses.Post("/", s.handlers.PostExpenses)
-			expenses.Post("/quick", s.handlers.PostExpensesQuick)
-			expenses.Get("/new", s.handlers.GetExpensesNew)
-			expenses.Get("/stats", s.handlers.GetExpensesStats)
-			expenses.Get("/budgets", s.handlers.GetExpensesBudgets)
-			expenses.Post("/budgets", s.handlers.PostExpensesBudgets)
-			expenses.Route("/{id}", func(expenses chi.Router) {
-				expenses.Use(s.handlers.ExpenseContext)
-
-				expenses.Get("/", s.handlers.GetExpense)
-				expenses.Post("/", s.handlers.PostExpensesUpdate)
-				expenses.Get("/edit", s.handlers.GetExpensesEdit)
-				expenses.Post("/delete", s.handlers.PostExpensesDelete)
-			})
-		})
-
-		root.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
-			recurrentExpenses.Get("/", s.handlers.GetRecurrentExpenses)
-			recurrentExpenses.Post("/", s.handlers.PostRecurrentExpenses)
-			recurrentExpenses.Get("/new", s.handlers.GetRecurrentExpensesNew)
-			recurrentExpenses.Get("/archived", s.handlers.GetRecurrentExpensesArchived)
-			recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
-				recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
-
-				recurrentExpenses.Get("/", s.handlers.GetRecurrentExpense)
-				recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
-				recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
-				recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
-				recurrentExpenses.Post("/unarchive", s.handlers.PostRecurrentExpensesUnarchive)
-			})
-		})
+		// The SPA shell (docs/spa-migration.md, Phase 7). Wildcarded so every
+		// client route resolves on a hard refresh, including one the client
+		// router itself does not recognize — that is its own "not found" to
+		// show, not the server's. AuthMiddleware guards it like any other
+		// page, except for "/login" and "/register", which it exempts.
+		root.Get("/", s.handlers.GetApp)
+		root.Get("/*", s.handlers.GetApp)
 	})
 }
 
 // setUpAPIRoutes mounts the JSON API the SPA talks to. It is a sibling of the
 // page group, not a child: the two chains differ (see setUpAPIMiddlewares), and
 // an /api route must never fall through to a rendered template.
-//
-// Resource routes arrive from Phase 2 of docs/spa-migration.md onward; the one
-// route here is what the Phase 1 shell reads its current user from.
-func (s *Server) setUpAPIRoutes(credentialLimit func(http.Handler) http.Handler) {
+func (s *Server) setUpAPIRoutes() {
 	s.Router.Route(apiPathPrefix, func(api chi.Router) {
 		s.setUpAPIMiddlewares(api)
 
@@ -119,9 +42,10 @@ func (s *Server) setUpAPIRoutes(credentialLimit func(http.Handler) http.Handler)
 		api.NotFound(s.handlers.APINotFound)
 		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
 
-		// setUpRoutes' value, not a second one built here: /api/login accepts
-		// the same credentials as /login, so a per-chain counter would let a
-		// client spend both budgets against one account.
+		// One value for both credential routes (the CLAUDE.md invariant).
+		// authRateLimit builds a counter per call, so calling it once per
+		// route would hand a client twice the allowance.
+		credentialLimit := s.authRateLimit()
 		api.With(credentialLimit).Post("/login", s.handlers.PostAPILogin)
 		api.With(credentialLimit).Post("/register", s.handlers.PostAPIRegister)
 

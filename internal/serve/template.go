@@ -9,11 +9,11 @@ import (
 	"github.com/ad9311/ninete/internal/handlers"
 )
 
-const (
-	layoutPath   = "./web/views/layout.html"
-	viewsPath    = "./web/views/**/*.html"
-	partialsPath = "./web/views/**/_*.html"
-)
+// viewsPath globs every view. Phase 7 of docs/spa-migration.md left exactly
+// one — the SPA shell — which defines its own top-level "layout" template
+// rather than sharing one parsed separately, so there is nothing left to glob
+// a base or partials from.
+const viewsPath = "./web/views/**/*.html"
 
 func (s *Server) LoadTemplates() error {
 	views, err := parseTemplates()
@@ -36,41 +36,13 @@ func parseTemplates() (map[handlers.TemplateName]*template.Template, error) {
 		return vc, nil
 	}
 
-	layouts, err := filepath.Glob(layoutPath)
-	if err != nil {
-		return vc, err
-	}
-	if len(layouts) == 0 {
-		return vc, ErrLayoutNotFound
-	}
-
-	base, err := template.New("layout").Funcs(TemplateFuncMap()).ParseGlob(layoutPath)
-	if err != nil {
-		return vc, err
-	}
-
-	partials, err := filepath.Glob(partialsPath)
-	if err != nil {
-		return vc, err
-	}
-	if len(partials) > 0 {
-		base, err = base.ParseGlob(partialsPath)
-		if err != nil {
-			return vc, err
-		}
-	}
-
 	for _, v := range views {
-		clone, err := base.Clone()
+		tmpl, err := template.New("layout").ParseFiles(v)
 		if err != nil {
 			return vc, err
 		}
 
-		if _, err = clone.ParseFiles(v); err != nil {
-			return vc, err
-		}
-
-		vc[viewKey(v)] = clone
+		vc[viewKey(v)] = tmpl
 	}
 
 	return vc, nil

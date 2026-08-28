@@ -2,136 +2,31 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"time"
 
-	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
 )
-
-type expenseFormBase struct {
-	CategoryID  int
-	Description string
-	Amount      uint64
-}
 
 type dateRange struct {
 	start int64
 	end   int64
 }
 
-func parseTZOffset(r *http.Request) int {
-	offset, _ := strconv.Atoi(r.URL.Query().Get("tz_offset"))
-
-	return offset
-}
-
-var dateRangeLabels = []struct { //nolint:gochecknoglobals // static lookup table
-	Value string
-	Label string
-}{
-	{"this_month", "This month"},
-	{"next_month", "Next month"},
-	{"last_month", "Last month"},
-	{"this_week", "This week"},
-	{"six_months", "Last 6 months"},
-	{"this_year", "This year"},
-}
-
-func DateRangeOptions() []struct {
-	Value string
-	Label string
-} {
-	return dateRangeLabels
-}
-
-// budgetMode names how /expenses/budgets renders a range: one bar per category
-// for a single month, or a per-month breakdown for a multi-month span.
+// budgetMode names how /api/expenses/budgets renders a range: one bar per
+// category for a single month, or a per-month breakdown for a multi-month
+// span. The client sends it explicitly (§3.6 of docs/spa-migration.md) since
+// the API only ever sees the resolved bounds, not the named range key a mode
+// used to be derived from server-side.
 type budgetMode string
 
 const (
 	budgetModeMonth  budgetMode = "month"
 	budgetModeMonths budgetMode = "months"
 )
-
-// budgetDateRanges is the subset of computeDateRange's keys the budgets page
-// offers. this_week is excluded because seven days read against a monthly
-// budget is a false comparison, next_month because it has no spending yet, and
-// all_time because the month count is unbounded.
-var budgetDateRanges = []struct { //nolint:gochecknoglobals // static lookup table
-	Value string
-	Label string
-	Mode  budgetMode
-}{
-	{"this_month", "This month", budgetModeMonth},
-	{"last_month", "Last month", budgetModeMonth},
-	{"six_months", "Last 6 months", budgetModeMonths},
-	{"this_year", "This year", budgetModeMonths},
-}
-
-// budgetDateRange normalizes a requested range key onto the supported set,
-// falling back to this_month for anything else.
-func budgetDateRange(key string) (string, budgetMode) {
-	for _, r := range budgetDateRanges {
-		if r.Value == key {
-			return r.Value, r.Mode
-		}
-	}
-
-	return budgetDateRanges[0].Value, budgetDateRanges[0].Mode
-}
-
-func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
-	loc := time.FixedZone("client", -tzOffsetMinutes*60)
-	now := time.Now().In(loc)
-	year, month, _ := now.Date()
-
-	switch key {
-	case "this_month":
-		start := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
-		end := start.AddDate(0, 1, 0)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	case "next_month":
-		start := time.Date(year, month+1, 1, 0, 0, 0, 0, time.UTC)
-		end := start.AddDate(0, 1, 0)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	case "last_month":
-		start := time.Date(year, month-1, 1, 0, 0, 0, 0, time.UTC)
-		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	case "this_week":
-		weekday := now.Weekday()
-		if weekday == time.Sunday {
-			weekday = 7
-		}
-		monday := now.AddDate(0, 0, -int(weekday-time.Monday))
-		start := time.Date(monday.Year(), monday.Month(), monday.Day(), 0, 0, 0, 0, time.UTC)
-		end := start.AddDate(0, 0, 7)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	case "six_months":
-		// Five months back plus the current one is six, matching the label.
-		// month-6 would span seven, which the budgets page prints as the
-		// denominator of "N of M months over".
-		start := time.Date(year, month-5, 1, 0, 0, 0, 0, time.UTC)
-		end := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 1, 0)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	case "this_year":
-		start := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
-		end := time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC)
-
-		return dateRange{start.Unix(), end.Unix()}, true
-	default:
-		return dateRange{}, false
-	}
-}
 
 // parseAPIBoundPair reads one [start, end) pair from the two named query
 // params. Neither present means "no bound" (the all_time case); either
@@ -176,11 +71,10 @@ func parseAPIRequiredDateBounds(q url.Values, startKey, endKey string) (start, e
 	return start, end, nil
 }
 
-// monthOverMonthChange is the dashboard's "+12% vs last month" figure, shared
-// by GetDashboard and its JSON twin GetAPIDashboard so the page and the SPA can
-// never disagree about the rounding. An empty sign means there is nothing to
-// compare against — last month recorded no spending — which both renderers show
-// as "No data for last month" rather than as a 100% jump.
+// monthOverMonthChange is the dashboard's "+12% vs last month" figure. An
+// empty sign means there is nothing to compare against — last month recorded
+// no spending — which the client shows as "No data for last month" rather
+// than as a 100% jump.
 func monthOverMonthChange(thisMonthTotal, lastMonthTotal uint64) (sign string, pct int) {
 	if lastMonthTotal == 0 {
 		return "", 0
@@ -191,30 +85,6 @@ func monthOverMonthChange(thisMonthTotal, lastMonthTotal uint64) (sign string, p
 	}
 
 	return "-", safeUint64ToInt((lastMonthTotal - thisMonthTotal) * 100 / lastMonthTotal)
-}
-
-func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {
-	var base expenseFormBase
-
-	if err := r.ParseForm(); err != nil {
-		return base, fmt.Errorf("%w: %w", ErrParseForm, err)
-	}
-
-	categoryID, err := prog.ParseID(r.FormValue("category_id"), "Category ID")
-	if err != nil {
-		return base, err
-	}
-
-	amount, err := prog.ParseAmount(r.FormValue("amount"))
-	if err != nil {
-		return base, err
-	}
-
-	base.CategoryID = categoryID
-	base.Description = r.FormValue("description")
-	base.Amount = amount
-
-	return base, nil
 }
 
 func (h *Handler) findCategories(
@@ -233,21 +103,6 @@ func (h *Handler) findCategories(
 	return categories, categoryNameByID, nil
 }
 
-func (h *Handler) findCategoriesOrErr(
-	w http.ResponseWriter,
-	r *http.Request,
-	tmpl TemplateName,
-) ([]repo.Category, map[int]string, bool) {
-	categories, nameByID, err := h.findCategories(r.Context())
-	if err != nil {
-		h.renderErr(w, r, http.StatusInternalServerError, tmpl, err)
-
-		return nil, nil, false
-	}
-
-	return categories, nameByID, true
-}
-
 func categoryNameOrUnknown(nameByID map[int]string, categoryID int) string {
 	if name := nameByID[categoryID]; name != "" {
 		return name
@@ -256,12 +111,268 @@ func categoryNameOrUnknown(nameByID map[int]string, categoryID int) string {
 	return "Unknown"
 }
 
-func setResourceFormData(
-	data map[string]any,
-	categories []repo.Category,
-	resourceName string,
-	resource any,
-) {
-	data["categories"] = categories
-	data[resourceName] = resource
+func getExpense(r *http.Request) *repo.Expense {
+	expense, ok := r.Context().Value(KeyExpense).(*repo.Expense)
+
+	if !ok {
+		panic("failed to get expense context")
+	}
+
+	return expense
+}
+
+func getRecurrentExpense(r *http.Request) *repo.RecurrentExpense {
+	recurrentExpense, ok := r.Context().Value(KeyRecurrentExpense).(*repo.RecurrentExpense)
+
+	if !ok {
+		panic("failed to get recurrent expense context")
+	}
+
+	return recurrentExpense
+}
+
+// ----------------------------------------------------------------------------- //
+// Budgets — shared by GetAPIExpenseBudgets and PutAPIExpenseBudgets
+// ----------------------------------------------------------------------------- //
+
+// budgetMonthLayout matches strftime('%Y-%m') in selectExpensesCategoryMonthTotals.
+const budgetMonthLayout = "2006-01"
+
+// budgetRow is one category on the budgets response. Months, MonthsOver,
+// MonthCount and AvgPerMonth are filled in budgetModeMonths only.
+type budgetRow struct {
+	CategoryName string
+	Total        uint64
+	HasBudget    bool
+	Budget       uint64
+	Left         int64
+	Pct          int
+	BarPct       int
+	Over         bool
+	Months       []budgetMonthRow
+	MonthsOver   int
+	MonthCount   int
+	AvgPerMonth  uint64
+}
+
+type budgetMonthRow struct {
+	Month  string
+	Total  uint64
+	Pct    int
+	BarPct int
+	Over   bool
+}
+
+// budgetEditRow is one row of the edit form, which lists every category so a
+// category with neither budget nor spend can still be given one.
+type budgetEditRow struct {
+	CategoryID int
+	Name       string
+	Amount     uint64
+}
+
+// budgetMonths lists the calendar months the range covers, oldest first, keyed
+// the way SelectExpensesCategoryMonthTotals groups them. It is the denominator
+// of the "N of M months over" summary, so months with no spending count: a
+// month under budget because nothing was bought is still under budget.
+//
+// The end is clamped to the current month. this_year always spans to January of
+// the next year, and dividing a part-finished year by twelve would deflate the
+// average with months that have not happened yet.
+func budgetMonths(dr dateRange, now time.Time) []string {
+	start := time.Unix(dr.start, 0).UTC()
+	// dr.end is exclusive, so the last month in range is the one before it.
+	last := time.Unix(dr.end, 0).UTC().AddDate(0, 0, -1)
+
+	if nowUTC := now.UTC(); nowUTC.Before(last) {
+		last = nowUTC
+	}
+
+	months := make([]string, 0, 12)
+	for m := time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC); !m.After(last); m = m.AddDate(0, 1, 0) {
+		months = append(months, m.Format(budgetMonthLayout))
+	}
+
+	if len(months) == 0 {
+		months = append(months, start.Format(budgetMonthLayout))
+	}
+
+	return months
+}
+
+func buildBudgetRows(
+	monthTotals []repo.ExpenseCategoryMonthTotal,
+	budgetByCategoryID map[int]uint64,
+	categoryNameByID map[int]string,
+	mode budgetMode,
+	monthKeys []string,
+) []budgetRow {
+	totalByCategoryID := make(map[int]uint64, len(monthTotals))
+	monthsByCategoryID := make(map[int][]repo.ExpenseCategoryMonthTotal, len(monthTotals))
+
+	for _, t := range monthTotals {
+		totalByCategoryID[t.CategoryID] += t.Total
+		monthsByCategoryID[t.CategoryID] = append(monthsByCategoryID[t.CategoryID], t)
+	}
+
+	monthKeys = withSpentMonths(monthKeys, monthTotals)
+	monthCount := len(monthKeys)
+
+	categoryIDs := make([]int, 0, len(totalByCategoryID)+len(budgetByCategoryID))
+	for categoryID := range totalByCategoryID {
+		categoryIDs = append(categoryIDs, categoryID)
+	}
+	for categoryID := range budgetByCategoryID {
+		if _, seen := totalByCategoryID[categoryID]; !seen {
+			categoryIDs = append(categoryIDs, categoryID)
+		}
+	}
+
+	rows := make([]budgetRow, 0, len(categoryIDs))
+	for _, categoryID := range categoryIDs {
+		budget := budgetByCategoryID[categoryID]
+		total := totalByCategoryID[categoryID]
+
+		row := budgetRow{
+			CategoryName: categoryNameOrUnknown(categoryNameByID, categoryID),
+			Total:        total,
+			HasBudget:    budget > 0,
+			Budget:       budget,
+			MonthCount:   monthCount,
+		}
+
+		if row.HasBudget {
+			row.Left = budgetLeft(budget, total)
+			row.Pct, row.BarPct = budgetPercent(total, budget)
+
+			if mode == budgetModeMonths {
+				row.Months, row.MonthsOver = buildBudgetMonthRows(monthsByCategoryID[categoryID], monthKeys, budget)
+				row.AvgPerMonth = total / uint64(monthCount) //nolint:gosec // budgetMonths returns at least one month
+				// Budget is a monthly amount, so a multi-month total is not
+				// comparable to it — $700 spent over six months against a $500
+				// monthly budget is well under. Only a month that individually
+				// exceeded the budget makes the row over.
+				row.Over = row.MonthsOver > 0
+			} else {
+				row.Over = total > budget
+			}
+		}
+
+		rows = append(rows, row)
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].CategoryName < rows[j].CategoryName
+	})
+
+	return rows
+}
+
+// withSpentMonths adds any month that carries spending but falls outside the
+// clamped month list, so no expense is counted in a row total without a bar to
+// account for it. An expense may be dated ahead of today — a purchase made now
+// can be billed next month — which puts it past the clamp.
+func withSpentMonths(monthKeys []string, totals []repo.ExpenseCategoryMonthTotal) []string {
+	known := make(map[string]bool, len(monthKeys))
+	for _, key := range monthKeys {
+		known[key] = true
+	}
+
+	extended := monthKeys
+	for _, t := range totals {
+		if !known[t.Month] {
+			known[t.Month] = true
+			extended = append(extended, t.Month)
+		}
+	}
+
+	if len(extended) == len(monthKeys) {
+		return monthKeys
+	}
+
+	sort.Strings(extended)
+
+	return extended
+}
+
+// buildBudgetMonthRows renders one bar per month in range, not per month that
+// happened to have spending. A month with nothing spent is under budget and has
+// to appear, or the list contradicts the "N of M months" count beside it.
+func buildBudgetMonthRows(
+	totals []repo.ExpenseCategoryMonthTotal,
+	monthKeys []string,
+	budget uint64,
+) ([]budgetMonthRow, int) {
+	totalByMonth := make(map[string]uint64, len(totals))
+	for _, t := range totals {
+		totalByMonth[t.Month] += t.Total
+	}
+
+	months := make([]budgetMonthRow, 0, len(monthKeys))
+	over := 0
+
+	for _, key := range monthKeys {
+		total := totalByMonth[key]
+		pct, barPct := budgetPercent(total, budget)
+		month := budgetMonthRow{
+			Month:  key,
+			Total:  total,
+			Pct:    pct,
+			BarPct: barPct,
+			Over:   total > budget,
+		}
+
+		if month.Over {
+			over++
+		}
+
+		months = append(months, month)
+	}
+
+	return months, over
+}
+
+// budgetLeft is the signed remainder of a budget. Both operands are cent
+// amounts one person entered by hand, so neither half of the subtraction can
+// approach the int64 range.
+func budgetLeft(budget, total uint64) int64 {
+	if budget >= total {
+		return int64(budget - total) //nolint:gosec // cent amount, far below int64 max
+	}
+
+	return -int64(total - budget) //nolint:gosec // cent amount, far below int64 max
+}
+
+// budgetPercent returns the true percent and the percent clamped to 100 for
+// the client's progress bar. A zero budget never reaches here — a cleared
+// amount is deleted rather than stored — but it is guarded anyway, since it
+// would divide.
+func budgetPercent(total, budget uint64) (int, int) {
+	if budget == 0 {
+		return 0, 0
+	}
+
+	pct := int(total * 100 / budget) //nolint:gosec // both operands are page-sized cent amounts
+	if pct > 100 {
+		return pct, 100
+	}
+
+	return pct, pct
+}
+
+func buildBudgetEditRows(categories []repo.Category, budgetByCategoryID map[int]uint64) []budgetEditRow {
+	rows := make([]budgetEditRow, 0, len(categories))
+	for _, category := range categories {
+		rows = append(rows, budgetEditRow{
+			CategoryID: category.ID,
+			Name:       category.Name,
+			Amount:     budgetByCategoryID[category.ID],
+		})
+	}
+
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].Name < rows[j].Name
+	})
+
+	return rows
 }

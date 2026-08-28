@@ -21,10 +21,11 @@ import RecurrentExpensesShow from "./routes/recurrent_expenses/Show.svelte";
 import LoginIndex from "./routes/login/Index.svelte";
 import RegisterIndex from "./routes/register/Index.svelte";
 
-// The SPA is staged under /app/* until Phase 7 moves it to "/" (§7 decision
-// 2). Every route pattern below is relative to this — routes never mention it
-// themselves, so the Phase 7 move is a one-line change here.
-export const BASE_PATH = "/app";
+// The SPA lives at "/" since Phase 7 moved it off "/app/*" (§7 decision 2).
+// Every route pattern below is relative to this constant rather than the
+// literal, so isUnderBasePath/navigate/toRoutePath keep working unchanged
+// with an empty prefix.
+export const BASE_PATH = "";
 
 export interface RouteDef {
   /** Pattern relative to BASE_PATH, e.g. "/recurrent-expenses/:id/edit". */

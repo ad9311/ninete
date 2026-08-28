@@ -64,24 +64,23 @@ headers arriving through the proxy.
 router by `setUpFileServer`, outside `setUpAppMiddlewares`. Serving an asset must
 never load a session or query the database.
 
-**Auth rate limit is one shared value** — all four credential routes
-(`POST /login`, `POST /register` and their `/api` twins) carry the same
-`authRateLimit()` middleware value, built once in `setUpRoutes` and passed into
-`setUpAPIRoutes`, so a client draws on a single budget across every one of them.
-Each call to `authRateLimit()` builds an independent counter, so calling it a
-second time — per route, or per chain — multiplies the allowance against the
-same credentials. Because one limiter now spans both chains, its limit handler
-(`tooManyCredentialAttempts`) picks the response shape from the request path
-rather than being fixed at construction. It is a no-op under `ENV=test` — the
-suite logs in ~100 times from one address — and is covered directly in
+**Auth rate limit is one shared value** — `POST /api/login` and
+`POST /api/register` (the only two credential routes since Phase 7 of
+`docs/spa-migration.md` retired the legacy form-post pair) carry the same
+`authRateLimit()` middleware value, built once in `setUpAPIRoutes`, so a client
+draws on a single budget across both. Each call to `authRateLimit()` builds an
+independent counter, so calling it a second time multiplies the allowance
+against the same credentials. It is a no-op under `ENV=test` — the suite logs
+in ~100 times from one address — and is covered directly in
 `internal/serve/middleware_internal_test.go` and
 `internal/serve/routes_internal_test.go` instead.
 
 **Render helpers need `setTmplData`** — anything calling a render helper must sit
-inside the app middleware group, which is why `NotFound`/`MethodNotAllowed` are
-registered on the group rather than the root router. `tmplData` *panics* when the
-key is absent, so this is not a soft failure: the API chain drops `setTmplData`,
-and any handler reachable from it — a fallback, a rate-limit handler — must use
+inside the app middleware group, which is why `GetApp` (the only remaining
+render call since Phase 7 of `docs/spa-migration.md`) is registered on the
+group rather than the root router. `tmplData` *panics* when the key is absent,
+so this is not a soft failure: the API chain drops `setTmplData`, and any
+handler reachable from it — a fallback, a rate-limit handler — must use
 `api.go`'s JSON writers (`APINotFound`, `APITooManyRequests`, …) instead.
 
 **PRAGMA split — do not merge `internal/db/init/database.sql` and
@@ -124,27 +123,30 @@ with no error from SQLite or the driver.
 ## Feature and Route Map
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
 
-| Area | Routes | Handlers | Logic |
-| --- | --- | --- | --- |
-| Auth | `/login`, `/register`, `/logout` | `handle_auth.go` | `logic_auth.go`, `logic_invitation_code.go` |
-| Dashboard | `/dashboard` | `handle_dashboard.go` | reuses the expense stores |
-| Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/budgets`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `handle_expense_budgets.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go`, `logic_expense_budget.go` |
-| Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/archived`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
-| Account | `/account` | `handle_account.go` | — |
-| Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
-| Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
-| Infrastructure | `/` (redirects to the SPA), `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
-| API (SPA) | `/api/login`, `/api/register`, `/api/session`, `/api/categories`, `/api/dashboard`, `/api/exports/expenses.json`, `/api/delete-data` (+ `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, `/api/expenses` (+ `/quick`, `/stats`, `/budgets`), and the resource routes later phases add | `api.go`, `handle_api_auth.go`, `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`, `handle_api_exports.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`, `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`, `handle_api_expense_budgets.go` | reuses the page handlers' stores |
-| SPA shell | `/app`, `/app/*` (moves to `/` in Phase 7) — `/app/login`/`/app/register` are the guest-reachable exception, mirroring `/login`/`/register` | `handle_app.go` | — |
+Phase 7 of `docs/spa-migration.md` ("flip the switch") deleted every rendered page and moved the
+SPA from `/app/*` to `/`. Two Go routes are left outside `/api/*`:
 
-**Every person-facing redirect points at the SPA** (Phase 6 of `docs/spa-migration.md`).
-`AuthMiddleware`, `PostLogout` and `GetRoot` send people to `handlers.AppLoginPath` (`/app/login`)
-and `handlers.AppDashboardPath` (`/app`) — not to `/login` or `/dashboard`. The template pages
-still answer their own URLs and stay reachable by hand, which is what keeps them usable as the
-migration's oracle, but nothing routes anyone to them. Two things to know before changing one:
-`AppDashboardPath` is `/app` because `router.ts` maps the dashboard to `"/"`, so `/app/dashboard`
-would render the SPA's "Not found"; and `web/app/lib/api.ts` holds `AppLoginPath` a second time
-as `LOGIN_PATH`, since a bundle cannot import a Go constant. Both lose the prefix in Phase 7.
+| Area | Routes | Handlers |
+| --- | --- | --- |
+| SPA shell | `/`, `/*` — a catch-all serving the shell for any non-API, non-static path. `/login` and `/register` are the guest-reachable exception in `AuthMiddleware`'s `guestRoutes` | `handle_app.go` |
+| Auth (non-API) | `POST /logout` | `handle_auth.go` |
+| Infrastructure | `/static/*`, `/csp-report` | `handle_csp_report.go` |
+
+Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
+`/api/categories`, `/api/dashboard`, `/api/exports/expenses.json`, `/api/delete-data` (+
+`/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
+`/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
+`handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
+`handle_api_exports.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
+`handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
+resource, shared by the API handlers above.
+
+**Every person-facing redirect points at the SPA.** `AuthMiddleware` and `PostLogout` send people
+to `handlers.AppLoginPath` (`/login`) and `handlers.AppDashboardPath` (`/`) — `AppDashboardPath` is
+`"/"`, not `"/dashboard"`, because `router.ts` maps the dashboard to `"/"`. `web/app/lib/api.ts`
+holds `AppLoginPath` a second time as `LOGIN_PATH`, since a bundle cannot import a Go constant —
+the two literals have to be changed together.
 
 **The `/api/*` group is a sibling of the page group, not a child** (`setUpAPIRoutes`). The two
 middleware chains differ, and an `/api` route must never fall through to a rendered template.
