@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3 and 4 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4 and 5 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -958,7 +958,7 @@ its own range logic.
 `handle_dashboard.go:50-52` computes its range from `tz_offset`. Apply §3.6's rules and re-run
 the two-zone check here specifically; do not assume Phase 3 settled it.
 
-### Phase 5 — Account, delete-data, exports
+### Phase 5 — Account, delete-data, exports — landed (#127)
 
 Destructive posts and the file download. Confirmation flows must stay at least as deliberate as
 today's — a client-side `confirm()` is not equivalent to a form post. Export links stay plain
