@@ -80,3 +80,26 @@ non-literal here would not be flagged.
 Give `ownerTable` a defined type with constants beside `TaggableTypeExpense`,
 so the pairing of taggable type and owner table is expressed once and a caller
 cannot supply an arbitrary string.
+
+## An expired session on an `/api/*` link fails silently instead of redirecting
+
+`web/app/routes/exports/Index.svelte` points a plain `<a download>` at
+`/api/exports/expenses.json`. That path runs `apiAuth`, which answers `401` with
+the JSON envelope and no `Location` — correct for the API chain, which must never
+redirect. But a browser honours `download` whatever the status, so a user whose
+session lapsed while the SPA sat open clicks Download and silently saves an
+`expenses.json` holding `{"error":"…"}`. No sign-in prompt, no visible failure.
+
+The deployed version does the right thing: `/account/exports/expenses.json` goes
+through `AuthMiddleware` and redirects to `/login`. The SPA must reach that same
+outcome — an expired session sends the user to the login page — and the fix has
+to cover the general case, not just this anchor. Every `/api/*` call the SPA makes
+hits the same `401`, so `lib/api.ts` should recognise it and drive the redirect;
+the export link is only the case where the failure is invisible rather than an
+error message on screen.
+
+Left as-is for Phase 5 because the alternatives available then each broke a
+recorded decision: routing the download through `lib/api.ts` is rejected by
+`docs/spa-migration.md` §5, which keeps export links plain anchors, and pointing
+the anchor back at the page route reaches into markup Phase 7 deletes. Revisit
+once Phase 6 or 7 settles where session expiry is handled centrally.

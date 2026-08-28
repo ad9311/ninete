@@ -70,7 +70,8 @@ func TestAPIDeleteData(t *testing.T) {
 				require.Equal(t, 1, counts.Data.Expenses)
 				require.Equal(t, 1, counts.Data.RecurrentExpenses)
 				require.Equal(t, 1, counts.Data.ExpenseBudgets)
-				// The expense's tags plus the standalone one created above.
+				// Only the standalone tag created above: neither record was
+				// given tags, so nothing else contributes to the count.
 				require.Equal(t, 1, counts.Data.Tags)
 			},
 		},

@@ -119,8 +119,8 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   `$effect`. `routes/delete_data/Index.svelte` ports each `data-turbo-confirm`
   form post as `confirm()` gating a real `del()` call through `lib/api.ts`,
   the same pattern `routes/recurrent_expenses/Show.svelte` already established
-  for a single record — deliberate, not weaker, at account scale. `routes/
-  exports/Index.svelte`'s download link stays a plain anchor straight to
+  for a single record — deliberate, not weaker, at account scale. The download
+  link in `routes/exports/Index.svelte` stays a plain anchor straight to
   `/api/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no
   way to reach the browser's save flow, and a GET needs no CSRF token anyway.
   The anchor falls outside `BASE_PATH`, so `router.ts`'s `onLinkClick` already
