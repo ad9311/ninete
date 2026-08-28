@@ -43,7 +43,9 @@ func (s *Server) setUpRoutes() {
 
 		// The SPA shell (docs/spa-migration.md, Phase 1). Wildcarded so every
 		// nested client route resolves on a hard refresh; AuthMiddleware guards
-		// it the same as any other page since "/app*" is not a guest route.
+		// it like any other page, except for "/app/login" and "/app/register"
+		// (Phase 6), which it exempts the same way it does "/login" and
+		// "/register".
 		root.Get("/app", s.handlers.GetApp)
 		root.Get("/app/*", s.handlers.GetApp)
 
