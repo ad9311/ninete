@@ -3,7 +3,10 @@
 // this module supplies the pure matching logic plus the two DOM listeners
 // (popstate, link interception) that keep it in sync with the URL.
 import type { Component } from "svelte";
+import AccountIndex from "./routes/account/Index.svelte";
 import DashboardIndex from "./routes/dashboard/Index.svelte";
+import DeleteDataIndex from "./routes/delete_data/Index.svelte";
+import ExportsIndex from "./routes/exports/Index.svelte";
 import Budgets from "./routes/expenses/Budgets.svelte";
 import ExpensesEdit from "./routes/expenses/Edit.svelte";
 import ExpensesIndex from "./routes/expenses/Index.svelte";
@@ -58,6 +61,9 @@ export const routes: RouteDef[] = [
   { path: "/recurrent-expenses/new", component: RecurrentExpensesNew },
   { path: "/recurrent-expenses/:id/edit", component: RecurrentExpensesEdit },
   { path: "/recurrent-expenses/:id", component: RecurrentExpensesShow },
+  { path: "/account", component: AccountIndex },
+  { path: "/account/delete-data", component: DeleteDataIndex },
+  { path: "/account/exports", component: ExportsIndex },
 ];
 
 function compile(path: string): { regex: RegExp; keys: string[] } {
