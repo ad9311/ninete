@@ -113,6 +113,18 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   with two `computeDateRange` calls (`lib/dateRanges.ts`) and sent as
   `this_start`/`this_end`/`last_start`/`last_end` to `/api/dashboard`, mirroring
   `handle_dashboard.go`'s `tz_offset`-based computation exactly.
+  `routes/account/`, `routes/delete_data/` and `routes/exports/` (Phase 5) are
+  the destructive-posts-and-a-download trio. `routes/account/Index.svelte` is
+  pure navigation with no fetch at all — the first route in the SPA with no
+  `$effect`. `routes/delete_data/Index.svelte` ports each `data-turbo-confirm`
+  form post as `confirm()` gating a real `del()` call through `lib/api.ts`,
+  the same pattern `routes/recurrent_expenses/Show.svelte` already established
+  for a single record — deliberate, not weaker, at account scale. The download
+  link in `routes/exports/Index.svelte` stays a plain anchor straight to
+  `/api/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no
+  way to reach the browser's save flow, and a GET needs no CSRF token anyway.
+  The anchor falls outside `BASE_PATH`, so `router.ts`'s `onLinkClick` already
+  leaves it alone.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

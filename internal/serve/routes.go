@@ -114,6 +114,16 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)
 		api.Get("/dashboard", s.handlers.GetAPIDashboard)
+		api.Get("/exports/expenses.json", s.handlers.GetAPIExportsExpenses)
+
+		api.Route("/delete-data", func(deleteData chi.Router) {
+			deleteData.Get("/", s.handlers.GetAPIDeleteData)
+			deleteData.Delete("/", s.handlers.DeleteAPIDeleteDataAll)
+			deleteData.Delete("/expenses", s.handlers.DeleteAPIDeleteDataExpenses)
+			deleteData.Delete("/recurrent-expenses", s.handlers.DeleteAPIDeleteDataRecurrentExpenses)
+			deleteData.Delete("/expense-budgets", s.handlers.DeleteAPIDeleteDataExpenseBudgets)
+			deleteData.Delete("/tags", s.handlers.DeleteAPIDeleteDataTags)
+		})
 
 		api.Route("/expenses", func(expenses chi.Router) {
 			expenses.Get("/", s.handlers.GetAPIExpenses)

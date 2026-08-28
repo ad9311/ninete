@@ -123,6 +123,7 @@
         </li>
         <li><a href={`${BASE_PATH}/expenses/budgets`}>Expense Budgets</a></li>
         <li class="site-nav-divider"></li>
+        <li><a href={`${BASE_PATH}/account`}>Account</a></li>
         <li>
           <form action="/logout" method="post" class="site-nav-logout">
             <input type="hidden" name="csrf_token" value={csrfToken()} />

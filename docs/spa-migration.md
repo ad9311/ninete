@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2 and 3 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3 and 4 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -947,7 +947,7 @@ both versions side by side** against the same data at `TZ=UTC+13` and `TZ=UTC-8`
 listing, the show page, the stats buckets and the budgets page. While the templates still
 exist, they are a working oracle; after Phase 7 they are not.
 
-### Phase 4 — Dashboard
+### Phase 4 — Dashboard — landed (#126)
 
 All that §0 leaves here: the expense summary. Its date picker went with the nutrition card in
 Phase 0B — the summary reads `tz_offset`, never `date`, so there is nothing to port. Recurrent
