@@ -15,6 +15,22 @@ const (
 	SessionUserID         = "userID"
 )
 
+// Where a redirect puts a person who has to be sent somewhere to sign in, or
+// who is already signed in and has no business on a guest page. Phase 6 of
+// docs/spa-migration.md ported the auth views, so these point at the SPA: the
+// templates still answer /login and /dashboard, but nothing routes a person to
+// them any more. Both lose the prefix in Phase 7, when the SPA moves to "/".
+//
+// lib/api.ts holds AppLoginPath as its own literal for the 401 case, since a
+// Go constant cannot reach the bundle. The two must agree.
+// AppDashboardPath is BASE_PATH itself, not "/app/dashboard": router.ts maps
+// the dashboard to "/", so the SPA has no "/dashboard" route and a redirect
+// there renders App.svelte's "Not found." The template UI keeps /dashboard.
+const (
+	AppLoginPath     = "/app/login"
+	AppDashboardPath = "/app"
+)
+
 // -------------------------------------------------------------- //
 
 // TemplateName identifies a template by its `<domain>/<view>` path.

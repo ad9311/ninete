@@ -8,8 +8,15 @@ import (
 )
 
 func (s *Server) setUpRoutes() {
+	// One value for every credential route in both chains (the CLAUDE.md
+	// invariant). authRateLimit builds a counter per call, so calling it once
+	// per chain would hand a client the full allowance on /login *and* another
+	// on /api/login — the same doubling the invariant warns about between two
+	// routes, one level up.
+	credentialLimit := s.authRateLimit()
+
 	s.setUpFileServer()
-	s.setUpAPIRoutes()
+	s.setUpAPIRoutes(credentialLimit)
 
 	s.Router.Group(func(root chi.Router) {
 		s.setUpAppMiddlewares(root)
@@ -29,7 +36,6 @@ func (s *Server) setUpRoutes() {
 		// Only the routes that check a credential are throttled. Rendering the
 		// forms stays free. Both routes share one middleware value, so a client
 		// gets a single budget across them instead of one each.
-		credentialLimit := s.authRateLimit()
 		root.With(credentialLimit).Post("/login", s.handlers.PostLogin)
 		root.With(credentialLimit).Post("/register", s.handlers.PostRegister)
 
@@ -37,7 +43,9 @@ func (s *Server) setUpRoutes() {
 
 		// The SPA shell (docs/spa-migration.md, Phase 1). Wildcarded so every
 		// nested client route resolves on a hard refresh; AuthMiddleware guards
-		// it the same as any other page since "/app*" is not a guest route.
+		// it like any other page, except for "/app/login" and "/app/register"
+		// (Phase 6), which it exempts the same way it does "/login" and
+		// "/register".
 		root.Get("/app", s.handlers.GetApp)
 		root.Get("/app/*", s.handlers.GetApp)
 
@@ -99,8 +107,8 @@ func (s *Server) setUpRoutes() {
 //
 // Resource routes arrive from Phase 2 of docs/spa-migration.md onward; the one
 // route here is what the Phase 1 shell reads its current user from.
-func (s *Server) setUpAPIRoutes() {
-	s.Router.Route("/api", func(api chi.Router) {
+func (s *Server) setUpAPIRoutes(credentialLimit func(http.Handler) http.Handler) {
+	s.Router.Route(apiPathPrefix, func(api chi.Router) {
 		s.setUpAPIMiddlewares(api)
 
 		// Registered on the group so an unmatched API path answers with the
@@ -110,6 +118,12 @@ func (s *Server) setUpAPIRoutes() {
 		// fallback, skipping auth and CSRF.
 		api.NotFound(s.handlers.APINotFound)
 		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
+
+		// setUpRoutes' value, not a second one built here: /api/login accepts
+		// the same credentials as /login, so a per-chain counter would let a
+		// client spend both budgets against one account.
+		api.With(credentialLimit).Post("/login", s.handlers.PostAPILogin)
+		api.With(credentialLimit).Post("/register", s.handlers.PostAPIRegister)
 
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +40,7 @@ func TestGetLogin(t *testing.T) {
 				s.WrappedHandler().ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/dashboard", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppDashboardPath, rec.Header().Get("Location"))
 			},
 		},
 	}
@@ -78,7 +79,7 @@ func TestGetRegister(t *testing.T) {
 				s.WrappedHandler().ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/dashboard", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppDashboardPath, rec.Header().Get("Location"))
 			},
 		},
 	}
@@ -216,7 +217,7 @@ func TestPostLogout(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{
@@ -230,7 +231,7 @@ func TestPostLogout(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Contains(t, rec.Header().Get("Location"), "/login")
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 	}

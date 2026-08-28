@@ -14,6 +14,11 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   moves it to `/`), the `routes` match table, `matchRoute`/`toRoutePath` (pure),
   and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte wires up in
   an effect. See `docs/spa-migration.md` §3.7.
+  **Never hardcode `/app` in a link** — write ``href={`${BASE_PATH}/...`}``, or
+  Phase 7's one-line move leaves it behind. Go redirects into the SPA through
+  `handlers.AppLoginPath`/`AppDashboardPath`, which are the same literal on the
+  other side of a boundary neither language can import across; `api.ts`'s
+  `LOGIN_PATH` is the third copy. All four change together.
 - `lib/` — plain `.ts` modules, no components
   - `api.ts` — the `/api/*` fetch wrapper (Phase 0.4). Every request goes
     through it: it attaches `X-CSRF-Token` from the shell's
@@ -125,6 +130,21 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   way to reach the browser's save flow, and a GET needs no CSRF token anyway.
   The anchor falls outside `BASE_PATH`, so `router.ts`'s `onLinkClick` already
   leaves it alone.
+  `routes/login/` and `routes/register/` (Phase 6) are the two the rest of the
+  SPA has always assumed: `AuthMiddleware`'s guest exemption now covers
+  `/app/login` and `/app/register` alongside the legacy `/login`/`/register`,
+  so a guest can reach them without being bounced to the template login page.
+  Submitting posts to `/api/login`/`/api/register` through `lib/api.ts`, not a
+  plain form post — a rejected credential has to redraw the same page with an
+  error, which only a fetch call can do without a reload. Success is different:
+  it navigates with `window.location.assign` rather than the client router,
+  since `RenewToken`/session state is a boundary every piece of client-held
+  state needs reset against (§5, Phase 6). That reachability is also what
+  finally answers `TODO.md`'s note on session-expiry redirects: `lib/api.ts`'s
+  `LOGIN_PATH` now points at `/app/login` instead of the legacy page, and the
+  one call that must not bounce a guest off its own page —
+  `Header.svelte`'s `/api/session` probe, now reachable from a guest route for
+  the first time — opts out with `skipAuthRedirect`.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

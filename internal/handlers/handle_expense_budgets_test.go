@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +28,7 @@ func TestGetExpensesBudgets(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{

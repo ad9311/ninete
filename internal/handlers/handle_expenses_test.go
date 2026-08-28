@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetExpenses(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{
@@ -85,7 +86,7 @@ func TestGetExpensesNew(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{
@@ -372,7 +373,7 @@ func TestGetExpensesStats(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{

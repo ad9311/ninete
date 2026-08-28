@@ -113,7 +113,7 @@ func (h *Handler) PostLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(w, r, AppLoginPath, http.StatusSeeOther)
 }
 
 func getCurrentUser(r *http.Request) *logic.User {

@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3 and 4 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4 and 5 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -177,8 +177,14 @@ middleware receives the login page's HTML with status `200`. Every "why is my JS
 failing" bug in this migration will be this.
 
 **Resolution:** `/api/*` gets its own middleware stack that returns `401` with a JSON body and
-no `Location`. The client's fetch wrapper turns a `401` into `window.location = "/login"`.
+no `Location`. The client's fetch wrapper turns a `401` into a hard navigation to the login page.
 Guest API routes (`POST /api/login`, `POST /api/register`) are exempt.
+
+That destination was the template `/login` until Phase 6 ported the auth views; it is
+`handlers.AppLoginPath` on the Go side and `LOGIN_PATH` in `web/app/lib/api.ts` now, and both
+lose the `/app` prefix in Phase 7. The wrapper takes a `skipAuthRedirect` option for the one
+call that must not follow it: the session probe the guest-reachable login and register routes
+run on mount, which would otherwise bounce a guest off the page they asked for.
 
 Session storage itself does not change: `scs` server-side session, cookie `ninete_session`,
 `HttpOnly`, `SameSite=Lax`, 7-day lifetime (`routes.go:setUpSession`). **Do not move auth to a
@@ -660,7 +666,8 @@ make every later phase mechanical.
 
 **0.4 Client fetch wrapper** — landed (#116)
 - `web/app/lib/api.ts`: `X-CSRF-Token` from `<meta name="csrf-token">`, `401` →
-  `window.location.assign("/login")`, JSON error envelope parsing, typed helpers.
+  `window.location.assign("/login")`, JSON error envelope parsing, typed helpers. (Phase 6
+  re-pointed that redirect at the SPA login — see §3.1.)
 - The shell gains the `<meta>` tag in Phase 1; until then read it from `layout.html`, which
   already has `cspNonce` and can carry `csrfToken` the same way.
 
@@ -958,7 +965,7 @@ its own range logic.
 `handle_dashboard.go:50-52` computes its range from `tz_offset`. Apply §3.6's rules and re-run
 the two-zone check here specifically; do not assume Phase 3 settled it.
 
-### Phase 5 — Account, delete-data, exports
+### Phase 5 — Account, delete-data, exports — landed (#127)
 
 Destructive posts and the file download. Confirmation flows must stay at least as deliberate as
 today's — a client-side `confirm()` is not equivalent to a form post. Export links stay plain
@@ -972,11 +979,46 @@ holding, and the auth rate limit has to move to the API routes as **one** shared
 (the invariant in `CLAUDE.md`). A full page load after a successful login or logout is the
 simplest way to reset that state — not because the CSRF token expires, which it does not (§3.2).
 
+**Every redirect that lands a person now points at the SPA.** Porting the views is only half of
+it: while `AuthMiddleware` still sent an unauthenticated request to `/login` and logout still
+finished on `/login`, the ported pages existed but nobody arrived at them. So `AuthMiddleware`
+redirects to `handlers.AppLoginPath` and `handlers.AppDashboardPath`, and `PostLogout` follows.
+The templates still answer `/login`, `/register` and `/dashboard` — they stay reachable by URL,
+which is what keeps them usable as the Phase 3 oracle — but nothing routes anyone to them.
+
+`GetRoot` moves too, so `/` lands on the SPA. That is a slice of Phase 7's job taken early, and
+deliberately: with every other redirect moved, leaving the front door on the template dashboard
+meant a person typing the bare domain still arrived in the old UI. It is one line, the templates
+stay reachable by URL as the oracle, and it leaves Phase 7 a mechanical move rather than a
+behaviour decision bundled into the riskiest phase.
+
+The one thing this phase does *not* move: the legacy `PostLogin`/`PostRegister` still finish
+inside the template UI. Nothing routes a person to those forms any more, `PostLogin`'s `/` now
+lands in the SPA through `GetRoot` anyway, and Phase 7 deletes both handlers with their pages.
+The same holds for the fourteen redirects in the legacy POST handlers (`/expenses`,
+`/recurrent-expenses`, `/account/delete-data`): each returns to its own page, the SPA never
+reaches them because it posts to `/api/*`, and handler and page are deleted together.
+
+`AppDashboardPath` is `/app`, not `/app/dashboard`: `router.ts` maps the dashboard to `"/"`, so
+the SPA has no `/dashboard` route and a redirect there renders `App.svelte`'s "Not found." The
+Go tests cannot see the route table, so at least one asserts the literal rather than the
+constant — comparing a constant against itself passes for a path the client never matches.
+
+`AppLoginPath` also has a second copy in `web/app/lib/api.ts` as `LOGIN_PATH`, for the `401`
+branch — a bundle cannot import a Go constant. Phase 7 drops the prefix from both.
+
 ### Phase 7 — Flip the switch
 
 Move the SPA from `/app/*` to `/`, add the catch-all serving the shell for any non-API,
 non-static path, delete every per-view template and `TemplateName` constant, delete the HTML
 handlers, drop `@hotwired/turbo` and `@hotwired/stimulus`, delete `web/static/js/controllers/`.
+
+Phase 6 already pointed every person-facing redirect at the SPA, including `GetRoot`, so nothing
+here has to decide *where* a redirect goes — only to drop the prefix. Four places hold `/app`
+and must change together, because the two sides cannot import each other: `BASE_PATH`
+(`web/app/router.ts`), `LOGIN_PATH` (`web/app/lib/api.ts`), and `AppLoginPath` and
+`AppDashboardPath` (`internal/handlers/constants.go`). `AppDashboardPath` becomes `/`, not
+`/dashboard`: it names a client route, and `router.ts` maps the dashboard to `"/"`.
 
 This is also where the date helpers the templates kept alive finally retire (§3.6): the four
 template call sites go with their handlers, `computeDateRange` drops to bounds validation, and

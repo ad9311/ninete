@@ -62,13 +62,29 @@
   $effect(() => {
     let cancelled = false;
 
-    get<Session>("/session")
+    // skipAuthRedirect only on the two routes where a 401 here is expected
+    // (Phase 6): a guest landing on /app/login or /app/register would
+    // otherwise get bounced straight back by their own session check. Header
+    // mounts once for the life of the SPA shell (it lives outside the
+    // route-switching block in App.svelte), so this reads the URL the shell
+    // was loaded with, which is exactly when this effect runs. Everywhere
+    // else a 401 here still has to drive the redirect: some routes (e.g.
+    // routes/account/Index.svelte) make no /api/* call of their own, so this
+    // probe is the only thing that would ever notice an expired session on
+    // them.
+    const isGuestPage =
+      window.location.pathname === `${BASE_PATH}/login` ||
+      window.location.pathname === `${BASE_PATH}/register`;
+
+    get<Session>("/session", { skipAuthRedirect: isGuestPage })
       .then((result) => {
         if (!cancelled) session = result;
       })
       .catch(() => {
-        // A 401 already redirected to /login (lib/api.ts); any other failure
-        // just leaves the chrome without a signed-in user.
+        // Nothing to do for any of them: a redirect already fired for a real
+        // 401 outside the guest pages; a guest's expected 401 is
+        // deliberately not redirected; and any other failure just leaves the
+        // chrome without a signed-in user.
       });
 
     return () => {

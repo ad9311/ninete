@@ -91,15 +91,15 @@ session lapsed while the SPA sat open clicks Download and silently saves an
 `expenses.json` holding `{"error":"…"}`. No sign-in prompt, no visible failure.
 
 The deployed version does the right thing: `/account/exports/expenses.json` goes
-through `AuthMiddleware` and redirects to `/login`. The SPA must reach that same
-outcome — an expired session sends the user to the login page — and the fix has
-to cover the general case, not just this anchor. Every `/api/*` call the SPA makes
-hits the same `401`, so `lib/api.ts` should recognise it and drive the redirect;
-the export link is only the case where the failure is invisible rather than an
-error message on screen.
+through `AuthMiddleware` and redirects to `/login`. Phase 6 settled the general
+case — `lib/api.ts` recognises the `401` and sends the user to `AppLoginPath` —
+but the export link is the one call that does not go through it, because §5 of
+`docs/spa-migration.md` keeps export links plain anchors and a plain anchor is a
+browser navigation, not a `fetch`.
 
-Left as-is for Phase 5 because the alternatives available then each broke a
-recorded decision: routing the download through `lib/api.ts` is rejected by
-`docs/spa-migration.md` §5, which keeps export links plain anchors, and pointing
-the anchor back at the page route reaches into markup Phase 7 deletes. Revisit
-once Phase 6 or 7 settles where session expiry is handled centrally.
+So what is left is this anchor alone, and every future `<a download>` at an
+`/api/*` path. Whoever fixes it has to keep the plain-anchor decision or get it
+revisited: a `HEAD` or `/api/session` probe before letting the click through is
+the cheap version, and Phase 7 is where the honest fix lives, since moving the
+SPA to `/` lets the download hang off a route that redirects like the page chain
+does.

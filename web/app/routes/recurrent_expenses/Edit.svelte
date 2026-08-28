@@ -2,7 +2,7 @@
   import { Eye, Repeat } from "lucide";
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
-  import { navigate } from "../../router";
+  import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
   import type { RecurrentExpense, RecurrentExpenseRequestBody } from "./types";
 
@@ -68,7 +68,7 @@
         <Icon icon={Eye} class="card-action-icon" />
       </a>
       <a
-        href="/app/recurrent-expenses"
+        href={`${BASE_PATH}/recurrent-expenses`}
         class="card-action-link"
         aria-label="Recurrent expenses"
         title="Recurrent expenses"

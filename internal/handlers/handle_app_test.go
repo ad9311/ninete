@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ func TestGetApp(t *testing.T) {
 				handler.ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{
@@ -45,6 +46,54 @@ func TestGetApp(t *testing.T) {
 				// literal /static/js/build/app.js a stale reference would leave
 				// behind.
 				require.Contains(t, rec.Body.String(), `src="/static/js/build/app-`)
+			},
+		},
+		{
+			// Phase 6 of docs/spa-migration.md: routes/login/Index.svelte and
+			// routes/register/Index.svelte need the shell reachable while
+			// signed out, the same exemption AuthMiddleware already carries
+			// for the legacy /login and /register.
+			name: "should_render_the_shell_at_app_login_when_unauthenticated",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/app/login", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<div id="app">`)
+			},
+		},
+		{
+			// guestRoutes matches exactly, but root.Get("/app/*") matches the
+			// trailing-slash form too, so a bookmark carrying the slash used to
+			// miss the exemption and bounce a guest to the login page they had
+			// already asked for.
+			name: "should_render_the_shell_at_app_login_with_a_trailing_slash",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/app/login/", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<div id="app">`)
+			},
+		},
+		{
+			name: "should_redirect_away_from_app_login_when_already_authenticated",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "app_user_3", "app_user_3@example.com", "app_password_3")
+				cookies := s.AuthCookies(t, "app_user_3@example.com", "app_password_3")
+
+				req := spec.NewGetRequest("/app/login", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				// Literal, not the constant: the constant has to name a path
+				// router.ts actually matches, and comparing it against itself
+				// would pass just as well for "/app/dashboard", which the SPA
+				// answers with "Not found."
+				require.Equal(t, "/app", rec.Header().Get("Location"))
 			},
 		},
 		{

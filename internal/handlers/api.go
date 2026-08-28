@@ -105,6 +105,15 @@ func (h *Handler) APIForbidden(w http.ResponseWriter, _ *http.Request) {
 	h.WriteJSONError(w, http.StatusForbidden, ErrInvalidCSRFToken)
 }
 
+// APITooManyRequests is TooManyRequests' JSON twin, for the credential routes
+// on the API chain. It must not reach a render helper: the API chain drops
+// setTmplData, and tmplData panics when the template map is absent — so the
+// HTML handler answers a throttled /api/login with a recovered panic and an
+// empty 500 instead of a 429.
+func (h *Handler) APITooManyRequests(w http.ResponseWriter, _ *http.Request) {
+	h.WriteJSONError(w, http.StatusTooManyRequests, ErrTooManyAttempts)
+}
+
 func (h *Handler) APINotFound(w http.ResponseWriter, _ *http.Request) {
 	h.WriteJSONError(w, http.StatusNotFound, ErrAPIRouteNotFound)
 }
