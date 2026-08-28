@@ -133,15 +133,12 @@ func computeDateRange(key string, tzOffsetMinutes int) (dateRange, bool) {
 	}
 }
 
-// parseAPIDateBounds reads the explicit [start, end) bounds an /api/expenses*
-// request carries instead of date_range+tz_offset (§3.6 of
-// docs/spa-migration.md, "Retiring tz_offset on the API side"): the client
-// already knows its own zone, so it resolves the named range to UTC-midnight
-// epoch bounds before the fetch. Neither param present means "no bound" (the
-// all_time case); either present alone, or start on or after end, is
-// malformed input rather than a silent fallback.
-func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
-	rawStart, rawEnd := q.Get("start"), q.Get("end")
+// parseAPIBoundPair reads one [start, end) pair from the two named query
+// params. Neither present means "no bound" (the all_time case); either
+// present alone, or start on or after end, is malformed input rather than a
+// silent fallback.
+func parseAPIBoundPair(q url.Values, startKey, endKey string) (start, end int64, hasBounds bool, err error) {
+	rawStart, rawEnd := q.Get(startKey), q.Get(endKey)
 	if rawStart == "" && rawEnd == "" {
 		return 0, 0, false, nil
 	}
@@ -153,6 +150,47 @@ func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err err
 	}
 
 	return start, end, true, nil
+}
+
+// parseAPIDateBounds reads the explicit [start, end) bounds an /api/expenses*
+// request carries instead of date_range+tz_offset (§3.6 of
+// docs/spa-migration.md, "Retiring tz_offset on the API side"): the client
+// already knows its own zone, so it resolves the named range to UTC-midnight
+// epoch bounds before the fetch.
+func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
+	return parseAPIBoundPair(q, "start", "end")
+}
+
+// parseAPIRequiredDateBounds is parseAPIBoundPair for an endpoint with no
+// all_time case — /api/dashboard always compares two specific months, so a
+// missing bound is malformed input rather than "no filter".
+func parseAPIRequiredDateBounds(q url.Values, startKey, endKey string) (start, end int64, err error) {
+	start, end, hasBounds, err := parseAPIBoundPair(q, startKey, endKey)
+	if err != nil {
+		return 0, 0, err
+	}
+	if !hasBounds {
+		return 0, 0, ErrAPIInvalidDateRange
+	}
+
+	return start, end, nil
+}
+
+// monthOverMonthChange is the dashboard's "+12% vs last month" figure, shared
+// by GetDashboard and its JSON twin GetAPIDashboard so the page and the SPA can
+// never disagree about the rounding. An empty sign means there is nothing to
+// compare against — last month recorded no spending — which both renderers show
+// as "No data for last month" rather than as a 100% jump.
+func monthOverMonthChange(thisMonthTotal, lastMonthTotal uint64) (sign string, pct int) {
+	if lastMonthTotal == 0 {
+		return "", 0
+	}
+
+	if thisMonthTotal >= lastMonthTotal {
+		return "+", safeUint64ToInt((thisMonthTotal - lastMonthTotal) * 100 / lastMonthTotal)
+	}
+
+	return "-", safeUint64ToInt((lastMonthTotal - thisMonthTotal) * 100 / lastMonthTotal)
 }
 
 func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {

@@ -113,6 +113,7 @@ func (s *Server) setUpAPIRoutes() {
 
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)
+		api.Get("/dashboard", s.handlers.GetAPIDashboard)
 
 		api.Route("/expenses", func(expenses chi.Router) {
 			expenses.Get("/", s.handlers.GetAPIExpenses)

@@ -11,8 +11,8 @@ import {
   type RouteDef,
 } from "./router";
 
-// Matching does not render, so a stand-in is enough here — the real Home
-// component that router.ts's own `routes` table uses is exercised through
+// Matching does not render, so a stand-in is enough here — the real
+// components router.ts's own `routes` table uses are exercised through
 // App.test.ts instead.
 const stub = {} as Component<Record<string, string>>;
 

@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1 and 2 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2 and 3 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -930,7 +930,7 @@ makes it a useful first exercise of `dates.ts` against real data.
 Exit: every recurrent-expense view works under `/app/recurrent-expenses`, including the
 archived listing and archive/unarchive, with `422` validation shown inline.
 
-### Phase 3 — Expenses
+### Phase 3 — Expenses — landed (#125)
 
 The hard one, and deliberately early so its surprises land before the rest depend on the
 conventions: search, filters, sort, pagination, quick-add form, stats, budgets, tags. Chart.js

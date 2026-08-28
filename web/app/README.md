@@ -76,8 +76,9 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   help, the expense search panel's date-bounds help), closing on outside
   click or Escape.
 - `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action.
-  Phase 1 adds only `Home.svelte`, the placeholder mounted at `/` until Phase 2
-  replaces the match table's single entry with a real resource.
+  Phase 1's match table held only a placeholder at `/`; Phase 2 replaced it
+  with the first real resource route (below), and Phase 4 finally replaces the
+  placeholder itself with `routes/dashboard/Index.svelte`.
   `routes/recurrent_expenses/` (Phase 2, the pilot resource — §7 decision 12)
   is the first full example: `Index.svelte`/`Archived.svelte` are thin
   wrappers around a shared `List.svelte` (one table, parameterized by
@@ -105,6 +106,13 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   reload; `Stats.svelte` and `Budgets.svelte` are their own routes, the
   latter sending the `mode` (`month`/`months`) explicitly since the API
   no longer receives the range key it used to derive that from.
+  `routes/dashboard/` (Phase 4) is a single `Index.svelte` — the whole
+  resource is one action, matching `web/views/dashboard/`. §0 dropped the
+  macro half of the card grid in Phase 0B, so there is no date picker to
+  port: the range is always this month vs. last month, resolved client-side
+  with two `computeDateRange` calls (`lib/dateRanges.ts`) and sent as
+  `this_start`/`this_end`/`last_start`/`last_end` to `/api/dashboard`, mirroring
+  `handle_dashboard.go`'s `tz_offset`-based computation exactly.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

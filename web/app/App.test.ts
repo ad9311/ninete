@@ -19,15 +19,40 @@ function setMeta(name: string, content: string): void {
   document.head.appendChild(meta);
 }
 
+// What GetAPIDashboard answers for the root route, which renders as
+// "$123.45" and "+23% vs last month ($100.00)".
+const DASHBOARD_BODY = {
+  data: {
+    this_month_total: 12345,
+    last_month_total: 10000,
+    month_change_sign: "+",
+    month_change_pct: 23,
+    top_categories: [
+      { name: "Rent", total: 9000 },
+      { name: "Food", total: 3345 },
+    ],
+  },
+};
+
+// A fresh Response per call, dispatched on the URL. A Response body can be read
+// only once, and since Phase 4 the root route fetches /api/dashboard alongside
+// Header.svelte's /api/session — one shared instance leaves whichever request
+// parses second throwing on a consumed body, which the component swallows into
+// its error branch.
 function mockSession(body: unknown, status = 200): void {
   vi.stubGlobal(
     "fetch",
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify(body), {
-        status,
-        headers: { "Content-Type": "application/json" },
-      }),
-    ),
+    vi.fn((input: RequestInfo | URL) => {
+      const isDashboard = String(input).startsWith("/api/dashboard");
+      const payload = isDashboard ? DASHBOARD_BODY : body;
+
+      return Promise.resolve(
+        new Response(JSON.stringify(payload), {
+          status: isDashboard ? 200 : status,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    }),
   );
 }
 
@@ -49,7 +74,7 @@ beforeEach(() => {
 });
 
 describe("App", () => {
-  it("renders the chrome, the placeholder route and the signed-in nav", async () => {
+  it("renders the chrome, the dashboard route and the signed-in nav", async () => {
     mockSession({ id: 1, username: "ada", email: "ada@example.com" });
 
     render(App);
@@ -58,7 +83,11 @@ describe("App", () => {
       screen.getByRole("link", { name: "NINETE" }).getAttribute("href"),
     ).toBe(BASE_PATH);
     expect(screen.getByText("v-test")).toBeTruthy();
-    expect(screen.getByText(/SPA is under construction/)).toBeTruthy();
+    expect(screen.getByText("This month's spending")).toBeTruthy();
+    // The heading alone renders in the error branch too, so assert on the
+    // fetched figures — otherwise a broken /api/dashboard call passes here.
+    expect(await screen.findByText("$123.45")).toBeTruthy();
+    expect(screen.getByText(/\+23% vs last month/)).toBeTruthy();
 
     // GetAPISession resolves asynchronously (Header.svelte's $effect); the
     // username-carrying nav only appears once that promise settles.
@@ -73,8 +102,8 @@ describe("App", () => {
     render(App);
 
     expect(screen.getByText("Not found.")).toBeTruthy();
-    // The placeholder root route did not render alongside it.
-    expect(screen.queryByText(/SPA is under construction/)).toBeNull();
+    // The dashboard root route did not render alongside it.
+    expect(screen.queryByText("This month's spending")).toBeNull();
   });
 
   // Regression: Phase 1 left `pending` as a router-owned $state nothing ever

@@ -3,13 +3,13 @@
 // this module supplies the pure matching logic plus the two DOM listeners
 // (popstate, link interception) that keep it in sync with the URL.
 import type { Component } from "svelte";
+import DashboardIndex from "./routes/dashboard/Index.svelte";
 import Budgets from "./routes/expenses/Budgets.svelte";
 import ExpensesEdit from "./routes/expenses/Edit.svelte";
 import ExpensesIndex from "./routes/expenses/Index.svelte";
 import ExpensesNew from "./routes/expenses/New.svelte";
 import ExpensesShow from "./routes/expenses/Show.svelte";
 import Stats from "./routes/expenses/Stats.svelte";
-import Home from "./routes/Home.svelte";
 import RecurrentExpensesArchived from "./routes/recurrent_expenses/Archived.svelte";
 import RecurrentExpensesEdit from "./routes/recurrent_expenses/Edit.svelte";
 import RecurrentExpensesIndex from "./routes/recurrent_expenses/Index.svelte";
@@ -26,8 +26,8 @@ export interface RouteDef {
   path: string;
   // `any` rather than a shared props shape: each route declares whatever
   // props it actually needs (an ":id" param, an optional "search" string),
-  // and there is no one type all of them satisfy — Home takes none, Show
-  // requires "id". App.svelte spreads matchRoute's params plus `search` at
+  // and there is no one type all of them satisfy — the dashboard takes none,
+  // Show requires "id". App.svelte spreads matchRoute's params plus `search` at
   // the call site, which is where a real mismatch would surface instead.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
   component: Component<any>;
@@ -43,7 +43,7 @@ export interface RouteMatch {
 // Order matters: a literal segment ("archived", "new") must come before the
 // ":id" pattern that would otherwise swallow it as a param.
 export const routes: RouteDef[] = [
-  { path: "/", component: Home },
+  { path: "/", component: DashboardIndex },
   { path: "/expenses", component: ExpensesIndex },
   { path: "/expenses/new", component: ExpensesNew },
   { path: "/expenses/stats", component: Stats },
