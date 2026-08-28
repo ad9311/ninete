@@ -18,6 +18,8 @@ import RecurrentExpensesEdit from "./routes/recurrent_expenses/Edit.svelte";
 import RecurrentExpensesIndex from "./routes/recurrent_expenses/Index.svelte";
 import RecurrentExpensesNew from "./routes/recurrent_expenses/New.svelte";
 import RecurrentExpensesShow from "./routes/recurrent_expenses/Show.svelte";
+import LoginIndex from "./routes/login/Index.svelte";
+import RegisterIndex from "./routes/register/Index.svelte";
 
 // The SPA is staged under /app/* until Phase 7 moves it to "/" (§7 decision
 // 2). Every route pattern below is relative to this — routes never mention it
@@ -64,6 +66,8 @@ export const routes: RouteDef[] = [
   { path: "/account", component: AccountIndex },
   { path: "/account/delete-data", component: DeleteDataIndex },
   { path: "/account/exports", component: ExportsIndex },
+  { path: "/login", component: LoginIndex },
+  { path: "/register", component: RegisterIndex },
 ];
 
 function compile(path: string): { regex: RegExp; keys: string[] } {

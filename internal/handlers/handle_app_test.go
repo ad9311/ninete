@@ -48,6 +48,35 @@ func TestGetApp(t *testing.T) {
 			},
 		},
 		{
+			// Phase 6 of docs/spa-migration.md: routes/login/Index.svelte and
+			// routes/register/Index.svelte need the shell reachable while
+			// signed out, the same exemption AuthMiddleware already carries
+			// for the legacy /login and /register.
+			name: "should_render_the_shell_at_app_login_when_unauthenticated",
+			fn: func(t *testing.T) {
+				req := spec.NewGetRequest("/app/login", nil)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+				require.Contains(t, rec.Body.String(), `<div id="app">`)
+			},
+		},
+		{
+			name: "should_redirect_away_from_app_login_when_already_authenticated",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "app_user_3", "app_user_3@example.com", "app_password_3")
+				cookies := s.AuthCookies(t, "app_user_3@example.com", "app_password_3")
+
+				req := spec.NewGetRequest("/app/login", cookies)
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, "/dashboard", rec.Header().Get("Location"))
+			},
+		},
+		{
 			// The client router owns everything past /app/*, so a hard refresh on
 			// a nested route (docs/spa-migration.md, Phase 1 exit criteria) must
 			// resolve to the same shell rather than 404ing.

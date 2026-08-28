@@ -40,8 +40,10 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	guestRoutes := map[string]bool{
-		"/login":    true,
-		"/register": true,
+		"/login":        true,
+		"/register":     true,
+		"/app/login":    true,
+		"/app/register": true,
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -116,9 +118,8 @@ func (s *Server) apiCSRF(next http.Handler) http.Handler {
 // which the API chain deliberately skips, and every resource handler opens with
 // getCurrentUser, which panics when the key is absent.
 func (s *Server) apiAuth(next http.Handler) http.Handler {
-	// The handlers land in Phase 6 of docs/spa-migration.md; the exemption is
-	// declared with the middleware so adding them does not mean reordering the
-	// chain. Built once per chain, like AuthMiddleware's own guest set.
+	// PostAPILogin/PostAPIRegister (Phase 6 of docs/spa-migration.md). Built
+	// once per chain, like AuthMiddleware's own guest set.
 	guestAPIRoutes := map[string]bool{
 		"/api/login":    true,
 		"/api/register": true,

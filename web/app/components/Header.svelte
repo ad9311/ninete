@@ -62,7 +62,11 @@
   $effect(() => {
     let cancelled = false;
 
-    get<Session>("/session")
+    // skipAuthRedirect: this probe is expected to 401 for a guest, including
+    // on the now-reachable /app/login and /app/register (Phase 6) — without
+    // it, a guest landing on either gets bounced straight back by their own
+    // session check.
+    get<Session>("/session", { skipAuthRedirect: true })
       .then((result) => {
         if (!cancelled) session = result;
       })

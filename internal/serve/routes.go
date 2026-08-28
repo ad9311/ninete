@@ -111,6 +111,14 @@ func (s *Server) setUpAPIRoutes() {
 		api.NotFound(s.handlers.APINotFound)
 		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
 
+		// One shared value across both routes (the CLAUDE.md invariant): a
+		// client draws on a single budget rather than one per route, the same
+		// pattern setUpRoutes' credentialLimit uses for the page chain's
+		// /login and /register.
+		apiCredentialLimit := s.authRateLimit()
+		api.With(apiCredentialLimit).Post("/login", s.handlers.PostAPILogin)
+		api.With(apiCredentialLimit).Post("/register", s.handlers.PostAPIRegister)
+
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)
 		api.Get("/dashboard", s.handlers.GetAPIDashboard)

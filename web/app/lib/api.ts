@@ -5,7 +5,11 @@
 import { begin, end } from "./pending";
 
 const API_PREFIX = "/api";
-const LOGIN_PATH = "/login";
+// Points into the SPA now that routes/login/Index.svelte exists (Phase 6 of
+// docs/spa-migration.md, settling the TODO.md note on where session expiry
+// redirects). A literal rather than router.ts's BASE_PATH import: it must
+// match router.ts's own "/app" until Phase 7 moves both to "/".
+const LOGIN_PATH = "/app/login";
 
 /** The error envelope every /api/* failure carries (handlers.APIError). */
 interface APIErrorBody {
@@ -63,6 +67,14 @@ export interface RequestOptions {
   /** Query parameters appended to the path. Undefined values are dropped. */
   params?: Record<string, string | number | boolean | undefined>;
   signal?: AbortSignal;
+  /**
+   * Skip the global redirect-to-login on a 401. Header.svelte's own session
+   * probe sets this: it is the one /api/* call every route makes, including
+   * the guest-reachable /app/login and /app/register (Phase 6), and without
+   * this a guest landing on either would be bounced straight back to
+   * LOGIN_PATH by their own session check.
+   */
+  skipAuthRedirect?: boolean;
 }
 
 function buildURL(path: string, params?: RequestOptions["params"]): string {
@@ -131,7 +143,9 @@ async function performRequest<T>(
   // precisely so this branch can exist: a redirect would be followed silently
   // and reach us as the login page's HTML under status 200.
   if (response.status === 401) {
-    window.location.assign(LOGIN_PATH);
+    if (!options.skipAuthRedirect) {
+      window.location.assign(LOGIN_PATH);
+    }
 
     throw new APIRequestError(401, "Not signed in", {});
   }
