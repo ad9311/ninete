@@ -176,6 +176,23 @@ func parseAPIRequiredDateBounds(q url.Values, startKey, endKey string) (start, e
 	return start, end, nil
 }
 
+// monthOverMonthChange is the dashboard's "+12% vs last month" figure, shared
+// by GetDashboard and its JSON twin GetAPIDashboard so the page and the SPA can
+// never disagree about the rounding. An empty sign means there is nothing to
+// compare against — last month recorded no spending — which both renderers show
+// as "No data for last month" rather than as a 100% jump.
+func monthOverMonthChange(thisMonthTotal, lastMonthTotal uint64) (sign string, pct int) {
+	if lastMonthTotal == 0 {
+		return "", 0
+	}
+
+	if thisMonthTotal >= lastMonthTotal {
+		return "+", safeUint64ToInt((thisMonthTotal - lastMonthTotal) * 100 / lastMonthTotal)
+	}
+
+	return "-", safeUint64ToInt((lastMonthTotal - thisMonthTotal) * 100 / lastMonthTotal)
+}
+
 func parseExpenseFormBase(r *http.Request) (expenseFormBase, error) {
 	var base expenseFormBase
 

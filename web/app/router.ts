@@ -26,8 +26,8 @@ export interface RouteDef {
   path: string;
   // `any` rather than a shared props shape: each route declares whatever
   // props it actually needs (an ":id" param, an optional "search" string),
-  // and there is no one type all of them satisfy — Home takes none, Show
-  // requires "id". App.svelte spreads matchRoute's params plus `search` at
+  // and there is no one type all of them satisfy — the dashboard takes none,
+  // Show requires "id". App.svelte spreads matchRoute's params plus `search` at
   // the call site, which is where a real mismatch would surface instead.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
   component: Component<any>;

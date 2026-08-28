@@ -25,6 +25,17 @@ type apiDashboardBody struct {
 	} `json:"data"`
 }
 
+// prevMonthBounds returns the [start, end) bounds of the calendar month before
+// the one containing t. It steps back one day from the first of t's month
+// rather than calling t.AddDate(0, -1, 0): Go normalizes an overflowed day, so
+// on 2026-03-31 "one month earlier" is February 31 → March 3, and the two
+// windows would come back identical — every expense would land in both.
+func prevMonthBounds(t time.Time) (int64, int64) {
+	start, _ := monthBounds(t)
+
+	return monthBounds(time.Unix(start, 0).UTC().AddDate(0, 0, -1))
+}
+
 func dashboardURL(thisStart, thisEnd, lastStart, lastEnd int64) string {
 	return "/api/dashboard?this_start=" + itoa64(thisStart) + "&this_end=" + itoa64(thisEnd) +
 		"&last_start=" + itoa64(lastStart) + "&last_end=" + itoa64(lastEnd)
@@ -69,8 +80,7 @@ func TestAPIDashboard(t *testing.T) {
 
 				now := time.Now().UTC()
 				thisStart, thisEnd := monthBounds(now)
-				lastMonth := now.AddDate(0, -1, 0)
-				lastStart, lastEnd := monthBounds(lastMonth)
+				lastStart, lastEnd := prevMonthBounds(now)
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
 					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryA.ID, Description: "Rent", Amount: 3000},
@@ -114,8 +124,7 @@ func TestAPIDashboard(t *testing.T) {
 
 				now := time.Now().UTC()
 				thisStart, thisEnd := monthBounds(now)
-				lastMonth := now.AddDate(0, -1, 0)
-				lastStart, lastEnd := monthBounds(lastMonth)
+				lastStart, lastEnd := prevMonthBounds(now)
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
 					ExpenseBaseParams: logic.ExpenseBaseParams{

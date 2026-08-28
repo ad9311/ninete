@@ -46,59 +46,62 @@
   });
 </script>
 
-<div class="card-grid">
-  <section class="card" aria-labelledby="month-spending-card-title">
-    <header class="card-header">
-      <h2 id="month-spending-card-title" class="card-title">
-        This month's spending
-      </h2>
-      <div class="card-actions">
-        <a
-          href={`${BASE_PATH}/expenses`}
-          class="card-action-link"
-          aria-label="View expenses"
-          title="View expenses"
+{#if error}
+  <p class="form-error-text">{error}</p>
+{:else}
+  <div class="card-grid">
+    <section class="card" aria-labelledby="month-spending-card-title">
+      <header class="card-header">
+        <h2 id="month-spending-card-title" class="card-title">
+          This month's spending
+        </h2>
+        <div class="card-actions">
+          <a
+            href={`${BASE_PATH}/expenses`}
+            class="card-action-link"
+            aria-label="View expenses"
+            title="View expenses"
+          >
+            <Icon icon={SquareArrowOutUpRight} class="card-action-icon" />
+          </a>
+        </div>
+      </header>
+      {#if summary}
+        <span class="card-value amount-value"
+          >{formatCurrency(summary.this_month_total)}</span
         >
-          <Icon icon={SquareArrowOutUpRight} class="card-action-icon" />
-        </a>
-      </div>
-    </header>
-    {#if error}
-      <p class="form-error-text">{error}</p>
-    {:else if summary}
-      <span class="card-value amount-value"
-        >{formatCurrency(summary.this_month_total)}</span
-      >
-      <span class="card-delta">
-        {#if summary.month_change_sign}
-          {summary.month_change_sign}{summary.month_change_pct}% vs last month ({formatCurrency(
-            summary.last_month_total,
-          )})
-        {:else}
-          No data for last month
-        {/if}
-      </span>
-    {/if}
-  </section>
-  <section class="card" aria-labelledby="top-categories-card-title">
-    <header class="card-header">
-      <h2 id="top-categories-card-title" class="card-title">
-        Top categories this month
-      </h2>
-    </header>
-    {#if !error && summary}
-      {#if summary.top_categories.length > 0}
-        <ul class="summary-list">
-          {#each summary.top_categories as category (category.name)}
-            <li class="summary-list-item">
-              <span>{category.name}</span>
-              <span class="amount-value">{formatCurrency(category.total)}</span>
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p class="card-empty">No expenses this month</p>
+        <span class="card-delta">
+          {#if summary.month_change_sign}
+            {summary.month_change_sign}{summary.month_change_pct}% vs last month
+            ({formatCurrency(summary.last_month_total)})
+          {:else}
+            No data for last month
+          {/if}
+        </span>
       {/if}
-    {/if}
-  </section>
-</div>
+    </section>
+    <section class="card" aria-labelledby="top-categories-card-title">
+      <header class="card-header">
+        <h2 id="top-categories-card-title" class="card-title">
+          Top categories this month
+        </h2>
+      </header>
+      {#if summary}
+        {#if summary.top_categories.length > 0}
+          <ul class="summary-list">
+            {#each summary.top_categories as category (category.name)}
+              <li class="summary-list-item">
+                <span>{category.name}</span>
+                <span class="amount-value"
+                  >{formatCurrency(category.total)}</span
+                >
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="card-empty">No expenses this month</p>
+        {/if}
+      {/if}
+    </section>
+  </div>
+{/if}

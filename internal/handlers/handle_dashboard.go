@@ -77,17 +77,7 @@ func (h *Handler) buildDashboardSummary(w http.ResponseWriter, r *http.Request, 
 		lastMonthTotal += t.Total
 	}
 
-	var sign string
-	var pct int
-	if lastMonthTotal > 0 {
-		if thisMonthTotal >= lastMonthTotal {
-			sign = "+"
-			pct = safeUint64ToInt((thisMonthTotal - lastMonthTotal) * 100 / lastMonthTotal)
-		} else {
-			sign = "-"
-			pct = safeUint64ToInt((lastMonthTotal - thisMonthTotal) * 100 / lastMonthTotal)
-		}
-	}
+	sign, pct := monthOverMonthChange(thisMonthTotal, lastMonthTotal)
 
 	_, nameByID, ok := h.findCategoriesOrErr(w, r, DashboardIndex)
 	if !ok {
