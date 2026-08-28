@@ -14,6 +14,11 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   moves it to `/`), the `routes` match table, `matchRoute`/`toRoutePath` (pure),
   and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte wires up in
   an effect. See `docs/spa-migration.md` §3.7.
+  **Never hardcode `/app` in a link** — write ``href={`${BASE_PATH}/...`}``, or
+  Phase 7's one-line move leaves it behind. Go redirects into the SPA through
+  `handlers.AppLoginPath`/`AppDashboardPath`, which are the same literal on the
+  other side of a boundary neither language can import across; `api.ts`'s
+  `LOGIN_PATH` is the third copy. All four change together.
 - `lib/` — plain `.ts` modules, no components
   - `api.ts` — the `/api/*` fetch wrapper (Phase 0.4). Every request goes
     through it: it attaches `X-CSRF-Token` from the shell's

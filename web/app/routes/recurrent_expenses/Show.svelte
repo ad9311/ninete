@@ -8,7 +8,7 @@
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, del, get, post } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
-  import { navigate } from "../../router";
+  import { BASE_PATH, navigate } from "../../router";
   import type { RecurrentExpense } from "./types";
 
   let { id }: { id: string } = $props();
@@ -97,7 +97,7 @@
         <Icon icon={SquarePen} class="card-action-icon" />
       </a>
       <a
-        href="/app/recurrent-expenses"
+        href={`${BASE_PATH}/recurrent-expenses`}
         class="card-action-link"
         aria-label="Recurrent expenses"
         title="Recurrent expenses"

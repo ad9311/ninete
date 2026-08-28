@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -24,11 +25,11 @@ func TestGetRoot(t *testing.T) {
 				s.WrappedHandler().ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/login", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
 			},
 		},
 		{
-			name: "should_redirect_to_dashboard_when_authenticated",
+			name: "should_redirect_to_the_spa_when_authenticated",
 			fn: func(t *testing.T) {
 				s.CreateAuthUser(t, "root_user_1", "root_user_1@example.com", "root_password_1")
 				cookies := s.AuthCookies(t, "root_user_1@example.com", "root_password_1")
@@ -38,7 +39,7 @@ func TestGetRoot(t *testing.T) {
 				s.WrappedHandler().ServeHTTP(rec, req)
 
 				require.Equal(t, http.StatusSeeOther, rec.Code)
-				require.Equal(t, "/dashboard", rec.Header().Get("Location"))
+				require.Equal(t, handlers.AppDashboardPath, rec.Header().Get("Location"))
 			},
 		},
 	}

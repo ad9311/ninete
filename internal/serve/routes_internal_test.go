@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"encoding/json"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ad9311/ninete/internal/db"
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
 	"github.com/ad9311/ninete/internal/repo"
@@ -101,6 +103,33 @@ func postCredentials(
 	return rec.Code
 }
 
+// postAPICredentials is postCredentials for the JSON chain. The CSRF cookie is
+// shared by both chains, so a token minted off a page works here.
+func postAPICredentials(
+	t *testing.T,
+	server *Server,
+	path, token string,
+	cookies []*http.Cookie,
+	remoteAddr string,
+) (int, string) {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{"email":"","password":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("X-CSRF-Token", token)
+	req.RemoteAddr = remoteAddr
+
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+
+	rec := httptest.NewRecorder()
+	server.Router.ServeHTTP(rec, req)
+
+	return rec.Code, rec.Body.String()
+}
+
 func TestCredentialRoutesAreRateLimited(t *testing.T) {
 	cases := []struct {
 		name string
@@ -162,6 +191,63 @@ func TestCredentialRoutesAreRateLimited(t *testing.T) {
 					),
 					"/register had its own budget after /login exhausted one",
 				)
+			},
+		},
+		{
+			// Genuine reproduction: before the fix the API chain got its own
+			// authRateLimit() value, so exhausting /login left /api/login with
+			// a full budget against the same credentials.
+			name: "should_share_one_budget_across_the_page_and_api_chains",
+			fn: func(t *testing.T) {
+				server := newLimitedServer(t)
+				token, cookies := csrfFor(t, server, "/login")
+
+				for range authAttemptLimit {
+					require.NotEqual(
+						t,
+						http.StatusTooManyRequests,
+						postCredentials(t, server, "/login", token, cookies, "203.0.113.53:1234"),
+					)
+				}
+
+				code, _ := postAPICredentials(
+					t, server, "/api/login", token, cookies, "203.0.113.53:1234",
+				)
+				require.Equal(
+					t,
+					http.StatusTooManyRequests,
+					code,
+					"/api/login had its own budget after /login exhausted one",
+				)
+			},
+		},
+		{
+			// Genuine reproduction: TooManyRequests renders the HTML error
+			// page through tmplData, which panics on the API chain because
+			// setUpAPIMiddlewares drops setTmplData — Recoverer turned that
+			// into an empty 500 instead of a 429 with the envelope.
+			name: "should_answer_a_throttled_api_credential_route_with_the_json_envelope",
+			fn: func(t *testing.T) {
+				server := newLimitedServer(t)
+				token, cookies := csrfFor(t, server, "/login")
+
+				for range authAttemptLimit {
+					code, _ := postAPICredentials(
+						t, server, "/api/login", token, cookies, "203.0.113.54:1234",
+					)
+					require.NotEqual(t, http.StatusTooManyRequests, code)
+				}
+
+				code, body := postAPICredentials(
+					t, server, "/api/login", token, cookies, "203.0.113.54:1234",
+				)
+				require.Equal(t, http.StatusTooManyRequests, code)
+
+				var errBody struct {
+					Error string `json:"error"`
+				}
+				require.NoError(t, json.Unmarshal([]byte(body), &errBody))
+				require.Equal(t, handlers.ErrTooManyAttempts.Error(), errBody.Error)
 			},
 		},
 		{

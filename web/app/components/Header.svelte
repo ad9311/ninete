@@ -71,8 +71,9 @@
         if (!cancelled) session = result;
       })
       .catch(() => {
-        // A 401 already redirected to /login (lib/api.ts); any other failure
-        // just leaves the chrome without a signed-in user.
+        // Nothing to do for any of them: skipAuthRedirect means the 401 a
+        // guest gets here is expected and deliberately not redirected, and
+        // any other failure just leaves the chrome without a signed-in user.
       });
 
     return () => {

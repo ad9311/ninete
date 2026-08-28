@@ -9,6 +9,10 @@ const API_PREFIX = "/api";
 // docs/spa-migration.md, settling the TODO.md note on where session expiry
 // redirects). A literal rather than router.ts's BASE_PATH import: it must
 // match router.ts's own "/app" until Phase 7 moves both to "/".
+//
+// Go redirects to the same place through handlers.AppLoginPath, which a bundle
+// cannot import. The two literals have to be changed together, and Phase 7
+// removes both prefixes at once.
 const LOGIN_PATH = "/app/login";
 
 /** The error envelope every /api/* failure carries (handlers.APIError). */

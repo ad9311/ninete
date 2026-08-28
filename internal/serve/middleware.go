@@ -47,12 +47,20 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Trailing slash trimmed before the lookup: guestRoutes matches exactly,
+		// but root.Get("/app/*") matches "/app/login/" too, so a bookmark
+		// carrying the slash would miss the exemption and bounce a guest away
+		// from the login page they asked for.
 		path := r.URL.Path
+		if path != "/" {
+			path = strings.TrimSuffix(path, "/")
+		}
+
 		isSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
 
 		if guestRoutes[path] {
 			if isSignedIn {
-				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+				http.Redirect(w, r, handlers.AppDashboardPath, http.StatusSeeOther)
 
 				return
 			}
@@ -69,7 +77,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if !isSignedIn {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, handlers.AppLoginPath, http.StatusSeeOther)
 
 			return
 		}
@@ -220,6 +228,11 @@ func generateNonce() (string, error) {
 // script/style produces a server-side signal instead of failing silently.
 const cspReportPath = "/csp-report"
 
+// apiPathPrefix is the JSON chain's mount point. Matched as a whole path
+// segment wherever it is used, so a future "/api-tokens" page route is not
+// mistaken for an API route.
+const apiPathPrefix = "/api"
+
 func buildCSP(nonce string) string {
 	return "default-src 'self'; " +
 		"script-src 'self' 'nonce-" + nonce + "'; " +
@@ -283,8 +296,10 @@ const (
 // RemoteAddr, which realClientIP has already rewritten from the proxy's
 // forwarded header, so the key is the actual client rather than Caddy.
 //
-// The returned middleware is shared by every route it guards, so /login and
-// /register draw on one budget per client rather than one each.
+// The returned middleware is shared by every route it guards — /login,
+// /register and their /api twins — so a client draws on one budget rather than
+// one per route or one per chain. Call it once and pass the value around;
+// calling it again builds an independent counter and multiplies the allowance.
 //
 // Disabled under ENV=test: the suite performs a hundred logins from one
 // synthetic address, which is exactly the pattern this blocks. The middleware
@@ -294,7 +309,22 @@ func (s *Server) authRateLimit() func(http.Handler) http.Handler {
 		return func(next http.Handler) http.Handler { return next }
 	}
 
-	return newAuthRateLimit(s.handlers.TooManyRequests)
+	return newAuthRateLimit(s.tooManyCredentialAttempts)
+}
+
+// tooManyCredentialAttempts answers a throttled credential attempt in the shape
+// the receiving chain speaks. One limiter guards both chains, so the response
+// cannot be fixed at construction time: the HTML error page goes through a
+// render helper, and the API chain drops setTmplData, so rendering it from
+// there panics in tmplData and the client gets a recovered, empty 500.
+func (s *Server) tooManyCredentialAttempts(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == apiPathPrefix || strings.HasPrefix(r.URL.Path, apiPathPrefix+"/") {
+		s.handlers.APITooManyRequests(w, r)
+
+		return
+	}
+
+	s.handlers.TooManyRequests(w, r)
 }
 
 func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Handler {
