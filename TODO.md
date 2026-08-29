@@ -99,31 +99,3 @@ revisited: a `HEAD` or `/api/session` probe before letting the click through is
 the cheap version, and Phase 7 is where the honest fix lives, since moving the
 SPA to `/` lets the download hang off a route that redirects like the page chain
 does.
-
-## Phase 8 left the tags that were only ever attached to mood entries
-
-`internal/db/migrations/20260829204704_drop_macros_foods_moods_tables.sql`
-deletes the `taggings` rows with `taggable_type = 'mood_entry'` but not the
-`tags` they pointed at. A tag the owner only ever used on a mood entry therefore
-survives with no taggings at all: it still counts toward the "Tags" number on
-the account page (`CountTagsByUser`, `internal/logic/logic_account.go`) and
-still shows up wherever the tag list is offered, for a mood feature that no
-longer exists.
-
-Left out of Phase 8 on purpose. A blanket `DELETE FROM "tags" WHERE "id" NOT IN
-(SELECT "tag_id" FROM "taggings")` is the wrong fix: untagging an expense
-deletes the tagging and keeps the tag so the name stays available, so that
-statement would also delete tags the owner deliberately kept. The narrow version
-has to run *before* the mood taggings are deleted, while it is still possible to
-tell which tags were mood-only:
-
-    DELETE FROM "tags" WHERE "id" IN
-      (SELECT "tag_id" FROM "taggings" WHERE "taggable_type" = 'mood_entry')
-    AND "id" NOT IN
-      (SELECT "tag_id" FROM "taggings" WHERE "taggable_type" <> 'mood_entry');
-
-Once the mood taggings are gone that information is gone with them, so a later
-migration cannot reconstruct the list — it would have to be a judgement call on
-names, or the owner deleting the stragglers by hand. That makes this cheap to
-fold into the Phase 8 migration while it is unapplied and expensive afterwards:
-decide it before the migration reaches production, not later.
