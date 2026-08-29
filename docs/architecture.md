@@ -27,20 +27,41 @@ be broken; this file holds the description that helps you find your way.
    chain, and adds only a `Cache-Control` header (`staticCacheControl`, five
    minutes — the bundle filenames carry no content hash, so the window stays short
    and `http.FileServer` answers the revalidation with a 304 off `Last-Modified`).
-4. App middleware, only for rendered routes (`setUpAppMiddlewares`, applied to a `chi` group), in order:
+4. App middleware, for the two non-API, non-static routes — `GetApp` (the SPA shell catch-all)
+   and `POST /logout` (`setUpAppMiddlewares`, applied to a `chi` group), in order:
    - Session load/save (`scs`).
    - Request body limit, then a five-second timeout.
    - CSP nonce and headers (`contentSecurityPolicy`).
    - CSRF middleware (`nosurf`).
    - Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group. `NotFound`/`MethodNotAllowed` are registered on the group for that reason.
    - Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`).
-   - `POST /login` and `POST /register` additionally carry `authRateLimit()`, applied with `root.With(...)` so rendering the forms stays free. See the "Auth rate limit" invariant in `CLAUDE.md`.
 5. Route-level context middleware may run for resource-specific lookups.
 6. Handler executes endpoint behavior in `internal/handlers`.
 7. Handler calls `logic.Store` methods.
 8. Logic calls `repo.Queries` methods.
 9. Repo executes SQL against SQLite.
-10. Handler renders templates through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`.
+10. `GetApp` renders the SPA shell through handler-owned render helpers (`internal/handlers/render.go`), using template lookup/reload callbacks injected by `serve.Server`. It is the only render call left in the codebase — every other route answers JSON.
+
+## The `/api/*` group (`internal/serve/routes.go:setUpAPIRoutes`)
+
+A sibling of the app group above, not a child, registered on its own `chi` sub-router. Shares the
+session, body-cap, timeout and CSRF middleware of the app chain and drops the two pieces that
+assume HTML:
+
+- **No `setTmplData`.** Nothing under `/api/*` renders a template, so there is no template map.
+  `apiAuth` (`internal/serve/middleware.go`) is the API's replacement for the piece of
+  `setTmplData` that matters to handlers: it puts the signed-in user into `KeyCurrentUser`, since
+  every resource handler opens with `getCurrentUser(r)`, which panics if the key is absent.
+- **No `AuthMiddleware`.** `apiAuth` answers an unauthenticated request with `401` and a JSON
+  body, never a `Location` header — `AuthMiddleware`'s redirect would otherwise arrive at a
+  `fetch` call as a same-origin `200` full of login-page HTML.
+
+`POST /api/login` and `POST /api/register` carry `authRateLimit()`, built once in
+`setUpAPIRoutes` so both draw on one shared budget — see the invariant in `CLAUDE.md`. Every
+response goes through `internal/handlers/api.go`'s JSON writers (`WriteJSON`, `WriteJSONError`,
+`WriteAPIError`), which map validation failures to `422` with `{"error", "fields"}` and unexpected
+failures to a generic `500` that never quotes `err.Error()`. There is no CSP on this chain by
+design — a JSON response has no document to constrain.
 
 The session cookie is configured in `setUpSession` (`internal/serve/routes.go`):
 seven-day lifetime, `HttpOnly`, `SameSite=Lax`, persistent, named
@@ -152,7 +173,7 @@ the CSP nonce rule.
 - **Responsibilities**:
 - Implement endpoint behavior.
 - Use `logic.Store` + session manager for app actions.
-- Own template rendering helpers and render error paths.
+- Own the SPA shell's render helper (`render.go`) and the `/api/*` JSON writers/error mapper (`api.go`).
 - Provide context-key and template-name constants.
 
 ### `internal/task`
