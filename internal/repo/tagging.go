@@ -8,10 +8,57 @@ import (
 	"strings"
 )
 
-const (
-	TaggableTypeExpense          = "expense"
-	TaggableTypeRecurrentExpense = "recurrent_expense"
-)
+// Taggable names one kind of record that tags attach to. It pairs the value
+// stored in taggings."taggable_type" with the table holding those records,
+// because the two always travel together: every read of a taggable's tags
+// joins the owner table to scope the row to a user.
+//
+// The owner table cannot be a bound parameter — SQLite parameterizes values,
+// not identifiers — so it is interpolated into the query text. Keeping it
+// inside this type, behind unexported fields, means a caller names a kind and
+// never supplies a table name of its own. That is the guarantee QueryOptions
+// gets from validExpenseFields and friends, which this query previously did
+// not have: it took the table as a plain string and trusted every caller to
+// pass a literal.
+type Taggable struct {
+	taggableType string
+	ownerTable   string
+}
+
+// The kinds are functions rather than package variables for the same reason
+// validExpenseFields and friends are: a global would be assignable, and the
+// linter rejects one.
+func TaggableExpense() Taggable {
+	return Taggable{
+		taggableType: "expense",
+		ownerTable:   "expenses",
+	}
+}
+
+func TaggableRecurrentExpense() Taggable {
+	return Taggable{
+		taggableType: "recurrent_expense",
+		ownerTable:   "recurrent_expenses",
+	}
+}
+
+// Type returns the value written to taggings."taggable_type".
+func (t Taggable) Type() string { return t.taggableType }
+
+// validate rejects a Taggable that did not come from one of the constructors
+// above — the zero value being the one a caller outside the package can still
+// build, since a struct with unexported fields is not otherwise constructible.
+// Interpolating its empty table name would produce a syntactically broken
+// query rather than an honest error.
+func (t Taggable) validate() error {
+	for _, known := range []Taggable{TaggableExpense(), TaggableRecurrentExpense()} {
+		if t == known {
+			return nil
+		}
+	}
+
+	return ErrUnknownTaggable
+}
 
 type Tagging struct {
 	ID           int
@@ -23,9 +70,9 @@ type Tagging struct {
 }
 
 type InsertTaggingParams struct {
-	TagID        int
-	TaggableID   int
-	TaggableType string
+	TagID      int
+	TaggableID int
+	Taggable   Taggable
 }
 
 type TagRow struct {
@@ -59,7 +106,7 @@ func (q *TxQueries) InsertOrIgnoreTagging(ctx context.Context, params InsertTagg
 			insertOrIgnoreTagging,
 			params.TagID,
 			params.TaggableID,
-			params.TaggableType,
+			params.Taggable.Type(),
 		)
 
 		return err
@@ -71,9 +118,9 @@ DELETE FROM "taggings"
 WHERE "taggable_type" = ?
   AND "taggable_id" = ?`
 
-func (q *TxQueries) DeleteTaggingsByTarget(ctx context.Context, taggableType string, taggableID int) error {
+func (q *TxQueries) DeleteTaggingsByTarget(ctx context.Context, taggable Taggable, taggableID int) error {
 	return q.wrapQuery(deleteTaggingsByTarget, func() error {
-		_, err := q.tx.ExecContext(ctx, deleteTaggingsByTarget, taggableType, taggableID)
+		_, err := q.tx.ExecContext(ctx, deleteTaggingsByTarget, taggable.Type(), taggableID)
 
 		return err
 	})
@@ -90,13 +137,13 @@ WHERE "taggable_type" = ?
 // tag names first, so a copy carries the source tags in a single statement.
 func (q *TxQueries) CopyTaggings(
 	ctx context.Context,
-	sourceType string,
+	source Taggable,
 	sourceID int,
-	targetType string,
+	target Taggable,
 	targetID int,
 ) error {
 	return q.wrapQuery(copyTaggings, func() error {
-		_, err := q.tx.ExecContext(ctx, copyTaggings, targetID, targetType, sourceType, sourceID)
+		_, err := q.tx.ExecContext(ctx, copyTaggings, targetID, target.Type(), source.Type(), sourceID)
 
 		return err
 	})
@@ -107,11 +154,11 @@ SELECT COUNT(*) FROM "taggings"
 WHERE "taggable_type" = ?
   AND "taggable_id" = ?`
 
-func (q *Queries) CountTaggingsByTarget(ctx context.Context, taggableType string, taggableID int) (int, error) {
+func (q *Queries) CountTaggingsByTarget(ctx context.Context, taggable Taggable, taggableID int) (int, error) {
 	var c int
 
 	err := q.wrapQuery(countTaggingsByTarget, func() error {
-		row := q.db.QueryRowContext(ctx, countTaggingsByTarget, taggableType, taggableID)
+		row := q.db.QueryRowContext(ctx, countTaggingsByTarget, taggable.Type(), taggableID)
 
 		return row.Scan(&c)
 	})
@@ -131,18 +178,22 @@ ORDER BY t."name" ASC
 `
 
 // SelectTagsForTaggable returns the tags attached to a single taggable record,
-// scoped to the owning user via ownerTable.
+// scoped to the owning user through the taggable's owner table.
 func (q *Queries) SelectTagsForTaggable(
 	ctx context.Context,
-	taggableType, ownerTable string,
+	taggable Taggable,
 	taggableID, userID int,
 ) ([]Tag, error) {
 	var ts []Tag
 
-	query := fmt.Sprintf(selectTagsForTaggableBase, ownerTable)
+	if err := taggable.validate(); err != nil {
+		return nil, err
+	}
+
+	query := fmt.Sprintf(selectTagsForTaggableBase, taggable.ownerTable)
 
 	err := q.wrapQuery(query, func() error {
-		rows, err := q.db.QueryContext(ctx, query, taggableType, taggableID, userID)
+		rows, err := q.db.QueryContext(ctx, query, taggable.Type(), taggableID, userID)
 		if err != nil {
 			return err
 		}
@@ -182,15 +233,18 @@ const tagRowChunkSize = 500
 
 func (q *Queries) SelectTagRows(
 	ctx context.Context,
-	taggableType string,
-	joinTable string,
+	taggable Taggable,
 	targetIDs []int,
 	userID int,
 ) ([]TagRow, error) {
 	var rowsResult []TagRow
 
+	if err := taggable.validate(); err != nil {
+		return nil, err
+	}
+
 	for chunk := range slices.Chunk(targetIDs, tagRowChunkSize) {
-		chunkRows, err := q.selectTagRowsChunk(ctx, taggableType, joinTable, chunk, userID)
+		chunkRows, err := q.selectTagRowsChunk(ctx, taggable, chunk, userID)
 		if err != nil {
 			return nil, err
 		}
@@ -205,14 +259,13 @@ func (q *Queries) SelectTagRows(
 // target id, so the order chunks come back in does not matter.
 func (q *Queries) selectTagRowsChunk(
 	ctx context.Context,
-	taggableType string,
-	joinTable string,
+	taggable Taggable,
 	targetIDs []int,
 	userID int,
 ) ([]TagRow, error) {
 	var rowsResult []TagRow
 
-	query, values := selectTagRowsQuery(taggableType, joinTable, targetIDs, userID)
+	query, values := selectTagRowsQuery(taggable, targetIDs, userID)
 
 	err := q.wrapQuery(query, func() error {
 		rows, err := q.db.QueryContext(ctx, query, values...)
@@ -241,12 +294,12 @@ func (q *Queries) selectTagRowsChunk(
 	return rowsResult, err
 }
 
-func selectTagRowsQuery(taggableType, joinTable string, targetIDs []int, userID int) (string, []any) {
+func selectTagRowsQuery(taggable Taggable, targetIDs []int, userID int) (string, []any) {
 	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(targetIDs)), ",")
-	query := fmt.Sprintf(selectTagRowsBase, joinTable, placeholders)
+	query := fmt.Sprintf(selectTagRowsBase, taggable.ownerTable, placeholders)
 
 	values := make([]any, 0, len(targetIDs)+2)
-	values = append(values, taggableType, userID)
+	values = append(values, taggable.Type(), userID)
 	for _, id := range targetIDs {
 		values = append(values, id)
 	}

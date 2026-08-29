@@ -1,7 +1,9 @@
 package logic
 
 import (
+	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -51,6 +53,56 @@ func (e *ValidationError) Error() string { return e.message }
 // Unwrap keeps errors.Is(err, ErrValidationFailed) working for every caller
 // written before this type.
 func (*ValidationError) Unwrap() error { return ErrValidationFailed }
+
+// underField re-keys every entry of a ValidationError under a single parent
+// field name, for a use-case that validates a *secondary* params struct on its
+// way to satisfying the request.
+//
+// ValidationError.Fields is keyed by validator.FieldError.Field(), the leaf Go
+// field name, which says nothing about which struct the field belongs to. A
+// nested failure therefore lands in the same flat map as the request's own
+// fields, under a key the request payload never carried: a too-long tag on
+// POST /api/expenses reported {"name": "max"}, naming a field that endpoint
+// does not have, while the offending value arrived under "tags". A client
+// highlighting inputs by key marks nothing, and on an endpoint that does own a
+// "name" field it would mark the wrong input — or silently overwrite the
+// parent's entry for the same name.
+//
+// The rule each nested field broke is kept; only the key changes. Callers name
+// the parent field because only the use-case knows which request key the
+// nested struct was built from.
+func underField(err error, parent string) error {
+	var valErr *ValidationError
+	if !errors.As(err, &valErr) {
+		return err
+	}
+
+	fields := make(map[string]string, len(valErr.Fields))
+	chained := make([]string, 0, len(valErr.Fields))
+
+	for _, rule := range sortedRules(valErr.Fields) {
+		fields[parent] = rule
+		chained = append(chained, "["+parent+":"+rule+"]")
+	}
+
+	return &ValidationError{
+		Fields:  fields,
+		message: fmt.Sprintf("%s: %s", ErrValidationFailed, strings.Join(chained, ",")),
+	}
+}
+
+// sortedRules returns the broken rules in a stable order, so the message a
+// nested failure produces does not depend on Go's map iteration.
+func sortedRules(fields map[string]string) []string {
+	rules := make([]string, 0, len(fields))
+	for _, rule := range fields {
+		rules = append(rules, rule)
+	}
+
+	sort.Strings(rules)
+
+	return rules
+}
 
 func fmtValidationErrors(err error) error {
 	valErr, ok := err.(validator.ValidationErrors)

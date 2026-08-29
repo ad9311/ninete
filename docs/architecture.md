@@ -146,7 +146,7 @@ corrupts data or silently disables `ON DELETE CASCADE`.
 - **Query patterns to follow rather than reinvent**:
 - `QueryOptions` (`query_options.go`) composes a `WHERE`/`ORDER BY`/`LIMIT OFFSET` tail from `Filters`, `Sorting` and `Pagination`. Callers pass column names, which are validated against the table's `validXFields()` list before reaching SQL. A filter needing real SQL sets `FilterField.Expr` with its own `Args` — that fragment must be repo-defined, never user input (see `ExpenseTagFilter`).
 - `Sorting.Build` appends `"id"` as a tiebreaker. Sort columns hold duplicates, and `LIMIT/OFFSET` over a non-deterministic order repeats rows on one page and drops them from another.
-- Tags are polymorphic: `taggings` rows carry `taggable_type` + `taggable_id`, with types listed as `TaggableType*` constants. Bulk tag reads batch through `SelectTagRows` + `TagNamesByTargetID`.
+- Tags are polymorphic: `taggings` rows carry `taggable_type` + `taggable_id`. Each kind is a `repo.Taggable` value built by `TaggableExpense()` / `TaggableRecurrentExpense()`, pairing the `taggable_type` string with the table that owns those records — a tag read joins that table to scope the row to a user, and the table name is interpolated rather than bound, so it must not come from a caller. Bulk tag reads batch through `SelectTagRows` + `TagNamesByTargetID`.
 
 ### `internal/logic`
 - **Role**: Application/business logic.

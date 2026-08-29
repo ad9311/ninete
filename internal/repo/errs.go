@@ -12,6 +12,7 @@ var (
 	ErrInvalidField      = errors.New("invalid field")
 	ErrInvalidSortOrder  = errors.New("invalid sort order")
 	ErrInvalidPagination = errors.New("invalid pagination values")
+	ErrUnknownTaggable   = errors.New("unknown taggable")
 )
 
 // IsUniqueViolation reports whether err is SQLite's UNIQUE constraint failure.

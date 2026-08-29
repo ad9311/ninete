@@ -33,7 +33,7 @@ func TestDeleteAllExpenses(t *testing.T) {
 	require.Zero(t, userCount)
 
 	// Taggings for the deleted expense must not be orphaned.
-	orphaned, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, userExpense.ID)
+	orphaned, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableExpense(), userExpense.ID)
 	require.NoError(t, err)
 	require.Zero(t, orphaned)
 
@@ -47,7 +47,7 @@ func TestDeleteAllExpenses(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, otherCount)
 
-	otherTaggings, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, otherExpense.ID)
+	otherTaggings, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableExpense(), otherExpense.ID)
 	require.NoError(t, err)
 	require.Equal(t, 1, otherTaggings)
 }
@@ -79,7 +79,7 @@ func TestDeleteAllRecurrentExpenses(t *testing.T) {
 	// hand its tags to whichever recurrent expense SQLite gives that rowid next.
 	orphaned, err := s.Queries.CountTaggingsByTarget(
 		ctx,
-		repo.TaggableTypeRecurrentExpense,
+		repo.TaggableRecurrentExpense(),
 		userRecurrentExpense.ID,
 	)
 	require.NoError(t, err)
@@ -97,7 +97,7 @@ func TestDeleteAllRecurrentExpenses(t *testing.T) {
 
 	otherTaggings, err := s.Queries.CountTaggingsByTarget(
 		ctx,
-		repo.TaggableTypeRecurrentExpense,
+		repo.TaggableRecurrentExpense(),
 		otherRecurrentExpense.ID,
 	)
 	require.NoError(t, err)
@@ -124,7 +124,7 @@ func TestDeleteAllTagsCascadesTaggings(t *testing.T) {
 	require.Zero(t, tagCount)
 
 	// Deleting tags cascades their taggings via the tag_id FK.
-	taggings, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, expense.ID)
+	taggings, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableExpense(), expense.ID)
 	require.NoError(t, err)
 	require.Zero(t, taggings)
 }

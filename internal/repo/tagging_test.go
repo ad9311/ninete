@@ -96,7 +96,54 @@ func TestSelectTagRowsExceedsParameterLimit(t *testing.T) {
 
 	targetIDs = append(targetIDs, expense.ID)
 
-	rows, err := s.Queries.SelectTagRows(ctx, repo.TaggableTypeExpense, "expenses", targetIDs, user.ID)
+	rows, err := s.Queries.SelectTagRows(ctx, repo.TaggableExpense(), targetIDs, user.ID)
 	require.NoError(t, err)
 	require.Equal(t, []repo.TagRow{{TargetID: expense.ID, TagName: "tag_rows_limit_tag"}}, rows)
+}
+
+// TestUnknownTaggableIsRejected is an invariant guard, not a reproduction of a
+// past bug: no caller passes a zero Taggable today. It covers the one hole the
+// type cannot close on its own — a struct with unexported fields cannot be
+// built with values from outside the package, but its zero value still can be,
+// and interpolating that empty owner table would produce a broken query
+// instead of an honest error.
+func TestUnknownTaggableIsRejected(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "unknown_taggable_user",
+		Email:        "unknown_taggable_user@example.com",
+		PasswordHash: []byte("unknown_taggable_hash"),
+	})
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "select_tags_for_taggable_rejects_the_zero_value",
+			fn: func(t *testing.T) {
+				_, err := s.Queries.SelectTagsForTaggable(ctx, repo.Taggable{}, 1, user.ID)
+				require.ErrorIs(t, err, repo.ErrUnknownTaggable)
+			},
+		},
+		{
+			name: "select_tag_rows_rejects_the_zero_value",
+			fn: func(t *testing.T) {
+				_, err := s.Queries.SelectTagRows(ctx, repo.Taggable{}, []int{1}, user.ID)
+				require.ErrorIs(t, err, repo.ErrUnknownTaggable)
+			},
+		},
+		{
+			name: "known_taggables_carry_their_own_type_value",
+			fn: func(t *testing.T) {
+				require.Equal(t, "expense", repo.TaggableExpense().Type())
+				require.Equal(t, "recurrent_expense", repo.TaggableRecurrentExpense().Type())
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, c.fn)
+	}
 }

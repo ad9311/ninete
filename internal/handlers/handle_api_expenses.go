@@ -174,7 +174,7 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, expense.ID)
 	}
 
-	tagRows, err := h.store.FindTagRows(ctx, repo.TaggableTypeExpense, "expenses", ids, user.ID)
+	tagRows, err := h.store.FindTagRows(ctx, repo.TaggableExpense(), ids, user.ID)
 	if err != nil {
 		h.WriteAPIError(w, err)
 
