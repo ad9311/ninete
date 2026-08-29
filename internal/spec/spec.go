@@ -42,6 +42,9 @@ func New(t *testing.T) Spec {
 	if err := server.LoadTemplates(); err != nil {
 		t.Fatalf("failed to load templates, %v", err)
 	}
+	if err := server.LoadAssetManifest(); err != nil {
+		t.Fatalf("failed to load asset manifest, %v", err)
+	}
 
 	return Spec{
 		Store:   store,

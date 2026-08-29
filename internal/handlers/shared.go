@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -9,40 +8,12 @@ import (
 	"github.com/ad9311/ninete/internal/repo"
 )
 
-func parseFloatField(r *http.Request, field string) (float64, error) {
-	v, err := strconv.ParseFloat(r.FormValue(field), 64)
-	if err != nil {
-		return 0, fmt.Errorf("%w %q: %w", ErrParseField, field, err)
-	}
-
-	return v, nil
-}
-
-func parseFloatFieldDefault(r *http.Request, field string) (float64, error) {
-	raw := r.FormValue(field)
-	if raw == "" {
-		return 0, nil
-	}
-
-	v, err := strconv.ParseFloat(raw, 64)
-	if err != nil {
-		return 0, fmt.Errorf("%w %q: %w", ErrParseField, field, err)
-	}
-
-	return v, nil
-}
-
 const defaultPerPage = 15
 
 // perPageChoices are the only page sizes the listings accept. Anything else in
 // the query string falls back to defaultPerPage, so a hand-edited per_page
 // cannot ask the database for an unbounded page.
 var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
-
-// PerPageChoices exposes the allowed page sizes to templates.
-func PerPageChoices() []int {
-	return slices.Clone(perPageChoices)
-}
 
 func normalizePerPage(raw string) int {
 	perPage, err := strconv.Atoi(raw)
@@ -63,7 +34,6 @@ type PaginationData struct {
 	SortField   string
 	SortOrder   string
 	CategoryID  int
-	DateRange   string
 	Search      string
 	Tag         string
 	DateFrom    string
@@ -72,7 +42,7 @@ type PaginationData struct {
 }
 
 func userScopedQueryOpts(
-	r *http.Request, userID int, defaultSort repo.Sorting, defaultDateRange string,
+	r *http.Request, userID int, defaultSort repo.Sorting,
 ) repo.QueryOptions {
 	q := r.URL.Query()
 
@@ -113,21 +83,10 @@ func userScopedQueryOpts(
 		})
 	}
 
-	dateRangeKey := q.Get("date_range")
-	if dateRangeKey == "" {
-		dateRangeKey = defaultDateRange
-	}
-	if dr, ok := computeDateRange(dateRangeKey, parseTZOffset(r)); ok {
-		opts.Filters.FilterFields = append(opts.Filters.FilterFields,
-			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
-			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
-		)
-	}
-
 	return opts
 }
 
-func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, defaultDateRange string) PaginationData { //nolint:lll
+func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) PaginationData {
 	totalPages := 0
 	if opts.Pagination.PerPage > 0 {
 		totalPages = (totalCount + opts.Pagination.PerPage - 1) / opts.Pagination.PerPage
@@ -135,11 +94,6 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, 
 
 	q := r.URL.Query()
 	categoryID, _ := strconv.Atoi(q.Get("category_id"))
-
-	dateRange := q.Get("date_range")
-	if dateRange == "" {
-		dateRange = defaultDateRange
-	}
 
 	return PaginationData{
 		CurrentPage: opts.Pagination.Page,
@@ -151,7 +105,6 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, 
 		SortField:   opts.Sorting.Field,
 		SortOrder:   opts.Sorting.Order,
 		CategoryID:  categoryID,
-		DateRange:   dateRange,
 	}
 }
 

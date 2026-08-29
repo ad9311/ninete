@@ -965,10 +965,6 @@ button:focus-visible {
   color: var(--color-danger);
 }
 
-.btn-align-end {
-  align-self: flex-end;
-}
-
 @media (width <= 48rem) {
   .page-shell {
     padding-top: var(--space-5);
@@ -1038,63 +1034,6 @@ button:focus-visible {
     right: auto;
     left: 0;
   }
-}
-
-.macro-progress {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-1);
-  box-shadow: var(--shadow-1);
-}
-
-.macro-progress-item {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.macro-progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.macro-progress-label {
-  font-size: var(--font-size-1);
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.macro-progress-value {
-  font-size: var(--font-size-1);
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.macro-progress-item progress {
-  display: block;
-  width: 100%;
-  height: 0.5rem;
-  border: none;
-  border-radius: var(--radius-1);
-  overflow: hidden;
-  background: var(--color-border);
-}
-
-.macro-progress-item progress::-webkit-progress-bar {
-  background: var(--color-border);
-}
-
-.macro-progress-item progress::-webkit-progress-value {
-  background: var(--color-primary);
-  border-radius: var(--radius-1);
-}
-
-.macro-progress-item progress::-moz-progress-bar {
-  background: var(--color-primary);
-  border-radius: var(--radius-1);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1218,10 +1157,6 @@ button:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
   gap: var(--space-4);
-}
-
-.dashboard-nutrition-card {
-  margin-top: var(--space-4);
 }
 
 .card {
@@ -1383,44 +1318,32 @@ button.card-action-link:hover {
   font-size: var(--font-size-1);
 }
 
-/* The loading spinner. This is Turbo's own progress-bar element restyled, not
-   an overlay of ours: Turbo creates `.turbo-progress-bar`, shows it once a
-   visit or form submission has been in flight for
-   Turbo.config.drive.progressBarDelay (set in index.ts), and removes it from
-   the DOM when the navigation ends. Driving it from the outside is what failed
-   before — Turbo replaces <body> mid-navigation, and a cached revisit renders
-   its preview before the delay is up — so all of that timing stays Turbo's and
-   only the appearance is ours.
+/* The loading spinner. Spinner.svelte renders `.route-progress-bar` once a
+   request has been in flight for lib/pending.ts's PROGRESS_DELAY_MS and
+   unmounts it when the last one settles.
 
-   Two things follow from restyling Turbo's element rather than adding one:
+   The element is created on show and removed on hide, so the spin animation
+   starts from 0 every time. A permanently mounted hidden element would keep an
+   animation the browser reports as running but never advances while nothing
+   paints, and the ring renders frozen for its first moments.
 
-   - Turbo animates the bar's fill by writing `style.width` inline, so the width
-     override needs `!important` to stretch it to a full-viewport backdrop.
-     Nothing else here is fighting an inline style.
-   - The element is created on show and removed on hide, so the spin animation
-     starts from 0 every time. A permanently mounted hidden element would keep
-     an animation the browser reports as running but never advances while
-     nothing paints, and the ring renders frozen for its first moments.
-
-   Covering the viewport also restores the click-blocking the overlay had: the
-   element sits at z-index 2147483647 (Turbo's default rule) and swallows
-   pointer events, so a slow request cannot be submitted twice. Drop the
-   `width`/`height`/`background` declarations to get a centred spinner with no
-   backdrop and no click-blocking. */
-.turbo-progress-bar {
+   Covering the viewport is also what blocks clicks: the element sits at the
+   top of the stacking order and swallows pointer events, so a slow request
+   cannot be submitted twice. Drop the `width`/`height`/`background`
+   declarations to get a centred spinner with no backdrop and no
+   click-blocking. */
+.route-progress-bar {
+  position: fixed;
+  z-index: 2147483647;
   top: 0;
   left: 0;
-  width: 100% !important;
+  width: 100%;
   height: 100%;
   background: var(--color-backdrop);
-
-  /* Turbo's default rule also transitions `width`, which is meaningless now
-     that the width is pinned. Its hide() sets opacity to 0 and unmounts the
-     element shortly after, so this only has to outlast nothing. */
   transition: opacity 150ms ease-in;
 }
 
-.turbo-progress-bar::before {
+.route-progress-bar::before {
   content: "";
   position: fixed;
   top: 50%;
@@ -1444,7 +1367,7 @@ button.card-action-link:hover {
    swapping it for an opacity pulse reads as a fade rather than as progress.
    The rotation is slowed instead. */
 @media (prefers-reduced-motion: reduce) {
-  .turbo-progress-bar::before {
+  .route-progress-bar::before {
     animation-duration: 1.4s;
   }
 }

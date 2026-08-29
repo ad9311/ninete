@@ -2,9 +2,9 @@ name: tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, spa-base]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, spa-base]
 
 permissions:
   contents: read
@@ -36,7 +36,7 @@ jobs:
       # The JS bundle is git-ignored, and internal/serve asserts that
       # /static/* serves it. Without this step that test 404s.
       - name: Build static JS bundle
-        run: bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+        run: bun run web/build.ts
 
       - name: Create .env file
         run: cp .env.example .env
@@ -47,3 +47,40 @@ jobs:
           mkdir -p ./data/db/test
           CGO_ENABLED=1 go build -o ./build/dev ./cmd/ninete/main.go
           ENV=test go test ./...
+
+  # Both signs of UTC offset, as two steps in one job rather than a matrix. The
+  # suite takes under a second, so parallelism buys nothing and a second job
+  # would repeat the ~10s of checkout and install for it. See the comment in
+  # vitest.config.mts for why one zone is not enough.
+  #
+  # Not `make test-js`, which runs both zones but stops at the first failure:
+  # knowing whether a date bug fails east of UTC, west of it, or both is the
+  # most useful single fact about it, so the second zone has to run either way.
+  # `!cancelled()` is what preserves that, and not `always()`: always() also
+  # runs the step when the run has been cancelled, so a superseded push would
+  # keep a runner busy finishing tests for a commit nobody is waiting on, and a
+  # failed checkout or install would produce a second, misleading failure.
+  js-tests:
+    name: js-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # TEST_TZ rather than TZ, so the runner's own zone cannot replace it.
+      - name: Run JS tests (Pacific/Auckland)
+        run: bun run test:js
+        env:
+          TEST_TZ: Pacific/Auckland
+
+      - name: Run JS tests (America/Los_Angeles)
+        if: ${{ !cancelled() }}
+        run: bun run test:js
+        env:
+          TEST_TZ: America/Los_Angeles

@@ -45,12 +45,20 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Trailing slash trimmed before the lookup: guestRoutes matches exactly,
+		// but root.Get("/*") matches "/login/" too, so a bookmark carrying the
+		// slash would miss the exemption and bounce a guest away from the
+		// login page they asked for.
 		path := r.URL.Path
+		if path != "/" {
+			path = strings.TrimSuffix(path, "/")
+		}
+
 		isSignedIn := s.Session.GetBool(r.Context(), handlers.SessionIsUserSignedIn)
 
 		if guestRoutes[path] {
 			if isSignedIn {
-				http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+				http.Redirect(w, r, handlers.AppDashboardPath, http.StatusSeeOther)
 
 				return
 			}
@@ -67,7 +75,7 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 		}
 
 		if !isSignedIn {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, handlers.AppLoginPath, http.StatusSeeOther)
 
 			return
 		}
@@ -76,10 +84,16 @@ func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) csrf(next http.Handler) http.Handler {
+// newCSRFHandler builds the shared nosurf handler. Both chains use the same
+// cookie, so a token minted while rendering a page is the token the API accepts.
+func (s *Server) newCSRFHandler(next http.Handler) *nosurf.CSRFHandler {
 	csrfHandler := nosurf.New(next)
 	// Browsers post CSP reports automatically with no CSRF token.
 	csrfHandler.ExemptPath(cspReportPath)
+	// Secure is a method call rather than a literal, which gosec cannot follow, so it
+	// reads the cookie as missing the attribute. It is set in production and left off
+	// locally so the cookie survives plain HTTP in development.
+	// #nosec G124 -- HttpOnly and SameSite are set here; Secure follows the environment.
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
 		Path:     "/",
@@ -89,6 +103,66 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 	})
 
 	return csrfHandler
+}
+
+func (s *Server) csrf(next http.Handler) http.Handler {
+	return s.newCSRFHandler(next)
+}
+
+// apiCSRF is the same protection with a JSON rejection, so a client parsing the
+// body sees the standard error envelope instead of nosurf's plain text.
+func (s *Server) apiCSRF(next http.Handler) http.Handler {
+	csrfHandler := s.newCSRFHandler(next)
+	csrfHandler.SetFailureHandler(http.HandlerFunc(s.handlers.APIForbidden))
+
+	return csrfHandler
+}
+
+// apiAuth is the API's answer to AuthMiddleware: 401 with a JSON body instead
+// of a redirect (§3.1). It also puts the signed-in user into KeyCurrentUser,
+// which the API chain would otherwise never set — that happens in setTmplData,
+// which the API chain deliberately skips, and every resource handler opens with
+// getCurrentUser, which panics when the key is absent.
+func (s *Server) apiAuth(next http.Handler) http.Handler {
+	// PostAPILogin/PostAPIRegister (Phase 6 of docs/spa-migration.md). Built
+	// once per chain, like AuthMiddleware's own guest set.
+	guestAPIRoutes := map[string]bool{
+		"/api/login":    true,
+		"/api/register": true,
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if guestAPIRoutes[r.URL.Path] {
+			next.ServeHTTP(w, r)
+
+			return
+		}
+
+		ctx := r.Context()
+		if !s.Session.GetBool(ctx, handlers.SessionIsUserSignedIn) {
+			s.handlers.APIUnauthorized(w, r)
+
+			return
+		}
+
+		user, err := s.store.FindUser(ctx, s.Session.GetInt(ctx, handlers.SessionUserID))
+		if err != nil {
+			// A session pointing at a user who no longer exists is a stale
+			// credential, not a server fault.
+			if errors.Is(err, sql.ErrNoRows) {
+				s.handlers.APIUnauthorized(w, r)
+
+				return
+			}
+
+			s.app.Logger.Errorf("failed to find current user %v", err)
+			s.handlers.APIInternalError(w, r)
+
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(ctx, handlers.KeyCurrentUser, &user)))
+	})
 }
 
 func (s *Server) setTmplData(next http.Handler) http.Handler {
@@ -120,6 +194,7 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"isUserSignedIn": isUserSignedIn,
 			"currentUser":    currentUser,
 			"version":        prog.Version,
+			"appBundle":      s.bundlePath("app"),
 		}
 
 		ctx = context.WithValue(ctx, handlers.KeyCurrentUser, currentUser)
@@ -149,6 +224,11 @@ func generateNonce() (string, error) {
 // cspReportPath receives browser CSP violation reports so a blocked inline
 // script/style produces a server-side signal instead of failing silently.
 const cspReportPath = "/csp-report"
+
+// apiPathPrefix is the JSON chain's mount point. Matched as a whole path
+// segment wherever it is used, so a future "/api-tokens" page route is not
+// mistaken for an API route.
+const apiPathPrefix = "/api"
 
 func buildCSP(nonce string) string {
 	return "default-src 'self'; " +
@@ -213,8 +293,10 @@ const (
 // RemoteAddr, which realClientIP has already rewritten from the proxy's
 // forwarded header, so the key is the actual client rather than Caddy.
 //
-// The returned middleware is shared by every route it guards, so /login and
-// /register draw on one budget per client rather than one each.
+// The returned middleware is shared by both routes it guards — /api/login and
+// /api/register — so a client draws on one budget rather than one per route.
+// Call it once and pass the value around; calling it again builds an
+// independent counter and multiplies the allowance.
 //
 // Disabled under ENV=test: the suite performs a hundred logins from one
 // synthetic address, which is exactly the pattern this blocks. The middleware
@@ -224,7 +306,7 @@ func (s *Server) authRateLimit() func(http.Handler) http.Handler {
 		return func(next http.Handler) http.Handler { return next }
 	}
 
-	return newAuthRateLimit(s.handlers.TooManyRequests)
+	return newAuthRateLimit(s.handlers.APITooManyRequests)
 }
 
 func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Handler {
@@ -316,6 +398,10 @@ func (s *Server) setUpMiddlewares() {
 	s.Router.Use(s.baseSecurityHeaders)
 }
 
+// requestTimeout bounds a request in either chain. Exports materialize their
+// whole payload inside it — see docs/spa-migration.md §3.3.
+const requestTimeout = 5 * time.Second
+
 // setUpAppMiddlewares is the chain for routes that render the app. Static assets
 // are mounted outside of it, so serving a stylesheet no longer loads the session
 // and looks up the current user.
@@ -323,11 +409,27 @@ func (s *Server) setUpAppMiddlewares(root chi.Router) {
 	root.Use(s.Session.LoadAndSave)
 	root.Use(s.limitRequestBody)
 
-	root.Use(s.WithTimeout(5 * time.Second))
+	root.Use(s.WithTimeout(requestTimeout))
 
 	root.Use(s.contentSecurityPolicy)
 	root.Use(s.csrf)
 
 	root.Use(s.setTmplData)
 	root.Use(s.AuthMiddleware)
+}
+
+// setUpAPIMiddlewares is the chain for the JSON API. It shares the session, the
+// body cap, the timeout and the CSRF protection of the page chain, and drops
+// the two pieces that assume HTML: setTmplData (no templates, no template map)
+// and AuthMiddleware (which redirects rather than answering 401).
+//
+// There is no CSP here on purpose: the policy exists to constrain a rendered
+// document, and a JSON response has none. baseSecurityHeaders still applies, so
+// the responses keep nosniff.
+func (s *Server) setUpAPIMiddlewares(api chi.Router) {
+	api.Use(s.Session.LoadAndSave)
+	api.Use(s.limitRequestBody)
+	api.Use(s.WithTimeout(requestTimeout))
+	api.Use(s.apiCSRF)
+	api.Use(s.apiAuth)
 }

@@ -2,14 +2,11 @@ package handlers
 
 import (
 	"bytes"
-	"errors"
 	"net/http"
 	"time"
 )
 
 const templateExecErr = "ERROR EXECUTING TEMPLATE"
-
-var ErrNotAllowed = errors.New("request not allowed")
 
 func (h *Handler) render(
 	w http.ResponseWriter,
@@ -60,20 +57,6 @@ func (h *Handler) renderPage(
 	h.render(w, status, tmplName, h.tmplData(r))
 }
 
-func (h *Handler) renderErr(
-	w http.ResponseWriter,
-	r *http.Request,
-	status int,
-	tmplName TemplateName,
-	err error,
-) {
-	data := h.tmplData(r)
-	if err != nil {
-		data["error"] = err.Error()
-	}
-	h.render(w, status, tmplName, data)
-}
-
 func (*Handler) tmplData(r *http.Request) map[string]any {
 	templateMap, ok := r.Context().Value(KeyTemplateData).(map[string]any)
 	if !ok {
@@ -81,19 +64,4 @@ func (*Handler) tmplData(r *http.Request) map[string]any {
 	}
 
 	return templateMap
-}
-
-func (h *Handler) NotFound(w http.ResponseWriter, r *http.Request) {
-	h.renderPage(w, r, http.StatusNotFound, NotFoundIndex)
-}
-
-func (h *Handler) MethodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	h.renderErr(w, r, http.StatusMethodNotAllowed, ErrorIndex, ErrNotAllowed)
-}
-
-// TooManyRequests answers a throttled request. It renders the error page rather
-// than httprate's plain-text default, so a rate-limited login looks like the
-// rest of the app.
-func (h *Handler) TooManyRequests(w http.ResponseWriter, r *http.Request) {
-	h.renderErr(w, r, http.StatusTooManyRequests, ErrorIndex, ErrTooManyAttempts)
 }

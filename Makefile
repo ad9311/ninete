@@ -101,9 +101,9 @@ deps: ## Install and tidy dependencies
 	go mod download
 	go mod tidy
 
-build-static-js: ## Build web/static/js/index.ts into web/static/js/build/index.js with bun
+build-static-js: ## Build the frontend entrypoints into web/static/js/build with bun
 	@echo "Building static JS bundle..."
-	bun build web/static/js/index.ts --target browser --outfile web/static/js/build/index.js
+	bun run web/build.ts
 
 # ========= Tests ===========
 # build-static-js is a dependency because internal/serve asserts that /static/*
@@ -118,19 +118,35 @@ test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose m
 	@mkdir -p ./data/db/test
 	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)
 
+# Both zones, not just the configured default: a calendar date formatted with
+# local getters still reads correctly east of UTC and only breaks west of it, so
+# the Los Angeles run is the one that catches most of §3.6. Each is well under a
+# second. CI runs them as separate jobs so a failure names its zone.
+test-js: ## Runs the JS/Svelte tests in both configured zones
+	@echo "Running JS tests (Pacific/Auckland)..."
+	TEST_TZ=Pacific/Auckland bun run test:js
+	@echo "Running JS tests (America/Los_Angeles)..."
+	TEST_TZ=America/Los_Angeles bun run test:js
+
 # ========= Linting =========
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."
 	golangci-lint run
 	@$(MAKE) --no-print-directory lint-sh
 
+# The bun steps run before golangci on purpose: make stops at the first failing
+# recipe line, so a Go lint failure used to skip the static formatting entirely
+# and leave web/ unformatted with no sign anything had been skipped.
 lint-fix: ## Run golangci-lint with automatic fixes
-	@echo "Running golangci-lint (with --fix)..."
-	golangci-lint run --fix
 	@echo "Running static formatter and linters with bun..."
 	bun run format:static
 	bun run lint:css
 	bun run lint:js
+	@echo "Running type checks..."
+	bun run typecheck:ts
+	bun run typecheck:svelte
+	@echo "Running golangci-lint (with --fix)..."
+	golangci-lint run --fix
 	@$(MAKE) --no-print-directory lint-sh
 
 # Runs last in lint/lint-fix, and skips itself when shellcheck is absent, so a

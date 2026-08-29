@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Phase 0 not started.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4, 5 and 6 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -12,6 +12,10 @@ facts this plan states about the bundler were verified there. Treat that branch 
 to read, not a branch to merge: Phase 0 re-lands only the build tooling, deliberately, without
 the experiment route.
 
+**Before anything else, read §0 (Scope reduction).** Macros, foods and mood entries are being
+dropped from the app. Roughly a third of the inventory this plan was originally sized against
+is not going to be ported, and the phase order changed because of it.
+
 **Before writing any view code, read §3.6 (Dates).** It is the one section where a mistake is
 invisible in review, invisible under the default `TZ=UTC` test run, and wrong for the user.
 Expenses are the app's core feature and every one of them hangs off a calendar date.
@@ -22,10 +26,63 @@ port, not in the design — that is the only reason this migration is checkable 
 
 ---
 
+## 0. Scope reduction — macros, foods and moods are being dropped
+
+Decided 2026-08-23, after Phase 0.3 landed. **The app keeps expenses and what hangs off them.**
+
+| Kept | Dropped |
+| --- | --- |
+| Expenses, recurrent expenses, expense budgets, tags, categories, dashboard, account, delete-data, exports, auth | Macros (entries, goals, stats), Foods, Mood entries |
+
+This is not a migration decision — those features are going away whether or not the SPA
+happens. It is recorded here because it changes what the migration has to port, and because
+doing it in the wrong order wastes a phase.
+
+**Removal happens in two steps, deliberately split.**
+
+1. **Code removal — Phase 0B, before any resource is ported.** Routes, handlers, logic, views,
+   Stimulus controllers, nav links, and the macro half of the dashboard. **Done.**
+2. **Table removal — Phase 8, at the very end.** `foods`, `macro_entries`, `macro_goals`,
+   `mood_entries`, and the `taggings` rows pointing at mood entries. Irreversible, and gated on
+   an export.
+
+**Why the code cannot wait for the cleanup phase.** Phase 2's pilot resource *was* Foods, and
+Phase 4 ported macros and moods with their Chart.js views. Deferring removal means porting 18
+of 47 views and 6 of 18 controllers into a codebase that then deletes them — and worse, setting
+the conventions every other resource copies on a resource nobody will maintain. Phase 7's
+catch-all route cannot coexist with template-only routes either, so "the cleanup phase" was
+never actually available: Phase 7 was the real deadline.
+
+**Why the tables can wait, and must.** Dropping them destroys the macro and mood history, and
+`/account/exports/expenses.json` exports expenses only — there is no backup path for that data
+today. Keeping the tables through the migration costs nothing: the `internal/repo` files stay
+compiled with no callers, and `TestColumnConstantsMatchSchema` keeps guarding the schema.
+**Before Phase 8 drops them, export that history to a file and confirm with the owner that it
+is kept.** If the data is not wanted, say so explicitly in Phase 8's PR rather than letting it
+go silently.
+
+**Freeze-rule exception.** The freeze rule above forbids behavior changes to existing views.
+Phase 0B was its one deliberate exception, and it was a deletion rather than a change. It has
+landed, so the freeze rule now applies again in full to everything left.
+
+**What this removes, counted** — so §2's inventory can be checked rather than trusted:
+
+| | Before | Dropped | After |
+| --- | --- | --- | --- |
+| Template files | 47 | 18 | 29 |
+| Stimulus controllers | 18 | 7 | 11 |
+| Routes | 67 | 29 | 38 |
+| Handler test files | 14 | 4 | 10 |
+
+---
+
 ## 1. Goal and end state
 
 Today: Go `html/template` renders every page, Turbo intercepts navigation and form posts,
-Stimulus adds per-page interactivity. 47 template files, 18 Stimulus controllers, 67 routes.
+Stimulus adds per-page interactivity. Phase 0B has landed, so the counts are now 29 template
+files, 11 Stimulus controllers and 38 routes — down from 47, 18 and 67 before the §0 removal.
+Every count below this line is the post-§0 one, and all three were verified against the tree
+after 0B rather than projected.
 
 End state:
 
@@ -35,7 +92,8 @@ End state:
 - Session cookie auth, CSRF, and the CSP survive unchanged in shape — see §3.
 
 Non-goals: server-side rendering of components, SvelteKit (Go serves the HTML), offline
-support, multi-user features, any visual redesign.
+support, multi-user features, any visual redesign, and reviving macros, foods or moods in any
+form (§0).
 
 ---
 
@@ -43,36 +101,44 @@ support, multi-user features, any visual redesign.
 
 Nothing below is optional. A phase is done when its rows are ticked.
 
-### 2.1 Views (47 files, `web/views/`)
+### 2.1 Views (29 files after §0, `web/views/`)
+
+Macros, foods and mood entries are absent from this table on purpose: Phase 0B deleted them
+(§0). If you are looking at a row that is not here, it is not being ported.
 
 | Resource | Files | Notes |
 | --- | --- | --- |
 | `layout.html` | 1 | Becomes the shell. Last thing to change, §Phase 7 |
 | `common/` | `_csrf`, `_footer`, `_form_buttons`, `_form_error`, `_header`, `_pagination` | Become shared components |
 | `login`, `register` | 2 | Guest routes. Special: CSRF/session rotation, §3.2 |
-| `dashboard` | 1 | Reads expense + macro stores |
+| `dashboard` | 1 | Expense summary only; the macro half went in Phase 0B |
 | `expenses` | `index`, `new`, `edit`, `show`, `stats`, `budgets`, `_form`, `_quick_form` | Largest resource. Search, filters, sort, pagination |
 | `recurrent_expenses` | `index`, `archived`, `new`, `edit`, `show`, `_form` | |
-| `macros` | `index`, `new`, `edit`, `show`, `goals`, `stats`, `_form` | Charts |
-| `foods` | `index`, `new`, `edit`, `show`, `_form` | Feeds macro prefill via `?from_food=&amount=` |
-| `mood_entries` | `index`, `new`, `edit`, `show`, `stats`, `_form` | Charts |
 | `account`, `delete_data`, `exports` | 3 | Destructive posts; file download |
 | `error`, `not_found` | 2 | Become client-side error states + a server fallback |
 
 
-### 2.2 Stimulus controllers (18, `web/static/js/controllers/`)
+### 2.2 Stimulus controllers (11 after §0, `web/static/js/controllers/`)
 
 Each becomes either component-local state or a shared util. None survive as controllers.
 
-`amount`, `chart`, `dashboardDate`, `date`, `dateHelp`, `filter`, `localDate`, `macroCalc`,
-`macroDate`, `macroSelect`, `macroTrend`, `moodChart`, `nav`, `quickExpense`, `searchPanel`,
-`sort`, `submitOnChange`, `theme`.
+`amount`, `chart`, `date`, `dateHelp`, `filter`, `localDate`, `nav`, `quickExpense`,
+`searchPanel`, `sort`, `theme`.
 
-Two need decisions rather than a port:
+Deleted unported in Phase 0B: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`,
+`moodChart`, `submitOnChange`, `dashboardDate`. The first trap was `submitOnChange` — it reads
+as a generic utility but its only two uses were `macros/index` and `macros/stats`, so it went
+with them; `filter` is the equivalent control expenses keeps. The second was `dashboardDate`,
+whose name suggests it belongs to the surviving half of the dashboard: its only mount was the
+nutrition card, and `?date` was read only by the macro half, so the controller became
+unreachable the moment that section went and was deleted with it.
+
+Two of the survivors need decisions rather than a port:
 - `theme` — writes `localStorage`, and `layout.html:9-22` has an inline anti-FOUC script that
   must stay server-rendered even in the SPA.
-- `chart`/`macroTrend`/`moodChart` — Chart.js instances; in Svelte these become components
-  with `$effect` lifecycle. Chart.js stays, it is not the problem being solved here.
+- `chart` — a Chart.js instance; in Svelte it becomes a component with `$effect` lifecycle.
+  After §0 its only remaining use is `expenses/stats`, so Chart.js arrives in Phase 3 rather
+  than Phase 4. It stays as a dependency; it is not the problem being solved here.
 
 ### 2.3 Server-side behavior that has no client equivalent yet
 
@@ -86,7 +152,7 @@ Two need decisions rather than a port:
 | Icons rendered on `turbo:load` | `index.ts` + `icons.ts` | Per-component icon rendering |
 | Loading spinner | Turbo's `.turbo-progress-bar`, restyled in `layout.css` | Own component, §3.7 |
 | Export download | `/account/exports/expenses.json`, `data-turbo="false"` | Plain anchor, unchanged |
-| 32 `http.Redirect` calls after POST | `internal/handlers/*.go` | API returns the created/updated resource; client navigates |
+| 22 `http.Redirect` calls after POST | `internal/handlers/*.go` | API returns the created/updated resource; client navigates |
 
 ### 2.4 Styles
 
@@ -94,7 +160,8 @@ Two need decisions rather than a port:
 
 ### 2.5 Tests
 
-Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, ~14 files).
+Handler tests currently assert status codes and rendered pages (`handle_*_test.go`, 10 files
+after Phase 0B deleted the macro, food and mood ones).
 They keep working against JSON with changed assertions. There is **no** frontend test tooling
 today — adding it is Phase 0's optional tail, see §5.
 
@@ -110,8 +177,14 @@ middleware receives the login page's HTML with status `200`. Every "why is my JS
 failing" bug in this migration will be this.
 
 **Resolution:** `/api/*` gets its own middleware stack that returns `401` with a JSON body and
-no `Location`. The client's fetch wrapper turns a `401` into `window.location = "/login"`.
+no `Location`. The client's fetch wrapper turns a `401` into a hard navigation to the login page.
 Guest API routes (`POST /api/login`, `POST /api/register`) are exempt.
+
+That destination was the template `/login` until Phase 6 ported the auth views; it is
+`handlers.AppLoginPath` on the Go side and `LOGIN_PATH` in `web/app/lib/api.ts` now, and both
+lose the `/app` prefix in Phase 7. The wrapper takes a `skipAuthRedirect` option for the one
+call that must not follow it: the session probe the guest-reachable login and register routes
+run on mount, which would otherwise bounce a guest off the page they asked for.
 
 Session storage itself does not change: `scs` server-side session, cookie `ninete_session`,
 `HttpOnly`, `SameSite=Lax`, 7-day lifetime (`routes.go:setUpSession`). **Do not move auth to a
@@ -195,24 +268,58 @@ the 1 MB request body cap.
 Today a failed create re-renders the page with `error` set, which is why forms read their
 values back from the template map. In the SPA the client holds the form state, so:
 
-- API returns `422` with `{"error": "...", "fields": {"amount": "must be positive"}}`.
+- API returns `422` with `{"error": "...", "fields": {"amount": "required"}}`.
 - `500` stays a generic message; do not leak `err.Error()` for unexpected failures.
 - Keep the message text identical to today's, so the port is verifiable by eye.
 
+**Built in Phase 0.3.** `logic.ValidationError` (`internal/logic/logic.go`) carries the failed
+fields beside the flat message the templates already print — `Error()` is byte-for-byte what it
+was, so no page changed. `Handler.WriteAPIError` (`internal/handlers/api.go`) is the only
+mapping from a store error to a response:
+
+| Error | Answer |
+| --- | --- |
+| `*logic.ValidationError` | `422`, `fields` filled from the validator |
+| `sql.ErrNoRows` | `404` |
+| An error the endpoint named in `userErrors` | `422` with that error's own message |
+| Anything else | logged in full, `500` with a generic message |
+
+**Nothing is user-facing by default.** That is the point of the last row: today a failed insert
+re-renders the form with the driver's text, so a `UNIQUE` violation names the table and column
+on a public page. An endpoint opts a message in by naming its sentinel, which also documents
+what that endpoint expects to go wrong.
+
+**`fields` keys are snake_case** — `category_id`, `occurrence_limit` — matching the existing
+form field names and the columns behind them, derived from the Go field by `snakeFieldName`. The
+value is the validator's rule (`required`, `gte`, `email`), not a sentence: the client phrases
+it, and no message text is invented server-side. **JSON request and response bodies use the same
+snake_case names**, so the client sends back exactly the keys it was told about.
+
 ### 3.6 Dates — the part that must not break
 
-**Read this section before touching anything in Expenses, Macros or Moods.** Dates are the
-one area where a port can look completely correct, pass every test, and still be wrong by one
-day for the user — silently, and only sometimes. Expenses are the app's core feature and every
-expense is filed under a calendar date that decides which billing window it lands in. An
-off-by-one here does not look like a bug, it looks like the user misremembering.
+**Read this section before touching anything dated: expenses, budgets, the dashboard, or the
+recurrent-expense cron.** Dates are the one area where a port can look completely correct,
+pass every test, and still be wrong by one day for the user — silently, and only sometimes.
+Expenses are the app's core feature and every expense is filed under a calendar date that
+decides which billing window it lands in. An off-by-one here does not look like a bug, it looks
+like the user misremembering.
 
 #### The two kinds of value, which must never be confused
 
 | Kind | Examples | Stored as | Means |
 | --- | --- | --- | --- |
-| **Calendar date** | `expenses.date`, macro day, mood `logged_at` day | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
+| **Calendar date** | `expenses.date`, `recurrent_expenses.last_copy_created_at` | epoch seconds at **UTC midnight** of that date | "the 21st", a label on a calendar. Has no time and no zone |
 | **Instant** | `created_at`, `updated_at`, export `exported_at` | epoch seconds of a real moment | a point in time, displayed in the viewer's zone |
+
+After §0, calendar dates survive in exactly two *stored* places — `expenses.date` and
+`recurrent_expenses.last_copy_created_at` — which narrows this section's blast radius but does
+not soften any of its rules. `last_copy_created_at` is the one to watch: the name says instant,
+the value is a calendar date.
+
+Budget and dashboard month bounds are calendar dates too, but they are **computed, never
+stored** — `expense_budgets` has no date column at all, only `amount` against a
+`(user_id, category_id)` pair. They are query bounds built by `computeDateRange`, so they obey
+every rule below without appearing in the table above.
 
 Both are `INTEGER` in SQLite and both are `int64` in Go, so **the type system will not catch a
 mix-up**. The distinction lives only in how each value is formatted and compared. Every date bug
@@ -233,7 +340,10 @@ Ranges — `computeDateRange` (`expense_shared.go:86`) builds `[start, end)` hal
 UTC midnight, using `tz_offset` **only** to decide which month "now" falls in for the client.
 
 Search — `expense_search.go:115` parses `YYYY-MM-DD` with `time.Parse` (UTC) and takes `.Unix()`.
-Moods — `handle_mood_entries.go:344` makes the end exclusive with `AddDate(0, 0, 1)`.
+Recurrent copies — `logic_recurrent_expense.go:180` files every generated expense at
+`time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)` and stores the same value in
+`last_copy_created_at`. That is a calendar date computed server-side, with no client zone
+involved, and it stays that way — the SPA must not start sending an offset into it.
 
 **Half-open `[start, end)` is the convention everywhere. Do not introduce an inclusive end.**
 
@@ -302,10 +412,16 @@ labels.
 
 #### How this gets verified (not optional)
 
-- **Run the frontend tests under a non-UTC zone.** `TZ=Pacific/Auckland` (UTC+12/+13, and it
-  observes DST) makes every "local getter used on a calendar date" bug fail immediately. Under
-  `TZ=UTC` — the CI default — all of them pass. Add `TZ` to the vitest config in Phase 0, and a
-  second CI run at `TZ=America/Los_Angeles` for the negative-offset direction.
+- **Run the frontend tests under a non-UTC zone — both signs, and the negative one matters
+  most.** Under `TZ=UTC`, the CI default, every bug in this section passes. `vitest.config.mts`
+  pins `Pacific/Auckland` (UTC+12/+13, and it observes DST) and reads `TEST_TZ` — not `TZ`, which
+  a developer's machine would silently supply — so a second run at `America/Los_Angeles` covers
+  the other direction.
+  **The west-of-UTC run is the one that catches calendar-date bugs.** A calendar date is stored
+  at UTC midnight, which in Auckland is still the same day locally, so a formatter wrongly using
+  local getters reads *correctly* there. Measured against `dates.test.ts` by switching
+  `formatDateUTC` to local getters: Los Angeles fails 12 cases, Auckland fails 1. Do not treat
+  the negative-offset run as the optional half.
 - **Boundary cases each dated resource must cover:** the 1st and last day of a month; a date in
   a DST transition week for the local zone; a range crossing a year boundary; an expense
   entered near local midnight (the case where the user's calendar day and UTC's disagree).
@@ -318,9 +434,19 @@ labels.
 
 ### 3.7 Navigation and loading feedback
 
-The Turbo progress bar disappears with Turbo. Replacement: a router-level pending flag driving
-the same `.turbo-progress-bar` styling in `layout.css` (rename it). Also gone: Turbo's scroll
-restoration and link prefetching — both need explicit handling in the router if wanted.
+The Turbo progress bar disappears with Turbo. Replacement: a pending flag driving the same
+`.turbo-progress-bar` styling in `layout.css` (renamed `.route-progress-bar`). Also gone: Turbo's
+scroll restoration and link prefetching — both need explicit handling in the router if wanted.
+
+**The flag counts requests, not navigations** (revised in Phase 2). Phase 1 put a `pending`
+`$state` on the router in App.svelte and Phase 2 added four routes that fetch on mount without
+any of them setting it, so the backdrop never appeared once — the router knows a route changed,
+not that the route is still loading, and a flag it set would clear before the first row arrived.
+`lib/pending.ts` holds a counter of in-flight requests and `lib/api.ts` drives it from
+`request()`, so every route and every resource added later gets the feedback with no wiring.
+That is also what Turbo covered in practice: every visit and form submission it drew the bar for
+was an HTTP request. The 250ms delay before showing matches
+`Turbo.config.drive.progressBarDelay` in `web/static/js/index.ts`; hiding is immediate.
 
 Router: **hand-rolled, path-based** (decided). A `$state` holding `location.pathname`, a
 `popstate` listener, a click handler intercepting internal `<a>` clicks, and a match table —
@@ -371,7 +497,7 @@ web/
     routes/
       expenses/             Index.svelte, New.svelte, Edit.svelte, Show.svelte,
                             Stats.svelte, Budgets.svelte, Form.svelte, QuickForm.svelte
-      foods/ macros/ moods/ recurrent_expenses/ account/ auth/ dashboard/
+      recurrent_expenses/ account/ auth/ dashboard/
   static/
     js/build/               ← emitted bundle + CSS sibling + manifest; the only served JS
   views/
@@ -390,6 +516,21 @@ Four rules that follow:
    vitest without a DOM.
 4. **Filenames: `PascalCase.svelte` for components, `camelCase.ts` for modules** — matching the
    existing `web/static/js/` convention (`localDateController.ts`, `icons.ts`).
+5. **Tests sit beside what they test, named after it.** `dates.ts` is tested by `dates.test.ts`
+   in the same directory, `Form.svelte` by `Form.test.ts` — the test mirrors the tested file's
+   name, so rule 4's two casings need no separate rule here and the pair sorts together. There is
+   no `web/app/spec/`: it would be the wrong parallel to `internal/spec`, which holds setup and
+   factories rather than tests, and the Go convention this repo already follows puts test files
+   in the directory of the code they test. Two answers to "where do tests go" in one repository
+   costs every future reader more than either answer does. Shared frontend test helpers, when
+   they are needed, belong in `lib/` like any other module.
+
+   The cost is real and was weighed: colocation puts `Index.test.ts` next to `Index.svelte`,
+   which makes rule 1's eye-check against `web/views/<resource>/` busier. It is accepted because
+   the oracle for a ported view is the frozen template, not a unit test — the dense testing lives
+   in `lib/` (`dates.ts` alone holds 59 of the suite's 60 cases), so `routes/` should stay thin
+   on test files. If a resource directory ever does fill with them, that is the signal to
+   revisit this, not a reason to pre-emptively split the tree now.
 
 `web/static/js/index.ts` and `web/static/js/controllers/` stay where they are until Phase 7,
 which deletes them. During the coexistence phases there are two entry points; `web/build.ts`
@@ -468,14 +609,21 @@ needed it (the searchable selects and the date pickers, most likely) instead of 
 ## 5. Phases
 
 Each phase ends with a green `make test`, `make lint-fix`, and a working app. No phase leaves
-`main` unshippable. Every phase is one PR.
+its base branch unshippable. Every phase is one PR.
+
+**Base branch: `spa-base`, not `main`.** `spa-base` is cut from `main` and every `spa/*` phase
+branch targets it; `main` receives the whole migration in one merge at the end. It is not called
+`spa` because git refs are a directory hierarchy and `spa/phase-0-groundwork` already occupies
+that name. Phase PRs land against `spa-base`, so `git merge main` into `spa-base` is the way an
+unrelated `main` change reaches the migration — not the other way around. Do not open a phase PR
+against `main`.
 
 ### Phase 0 — Groundwork (no view changes)
 
 Branch: `spa/phase-0-groundwork`. Nothing a user can see changes in this phase. Its job is to
 make every later phase mechanical.
 
-**0.1 Build tooling**
+**0.1 Build tooling** — landed (#113)
 - `bun add svelte bun-plugin-svelte` and `bun add -d vitest @testing-library/svelte`.
 - `web/build.ts`: `Bun.build()` with `SveltePlugin`, outdir `web/static/js/build`. Point
   `build-static-js` in the `Makefile` at `bun run web/build.ts`. Entry in this phase is still the
@@ -494,60 +642,262 @@ make every later phase mechanical.
   and `routes_test.go` reads the same manifest instead of a literal path.
 - Reference implementation: `web/build.ts` on `experiment/svelte-api`.
 
-**0.2 API route group**
+**0.2 API route group** — landed (#113)
 - `/api/*` under its own middleware stack in `internal/serve/routes.go`: session load, body
   limit, timeout, CSRF — but **not** `setTmplData`, and **not** the HTML `AuthMiddleware`.
 - API auth middleware: `401` + JSON body, never a `Location` header (§3.1).
 - **It must also put the signed-in user into `KeyCurrentUser`.** Dropping `setTmplData` drops the
   only place that happens (`internal/serve/middleware.go:125`), and `getCurrentUser`
   (`handle_auth.go:119-127`) **panics** when the key is absent. Every resource handler opens with
-  `user := getCurrentUser(r)`, so without this the first `GET /api/foods` in Phase 2 panics into a
-  500 that looks like a Svelte or fetch bug. Do the `FindUser` half of `setTmplData` — session
-  lookup, `sql.ErrNoRows` handled the same way — and skip the template map.
+  `user := getCurrentUser(r)`, so without this the first `GET /api/recurrent-expenses` in
+  Phase 2 panics into a 500 that looks like a Svelte or fetch bug. Do the `FindUser` half of
+  `setTmplData` — session lookup, `sql.ErrNoRows` handled the same way — and skip the template
+  map.
 - The auth rate limit currently guarding `POST /login` and `POST /register` must guard their
   API equivalents when those land in Phase 6, still sharing **one** middleware value — see the
   invariant in `CLAUDE.md`.
 
-**0.3 JSON handler plumbing**
+**0.3 JSON handler plumbing** — landed (#114)
 - Naming: `internal/handlers/handle_api_<resource>.go`, keeping the `handle_` convention.
 - One shared JSON write helper and one error mapper: `422` with `{"error", "fields"}` for
   validation, `404`, `500` with a generic message (never `err.Error()` for unexpected
   failures), all in `internal/handlers/` alongside `render.go`.
 - Sentinel errors go in the existing `errs.go`, not inline.
 
-**0.4 Client fetch wrapper**
+**0.4 Client fetch wrapper** — landed (#116)
 - `web/app/lib/api.ts`: `X-CSRF-Token` from `<meta name="csrf-token">`, `401` →
-  `window.location.assign("/login")`, JSON error envelope parsing, typed helpers.
+  `window.location.assign("/login")`, JSON error envelope parsing, typed helpers. (Phase 6
+  re-pointed that redirect at the SPA login — see §3.1.)
 - The shell gains the `<meta>` tag in Phase 1; until then read it from `layout.html`, which
   already has `cspNonce` and can carry `csrfToken` the same way.
 
-**0.5 Dates module (see §3.6 before writing it)**
+**0.5 Dates module (see §3.6 before writing it)** — landed (#117)
 - `web/app/lib/dates.ts`: all three formatters from `localDateController.ts` ported verbatim —
   `formatDateUTC` (UTC getters, calendar dates), `formatDate` and `formatDateTime` (local
-  getters, an instant's text and its `title` tooltip) — plus `YYYY-MM-DD` ⇄ epoch helpers for the
-  API boundary.
-- Tests for all three, including the month-boundary and DST cases named in §3.6.
+  getters, an instant's text and its `title` tooltip) — plus the `YYYY-MM-DD` ⇄ epoch helpers for
+  the API boundary: `calendarDateToUnix` (rejects a rolled-over date such as `2026-02-31` rather
+  than answering March 3rd), `unixToCalendarDate`, `todayCalendarDate` and `addDays`.
+- Tests for all three, including the month-boundary and DST cases named in §3.6. Landed with
+  `vitest.config.mts` — the runner config the tests need — while the `make test-js` target and
+  the CI wiring stay in 0.6.
 
-**0.6 Test setup**
+**0.6 Test setup** — landed
 - `vitest` + `@testing-library/svelte`, with `TZ=Pacific/Auckland` in the config and a second
   CI run at `TZ=America/Los_Angeles`. Under CI's default `TZ=UTC` every date bug in §3.6
   passes silently, which is the entire reason this is Phase 0 work and not Phase 5 work.
-- A `make test-js` target, wired into CI next to `make test`.
+- A `make test-js` target, wired into CI next to `make test`. Both run the two zones. CI does
+  it as two steps in one job rather than a matrix — the suite takes under a second, so a second
+  job would only repeat the checkout and install — and the second step carries `if: always()`
+  so a failure in one zone still reports the other. `make test-js` cannot do that, since make
+  stops at the first failing line.
+- `jsdom` and `@sveltejs/vite-plugin-svelte` land here too. Without them
+  `@testing-library/svelte` is installed but unusable — vitest has no way to compile a
+  component — so Phase 1 would have discovered the gap while writing the shell. Svelte 5 picks
+  its server or client build by export condition, so `resolve.conditions: ["browser"]` is
+  required or every component test fails on a missing `mount` rather than on its assertions.
+- The Node environment stays the default and component tests opt into jsdom per file, so a
+  `lib/` module that reaches for `document` fails rather than passing on a DOM it should not
+  have (§3.9 rule 3).
+- `web/app/toolchain/` holds a probe component and its test: a canary for the setup itself,
+  verified to fail when the browser condition is removed.
+- `prettier-plugin-svelte` and `eslint-plugin-svelte` land here as well, so `.svelte` is
+  formatted and linted like everything else and `make lint-fix` needs no manual step. The
+  earlier plan assumed this was not available; it is, and it was one `bun add` away. Two
+  traps worth knowing, both of which shipped broken in review and were caught afterwards:
+  `eslint-plugin-svelte` v3 exports flat-config *arrays*, so `configs.recommended` has no
+  `.rules` and spreading it disables all 37 rules as a silent no-op, and a hand-rolled block
+  matching only `*.svelte` leaves rune modules (`*.svelte.js`, `*.svelte.ts`) to the plain-TS
+  block with no svelte rules at all — runes are ordinary function calls, so nothing complains.
+  A config that lints without error is not evidence it is wired up; check against a deliberate
+  violation. (`processor: "svelte/svelte"` belongs in the config too, but for suppression
+  comments inside markup — the rules themselves fire without it.)
+- Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
+  component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
+  on `layout.css` class names); wire it up if that changes. `web/app/README.md` is where this
+  is kept current — the note here records the decision, not the state.
 
-**0.7 Documentation**
-- `web/README.md`: how the Svelte build works, the `web/app/` layout from §3.9 (including why
-  sources sit outside the served `web/static/` tree), the `.svelte` files are
-  not covered by prettier/eslint caveat.
-- `CLAUDE.md`: the `/api/*` group in the route map.
+**0.7 Documentation** — landed
+- `web/README.md`: gains a `web/app` section covering the build chain, why sources sit outside
+  the served `web/static/` tree, `make test-js`, and what lint covers. Its title and the
+  documentation-map row in `CLAUDE.md` now say the file describes three directories, not two.
+  The "`.svelte` is not covered by prettier/eslint" caveat this item used to carry no longer
+  applies — 0.6 wired both up.
+- `CLAUDE.md`: the `/api/*` group in the route map, plus the three things that bite when adding
+  a route to it — `apiAuth` having to populate `KeyCurrentUser` or `getCurrentUser` panics, the
+  group-level `NotFound`/`MethodNotAllowed` needing at least one real route to take effect, and
+  responses going through `api.go`'s writers.
 
-Exit criteria:
+Exit criteria — all met, Phase 0 complete:
 - `make build-static-js`, `make test`, `make test-js` and `make lint-fix` all green.
-- A signed-out request to any `/api/*` route returns `401` JSON with no `Location`.
-- A signed-in POST to an `/api/*` route without `X-CSRF-Token` is rejected.
+- A signed-out request to any `/api/*` route returns `401` JSON with no `Location`. Covered by
+  `TestAPIRoutesUseTheirOwnChain` (`internal/serve/api_routes_test.go`), which asserts the empty
+  `Location` header directly rather than only the status.
+- A signed-in POST to an `/api/*` route without `X-CSRF-Token` is rejected — same test, which
+  also checks that a token minted on a page *is* accepted, so the two chains share one cookie.
 - `dates.ts` tests pass under both configured zones.
 - The app looks and behaves exactly as it does today.
 
-### Phase 1 — Shell and router, coexisting with templates
+Phase 1 was the first phase a user could see: the shell, the router, and the SPA staged under
+`/app/*`. Phase 0B, the section immediately below, landed before it — it is unnumbered because it
+could go at any point before Phase 2, the phase that would otherwise have piloted on Foods. It
+went before Phase 1 so the shell's nav is built once against the surviving routes rather than
+built and then trimmed. Phase 2 (recurrent expenses) landed after it; Phase 3 is next.
+
+### Phase 0B — Retire macros, foods and moods (code only) — landed
+
+Branch: `spa/retire-macros-foods-moods`. One PR. The only phase that removes a feature instead
+of porting one, and the only deliberate exception to the freeze rule (§0). It landed
+before Phase 2, which was going to pilot on Foods.
+
+Delete, in one change:
+
+- Routes: the `/macros`, `/foods` and `/moods` groups in `internal/serve/routes.go`, plus the
+  four `POST /account/{macro-entries,macro-goals,foods,moods}/delete-all` endpoints. 29 routes
+  (10 macros, 7 foods, 8 moods, 4 delete-all).
+- Handlers: `handle_macros.go`, `macro_shared.go`, `handle_foods.go`, `handle_mood_entries.go`
+  and their four test files.
+- Logic: `logic_macro.go`, `logic_food.go`, `logic_mood_entry.go`, `mood.go` and their tests,
+  plus `ErrInvalidMood` in `internal/logic/errs.go` — a sentinel in a shared file, so deleting
+  the file that raises it leaves the error behind.
+- Views: `web/views/macros/`, `web/views/foods/`, `web/views/mood_entries/` — 18 files — and the
+  three nav links at `common/_header.html:25-27`.
+- Controllers: `macroCalc`, `macroDate`, `macroSelect`, `macroTrend`, `moodChart`,
+  `submitOnChange`, `dashboardDate`, with their `window.Stimulus.register` lines in
+  `web/static/js/index.ts` (see §2.2 on why `submitOnChange` and `dashboardDate` go too).
+- In `internal/handlers/constants.go`: the `TemplateName` constants for every deleted view, and
+  the `KeyMacroEntry` / `KeyFood` / `KeyMoodEntry` context keys that go with the deleted context
+  middlewares. A leftover template constant compiles fine and fails at request time, which is
+  the failure mode `CLAUDE.md` warns about.
+- `repo.TaggableTypeMoodEntry` (`repo/tagging.go:13`). That constant is the *only* mood-specific
+  code in the tagging layer — `logic_tag.go` and the rest of `repo/tagging.go` are generic over
+  `taggableType` and need no edit. `TaggableTypeExpense` and `TaggableTypeRecurrentExpense` stay,
+  and Phase 8's migration matches the literal `'mood_entry'` rather than the deleted constant.
+- The macro half of the dashboard: `dashboardMacros`, `buildDashboardMacros`,
+  `computeMacroProgress` and the `macros` key in `handle_dashboard.go:20-42,135-163`, plus the
+  matching block in `dashboard/index.html`. **This is what makes the dashboard a valid Phase 4
+  oracle again** — a like-for-like port cannot be checked against a page whose right half is
+  about to disappear.
+- The delete-data counts for the dropped resources: `MacroEntries`, `MacroGoals`, `Foods`,
+  `MoodEntries` in `logic_account.go`, and their rows in `delete_data/index.html`.
+
+**Surviving test files that break, and must be edited in the same change.** These are not in
+the four deleted `handle_*_test.go` files, so they are easy to miss; each one fails the
+"`make test` green" exit criterion below on its own.
+
+- `internal/handlers/helpers_internal_test.go` — holds `TestComputeMacroProgress` and
+  `TestComputeDayWindow`, which call `computeMacroProgress`, `macroProgressData` and
+  `computeDayWindow`. All three live in `handle_macros.go`, so deleting it stops the `handlers`
+  package **compiling**, not just failing. Delete both tests; the rest of the file stays.
+- `internal/serve/api_routes_test.go:122` — mints its CSRF token with
+  `s.CSRFFrom(t, "/foods/new", cookies)`, a route this phase deletes. `CSRFFrom` does
+  `require.NotEmpty(..., "csrf_token not found in response body")`, and the 404 page carries no
+  form, so it fails rather than skips. Repoint it at a surviving form page —
+  `/recurrent-expenses/new` is the closest equivalent.
+- `internal/logic/logic_account_test.go` — asserts the counts and the delete-all behavior for
+  all four dropped resources. Trim it to the surviving ones.
+- `internal/handlers/handle_dashboard_test.go` and `handle_delete_data_test.go` — assert the
+  macro half of the dashboard and the deleted `delete-all` endpoints respectively.
+
+Keep, deliberately:
+
+- **The tables and every existing migration.** No migration is written in this phase (§0).
+- `internal/repo/{food,macro_entry,macro_goal,mood_entry}.go` with their column constants, so
+  `TestColumnConstantsMatchSchema` keeps guarding the schema until Phase 8 drops it. They end
+  up with no callers; that is intended, and `unused` does not flag exported methods. If the
+  linter does complain, delete the method rather than reviving a caller.
+- `internal/spec` factories only where a surviving repo test still uses them.
+
+One thing to get right rather than discover: **`POST /account/delete-all` must keep clearing the
+dropped tables.** `DeleteAllUserData` (`logic_account.go:58-83`) calls
+`DeleteAllMacroEntriesByUser`, `DeleteAllMacroGoalsByUser`, `DeleteAllFoodsByUser` and
+`DeleteAllMoodEntriesByUser`, and those repo methods are on the keep list above — so leaving the
+four calls in place costs nothing and keeps "delete all my data" honest between this phase and
+Phase 8. Only the *counts* come out (they feed a page that no longer lists those resources).
+Do not delete the calls as part of tidying up the counts: that would silently leave personal
+data behind for however many months Phase 8 is away.
+
+Also in this PR: `CLAUDE.md`'s feature/route map and its tags cross-cutting note (the
+project-scope paragraph already carries the decision); `web/README.md` wherever it names a
+deleted controller; and `docs/architecture.md` if it maps the dropped packages.
+
+**Wire up type checking here, once the deletions land.** Nothing type-checks the frontend today:
+`make lint-fix` does not, no CI job does, and `web/build.ts` uses `Bun.build()`, which strips
+types rather than checking them — so a type error ships silently and is caught only by whoever
+has an editor open. This belongs in *this* phase for two reasons. The blocker disappears with the
+deletions: the single error `tsc --noEmit` reports today is
+`macroCalcController.ts(62,14) Property 'Turbo' does not exist on Window`, and that file is on
+the deletion list above, so the check goes from red to green for free. And the value is entirely
+forward-looking — a type checker pays in proportion to how much code is written *after* it is
+turned on, and Phases 1–6 are where the router, the shell and every ported resource get written.
+Turned on afterwards it would audit finished code; turned on here it guards the whole port. It is
+the one item on `TODO.md` whose worth decays by waiting, which is why it is scheduled rather than
+left there.
+
+Two tools, not one:
+
+- `tsc --noEmit` covers `.ts`. `tsconfig.json` already includes `web/app/**/*.ts`, so this is a
+  script and a `lint-fix` step, nothing more.
+- **`svelte-check` covers `.svelte`, and `tsc` cannot.** tsc does not parse components at all and
+  `tsconfig.json`'s `include` lists no `.svelte` pattern, so a `tsc`-only setup would leave every
+  component unchecked while looking complete — the same shape as the lint config in 0.6 that
+  reported success with all its rules off. `bun add -d svelte-check`, and check the pair against a
+  deliberate type error before believing either.
+
+The API boundary is what this is really for: a response crosses Go → JSON → TypeScript with no
+compiler on either side of the wire, so a renamed field in a Go struct arrives as `undefined` in
+a component. Nothing else in the chain catches that.
+
+**Found while doing it, beyond what this section listed.** Recorded because each one is the
+kind of thing the next deletion phase (Phase 8) will hit again:
+
+- `helpers_internal_test.go` also held `TestComputeMacroTrendSummary` and `TestRoundMacro`,
+  not just the two tests named above. All four went; `TestNextSortOrder` is what remains.
+- `internal/spec/factory.go` had `CreateMacroEntry`, `SaveMacroGoal`, `CreateFood` and
+  `CreateMoodEntry`. No surviving test used them, so all four went.
+- `handle_delete_data_test.go` seeded its tag through a mood entry, using a helper defined in a
+  deleted test file. It now tags an expense instead.
+- **`TestDeleteAllUserData` was rewritten rather than trimmed.** It is the only thing proving
+  `DeleteAllUserData` still clears the four dropped tables — the "get right rather than
+  discover" item above — and trimming it to the surviving resources would have left that
+  behavior uncovered, which is exactly how the calls get deleted as dead code later. It now
+  seeds those tables through `repo.TxQueries` directly, since the logic stores and the spec
+  factories for them are gone, and reads their counts from `repo.Queries` since the
+  `AccountDataCounts` fields are gone too.
+- **Assets outlive the markup that used them, and nothing fails when they do.** Four sweeps that
+  no compiler, linter or test would have flagged: `dashboardDate` (above); the `apple`,
+  `calendar`, `salad`, `smile` and `utensils` icons in `web/static/js/icons.ts`, still imported
+  from `lucide` and still bundled with no `data-lucide` left referencing them; `.btn-align-end`
+  in `layout.css`, whose only user was `mood_entries/stats.html`; and the `truncateFloat` and
+  `titleize` template funcs in `internal/serve/template_func.go`, whose only callers were the
+  dashboard's macro card, `macros/index` and `macros/stats`. Phase 8 should re-run the same
+  three checks — icon name against `data-lucide`, CSS class against `web/`, template func
+  against `web/views` — rather than trusting the build.
+- `README.md` advertised Nutrition and Moods in its feature list and "macro progress" on the
+  dashboard. It is the one document a newcomer reads first, and it was the only one still
+  describing the app as four areas rather than two.
+
+Exit criteria:
+- `make test`, `make test-js` and `make lint-fix` green.
+- Type checking runs and passes: `tsc --noEmit` for `.ts`, `svelte-check` for `.svelte`, both in
+  `make lint-fix` and in CI.
+- `/macros`, `/foods` and `/moods` return 404, and nothing in the nav links to them.
+- The dashboard renders the expense summary alone.
+- `grep -riE "macro|food|mood" internal/handlers internal/logic internal/serve web/views` returns
+  only the known survivors below. `internal/repo` and `internal/db` are expected to still match —
+  that is §0's split. It does **not** come back empty, and nothing should be rewritten to make it:
+  - `handle_exports_test.go` uses `"food"` as a literal tag name in an expenses export test, and
+    `api_test.go` uses `select food` / `foods.name` as fixture strings for the JSON error mapper.
+    Both are surviving expenses/API tests that merely contain the word.
+  - `logic_account.go` still calls the four `DeleteAll*ByUser` repo methods, deliberately — see
+    the "get right rather than discover" note above — and carries a comment saying why.
+  - `logic_account_test.go` seeds and counts those four tables, because it is the only thing
+    covering that.
+
+  Any *other* hit is a leak. `helpers_internal_test.go` used `"mood"` as a sort-column fixture
+  string in `TestNextSortOrder`; it was renamed to `"date"` so the grep stays a signal rather
+  than something with a standing exception attached.
+
+### Phase 1 — Shell and router, coexisting with templates — landed (#123)
 
 Serve the SPA under `/app/*` while every existing route keeps working. Shell template (with the
 `<meta name="csrf-token">` tag from §3.2), hand-rolled path-based router, layout chrome
@@ -564,23 +914,35 @@ the filename through `setTmplData`, both shells read it from the template map, a
 `routes_test.go:99` reads the manifest instead of the literal `/static/js/build/index.js`.
 
 Exit: `/app` renders the real chrome around a placeholder route, a hard refresh on a nested
-path like `/app/foods/1/edit` still resolves, every template route is untouched, and no template
-or test hardcodes the bundle filename.
+path like `/app/recurrent-expenses/1/edit` still resolves, every template route is untouched,
+and no template or test hardcodes the bundle filename.
 
-### Phase 2 — First real resource: Foods
+### Phase 2 — First real resource: Recurrent expenses — landed (#124)
 
-Smallest full CRUD (`index`, `new`, `edit`, `show`, `_form`) with no charts and no pagination
-complexity. It is the first resource to fill in `web/app/routes/<resource>/` (§3.9), so it sets
-the conventions that live *inside* that shape — form handling, validation display, list/detail
-data flow — while the file layout itself is already fixed. Nine resources copy whatever this PR
-does, so review it as a template, not as one page.
+Foods was the pilot because it was the smallest full CRUD; §0 deletes it, so the pilot moves to
+recurrent expenses — now the only resource left with a complete `index`/`new`/`edit`/`show`/
+`_form` set and neither charts nor search. It costs one thing Foods did not: **tags arrive in
+Phase 2 instead of Phase 3.** That is a fair trade rather than a regression, because tags are
+shared with expenses and are easier to get right against the simpler resource.
 
-Exit: every Foods view works under `/app/foods`, with `422` validation shown inline.
+It is the first resource to fill in `web/app/routes/<resource>/` (§3.9), so it sets the
+conventions that live *inside* that shape — form handling, validation display, list/detail data
+flow, the tag input, and the `filter` control that `recurrent_expenses/index` and `archived`
+both use — while the file layout itself is already fixed. Every remaining resource copies
+whatever this PR does, so review it as a template, not as one page.
 
-### Phase 3 — Expenses
+It also carries `last_copy_created_at`, a calendar date wearing an instant's name (§3.6), which
+makes it a useful first exercise of `dates.ts` against real data.
 
-The hard one, and deliberately early so its surprises land before nine more resources depend on
-the conventions: search, filters, sort, pagination, quick-add form, stats, budgets, tags.
+Exit: every recurrent-expense view works under `/app/recurrent-expenses`, including the
+archived listing and archive/unarchive, with `422` validation shown inline.
+
+### Phase 3 — Expenses — landed (#125)
+
+The hard one, and deliberately early so its surprises land before the rest depend on the
+conventions: search, filters, sort, pagination, quick-add form, stats, budgets, tags. Chart.js
+arrives here rather than in Phase 4, since `expenses/stats` is the only `chart` use left after
+§0.
 
 This is also the phase that retires `tz_offset` **on the API side** (§3.6): named ranges resolve
 client-side to explicit `[start, end)` UTC-midnight bounds. The template path keeps computing
@@ -592,23 +954,24 @@ both versions side by side** against the same data at `TZ=UTC+13` and `TZ=UTC-8`
 listing, the show page, the stats buckets and the budgets page. While the templates still
 exist, they are a working oracle; after Phase 7 they are not.
 
-### Phase 4 — Remaining resources
+### Phase 4 — Dashboard — landed (#126)
 
-Recurrent expenses, macros (+ goals, + stats charts), mood entries (+ stats charts), dashboard.
-Chart.js components land here. Parallelizable; each resource is its own PR.
+All that §0 leaves here: the expense summary. Its date picker went with the nutrition card in
+Phase 0B — the summary reads `tz_offset`, never `date`, so there is nothing to port. Recurrent
+expenses moved to Phase 2 and the other three resources are gone, so this is a small phase —
+which is fine, it is not worth folding into Phase 3 given the dashboard is its own view with
+its own range logic.
 
-Each of these carries its own dated fields — macro day (`handle_macros.go:349`), mood
-`logged_at` with its exclusive end (`handle_mood_entries.go:344`), recurrent-expense next-run
-dates. Apply §3.6's rules per resource and re-run the two-zone check; do not assume Phase 3
-settled it for them.
+`handle_dashboard.go:50-52` computes its range from `tz_offset`. Apply §3.6's rules and re-run
+the two-zone check here specifically; do not assume Phase 3 settled it.
 
-### Phase 5 — Account, delete-data, exports
+### Phase 5 — Account, delete-data, exports — landed (#127)
 
 Destructive posts and the file download. Confirmation flows must stay at least as deliberate as
 today's — a client-side `confirm()` is not equivalent to a form post. Export links stay plain
 anchors.
 
-### Phase 6 — Auth views
+### Phase 6 — Auth views — landed (#128)
 
 Login, register, logout. Last because they are the session boundaries: `RenewToken` and
 `Destroy` (`handle_auth.go:50/90/105/110`) invalidate every piece of client state the SPA is
@@ -616,11 +979,46 @@ holding, and the auth rate limit has to move to the API routes as **one** shared
 (the invariant in `CLAUDE.md`). A full page load after a successful login or logout is the
 simplest way to reset that state — not because the CSRF token expires, which it does not (§3.2).
 
+**Every redirect that lands a person now points at the SPA.** Porting the views is only half of
+it: while `AuthMiddleware` still sent an unauthenticated request to `/login` and logout still
+finished on `/login`, the ported pages existed but nobody arrived at them. So `AuthMiddleware`
+redirects to `handlers.AppLoginPath` and `handlers.AppDashboardPath`, and `PostLogout` follows.
+The templates still answer `/login`, `/register` and `/dashboard` — they stay reachable by URL,
+which is what keeps them usable as the Phase 3 oracle — but nothing routes anyone to them.
+
+`GetRoot` moves too, so `/` lands on the SPA. That is a slice of Phase 7's job taken early, and
+deliberately: with every other redirect moved, leaving the front door on the template dashboard
+meant a person typing the bare domain still arrived in the old UI. It is one line, the templates
+stay reachable by URL as the oracle, and it leaves Phase 7 a mechanical move rather than a
+behaviour decision bundled into the riskiest phase.
+
+The one thing this phase does *not* move: the legacy `PostLogin`/`PostRegister` still finish
+inside the template UI. Nothing routes a person to those forms any more, `PostLogin`'s `/` now
+lands in the SPA through `GetRoot` anyway, and Phase 7 deletes both handlers with their pages.
+The same holds for the fourteen redirects in the legacy POST handlers (`/expenses`,
+`/recurrent-expenses`, `/account/delete-data`): each returns to its own page, the SPA never
+reaches them because it posts to `/api/*`, and handler and page are deleted together.
+
+`AppDashboardPath` is `/app`, not `/app/dashboard`: `router.ts` maps the dashboard to `"/"`, so
+the SPA has no `/dashboard` route and a redirect there renders `App.svelte`'s "Not found." The
+Go tests cannot see the route table, so at least one asserts the literal rather than the
+constant — comparing a constant against itself passes for a path the client never matches.
+
+`AppLoginPath` also has a second copy in `web/app/lib/api.ts` as `LOGIN_PATH`, for the `401`
+branch — a bundle cannot import a Go constant. Phase 7 drops the prefix from both.
+
 ### Phase 7 — Flip the switch
 
 Move the SPA from `/app/*` to `/`, add the catch-all serving the shell for any non-API,
 non-static path, delete every per-view template and `TemplateName` constant, delete the HTML
 handlers, drop `@hotwired/turbo` and `@hotwired/stimulus`, delete `web/static/js/controllers/`.
+
+Phase 6 already pointed every person-facing redirect at the SPA, including `GetRoot`, so nothing
+here has to decide *where* a redirect goes — only to drop the prefix. Four places hold `/app`
+and must change together, because the two sides cannot import each other: `BASE_PATH`
+(`web/app/router.ts`), `LOGIN_PATH` (`web/app/lib/api.ts`), and `AppLoginPath` and
+`AppDashboardPath` (`internal/handlers/constants.go`). `AppDashboardPath` becomes `/`, not
+`/dashboard`: it names a client route, and `router.ts` maps the dashboard to `"/"`.
 
 This is also where the date helpers the templates kept alive finally retire (§3.6): the four
 template call sites go with their handlers, `computeDateRange` drops to bounds validation, and
@@ -629,20 +1027,46 @@ Deleting the templates removes the oracle, so do not combine this with any behav
 
 Exit: `web/views/` holds the shell and nothing else.
 
-### Phase 8 — Cleanup and documentation
+### Phase 8 — Cleanup, documentation, and dropping the retired tables
 
 Rewrite `web/README.md` (its template-partial namespace and Turbo/Stimulus sections become
 wrong), update `CLAUDE.md`'s route map, UI/Assets section and the render-helper invariant,
-update `docs/architecture.md`'s request flow. Remove dead Go helpers (`render.go`'s page
-helpers, `tmplData`, the template loader in `internal/serve/template.go`).
+update `docs/architecture.md`'s request flow.
+
+**Correction, found while doing this phase: `render.go`'s page helpers, `tmplData`, and the
+template loader in `internal/serve/template.go` are not dead.** `GetApp`
+(`internal/handlers/handle_app.go`) still calls `renderPage` → `render` → `tmplData` to serve the
+shell with its `cspNonce`/`csrfToken`/bundle-path values — it is the one render call Phase 7 left
+in the codebase, and `CLAUDE.md`'s "Render helpers need `setTmplData`" invariant already documents
+it as intentional. This line originally assumed that line of "dead Go helpers" would go away too;
+it does not, and none of it should be deleted.
+
+Then the second half of §0's removal — **the only irreversible step in this plan**:
+
+- **Export first.** `foods`, `macro_entries`, `macro_goals` and `mood_entries` hold history no
+  export path covers. Dump them to a file, confirm with the owner that it is kept somewhere,
+  and only then write the migration. A `Down` section is not a backup: it recreates empty
+  tables.
+- One migration dropping those four tables and the `taggings` rows with
+  `taggable_type = 'mood_entry'`, incrementing `PRAGMA user_version`, with a `Down` that
+  recreates the empty tables and says in a comment that the data does not come back.
+- Delete `internal/repo/{food,macro_entry,macro_goal,mood_entry}.go`, their column constants
+  and their tests **in the same change** — otherwise `TestColumnConstantsMatchSchema` runs a
+  column constant against a table that no longer exists.
+- The deploy ordering in `CLAUDE.md` says migrations apply while the previous binary is still
+  serving, so a migration that removes something the running code reads errors until the
+  restart. This one is safe precisely because Phase 0B removed every caller a release earlier:
+  the running binary still contains those repo methods and never invokes them. That ordering is
+  the reason for the two-step split, not an accident of it.
 
 ---
 
 ## 6. Risks, honestly
 
-- **Duration.** 47 views, 18 controllers, 67 routes. This is months of evenings, not a weekend.
-  The phase split exists so that stopping after any phase leaves a working app — Phase 4 is
-  where it is safe to pause indefinitely.
+- **Duration.** 29 views, 12 controllers, 38 routes after §0 — about a third less than this
+  plan was originally sized for, but still months of evenings rather than a weekend. The phase
+  split exists so that stopping after any phase leaves a working app; Phase 4 is where it is
+  safe to pause indefinitely.
 - **Doubling the handler layer.** Between Phase 0 and Phase 7, HTML handlers and API handlers
   both exist. That is the cost of not doing a big-bang rewrite, and the reason for the freeze
   rule: two implementations of a *stationary* target stay in sync; two implementations of a
@@ -660,22 +1084,33 @@ helpers, `tmplData`, the template loader in `internal/serve/template.go`).
 
 ## 7. Decisions made (do not revisit)
 
-1. **SPA is staged under `/app/*`** until Phase 7, then moves to `/`. Every phase stays
+1. **All phase work merges into `spa-base`, not `main`** (§5). `main` sees the migration once,
+   at the end.
+2. **SPA is staged under `/app/*`** until Phase 7, then moves to `/`. Every phase stays
    revertable by deleting a route.
-2. **Router is hand-rolled and path-based.** No router dependency.
-3. **`vitest` + `@testing-library/svelte` land in Phase 0**, configured with a non-UTC `TZ` (see
+3. **Router is hand-rolled and path-based.** No router dependency.
+4. **`vitest` + `@testing-library/svelte` land in Phase 0**, configured with a non-UTC `TZ` (see
    §3.6) so date bugs fail on the first run rather than in production.
-4. **Tailwind is deferred** to a separate post-migration project. Components reference the
+5. **Tailwind is deferred** to a separate post-migration project. Components reference the
    existing `layout.css` class names unchanged.
-5. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
-   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 4
+6. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
+   Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 5
    in disguise. If one is adopted afterwards it should be headless (Melt UI, Bits UI), added a
    component at a time, and checked against `/csp-report` first.
-6. **Sources live in `web/app/`, outside the served `web/static/` tree** (§3.9), with
+7. **Sources live in `web/app/`, outside the served `web/static/` tree** (§3.9), with
    `routes/<resource>/` mirroring `web/views/<resource>/` one file per action. Only build output
    stays under `web/static/js/build/`. Settled in Phase 0, not discovered in Phase 2.
-7. **Auth stays cookie-session.** No JWT, no token in `localStorage`.
-8. **`tz_offset` is retired from the API in Phase 3**, replaced by client-computed explicit
+8. **Auth stays cookie-session.** No JWT, no token in `localStorage`.
+9. **`tz_offset` is retired from the API in Phase 3**, replaced by client-computed explicit
    bounds. The server-side helpers (`computeDateRange`, `parseTZOffset`) stay until Phase 7
    because the templates are Phase 3's oracle, and quick-add keeps a client zone offset for its
    relative dates regardless — see §3.6.
+10. **Macros, foods and moods are dropped from the app** (§0, decided 2026-08-23). They are not
+    ported, not stubbed and not revisited. Expenses and what hangs off them — recurrent
+    expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are kept.
+11. **The removal is split in two: code in Phase 0B, tables in Phase 8.** Code goes early
+    because deferring it means porting views that get deleted; tables go last because dropping
+    them destroys history with no export path, and because the running binary must lose its
+    callers a release before the schema loses the tables.
+12. **The Phase 2 pilot resource is recurrent expenses**, replacing Foods. Tags therefore land
+    in Phase 2 rather than Phase 3.

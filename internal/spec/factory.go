@@ -105,46 +105,6 @@ func (s *Spec) CreateRecurrentExpense(
 	return recurrentExpense
 }
 
-func (s *Spec) CreateMacroEntry(t *testing.T, userID int, params logic.MacroEntryParams) repo.MacroEntry {
-	t.Helper()
-
-	entry, err := s.Store.CreateMacroEntry(t.Context(), userID, params)
-	require.NoError(t, err)
-
-	return entry
-}
-
-func (s *Spec) SaveMacroGoal(t *testing.T, userID int, params logic.MacroGoalParams) repo.MacroGoal {
-	t.Helper()
-
-	goal, err := s.Store.SaveMacroGoal(t.Context(), userID, params)
-	require.NoError(t, err)
-
-	return goal
-}
-
-func (s *Spec) CreateFood(
-	t *testing.T,
-	userID int,
-	params logic.FoodParams,
-) repo.Food {
-	t.Helper()
-
-	food, err := s.Store.CreateFood(t.Context(), userID, params)
-	require.NoError(t, err)
-
-	return food
-}
-
-func (s *Spec) CreateMoodEntry(t *testing.T, userID int, params logic.MoodEntryParams) repo.MoodEntry {
-	t.Helper()
-
-	entry, err := s.Store.CreateMoodEntry(t.Context(), userID, params)
-	require.NoError(t, err)
-
-	return entry
-}
-
 func (s *Spec) SaveExpenseBudgets(t *testing.T, userID int, amountByCategoryID map[int]uint64) {
 	t.Helper()
 

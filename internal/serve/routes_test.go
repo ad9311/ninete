@@ -1,13 +1,33 @@
 package serve_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
+
+// bundlePath reads the manifest the same way internal/serve does, so the test
+// checks a real deployed filename rather than a literal that would go stale
+// the moment web/build.ts's hashing changes it.
+func bundlePath(t *testing.T, entry string) string {
+	t.Helper()
+
+	data, err := os.ReadFile("./web/static/js/build/manifest.json")
+	require.NoError(t, err)
+
+	var manifest map[string]string
+	require.NoError(t, json.Unmarshal(data, &manifest))
+
+	name, ok := manifest[entry]
+	require.True(t, ok, "manifest missing entry %q", entry)
+
+	return "/static/js/build/" + name
+}
 
 func hasCookie(res *http.Response, name string) bool {
 	for _, c := range res.Cookies() {
@@ -96,7 +116,7 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_serve_assets_without_authentication",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, "/static/js/build/index.js", nil)
+				res := doGet(t, s, bundlePath(t, "app"), nil)
 
 				require.Equal(t, http.StatusOK, res.StatusCode)
 			},
@@ -119,7 +139,11 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 	}
 }
 
-func TestNotFoundKeepsTemplateData(t *testing.T) {
+// TestUnmatchedPathServesShell replaces the pre-Phase-7 TestNotFoundKeepsTemplateData:
+// the catch-all in setUpRoutes (docs/spa-migration.md, Phase 7) now answers any
+// non-API, non-static path with the SPA shell, so the client router — not the
+// server — decides what "not found" looks like.
+func TestUnmatchedPathServesShell(t *testing.T) {
 	s := spec.New(t)
 	s.CreateAuthUser(t, "routes_user_1", "routes_user_1@example.com", "routes_password_1")
 	cookies := s.AuthCookies(t, "routes_user_1@example.com", "routes_password_1")
@@ -129,13 +153,11 @@ func TestNotFoundKeepsTemplateData(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			// The fallbacks are registered on the middleware group precisely so
-			// they still receive template data; without it render panics.
-			name: "should_render_the_not_found_page_for_unknown_paths",
+			name: "should_render_the_shell_for_an_unknown_path",
 			fn: func(t *testing.T) {
 				res := doGet(t, s, "/does-not-exist", cookies)
 
-				require.Equal(t, http.StatusNotFound, res.StatusCode)
+				require.Equal(t, http.StatusOK, res.StatusCode)
 				require.Contains(t, res.Header.Get("Content-Type"), "text/html")
 			},
 		},

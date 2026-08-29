@@ -9,136 +9,96 @@ import (
 
 func (s *Server) setUpRoutes() {
 	s.setUpFileServer()
+	s.setUpAPIRoutes()
 
 	s.Router.Group(func(root chi.Router) {
 		s.setUpAppMiddlewares(root)
 
-		// Registered on the group so the fallbacks still get template data.
-		root.NotFound(s.handlers.NotFound)
-		root.MethodNotAllowed(s.handlers.MethodNotAllowed)
-
-		root.Get("/", s.handlers.GetRoot)
-
 		root.Post(cspReportPath, s.handlers.PostCSPReport)
-
-		root.Get("/login", s.handlers.GetLogin)
-		root.Get("/register", s.handlers.GetRegister)
 		root.Post("/logout", s.handlers.PostLogout)
 
-		// Only the routes that check a credential are throttled. Rendering the
-		// forms stays free. Both routes share one middleware value, so a client
-		// gets a single budget across them instead of one each.
+		// The SPA shell (docs/spa-migration.md, Phase 7). Wildcarded so every
+		// client route resolves on a hard refresh, including one the client
+		// router itself does not recognize — that is its own "not found" to
+		// show, not the server's. AuthMiddleware guards it like any other
+		// page, except for "/login" and "/register", which it exempts.
+		root.Get("/", s.handlers.GetApp)
+		root.Get("/*", s.handlers.GetApp)
+	})
+}
+
+// setUpAPIRoutes mounts the JSON API the SPA talks to. It is a sibling of the
+// page group, not a child: the two chains differ (see setUpAPIMiddlewares), and
+// an /api route must never fall through to a rendered template.
+func (s *Server) setUpAPIRoutes() {
+	s.Router.Route(apiPathPrefix, func(api chi.Router) {
+		s.setUpAPIMiddlewares(api)
+
+		// Registered on the group so an unmatched API path answers with the
+		// JSON envelope instead of the HTML 404 page. They only take effect
+		// once the group has at least one route: a chi sub-router with none
+		// never builds its middleware chain and answers straight from the
+		// fallback, skipping auth and CSRF.
+		api.NotFound(s.handlers.APINotFound)
+		api.MethodNotAllowed(s.handlers.APIMethodNotAllowed)
+
+		// One value for both credential routes (the CLAUDE.md invariant).
+		// authRateLimit builds a counter per call, so calling it once per
+		// route would hand a client twice the allowance.
 		credentialLimit := s.authRateLimit()
-		root.With(credentialLimit).Post("/login", s.handlers.PostLogin)
-		root.With(credentialLimit).Post("/register", s.handlers.PostRegister)
+		api.With(credentialLimit).Post("/login", s.handlers.PostAPILogin)
+		api.With(credentialLimit).Post("/register", s.handlers.PostAPIRegister)
 
-		root.Get("/dashboard", s.handlers.GetDashboard)
+		api.Get("/session", s.handlers.GetAPISession)
+		api.Get("/categories", s.handlers.GetAPICategories)
+		api.Get("/dashboard", s.handlers.GetAPIDashboard)
+		api.Get("/exports/expenses.json", s.handlers.GetAPIExportsExpenses)
 
-		root.Route("/account", func(account chi.Router) {
-			account.Get("/", s.handlers.GetAccount)
-			account.Get("/delete-data", s.handlers.GetDeleteData)
-
-			account.Post("/expenses/delete-all", s.handlers.PostDeleteDataExpenses)
-			account.Post("/recurrent-expenses/delete-all", s.handlers.PostDeleteDataRecurrentExpenses)
-			account.Post("/macro-entries/delete-all", s.handlers.PostDeleteDataMacroEntries)
-			account.Post("/macro-goals/delete-all", s.handlers.PostDeleteDataMacroGoals)
-			account.Post("/expense-budgets/delete-all", s.handlers.PostDeleteDataExpenseBudgets)
-			account.Post("/foods/delete-all", s.handlers.PostDeleteDataFoods)
-			account.Post("/moods/delete-all", s.handlers.PostDeleteDataMoodEntries)
-			account.Post("/tags/delete-all", s.handlers.PostDeleteDataTags)
-			account.Post("/delete-all", s.handlers.PostDeleteDataAll)
-
-			account.Route("/exports", func(exports chi.Router) {
-				exports.Get("/", s.handlers.GetExports)
-				exports.Get("/expenses.json", s.handlers.GetExportsExpenses)
-			})
+		api.Route("/delete-data", func(deleteData chi.Router) {
+			deleteData.Get("/", s.handlers.GetAPIDeleteData)
+			deleteData.Delete("/", s.handlers.DeleteAPIDeleteDataAll)
+			deleteData.Delete("/expenses", s.handlers.DeleteAPIDeleteDataExpenses)
+			deleteData.Delete("/recurrent-expenses", s.handlers.DeleteAPIDeleteDataRecurrentExpenses)
+			deleteData.Delete("/expense-budgets", s.handlers.DeleteAPIDeleteDataExpenseBudgets)
+			deleteData.Delete("/tags", s.handlers.DeleteAPIDeleteDataTags)
 		})
 
-		root.Route("/expenses", func(expenses chi.Router) {
-			expenses.Get("/", s.handlers.GetExpenses)
-			expenses.Post("/", s.handlers.PostExpenses)
-			expenses.Post("/quick", s.handlers.PostExpensesQuick)
-			expenses.Get("/new", s.handlers.GetExpensesNew)
-			expenses.Get("/stats", s.handlers.GetExpensesStats)
-			expenses.Get("/budgets", s.handlers.GetExpensesBudgets)
-			expenses.Post("/budgets", s.handlers.PostExpensesBudgets)
+		api.Route("/expenses", func(expenses chi.Router) {
+			expenses.Get("/", s.handlers.GetAPIExpenses)
+			expenses.Post("/", s.handlers.PostAPIExpenses)
+			expenses.Post("/quick", s.handlers.PostAPIExpensesQuick)
+			expenses.Get("/stats", s.handlers.GetAPIExpensesStats)
+			expenses.Get("/budgets", s.handlers.GetAPIExpenseBudgets)
+			expenses.Put("/budgets", s.handlers.PutAPIExpenseBudgets)
 			expenses.Route("/{id}", func(expenses chi.Router) {
-				expenses.Use(s.handlers.ExpenseContext)
+				expenses.Use(s.handlers.APIExpenseContext)
 
-				expenses.Get("/", s.handlers.GetExpense)
-				expenses.Post("/", s.handlers.PostExpensesUpdate)
-				expenses.Get("/edit", s.handlers.GetExpensesEdit)
-				expenses.Post("/delete", s.handlers.PostExpensesDelete)
+				expenses.Get("/", s.handlers.GetAPIExpense)
+				expenses.Put("/", s.handlers.PutAPIExpense)
+				expenses.Delete("/", s.handlers.DeleteAPIExpense)
 			})
 		})
 
-		root.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
-			recurrentExpenses.Get("/", s.handlers.GetRecurrentExpenses)
-			recurrentExpenses.Post("/", s.handlers.PostRecurrentExpenses)
-			recurrentExpenses.Get("/new", s.handlers.GetRecurrentExpensesNew)
-			recurrentExpenses.Get("/archived", s.handlers.GetRecurrentExpensesArchived)
+		api.Route("/recurrent-expenses", func(recurrentExpenses chi.Router) {
+			recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpenses)
+			recurrentExpenses.Post("/", s.handlers.PostAPIRecurrentExpenses)
 			recurrentExpenses.Route("/{id}", func(recurrentExpenses chi.Router) {
-				recurrentExpenses.Use(s.handlers.RecurrentExpenseContext)
+				recurrentExpenses.Use(s.handlers.APIRecurrentExpenseContext)
 
-				recurrentExpenses.Get("/", s.handlers.GetRecurrentExpense)
-				recurrentExpenses.Post("/", s.handlers.PostRecurrentExpensesUpdate)
-				recurrentExpenses.Get("/edit", s.handlers.GetRecurrentExpensesEdit)
-				recurrentExpenses.Post("/delete", s.handlers.PostRecurrentExpensesDelete)
-				recurrentExpenses.Post("/unarchive", s.handlers.PostRecurrentExpensesUnarchive)
-			})
-		})
-
-		root.Route("/macros", func(r chi.Router) {
-			r.Get("/", s.handlers.GetMacros)
-			r.Post("/", s.handlers.PostMacros)
-			r.Get("/new", s.handlers.GetMacrosNew)
-			r.Get("/goals", s.handlers.GetMacrosGoals)
-			r.Post("/goals", s.handlers.PostMacrosGoals)
-			r.Get("/stats", s.handlers.GetMacrosStats)
-			r.Route("/{id}", func(r chi.Router) {
-				r.Use(s.handlers.MacroEntryContext)
-				r.Get("/", s.handlers.GetMacroEntry)
-				r.Post("/", s.handlers.PostMacroEntryUpdate)
-				r.Get("/edit", s.handlers.GetMacroEntryEdit)
-				r.Post("/delete", s.handlers.PostMacroEntryDelete)
-			})
-		})
-
-		root.Route("/foods", func(foods chi.Router) {
-			foods.Get("/", s.handlers.GetFoods)
-			foods.Post("/", s.handlers.PostFoods)
-			foods.Get("/new", s.handlers.GetFoodsNew)
-			foods.Route("/{id}", func(foods chi.Router) {
-				foods.Use(s.handlers.FoodContext)
-
-				foods.Get("/", s.handlers.GetFood)
-				foods.Post("/", s.handlers.PostFoodUpdate)
-				foods.Get("/edit", s.handlers.GetFoodEdit)
-				foods.Post("/delete", s.handlers.PostFoodDelete)
-			})
-		})
-
-		root.Route("/moods", func(moods chi.Router) {
-			moods.Get("/", s.handlers.GetMoodEntries)
-			moods.Post("/", s.handlers.PostMoodEntries)
-			moods.Get("/new", s.handlers.GetMoodEntriesNew)
-			moods.Get("/stats", s.handlers.GetMoodEntriesStats)
-			moods.Route("/{id}", func(moods chi.Router) {
-				moods.Use(s.handlers.MoodEntryContext)
-
-				moods.Get("/", s.handlers.GetMoodEntry)
-				moods.Post("/", s.handlers.PostMoodEntriesUpdate)
-				moods.Get("/edit", s.handlers.GetMoodEntriesEdit)
-				moods.Post("/delete", s.handlers.PostMoodEntriesDelete)
+				recurrentExpenses.Get("/", s.handlers.GetAPIRecurrentExpense)
+				recurrentExpenses.Put("/", s.handlers.PutAPIRecurrentExpense)
+				recurrentExpenses.Delete("/", s.handlers.DeleteAPIRecurrentExpense)
+				recurrentExpenses.Post("/unarchive", s.handlers.PostAPIRecurrentExpenseUnarchive)
 			})
 		})
 	})
 }
 
 // staticCacheControl lets the browser reuse assets across page loads without a
-// request at all. The bundle filenames carry no content hash, so the window
-// stays short; once it lapses http.FileServer answers the revalidation with a
-// 304 off Last-Modified.
+// request at all. The bundle filenames are content-hashed (manifest.go), so a
+// deploy can no longer strand a stale bundle here; the stylesheet and the
+// images are not, which is why the window stays short. Once it lapses
+// http.FileServer answers the revalidation with a 304 off Last-Modified.
 const staticCacheControl = "public, max-age=300"
 
 // setUpFileServer mounts the assets on the root router, outside the app

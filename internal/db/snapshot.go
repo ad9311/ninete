@@ -167,6 +167,10 @@ func snapshotDir(dbPath string) (string, error) {
 		dir = filepath.Join(filepath.Dir(dbPath), snapshotDirName)
 	}
 
+	// The path is tainted by SNAPSHOT_DIR, which only the operator sets: production
+	// config arrives through the systemd EnvironmentFile, and anyone who can set it
+	// already runs this process.
+	// #nosec G703 -- the only untrusted input here would be a hostile process environment.
 	if err := os.MkdirAll(dir, snapshotDirPerm); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrSnapshotDir, err)
 	}

@@ -1,17 +1,14 @@
 # NINETE
 
-A personal tracking app, built around four areas:
+A personal tracking app, built around two areas:
 
 - **Expenses** — categories and tags, quick entry, search by description, tag or
   date range, per-category monthly budgets, and stats.
 - **Recurrent expenses** — copied into real expenses on a schedule by a task,
   carrying their tags, and archived once they hit an optional occurrence limit.
-- **Nutrition** — macro entries against daily goals, plus a personal food library
-  used to prefill them.
-- **Moods** — tagged daily entries with stats.
 
-Alongside those: a dashboard summarizing spend and macro progress, a JSON export
-of expenses, and an account page for bulk-deleting any of the data above.
+Alongside those: a dashboard summarizing spend, a JSON export of expenses, and an
+account page for bulk-deleting any of the data above.
 
 In practice it runs single-user. Data stays user-scoped for correctness, but the app is tuned for one person's responsiveness rather than for concurrent capacity — see the Project Scope section of [`CLAUDE.md`](CLAUDE.md) and [`docs/performance.md`](docs/performance.md) before optimizing anything.
 
@@ -130,6 +127,7 @@ The development build:
 - `make version` — Print the version this checkout would build
 - `make snapshot` — Write a snapshot of the development database
 - `make build-static-js` — Build only the static JS bundle
+- `make test-js` — Run the frontend tests in both configured time zones
 - `make lint` — Run golangci-lint and shellcheck without fixing
 - `make lint-fix` — Run all formatters and linters with automatic fixes
 - `make lint-sh` — Run shellcheck over `scripts/*.sh` alone
@@ -175,6 +173,25 @@ make test pkg=./internal/logic/...
 
 Tests use an isolated test database (`./data/db/test/`), which is automatically cleaned before each run.
 
+`make test` covers the Go suite only. The frontend tests under `web/app/` run
+separately:
+
+```bash
+make test-js
+```
+
+That runs the suite twice, once in `Pacific/Auckland` and once in
+`America/Los_Angeles`. Both signs of UTC offset are needed: a calendar date
+formatted with local getters still reads correctly east of UTC and only breaks
+west of it, so neither run alone is enough. Set `TEST_TZ` to run a single zone
+by hand (`TEST_TZ=Europe/Madrid bun run test:js`). CI runs both as two steps of
+one job.
+
+`TEST_TZ=UTC` is the one value that does not work: `dates.test.ts` asserts the
+zone is not UTC, deliberately, because every date bug the suite exists to catch
+passes silently at offset zero. That guard failing is the suite telling you it
+has been neutered.
+
 ## Development Workflow
 
 After implementing changes:
@@ -187,6 +204,7 @@ After implementing changes:
 2. **Run tests**:
    ```bash
    make test
+   make test-js
    ```
 
 3. **Verify the app** runs without errors:

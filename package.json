@@ -2,12 +2,15 @@
   "name": "ninete",
   "version": "1.0.0",
   "description": "",
-  "main": "web/static/js/index.ts",
+  "main": "web/app/index.ts",
   "scripts": {
-    "format:static": "prettier --write \"web/**/*.{js,ts,css,html}\"",
-    "format:static:check": "prettier --check \"web/**/*.{js,ts,css,html}\"",
-    "lint:js": "eslint \"web/static/js/**/*.{ts,tsx}\"",
-    "lint:css": "stylelint \"web/static/css/**/*.css\""
+    "format:static": "prettier --write \"web/**/*.{js,ts,svelte,css,html}\" \"*.{mjs,mts,json}\"",
+    "format:static:check": "prettier --check \"web/**/*.{js,ts,svelte,css,html}\" \"*.{mjs,mts,json}\"",
+    "lint:js": "eslint \"web/**/*.{ts,tsx,svelte}\"",
+    "lint:css": "stylelint \"web/static/css/**/*.css\"",
+    "typecheck:ts": "tsc --noEmit",
+    "typecheck:svelte": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "test:js": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -22,21 +25,29 @@
   },
   "homepage": "https://github.com/ad9311/ninete#readme",
   "devDependencies": {
-    "@types/hotwired__turbo": "^8.0.6",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "@testing-library/svelte": "^5.4.2",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.23.0",
+    "jsdom": "^30.0.1",
     "prettier": "^3.4.2",
     "prettier-plugin-go-template": "^0.0.15",
+    "prettier-plugin-svelte": "^4.1.1",
     "stylelint": "^17.1.1",
     "stylelint-config-standard": "^40.0.0",
-    "typescript": "^5.9.3"
+    "svelte-check": "^4.7.6",
+    "svelte-eslint-parser": "^1.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.2.2",
-    "@hotwired/turbo": "^8.0.23",
+    "bun-plugin-svelte": "^0.0.6",
     "chart.js": "^4.5.1",
-    "lucide": "^1.16.0"
+    "lucide": "^1.16.0",
+    "svelte": "^5.56.10"
   }
 }

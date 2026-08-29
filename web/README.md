@@ -1,151 +1,138 @@
-# `web/` — Templates and Static Assets
+# `web/` — Shell Template, Static Assets and Svelte Sources
 
 Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers conventions and the invariants that must not be broken, and `docs/architecture.md` covers layering and the Go-side request flow; this file covers what you need before editing anything under `web/`.
 
-Two directories:
+Three directories:
 
-- `web/views/` — Go `html/template` files rendered server-side.
-- `web/static/` — CSS, the TypeScript bundle, and images, served from `/static/*`.
+- `web/views/` — exactly one Go `html/template` file: the SPA shell.
+- `web/static/` — CSS, the built JS bundle, and images, served from `/static/*`.
+- `web/app/` — Svelte sources for the SPA. **Never served.** Build output only ever lands in
+  `web/static/js/build/`.
+
+Phase 7 of `docs/spa-migration.md` deleted every rendered page — and with them every template
+that used to live under `web/views/` — and moved the SPA from `/app/*` to `/`; Phase 8 is the
+documentation and dead-table cleanup that followed. `web/app/README.md` is
+the reference for the Svelte sources themselves — layout, naming, what goes in `lib/` vs.
+`components/` vs. `routes/`.
 
 ---
 
-## `web/views` — Templates
+## `web/views` — The shell template
 
-Parsed by `internal/serve/template.go`. Route definitions live in `internal/serve/routes.go` and remain the source of truth for what URL reaches which handler.
-
-### Layout
-
-`web/views/layout.html` defines `layout` and is the only file containing `<html>`. It renders the `header` partial, a `{{ block "main" . }}`, and the `footer` partial.
-
-Every page view is the same two lines of scaffolding around its content:
-
-```
-{{ template "layout" . }}
-{{ define "main" }}
-  …page content…
-{{ end }}
-```
-
-### Naming and registration
-
-Path pattern is `web/views/<resource>/<action>.html`.
-
-The template key is `<directory>/<basename>` (`viewKey` in `template.go`), which is exactly the value of the matching `handlers.TemplateName` constant:
-
-```
-web/views/foods/edit.html  ⇒  "foods/edit"  ⇒  handlers.FoodsEdit
-```
-
-**Adding a view means two edits**: the file itself, and a `TemplateName` constant in `internal/handlers/constants.go`. Nothing checks these agree at compile time — a handler rendering a name with no template logs `missing template` and returns a 500.
-
-**The resource directory is not optional.** Views are globbed with `./web/views/**/*.html`, and Go's `filepath.Glob` treats `**` as a single path segment rather than a recursive match — so the pattern means exactly one directory below `web/views`. A template at `web/views/foo.html`, or nested two levels deep at `web/views/a/b/foo.html`, is silently never parsed: no error at boot, just a 500 the first time a handler asks for it. `layout.html` sits at the top level only because `parseTemplates` globs it separately.
-
-### Partials
-
-Files named `_*.html` **in a resource directory under `web/views`** are parsed into the shared base template. Partials are globbed with `./web/views/**/_*.html`, so the one-level rule above applies to them too: a partial at `web/views/_foo.html` matches neither the partials glob nor the views glob, and every page using it fails at render.
-
-Being parsed into one shared base means **every partial's `define` name lives in one global namespace**, and a duplicate name silently overwrites another page's partial.
-
-Names currently in use:
-
-| Name | File | Purpose |
-| --- | --- | --- |
-| `header` | `common/_header.html` | Site header, rendered by the layout |
-| `footer` | `common/_footer.html` | Site footer carrying the build stamp, rendered by the layout |
-| `csrf` | `common/_csrf.html` | Hidden CSRF field for forms |
-| `form_error` | `common/_form_error.html` | Renders `.error` |
-| `submit_button`, `delete_button` | `common/_form_buttons.html` | Shared form buttons |
-| `pagination` | `common/_pagination.html` | Pager controls |
-| `expense_form`, `food_form`, … | `<resource>/_form.html` | Per-resource form bodies |
-
-Cross-resource partials go in `web/views/common/`; resource-specific ones sit next to the views that use them.
-
-### Data contract
-
-Handlers render a `map[string]any` built by `h.tmplData(r)`. It always carries:
+`web/views/app/index.html` is the only file left under `web/views`. It carries its own `<html>`
+document — there is no shared `layout` chrome and no partials any more, unlike the templates it
+replaced. It is still parsed and executed through the same machinery every other template used to
+go through (`internal/serve/template.go`'s `LoadTemplates`/`parseTemplates`,
+`internal/handlers/render.go`'s `render`/`renderPage`/`tmplData`), because it still needs
+per-request values injected server-side that a static file can't carry:
 
 | Key | Meaning |
 | --- | --- |
-| `csrfToken` | Token for the `csrf` partial |
-| `cspNonce` | Nonce for inline `<script>` / `<style>` |
-| `error` | Empty string unless an error path set it |
-| `isUserSignedIn` | Auth state |
-| `currentUser` | `*logic.User`, nil for guests |
-| `version` | Build stamp (`prog.Version`), rendered by the `footer` partial and the `version` meta tag |
+| `cspNonce` | Nonce for the inline anti-FOUC `<script>` |
+| `csrfToken` | Read once by `web/app/lib/api.ts` from the `<meta name="csrf-token">` tag it renders into — nosurf's own cookie is `HttpOnly`, so JS has no other way to see it |
+| `version` | Build stamp, rendered into a `<meta name="version">` tag |
+| `appBundle` | The content-hashed `/static/js/build/app-<hash>.js` path, read from the asset manifest (`internal/serve/manifest.go`) rather than hardcoded |
 
-Handlers add their own keys on top. A listing page typically adds its rows, `categories`, `pagination` and `basePath`.
-
-`renderErr` sets `error` and re-renders the same page rather than redirecting, so forms keep the user's input — which is why form templates read their values back from the data map instead of relying on the browser.
+`GetApp` (`internal/handlers/handle_app.go`) is the only render call left in the codebase. It
+backs the catch-all at `/`, answering every non-API, non-static path with the same document so a
+hard refresh on a nested route like `/expenses/12/edit` resolves — the client router
+(`web/app/router.ts`) owns the rest of the path. See the "Render helpers need setTmplData"
+invariant in `CLAUDE.md` for why `GetApp` has to sit inside the app middleware group rather than
+the root router.
 
 ### Content Security Policy
 
-Any inline `<script>` or `<style>` **must** carry `nonce="{{ .cspNonce }}"`. Without it the browser blocks the tag and posts a violation report to `/csp-report`.
-
-Assets from other origins (CDN scripts, Google Fonts, remote images) are blocked by the policy in `internal/serve/middleware.go`. Anything new has to be vendored into `web/static/`.
-
-### Template functions
-
-Registered in `internal/serve/template_func.go`:
-
-| Function | Purpose |
-| --- | --- |
-| `currency` | `uint64` cents ⇒ `$1,234.56`. Money is stored in cents — never format it by hand |
-| `signedCurrency` | Same, for an `int64` that can go negative. Stored amounts are unsigned, so this is only for derived figures such as a budget's remaining amount |
-| `truncateFloat` | Trims a float for display |
-| `timeStamp` | Unix seconds ⇒ `YYYY-MM-DD` |
-| `sumAmount`, `sumTotal` | Totals over a slice of rows, by `Amount` / `Total` field |
-| `sortURL` | Column-header link that flips sort order and preserves current filters |
-| `pageURL`, `pageRange` | Pagination links, and the window of page numbers to show |
-| `filterURL` | Link that changes one filter key and keeps the rest |
-| `dateRangeOptions`, `perPageChoices` | Option lists for the range and page-size selects |
-| `add`, `sub`, `titleize` | Small helpers |
-
-Filter, sort and pagination state travels in `handlers.PaginationData`, and the URL helpers above rebuild query strings from it. A new filter therefore needs a field on that struct — do not hand-write query strings in templates, or the other links will drop the new parameter.
+The inline anti-FOUC `<script>` in the shell **must** carry `nonce="{{ .cspNonce }}"`. Without it
+the browser blocks the tag and posts a violation report to `/csp-report`. See
+`docs/spa-migration.md` §3.4 before adding any other inline script or style — Svelte 5 compiles to
+plain JS and needs no CSP relaxation, and none should be added.
 
 ### Editing loop
 
-Templates are parsed once at boot. In development, `render` re-parses them at most once every 2 seconds, so a template edit appears on the next page load without recompiling the binary. Navigation is Turbo-driven, so refresh the browser to be sure you are seeing a fresh render.
-
-A template syntax error surfaces as a 500 with `ERROR EXECUTING TEMPLATE` in the response and the real reason in the server log.
+The shell is parsed once at boot. In development, `render` re-parses it at most once every 2
+seconds, so an edit appears on the next load without recompiling the binary.
 
 ---
 
-## `web/static` — CSS, JS, images
+## `web/static` — CSS, built JS, images
 
-Served from `/static/*`, which is mounted on the root router **outside** the app middleware chain. Serving an asset must never load a session or query the database — see the "Static assets stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
+Served from `/static/*`, which is mounted on the root router **outside** the app middleware
+chain. Serving an asset must never load a session or query the database — see the "Static assets
+stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
 
-Responses carry `Cache-Control: public, max-age=300`. The window is short because the filenames are not content-hashed; a longer one would strand a stale bundle in the browser after a deploy.
+Responses carry `Cache-Control: public, max-age=300`. The JS bundle's filename is content-hashed
+(see "The build" below) and so is safe from a stale cache regardless, but `layout.css` and the
+images are not — the short window is what keeps a deploy from serving a stale stylesheet, so do
+not raise it without hashing those too.
 
-### CSS — `web/static/css/layout.css`
+- `web/static/css/layout.css` — one hand-written stylesheet for the whole app. Design tokens are
+  custom properties on `:root`. Theming swaps a `theme-light`/`theme-dark` class on `<html>`; the
+  shell's inline nonce'd script sets it before first paint, and `web/app`'s theme handling
+  persists the choice in `localStorage`. Linted with `stylelint` via `make lint-fix`.
+- `web/static/js/build/` — the generated bundle and its manifest. Git-ignored. Never edited by
+  hand — see "The build" below.
+- `web/static/img/` — currently just `favicon.ico`, referenced by the shell.
 
-One stylesheet for the whole app. Design tokens are custom properties on `:root`.
+---
 
-Theming swaps a `theme-light` / `theme-dark` class on `<html>`. An inline, nonce'd script in the layout sets it before first paint (so there is no flash), and `themeController` toggles it afterwards, persisting the choice in `localStorage`.
+## `web/app` — Svelte sources
 
-Linted with `stylelint` via `make lint-fix`.
+Layout and naming rules live in `docs/spa-migration.md` §3.9 and are documented in
+`web/app/README.md`; this section covers how the code gets from here into the browser.
 
-### JS — `web/static/js/`
+### Why sources sit outside `web/static/`
 
-TypeScript, bundled by Bun. Dependencies: `@hotwired/turbo` (navigation), `@hotwired/stimulus` (behavior), `chart.js` (stats charts), `lucide` (icons).
+`setUpFileServer` mounts the whole of `web/static/` verbatim
+(`http.FileServer(http.Dir("./web/static/"))`), so **everything under it is publicly fetchable**.
+Nothing secret lives in a component, so this is tidiness rather than a vulnerability, but there is
+no reason to ship sources once a build step exists. Only build output belongs under
+`web/static/`.
+
+### The build
+
+`web/build.ts` drives `Bun.build()` with `bun-plugin-svelte`, since Svelte components need a
+plugin the `bun build` CLI has no flag for.
 
 ```
-index.ts              entrypoint: starts Turbo + Stimulus, registers controllers
-controllers/*.ts      one Stimulus controller per file
-icons.ts              lucide initialization
-global.d.ts           window.Stimulus typing
-build/index.js        generated bundle — git-ignored
+web/app/**                            sources, the single entry point (web/app/index.ts)
+       ↓  bun run web/build.ts   (make build-static-js)
+web/static/js/build/app-<hash>.js     minified bundle, git-ignored, served from /static/*
+web/static/js/build/manifest.json     {"app": "app-<hash>.js"}
 ```
 
-Things that are easy to get wrong:
+- **No component carries a `<style>` block, and the build assumes it.** Styling lives in
+  `web/static/css/layout.css` (§5 decision 5, `web/app/README.md`), which the shell links
+  directly. A `<style>` block would make `bun-plugin-svelte` emit a sibling
+  `app-<hash>.css` that nothing links — and that `web/build.ts` then prunes, since its `keep`
+  set holds only the manifest's values. Adding component styles therefore means three edits at
+  once: record the CSS output in the manifest, link it from the shell, and wire `stylelint` up
+  to reach it.
 
-- **A new controller is inert until registered in `index.ts`**, which maps a kebab-case identifier used in markup (`data-controller="quick-expense"`) to a camelCase file in `controllers/`.
-- **`index.ts` appends `tz_offset` to every Turbo fetch request.** That is how the server learns the browser's timezone; `parseTZOffset` reads it for all date-range math. A request that does not go through Turbo has no offset and falls back to UTC.
-- **Icons initialize on both `turbo:load` and `turbo:render`.** The second listener is required: form re-renders, including non-2xx error responses, do not fire `turbo:load`, and `<i data-lucide>` elements would stay unconverted and invisible.
-- **The loading spinner is Turbo's progress-bar element restyled, not an overlay of ours.** Turbo creates `.turbo-progress-bar`, shows it once a visit or form submission has been in flight for `Turbo.config.drive.progressBarDelay` (lowered from Turbo's 500 ms default to 250 ms in `index.ts`), and removes it when the navigation ends; `layout.css` turns that element into a full-viewport backdrop with a centred spinner drawn as its `::before`. Because the timing stays inside Turbo's own visit lifecycle, cached-snapshot previews, hover prefetches and aborted visits are all handled, and the element being created per show means the spin animation starts from 0 every time. Do not rebuild this as a Stimulus controller driving your own overlay: Turbo replaces `<body>` on every render, so an element-scoped controller loses its pending timers mid-navigation, and a cached revisit renders its preview before the delay is up. That was tried and reverted. Anything that opts out of Turbo (`data-turbo="false"`, such as the export download) gets no spinner; per-button `data-turbo-submits-with` text still applies on top.
-- **The bundle is generated and git-ignored.** Run `make build-static-js` after editing any `.ts`; `make dev` does it as part of its build.
+- **The bundle is git-ignored.** Run `make build-static-js` after editing any `.ts` or `.svelte`;
+  `make dev` does it as part of its build, and the test suite depends on it because
+  `internal/serve` asserts `/static/*` serves the bundle.
+- **A build keeps the previous generation.** `web/build.ts` prunes the output directory *after*
+  writing, keeping the filenames the outgoing `manifest.json` named as well as the new ones.
+  `scripts/deploy.sh` builds the JS into the live checkout while the previous binary is still
+  serving pages that name the old hashes, and only restarts the service at the end — deleting
+  those files up front would answer every request in that window with a 404 for the bundle.
+- **Filenames are content-hashed.** `web/build.ts` writes `manifest.json` beside the bundle;
+  `internal/serve/manifest.go` reads it at startup (`LoadAssetManifest`, called next to
+  `LoadTemplates`, and again from the development template-reload hook so a rebuild's new hash is
+  picked up without a restart) and `setTmplData` puts the resolved `/static/*` path into the
+  template map (`appBundle`) for the shell to read. The shell never hardcodes a filename, and
+  `routes_test.go` reads the manifest rather than asserting a literal path. A missing manifest is
+  not always a boot error: `LoadAssetManifest` treats it the way `parseTemplates` treats an empty
+  views glob — a package testing far enough from the repo root to have no `web/` tree at all
+  (`internal/logic`, `internal/repo`) gets an empty manifest rather than a hard failure, since
+  those tests never render a page or ask for a bundle path. A manifest that exists but fails to
+  parse is still an error.
 
-Linted with `eslint`, formatted with `prettier` (the `prettier-plugin-go-template` plugin also formats `.html` templates), both via `make lint-fix`.
+### Tests and lint
 
-### Images — `web/static/img/`
+`make test-js`, not `make test` — the Go suite does not run the frontend tests. `make lint-fix`
+covers `.svelte` as well as `.ts`.
 
-Currently just `favicon.ico`, referenced by the layout.
+Both have details that matter and are documented once, in **`web/app/README.md`**: why the tests
+run in two time zones, what lint does and does not reach, and where test files live. Read that
+rather than assuming from here.

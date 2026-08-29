@@ -9,13 +9,24 @@ const (
 	KeyCSPNonce         = ContextKey("cspNonce")
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
-	KeyMacroEntry       = ContextKey("macroEntryID")
-	KeyFood             = ContextKey("foodID")
-	KeyMoodEntry        = ContextKey("moodEntryID")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"
 	SessionUserID         = "userID"
+)
+
+// Where a redirect puts a person who has to be sent somewhere to sign in, or
+// who is already signed in and has no business on a guest page. Phase 7 of
+// docs/spa-migration.md moved the SPA from /app/* to "/", so these carry no
+// prefix any more.
+//
+// lib/api.ts holds AppLoginPath as its own literal for the 401 case, since a
+// Go constant cannot reach the bundle. The two must agree.
+// AppDashboardPath is "/", not "/dashboard": router.ts maps the dashboard to
+// "/", so a redirect to "/dashboard" would render App.svelte's "Not found."
+const (
+	AppLoginPath     = "/login"
+	AppDashboardPath = "/"
 )
 
 // -------------------------------------------------------------- //
@@ -23,61 +34,8 @@ const (
 // TemplateName identifies a template by its `<domain>/<view>` path.
 type TemplateName string
 
-const (
-	// Account templates.
-	AccountIndex TemplateName = "account/index"
-
-	// Delete data templates.
-	DeleteDataIndex TemplateName = "delete_data/index"
-
-	// Dashboard templates.
-	DashboardIndex TemplateName = "dashboard/index"
-
-	// Exports templates.
-	ExportsIndex TemplateName = "exports/index"
-
-	// Auth templates.
-	LoginIndex    TemplateName = "login/index"
-	RegisterIndex TemplateName = "register/index"
-
-	// Expense templates.
-	ExpensesIndex   TemplateName = "expenses/index"
-	ExpensesNew     TemplateName = "expenses/new"
-	ExpensesEdit    TemplateName = "expenses/edit"
-	ExpensesShow    TemplateName = "expenses/show"
-	ExpensesStats   TemplateName = "expenses/stats"
-	ExpensesBudgets TemplateName = "expenses/budgets"
-
-	// Recurrent expense templates.
-	RecurrentExpensesIndex TemplateName = "recurrent_expenses/index"
-	RecurrentExpensesNew   TemplateName = "recurrent_expenses/new"
-	RecurrentExpensesEdit  TemplateName = "recurrent_expenses/edit"
-	RecurrentExpensesShow  TemplateName = "recurrent_expenses/show"
-
-	RecurrentExpensesArchived TemplateName = "recurrent_expenses/archived"
-
-	// Macro templates.
-	MacrosIndex TemplateName = "macros/index"
-	MacrosNew   TemplateName = "macros/new"
-	MacrosEdit  TemplateName = "macros/edit"
-	MacrosShow  TemplateName = "macros/show"
-	MacrosGoals TemplateName = "macros/goals"
-	MacrosStats TemplateName = "macros/stats"
-
-	// Food templates.
-	FoodsIndex TemplateName = "foods/index"
-	FoodsNew   TemplateName = "foods/new"
-	FoodsEdit  TemplateName = "foods/edit"
-	FoodsShow  TemplateName = "foods/show"
-
-	// Mood entry templates.
-	MoodEntriesIndex TemplateName = "mood_entries/index"
-	MoodEntriesNew   TemplateName = "mood_entries/new"
-	MoodEntriesEdit  TemplateName = "mood_entries/edit"
-	MoodEntriesShow  TemplateName = "mood_entries/show"
-	MoodEntriesStats TemplateName = "mood_entries/stats"
-
-	// System templates.
-	ErrorIndex    TemplateName = "error/index"
-	NotFoundIndex TemplateName = "not_found/index"
-)
+// AppIndex is the SPA shell, and the only template left once Phase 7 of
+// docs/spa-migration.md deleted every rendered page. It carries its own
+// <html> document rather than a shared "layout" chrome, since the Svelte app
+// owns header/footer/nav.
+const AppIndex TemplateName = "app/index"

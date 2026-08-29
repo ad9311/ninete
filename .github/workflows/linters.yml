@@ -2,9 +2,9 @@ name: linters
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, spa-base]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, spa-base]
 
 permissions:
   contents: read
@@ -30,7 +30,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.4.0
+          version: v2.13.1
 
   shellcheck:
     name: shellcheck
@@ -56,6 +56,25 @@ jobs:
       - name: Run ShellCheck
         run: make lint-sh
 
+  # The formatters had no CI job until Phase 0.6, which is how an unformatted
+  # file reached spa-base: `make lint-fix` formats, but nothing checked that
+  # someone had run it.
+  prettier:
+    name: prettier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check formatting
+        run: bun run format:static:check
+
   eslint:
     name: eslint
     runs-on: ubuntu-latest
@@ -71,6 +90,30 @@ jobs:
 
       - name: Run ESLint
         run: bun run lint:js
+
+  # Two tools, not one: tsc does not parse .svelte at all, so a tsc-only job
+  # would report success with every component unchecked. Both steps run; the
+  # second is guarded with !cancelled() rather than always() so a superseded run
+  # still stops at the concurrency cancel above.
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Type-check TypeScript (tsc)
+        run: bun run typecheck:ts
+
+      - name: Type-check Svelte components (svelte-check)
+        if: ${{ !cancelled() }}
+        run: bun run typecheck:svelte
 
   stylelint:
     name: stylelint
