@@ -150,6 +150,20 @@ describe("onLinkClick", () => {
     off();
   });
 
+  // Genuine reproduction of the export-download bug's second half: with the
+  // opt-out gone the client router swallows the link, so the browser never
+  // makes the request that would either download the file or follow the
+  // redirect to the login page.
+  it('ignores a link with rel="external"', () => {
+    const seen: string[] = [];
+    const off = onLinkClick((path) => seen.push(path));
+
+    clickAnchor(`${BASE_PATH}/exports/expenses.json`, { rel: "external" });
+
+    expect(seen).toEqual([]);
+    off();
+  });
+
   it("ignores a link with target=_blank", () => {
     const seen: string[] = [];
     const off = onLinkClick((path) => seen.push(path));

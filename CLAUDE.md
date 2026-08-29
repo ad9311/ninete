@@ -124,20 +124,21 @@ with no error from SQLite or the driver.
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
 
 Phase 7 of `docs/spa-migration.md` ("flip the switch") deleted every rendered page and moved the
-SPA from `/app/*` to `/`. Two Go routes are left outside `/api/*`:
+SPA from `/app/*` to `/`. Three Go routes are left outside `/api/*`:
 
 | Area | Routes | Handlers |
 | --- | --- | --- |
 | SPA shell | `/`, `/*` — a catch-all serving the shell for any non-API, non-static path. `/login` and `/register` are the guest-reachable exception in `AuthMiddleware`'s `guestRoutes` | `handle_app.go` |
 | Auth (non-API) | `POST /logout` | `handle_auth.go` |
+| Expense export | `GET /exports/expenses.json` — a file, but on the page chain: it is reached by a plain anchor, so an expired session must answer with a redirect the browser can follow, not the API chain's `401` | `handle_exports.go` |
 | Infrastructure | `/static/*`, `/csp-report` | `handle_csp_report.go` |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
-`/api/categories`, `/api/dashboard`, `/api/exports/expenses.json`, `/api/delete-data` (+
+`/api/categories`, `/api/dashboard`, `/api/delete-data` (+
 `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
 `/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
 `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
-`handle_api_exports.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
 `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
 `handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
 resource, shared by the API handlers above.
@@ -254,5 +255,7 @@ Frontend failures that produce no build error and no obvious symptom:
   Without it the browser drops the tag and posts to `/csp-report`.
 - **Never hardcode a path prefix in a link.** Write ``href={`${BASE_PATH}/...`}``; `BASE_PATH`
   is `""` today, and `router.ts`'s `onLinkClick` therefore claims *every* same-origin anchor.
-  A link that must reach the server directly (the export download) needs the `download`
-  attribute, or the client router swallows it.
+  A link that must reach the server directly (the export download) needs `rel="external"`, or
+  the client router swallows it. `download` also opts out, but it makes the browser save
+  whatever comes back — including a redirect to the login page — so it belongs only on a URL
+  that can never answer with anything but the file.

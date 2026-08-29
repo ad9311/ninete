@@ -35,26 +35,3 @@ named in that endpoint's `userErrors` — the same shape `SignUp` already uses.
 Don't add a shared abstraction on top of it pre-emptively; reject-and-report
 (registration), silently-reuse (tags), and upsert (budgets) are different
 conflict semantics, not the same code three times.
-
-## An expired session on an `/api/*` link fails silently instead of redirecting
-
-`web/app/routes/exports/Index.svelte` points a plain `<a download>` at
-`/api/exports/expenses.json`. That path runs `apiAuth`, which answers `401` with
-the JSON envelope and no `Location` — correct for the API chain, which must never
-redirect. But a browser honours `download` whatever the status, so a user whose
-session lapsed while the SPA sat open clicks Download and silently saves an
-`expenses.json` holding `{"error":"…"}`. No sign-in prompt, no visible failure.
-
-The deployed version does the right thing: `/account/exports/expenses.json` goes
-through `AuthMiddleware` and redirects to `/login`. Phase 6 settled the general
-case — `lib/api.ts` recognises the `401` and sends the user to `AppLoginPath` —
-but the export link is the one call that does not go through it, because §5 of
-`docs/spa-migration.md` keeps export links plain anchors and a plain anchor is a
-browser navigation, not a `fetch`.
-
-So what is left is this anchor alone, and every future `<a download>` at an
-`/api/*` path. Whoever fixes it has to keep the plain-anchor decision or get it
-revisited: a `HEAD` or `/api/session` probe before letting the click through is
-the cheap version, and Phase 7 is where the honest fix lives, since moving the
-SPA to `/` lets the download hang off a route that redirects like the page chain
-does.
