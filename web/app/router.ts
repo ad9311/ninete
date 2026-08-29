@@ -99,7 +99,12 @@ function decodeParam(value: string): string {
   }
 }
 
-/** Segment-boundary prefix test: "/apple" is not under a BASE_PATH of "/app". */
+// Segment-boundary prefix test, kept for the Phase 7 BASE_PATH of "": every
+// same-origin path is under an empty base, including "/api/...". That is the
+// intent — the catch-all serves the shell for everything the API and /static
+// do not claim — but it means this can no longer be the check that keeps the
+// client router off a non-route link. onLinkClick's `download` and `target`
+// tests are what do that now (see routes/exports/Index.svelte).
 function isUnderBasePath(pathname: string): boolean {
   return pathname === BASE_PATH || pathname.startsWith(`${BASE_PATH}/`);
 }

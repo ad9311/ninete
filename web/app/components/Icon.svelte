@@ -1,7 +1,8 @@
 <script lang="ts">
-  // Single-icon replacement for the old data-lucide + createIcons() DOM scan
-  // (web/app/lib/icons.ts), which only ran on turbo:load/turbo:render and has
-  // no equivalent lifecycle event in the SPA (§2.3 of docs/spa-migration.md:
+  // Single-icon replacement for the data-lucide + createIcons() DOM scan that
+  // lib/icons.ts used to run (deleted in Phase 7): it fired on
+  // turbo:load/turbo:render and has no equivalent lifecycle event in the SPA
+  // (§2.3 of docs/spa-migration.md:
   // "Per-component icon rendering"). Builds the real <svg> via lucide's own
   // createElement and swaps it in for the placeholder element — DOM APIs, not
   // innerHTML, so §3.4 rule 3's {@html} ban never enters the picture. The

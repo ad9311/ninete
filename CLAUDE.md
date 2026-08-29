@@ -16,7 +16,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
-| `web/README.md` | How the three directories under `web/` work and how code reaches the browser: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration, the Svelte build chain | **Before editing anything under `web/`** |
+| `web/README.md` | How the directories under `web/` work and how code reaches the browser: template data contract, CSP nonce rule, the Svelte build chain. **Partly stale since Phase 7 removed the templates, Turbo and Stimulus — its rewrite is Phase 8's job; where it disagrees with this file's UI/Assets section or `web/app/README.md`, they win** | **Before editing anything under `web/`** |
 | `web/app/README.md` | Working rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, where tests go, and what lint and formatting cover | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
@@ -217,47 +217,43 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
-**`web/README.md` is the reference for everything under `web/`. Read it before
-editing a template, a stylesheet, a controller or a Svelte component** — it
-covers the template data contract, the partial namespace, the Turbo/Stimulus
-wiring, the Svelte build chain and the editing loop. What follows is the shape,
-plus the things that fail silently if you do not know them going in.
+**The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page,
+dropped Turbo and Stimulus, and moved the app from `/app/*` to `/`. `web/app/README.md` is the
+reference for the Svelte sources — read it before adding a file there. `web/README.md` still
+describes the pre-Phase-7 world in places; Phase 8 owns its rewrite, so prefer this section and
+`web/app/README.md` where the two disagree.
 
-- Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
-- Shared layout lives in `web/views/layout.html`.
-- Shared partials live in `web/views/common/_*.html`.
-- Static assets live under `web/static/` (for example css/js/img).
-- Route definitions are the source of truth in `internal/serve/routes.go`.
-- **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
-- Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
-- **Svelte sources live in `web/app/`, and are never served.** The SPA migration
-  (`docs/spa-migration.md`) is replacing the templates and Turbo with Svelte, phase by phase, on
-  the `spa-base` branch. `web/app/README.md` has the layout rules.
+- **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
+  entry point; `web/build.ts` bundles it.
+- `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
+  carries its own `<html>` document — there is no shared layout and no partials any more.
+- Static assets live under `web/static/` (for example css/js/img). `web/static/css/layout.css`
+  is the single stylesheet.
+- Route definitions are the source of truth in `internal/serve/routes.go`; the client-side route
+  table is `web/app/router.ts`.
 - **The bundle is generated and git-ignored: run `make build-static-js` after editing any `.ts`
   or `.svelte`.** `make dev` and `make test` do it for you; running `go test` directly does not,
   and `internal/serve` asserts `/static/*` serves the bundle — so a skipped rebuild surfaces as
   a red Go suite on a path unrelated to the change.
 - **`make test` does not run the frontend suite.** `make test-js` does, in two time zones. See
   `docs/spa-migration.md` §3.6 before touching anything dated.
-- **Loading feedback is already global.** A spinner covers every Turbo visit
-  and form submission; a new form or listing needs nothing added. It is Turbo's
-  `.turbo-progress-bar` element restyled in `layout.css`, not an overlay of
-  ours. Only markup that opts out of Turbo loses it.
+- **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`
+  requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
+  new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
 
 Frontend failures that produce no build error and no obvious symptom:
 
-- **Partial `define` names share one global namespace.** Every `_*.html` in a
-  resource directory under `web/views` is parsed into the same base template
-  (`parseTemplates` in `internal/serve/template.go`), so a duplicate name
-  silently overwrites another page's partial.
-- **Templates live exactly one directory below `web/views`.** Both globs in
-  `template.go` use `**`, which Go's `filepath.Glob` treats as a single path
-  segment, not a recursive match. A view or partial placed directly in
-  `web/views`, or nested two levels deep, is never parsed and surfaces only as a
-  failed render.
-- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks
-  the two agree at compile time; a mismatch logs `missing template` and returns a
-  500 at request time.
+- **The shell must define `{{ define "layout" }}`.** `parseTemplates`
+  (`internal/serve/template.go`) executes each view by that name; a view without the define
+  renders empty and returns a 500 at request time, not at startup.
+- **Templates live exactly one directory below `web/views`.** The glob in `template.go` uses
+  `**`, which Go's `filepath.Glob` treats as a single path segment, not a recursive match. A
+  view placed directly in `web/views`, or nested two levels deep, is never parsed.
+- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks the two agree at
+  compile time; a mismatch logs `missing template` and returns a 500 at request time.
 - **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
   Without it the browser drops the tag and posts to `/csp-report`.
-- **A new Stimulus controller is inert until registered in `index.ts`.**
+- **Never hardcode a path prefix in a link.** Write ``href={`${BASE_PATH}/...`}``; `BASE_PATH`
+  is `""` today, and `router.ts`'s `onLinkClick` therefore claims *every* same-origin anchor.
+  A link that must reach the server directly (the export download) needs the `download`
+  attribute, or the client router swallows it.

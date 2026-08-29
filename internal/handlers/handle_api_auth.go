@@ -20,8 +20,9 @@ type apiRegisterBody struct {
 	InvitationCode       string `json:"invitation_code"`
 }
 
-// PostAPILogin is PostLogin's JSON twin (Phase 6 of docs/spa-migration.md):
-// the same session write, a 204 instead of a redirect. The client does a full
+// PostAPILogin signs a person in (Phase 6 of docs/spa-migration.md): the
+// session write the retired form post used to do, answered with a 204 instead
+// of a redirect. The client does a full
 // page load on success rather than staying inside the SPA's client state —
 // that is what actually resets the session boundary; this handler only has
 // to leave the session itself correct.
@@ -64,7 +65,7 @@ func (h *Handler) PostAPILogin(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PostAPIRegister is PostRegister's JSON twin.
+// PostAPIRegister is PostAPILogin's sign-up counterpart.
 func (h *Handler) PostAPIRegister(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

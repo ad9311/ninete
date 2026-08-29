@@ -15,11 +15,6 @@ const defaultPerPage = 15
 // cannot ask the database for an unbounded page.
 var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
 
-// PerPageChoices exposes the allowed page sizes to templates.
-func PerPageChoices() []int {
-	return slices.Clone(perPageChoices)
-}
-
 func normalizePerPage(raw string) int {
 	perPage, err := strconv.Atoi(raw)
 	if err != nil || !slices.Contains(perPageChoices, perPage) {
@@ -39,7 +34,6 @@ type PaginationData struct {
 	SortField   string
 	SortOrder   string
 	CategoryID  int
-	DateRange   string
 	Search      string
 	Tag         string
 	DateFrom    string

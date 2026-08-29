@@ -426,9 +426,9 @@ func (q *Queries) SelectExpensesCategoryTotals(ctx context.Context, filters Filt
 }
 
 // selectExpensesCategoryMonthTotals groups by calendar month as well as
-// category. strftime with 'unixepoch' yields UTC months, matching the range
-// boundaries computeDateRange builds with time.UTC — do not switch one side to
-// the client zone.
+// category. strftime with 'unixepoch' yields UTC months, matching the UTC
+// range boundaries the client resolves and sends (§3.6 of
+// docs/spa-migration.md) — do not switch one side to the client zone.
 const selectExpensesCategoryMonthTotals = `
 SELECT "category_id", strftime('%%Y-%%m', "date", 'unixepoch') AS "month", SUM("amount") AS "total"
 FROM "expenses"

@@ -31,24 +31,18 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
-    point imports it: it is the `createIcons()` DOM scan, which has no
-    lifecycle event to hang on in the SPA. The Svelte side imports the icon
-    nodes it needs straight from `lucide` and renders them through
-    `components/Icon.svelte` (Phase 2 — see below), so this file goes away with
-    the last template.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
     (Phase 2). Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
-  - `currency.ts` — money helpers matching `internal/serve/template_func.go`'s
-    `currency` and `amountController.ts`'s cents conversion (Phase 2):
+  - `currency.ts` — money helpers carrying over the retired `currency` template
+    function and `amountController.ts`'s cents conversion (Phase 2):
     `formatCurrency` for display, `centsToInputValue`/`inputValueToCents` for
     a form field. Amounts are unsigned cents end to end, never a float.
     `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
     "left" amount) — `Intl`'s currency formatting already prints a leading
     `-` for a negative value, so there is no second formatter (Phase 3).
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
-    field the templates already use (Phase 2). Normalization (lowercase, trim,
+    field (Phase 2). Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
     the same strings there and back.
   - `dateRanges.ts` — the client-side twin of `computeDateRange`

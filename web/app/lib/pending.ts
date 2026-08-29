@@ -9,8 +9,9 @@
 // No runes: §3.9 rule 3 keeps `lib/` component-free, and the tests run under
 // the node environment. App.svelte holds the `$state` and subscribes.
 
-// Parity with Turbo.config.drive.progressBarDelay in web/static/js/index.ts.
-// Requests that settle inside it show nothing at all, which is the point: a
+// Carried over from Turbo's progressBarDelay, which this replaced (Phase 7 of
+// docs/spa-migration.md deleted the Turbo entry point). Requests that settle
+// inside it show nothing at all, which is the point: a
 // warm local fetch would otherwise flash the backdrop on every click.
 export const PROGRESS_DELAY_MS = 250;
 

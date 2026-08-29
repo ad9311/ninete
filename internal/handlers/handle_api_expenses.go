@@ -63,13 +63,11 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 	}
 }
 
-// apiExpenseListOpts is userScopedQueryOpts's /api/expenses twin: sorting,
-// pagination and the category filter are identical between the two paths, so
-// this delegates to userScopedQueryOpts with an empty defaultDateRange (the
-// API never sends date_range, so that resolves to no date filter at all) and
-// then layers on the explicit [start, end) bounds the client resolved
-// client-side instead of reading date_range and tz_offset. expenseSearch.apply
-// layers its own predicates on top identically for both paths.
+// apiExpenseListOpts builds the /api/expenses query options: it delegates
+// sorting, pagination and the category filter to userScopedQueryOpts, which
+// applies no date filter of its own, and then layers on the explicit
+// [start, end) bounds the client resolved. expenseSearch.apply layers its own
+// predicates on top.
 //
 // It reports whether the request carried bounds, which the caller has to feed
 // back into the search — see GetAPIExpenses.
@@ -94,9 +92,9 @@ func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, bool, e
 // Context Middleware
 // ----------------------------------------------------------------------------- //
 
-// APIExpenseContext is ExpenseContext's JSON-answering twin. It shares
-// ExpenseContext's KeyExpense context key and getExpense accessor — the two
-// middlewares differ only in how they answer a missing or malformed id.
+// APIExpenseContext looks the expense up once for the /api/expenses/{id}
+// subtree, storing it under KeyExpense for getExpense. A missing or malformed
+// id answers the same 404 envelope every other /api/* failure uses.
 func (h *Handler) APIExpenseContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

@@ -49,7 +49,7 @@ func (s *Spec) AuthCookies(t *testing.T, email, password string) []*http.Cookie 
 // place a CSRF token appears in rendered HTML since Phase 7 of
 // docs/spa-migration.md deleted every other view, hidden form fields
 // included.
-var csrfTokenRE = regexp.MustCompile(`name="csrf-token"\s+content="([^"]*)"`)
+var csrfTokenRE = regexp.MustCompile(`name="csrf-token"\s+content="([^"]+)"`)
 
 // CSRFFrom GETs the given URL with cookies, extracts the CSRF token from the
 // HTML body, and returns it along with the (possibly updated) cookies.

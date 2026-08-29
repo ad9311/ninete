@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// GetAPIExportsExpenses is GetExportsExpenses's JSON-API twin (§5, Phase 5):
-// same payload and Content-Disposition, reached through a plain anchor rather
-// than lib/api.ts, since a fetch response cannot be handed to the browser's
-// save flow the way a real navigation can.
+// GetAPIExportsExpenses streams the expense export (§5, Phase 5). It is
+// reached through a plain anchor rather than lib/api.ts, since a fetch
+// response cannot be handed to the browser's save flow the way a real
+// navigation can.
 func (h *Handler) GetAPIExportsExpenses(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 

@@ -24,7 +24,7 @@
         password_confirmation: passwordConfirmation,
         invitation_code: invitationCode,
       });
-      window.location.assign(BASE_PATH);
+      window.location.assign(BASE_PATH || "/");
     } catch (err) {
       error =
         err instanceof APIRequestError ? err.message : "Something went wrong.";
