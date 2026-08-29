@@ -5,7 +5,6 @@ import (
 	"html"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"regexp"
 	"strings"
 	"testing"
@@ -57,7 +56,7 @@ func newLimitedServer(t *testing.T) *Server {
 	return server
 }
 
-var internalCSRFTokenRE = regexp.MustCompile(`name="csrf_token"\s+value="([^"]+)"`)
+var internalCSRFTokenRE = regexp.MustCompile(`name="csrf-token"\s+content="([^"]+)"`)
 
 // csrfFor fetches a form and returns its CSRF token with the cookies that go
 // with it. The limiter sits behind the CSRF middleware, so a request without a
@@ -75,36 +74,8 @@ func csrfFor(t *testing.T, server *Server, path string) (string, []*http.Cookie)
 	return html.UnescapeString(matches[1]), rec.Result().Cookies()
 }
 
-// postCredentials sends a credential attempt that fails validation before any
-// bcrypt work, so exhausting the budget stays cheap.
-func postCredentials(
-	t *testing.T,
-	server *Server,
-	path, token string,
-	cookies []*http.Cookie,
-	remoteAddr string,
-) int {
-	t.Helper()
-
-	body := url.Values{"email": {""}, "password": {""}}.Encode()
-	req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Sec-Fetch-Site", "same-origin")
-	req.Header.Set("X-CSRF-Token", token)
-	req.RemoteAddr = remoteAddr
-
-	for _, c := range cookies {
-		req.AddCookie(c)
-	}
-
-	rec := httptest.NewRecorder()
-	server.Router.ServeHTTP(rec, req)
-
-	return rec.Code
-}
-
-// postAPICredentials is postCredentials for the JSON chain. The CSRF cookie is
-// shared by both chains, so a token minted off a page works here.
+// postAPICredentials sends a credential attempt that fails validation before
+// any bcrypt work, so exhausting the budget stays cheap.
 func postAPICredentials(
 	t *testing.T,
 	server *Server,
@@ -136,30 +107,25 @@ func TestCredentialRoutesAreRateLimited(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			// Deleting either `root.With(credentialLimit)` in setUpRoutes leaves
-			// the rest of the suite green, since the limiter is disabled under
-			// ENV=test. This is what notices.
+			// Deleting either `api.With(credentialLimit)` in setUpAPIRoutes
+			// leaves the rest of the suite green, since the limiter is
+			// disabled under ENV=test. This is what notices.
 			name: "should_throttle_each_credential_route",
 			fn: func(t *testing.T) {
-				for _, path := range []string{"/login", "/register"} {
+				for _, path := range []string{"/api/login", "/api/register"} {
 					server := newLimitedServer(t)
-					token, cookies := csrfFor(t, server, path)
+					token, cookies := csrfFor(t, server, "/login")
 
 					for i := range authAttemptLimit {
+						code, _ := postAPICredentials(t, server, path, token, cookies, "203.0.113.50:1234")
 						require.NotEqual(
-							t,
-							http.StatusTooManyRequests,
-							postCredentials(t, server, path, token, cookies, "203.0.113.50:1234"),
+							t, http.StatusTooManyRequests, code,
 							"POST %s attempt %d was throttled before the limit", path, i+1,
 						)
 					}
 
-					require.Equal(
-						t,
-						http.StatusTooManyRequests,
-						postCredentials(t, server, path, token, cookies, "203.0.113.50:1234"),
-						"POST %s was not rate limited", path,
-					)
+					code, _ := postAPICredentials(t, server, path, token, cookies, "203.0.113.50:1234")
+					require.Equal(t, http.StatusTooManyRequests, code, "POST %s was not rate limited", path)
 				}
 			},
 		},
@@ -170,54 +136,17 @@ func TestCredentialRoutesAreRateLimited(t *testing.T) {
 			name: "should_share_one_budget_across_login_and_register",
 			fn: func(t *testing.T) {
 				server := newLimitedServer(t)
-				loginToken, loginCookies := csrfFor(t, server, "/login")
-				registerToken, registerCookies := csrfFor(t, server, "/register")
-
-				for range authAttemptLimit {
-					require.NotEqual(
-						t,
-						http.StatusTooManyRequests,
-						postCredentials(
-							t, server, "/login", loginToken, loginCookies, "203.0.113.51:1234",
-						),
-					)
-				}
-
-				require.Equal(
-					t,
-					http.StatusTooManyRequests,
-					postCredentials(
-						t, server, "/register", registerToken, registerCookies, "203.0.113.51:1234",
-					),
-					"/register had its own budget after /login exhausted one",
-				)
-			},
-		},
-		{
-			// Genuine reproduction: before the fix the API chain got its own
-			// authRateLimit() value, so exhausting /login left /api/login with
-			// a full budget against the same credentials.
-			name: "should_share_one_budget_across_the_page_and_api_chains",
-			fn: func(t *testing.T) {
-				server := newLimitedServer(t)
 				token, cookies := csrfFor(t, server, "/login")
 
 				for range authAttemptLimit {
-					require.NotEqual(
-						t,
-						http.StatusTooManyRequests,
-						postCredentials(t, server, "/login", token, cookies, "203.0.113.53:1234"),
-					)
+					code, _ := postAPICredentials(t, server, "/api/login", token, cookies, "203.0.113.51:1234")
+					require.NotEqual(t, http.StatusTooManyRequests, code)
 				}
 
-				code, _ := postAPICredentials(
-					t, server, "/api/login", token, cookies, "203.0.113.53:1234",
-				)
+				code, _ := postAPICredentials(t, server, "/api/register", token, cookies, "203.0.113.51:1234")
 				require.Equal(
-					t,
-					http.StatusTooManyRequests,
-					code,
-					"/api/login had its own budget after /login exhausted one",
+					t, http.StatusTooManyRequests, code,
+					"/api/register had its own budget after /api/login exhausted one",
 				)
 			},
 		},
@@ -251,8 +180,9 @@ func TestCredentialRoutesAreRateLimited(t *testing.T) {
 			},
 		},
 		{
-			// Rendering the forms must stay free, so only the POSTs are guarded.
-			name: "should_not_throttle_rendering_the_forms",
+			// Rendering the shell must stay free, so only the API POSTs are
+			// guarded.
+			name: "should_not_throttle_rendering_the_shell",
 			fn: func(t *testing.T) {
 				server := newLimitedServer(t)
 

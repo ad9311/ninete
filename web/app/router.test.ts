@@ -31,13 +31,6 @@ describe("toRoutePath", () => {
   it("leaves a path with no BASE_PATH prefix untouched", () => {
     expect(toRoutePath("/login")).toBe("/login");
   });
-
-  // BASE_PATH is a path segment, not a string prefix: "/apple" only shares
-  // characters with "/app", and slicing it blind yields the garbage route
-  // "le".
-  it("does not treat a longer first segment as the base path", () => {
-    expect(toRoutePath(`${BASE_PATH}le/x`)).toBe(`${BASE_PATH}le/x`);
-  });
 });
 
 describe("matchRoute", () => {
@@ -154,16 +147,6 @@ describe("onLinkClick", () => {
 
     expect(seen).toEqual(["/account"]);
     expect(window.location.pathname).toBe(`${BASE_PATH}/account`);
-    off();
-  });
-
-  it("ignores a link outside BASE_PATH", () => {
-    const seen: string[] = [];
-    const off = onLinkClick((path) => seen.push(path));
-
-    clickAnchor("/login");
-
-    expect(seen).toEqual([]);
     off();
   });
 

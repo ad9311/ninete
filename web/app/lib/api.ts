@@ -5,15 +5,11 @@
 import { begin, end } from "./pending";
 
 const API_PREFIX = "/api";
-// Points into the SPA now that routes/login/Index.svelte exists (Phase 6 of
-// docs/spa-migration.md, settling the TODO.md note on where session expiry
-// redirects). A literal rather than router.ts's BASE_PATH import: it must
-// match router.ts's own "/app" until Phase 7 moves both to "/".
-//
-// Go redirects to the same place through handlers.AppLoginPath, which a bundle
-// cannot import. The two literals have to be changed together, and Phase 7
-// removes both prefixes at once.
-const LOGIN_PATH = "/app/login";
+// Points into the SPA (Phase 6 of docs/spa-migration.md, settling the
+// TODO.md note on where session expiry redirects). Go redirects to the same
+// place through handlers.AppLoginPath, which a bundle cannot import — the two
+// literals have to be changed together.
+const LOGIN_PATH = "/login";
 
 /** The error envelope every /api/* failure carries (handlers.APIError). */
 interface APIErrorBody {
@@ -74,9 +70,9 @@ export interface RequestOptions {
   /**
    * Skip the global redirect-to-login on a 401. Header.svelte's own session
    * probe sets this: it is the one /api/* call every route makes, including
-   * the guest-reachable /app/login and /app/register (Phase 6), and without
-   * this a guest landing on either would be bounced straight back to
-   * LOGIN_PATH by their own session check.
+   * the guest-reachable /login and /register (Phase 6), and without this a
+   * guest landing on either would be bounced straight back to LOGIN_PATH by
+   * their own session check.
    */
   skipAuthRedirect?: boolean;
 }

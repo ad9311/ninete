@@ -63,8 +63,8 @@
     let cancelled = false;
 
     // skipAuthRedirect only on the two routes where a 401 here is expected
-    // (Phase 6): a guest landing on /app/login or /app/register would
-    // otherwise get bounced straight back by their own session check. Header
+    // (Phase 6): a guest landing on /login or /register would otherwise get
+    // bounced straight back by their own session check. Header
     // mounts once for the life of the SPA shell (it lives outside the
     // route-switching block in App.svelte), so this reads the URL the shell
     // was loaded with, which is exactly when this effect runs. Everywhere
@@ -113,7 +113,10 @@
 </script>
 
 <header class="site-header">
-  <a href={BASE_PATH} class="site-brand">NINETE</a>
+  <!-- Literal "/" rather than BASE_PATH: an empty href attribute (BASE_PATH
+       since Phase 7 of docs/spa-migration.md) drops the anchor's implicit
+       link role. -->
+  <a href="/" class="site-brand">NINETE</a>
   <label class="theme-switch">
     <span class="sr-only">Theme</span>
     <select bind:value={theme}>

@@ -16,7 +16,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
-| `web/README.md` | How the three directories under `web/` work and how code reaches the browser: partial namespace, template data contract, CSP nonce rule, Stimulus controller registration, the Svelte build chain | **Before editing anything under `web/`** |
+| `web/README.md` | How the directories under `web/` work and how code reaches the browser: template data contract, CSP nonce rule, the Svelte build chain. **Partly stale since Phase 7 removed the templates, Turbo and Stimulus — its rewrite is Phase 8's job; where it disagrees with this file's UI/Assets section or `web/app/README.md`, they win** | **Before editing anything under `web/`** |
 | `web/app/README.md` | Working rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, where tests go, and what lint and formatting cover | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
@@ -64,24 +64,23 @@ headers arriving through the proxy.
 router by `setUpFileServer`, outside `setUpAppMiddlewares`. Serving an asset must
 never load a session or query the database.
 
-**Auth rate limit is one shared value** — all four credential routes
-(`POST /login`, `POST /register` and their `/api` twins) carry the same
-`authRateLimit()` middleware value, built once in `setUpRoutes` and passed into
-`setUpAPIRoutes`, so a client draws on a single budget across every one of them.
-Each call to `authRateLimit()` builds an independent counter, so calling it a
-second time — per route, or per chain — multiplies the allowance against the
-same credentials. Because one limiter now spans both chains, its limit handler
-(`tooManyCredentialAttempts`) picks the response shape from the request path
-rather than being fixed at construction. It is a no-op under `ENV=test` — the
-suite logs in ~100 times from one address — and is covered directly in
+**Auth rate limit is one shared value** — `POST /api/login` and
+`POST /api/register` (the only two credential routes since Phase 7 of
+`docs/spa-migration.md` retired the legacy form-post pair) carry the same
+`authRateLimit()` middleware value, built once in `setUpAPIRoutes`, so a client
+draws on a single budget across both. Each call to `authRateLimit()` builds an
+independent counter, so calling it a second time multiplies the allowance
+against the same credentials. It is a no-op under `ENV=test` — the suite logs
+in ~100 times from one address — and is covered directly in
 `internal/serve/middleware_internal_test.go` and
 `internal/serve/routes_internal_test.go` instead.
 
 **Render helpers need `setTmplData`** — anything calling a render helper must sit
-inside the app middleware group, which is why `NotFound`/`MethodNotAllowed` are
-registered on the group rather than the root router. `tmplData` *panics* when the
-key is absent, so this is not a soft failure: the API chain drops `setTmplData`,
-and any handler reachable from it — a fallback, a rate-limit handler — must use
+inside the app middleware group, which is why `GetApp` (the only remaining
+render call since Phase 7 of `docs/spa-migration.md`) is registered on the
+group rather than the root router. `tmplData` *panics* when the key is absent,
+so this is not a soft failure: the API chain drops `setTmplData`, and any
+handler reachable from it — a fallback, a rate-limit handler — must use
 `api.go`'s JSON writers (`APINotFound`, `APITooManyRequests`, …) instead.
 
 **PRAGMA split — do not merge `internal/db/init/database.sql` and
@@ -124,27 +123,30 @@ with no error from SQLite or the driver.
 ## Feature and Route Map
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
 
-| Area | Routes | Handlers | Logic |
-| --- | --- | --- | --- |
-| Auth | `/login`, `/register`, `/logout` | `handle_auth.go` | `logic_auth.go`, `logic_invitation_code.go` |
-| Dashboard | `/dashboard` | `handle_dashboard.go` | reuses the expense stores |
-| Expenses | `/expenses`, `/expenses/quick`, `/expenses/stats`, `/expenses/budgets`, `/expenses/{id}` | `handle_expenses.go`, `handle_quick_expense.go`, `handle_expense_budgets.go`, `expense_search.go` | `logic_expense.go`, `logic_quick_expense.go`, `logic_expense_budget.go` |
-| Recurrent expenses | `/recurrent-expenses`, `/recurrent-expenses/archived`, `/recurrent-expenses/{id}` | `handle_recurrent_expenses.go` | `logic_recurrent_expense.go` |
-| Account | `/account` | `handle_account.go` | — |
-| Delete data | `/account/delete-data` and the `delete-all` endpoints | `handle_delete_data.go` | `logic_account.go` |
-| Exports | `/account/exports`, `/account/exports/expenses.json` | `handle_exports.go` | `logic_export.go` |
-| Infrastructure | `/` (redirects to the SPA), `/static/*`, `/csp-report` | `handle_root.go`, `handle_csp_report.go` | — |
-| API (SPA) | `/api/login`, `/api/register`, `/api/session`, `/api/categories`, `/api/dashboard`, `/api/exports/expenses.json`, `/api/delete-data` (+ `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, `/api/expenses` (+ `/quick`, `/stats`, `/budgets`), and the resource routes later phases add | `api.go`, `handle_api_auth.go`, `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`, `handle_api_exports.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`, `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`, `handle_api_expense_budgets.go` | reuses the page handlers' stores |
-| SPA shell | `/app`, `/app/*` (moves to `/` in Phase 7) — `/app/login`/`/app/register` are the guest-reachable exception, mirroring `/login`/`/register` | `handle_app.go` | — |
+Phase 7 of `docs/spa-migration.md` ("flip the switch") deleted every rendered page and moved the
+SPA from `/app/*` to `/`. Two Go routes are left outside `/api/*`:
 
-**Every person-facing redirect points at the SPA** (Phase 6 of `docs/spa-migration.md`).
-`AuthMiddleware`, `PostLogout` and `GetRoot` send people to `handlers.AppLoginPath` (`/app/login`)
-and `handlers.AppDashboardPath` (`/app`) — not to `/login` or `/dashboard`. The template pages
-still answer their own URLs and stay reachable by hand, which is what keeps them usable as the
-migration's oracle, but nothing routes anyone to them. Two things to know before changing one:
-`AppDashboardPath` is `/app` because `router.ts` maps the dashboard to `"/"`, so `/app/dashboard`
-would render the SPA's "Not found"; and `web/app/lib/api.ts` holds `AppLoginPath` a second time
-as `LOGIN_PATH`, since a bundle cannot import a Go constant. Both lose the prefix in Phase 7.
+| Area | Routes | Handlers |
+| --- | --- | --- |
+| SPA shell | `/`, `/*` — a catch-all serving the shell for any non-API, non-static path. `/login` and `/register` are the guest-reachable exception in `AuthMiddleware`'s `guestRoutes` | `handle_app.go` |
+| Auth (non-API) | `POST /logout` | `handle_auth.go` |
+| Infrastructure | `/static/*`, `/csp-report` | `handle_csp_report.go` |
+
+Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
+`/api/categories`, `/api/dashboard`, `/api/exports/expenses.json`, `/api/delete-data` (+
+`/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
+`/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
+`handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
+`handle_api_exports.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
+`handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
+resource, shared by the API handlers above.
+
+**Every person-facing redirect points at the SPA.** `AuthMiddleware` and `PostLogout` send people
+to `handlers.AppLoginPath` (`/login`) and `handlers.AppDashboardPath` (`/`) — `AppDashboardPath` is
+`"/"`, not `"/dashboard"`, because `router.ts` maps the dashboard to `"/"`. `web/app/lib/api.ts`
+holds `AppLoginPath` a second time as `LOGIN_PATH`, since a bundle cannot import a Go constant —
+the two literals have to be changed together.
 
 **The `/api/*` group is a sibling of the page group, not a child** (`setUpAPIRoutes`). The two
 middleware chains differ, and an `/api` route must never fall through to a rendered template.
@@ -215,47 +217,43 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
-**`web/README.md` is the reference for everything under `web/`. Read it before
-editing a template, a stylesheet, a controller or a Svelte component** — it
-covers the template data contract, the partial namespace, the Turbo/Stimulus
-wiring, the Svelte build chain and the editing loop. What follows is the shape,
-plus the things that fail silently if you do not know them going in.
+**The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page,
+dropped Turbo and Stimulus, and moved the app from `/app/*` to `/`. `web/app/README.md` is the
+reference for the Svelte sources — read it before adding a file there. `web/README.md` still
+describes the pre-Phase-7 world in places; Phase 8 owns its rewrite, so prefer this section and
+`web/app/README.md` where the two disagree.
 
-- Views follow a resource/action pattern: `web/views/<resource>/<action>.html`.
-- Shared layout lives in `web/views/layout.html`.
-- Shared partials live in `web/views/common/_*.html`.
-- Static assets live under `web/static/` (for example css/js/img).
-- Route definitions are the source of truth in `internal/serve/routes.go`.
-- **Frontend JS**: Uses `@hotwired/turbo` for SPA-like navigation and `@hotwired/stimulus` for lightweight controllers.
-- Stimulus entrypoint: `web/static/js/index.ts`. Controllers live in `web/static/js/controllers/`.
-- **Svelte sources live in `web/app/`, and are never served.** The SPA migration
-  (`docs/spa-migration.md`) is replacing the templates and Turbo with Svelte, phase by phase, on
-  the `spa-base` branch. `web/app/README.md` has the layout rules.
+- **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
+  entry point; `web/build.ts` bundles it.
+- `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
+  carries its own `<html>` document — there is no shared layout and no partials any more.
+- Static assets live under `web/static/` (for example css/js/img). `web/static/css/layout.css`
+  is the single stylesheet.
+- Route definitions are the source of truth in `internal/serve/routes.go`; the client-side route
+  table is `web/app/router.ts`.
 - **The bundle is generated and git-ignored: run `make build-static-js` after editing any `.ts`
   or `.svelte`.** `make dev` and `make test` do it for you; running `go test` directly does not,
   and `internal/serve` asserts `/static/*` serves the bundle — so a skipped rebuild surfaces as
   a red Go suite on a path unrelated to the change.
 - **`make test` does not run the frontend suite.** `make test-js` does, in two time zones. See
   `docs/spa-migration.md` §3.6 before touching anything dated.
-- **Loading feedback is already global.** A spinner covers every Turbo visit
-  and form submission; a new form or listing needs nothing added. It is Turbo's
-  `.turbo-progress-bar` element restyled in `layout.css`, not an overlay of
-  ours. Only markup that opts out of Turbo loses it.
+- **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`
+  requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
+  new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
 
 Frontend failures that produce no build error and no obvious symptom:
 
-- **Partial `define` names share one global namespace.** Every `_*.html` in a
-  resource directory under `web/views` is parsed into the same base template
-  (`parseTemplates` in `internal/serve/template.go`), so a duplicate name
-  silently overwrites another page's partial.
-- **Templates live exactly one directory below `web/views`.** Both globs in
-  `template.go` use `**`, which Go's `filepath.Glob` treats as a single path
-  segment, not a recursive match. A view or partial placed directly in
-  `web/views`, or nested two levels deep, is never parsed and surfaces only as a
-  failed render.
-- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks
-  the two agree at compile time; a mismatch logs `missing template` and returns a
-  500 at request time.
+- **The shell must define `{{ define "layout" }}`.** `parseTemplates`
+  (`internal/serve/template.go`) executes each view by that name; a view without the define
+  renders empty and returns a 500 at request time, not at startup.
+- **Templates live exactly one directory below `web/views`.** The glob in `template.go` uses
+  `**`, which Go's `filepath.Glob` treats as a single path segment, not a recursive match. A
+  view placed directly in `web/views`, or nested two levels deep, is never parsed.
+- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks the two agree at
+  compile time; a mismatch logs `missing template` and returns a 500 at request time.
 - **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
   Without it the browser drops the tag and posts to `/csp-report`.
-- **A new Stimulus controller is inert until registered in `index.ts`.**
+- **Never hardcode a path prefix in a link.** Write ``href={`${BASE_PATH}/...`}``; `BASE_PATH`
+  is `""` today, and `router.ts`'s `onLinkClick` therefore claims *every* same-origin anchor.
+  A link that must reach the server directly (the export download) needs the `download`
+  attribute, or the client router swallows it.

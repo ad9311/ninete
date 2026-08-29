@@ -81,7 +81,7 @@ describe("App", () => {
 
     expect(
       screen.getByRole("link", { name: "NINETE" }).getAttribute("href"),
-    ).toBe(BASE_PATH);
+    ).toBe("/");
     expect(screen.getByText("v-test")).toBeTruthy();
     expect(screen.getByText("This month's spending")).toBeTruthy();
     // The heading alone renders in the error branch too, so assert on the

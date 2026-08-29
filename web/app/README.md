@@ -10,15 +10,16 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   mount point `web/views/app/index.html` renders.
 - `App.svelte` — the shell's chrome (`Header`, `Footer`, `Spinner`) and the
   router's `$state`-held current path (Phase 1).
-- `router.ts` — the hand-rolled path router: `BASE_PATH` (`/app` until Phase 7
-  moves it to `/`), the `routes` match table, `matchRoute`/`toRoutePath` (pure),
-  and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte wires up in
-  an effect. See `docs/spa-migration.md` §3.7.
-  **Never hardcode `/app` in a link** — write ``href={`${BASE_PATH}/...`}``, or
-  Phase 7's one-line move leaves it behind. Go redirects into the SPA through
-  `handlers.AppLoginPath`/`AppDashboardPath`, which are the same literal on the
-  other side of a boundary neither language can import across; `api.ts`'s
-  `LOGIN_PATH` is the third copy. All four change together.
+- `router.ts` — the hand-rolled path router: `BASE_PATH` (`""` since Phase 7
+  moved the SPA to `/`), the `routes` match table, `matchRoute`/`toRoutePath`
+  (pure), and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte
+  wires up in an effect. See `docs/spa-migration.md` §3.7.
+  Prefer `` `${BASE_PATH}/...` `` over a hardcoded literal in a link — the
+  constant still exists as the seam if the SPA is ever staged under a prefix
+  again. Go redirects into the SPA through `handlers.AppLoginPath`/
+  `AppDashboardPath`, which are the same literal on the other side of a
+  boundary neither language can import across; `api.ts`'s `LOGIN_PATH` is the
+  third copy. All three change together.
 - `lib/` — plain `.ts` modules, no components
   - `api.ts` — the `/api/*` fetch wrapper (Phase 0.4). Every request goes
     through it: it attaches `X-CSRF-Token` from the shell's
@@ -30,24 +31,18 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
-  - `icons.ts` — moved from `web/static/js/` (Phase 1). Only the Stimulus entry
-    point imports it: it is the `createIcons()` DOM scan, which has no
-    lifecycle event to hang on in the SPA. The Svelte side imports the icon
-    nodes it needs straight from `lucide` and renders them through
-    `components/Icon.svelte` (Phase 2 — see below), so this file goes away with
-    the last template.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
     (Phase 2). Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
-  - `currency.ts` — money helpers matching `internal/serve/template_func.go`'s
-    `currency` and `amountController.ts`'s cents conversion (Phase 2):
+  - `currency.ts` — money helpers carrying over the retired `currency` template
+    function and `amountController.ts`'s cents conversion (Phase 2):
     `formatCurrency` for display, `centsToInputValue`/`inputValueToCents` for
     a form field. Amounts are unsigned cents end to end, never a float.
     `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
     "left" amount) — `Intl`'s currency formatting already prints a leading
     `-` for a negative value, so there is no second formatter (Phase 3).
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
-    field the templates already use (Phase 2). Normalization (lowercase, trim,
+    field (Phase 2). Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
     the same strings there and back.
   - `dateRanges.ts` — the client-side twin of `computeDateRange`
@@ -112,12 +107,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   latter sending the `mode` (`month`/`months`) explicitly since the API
   no longer receives the range key it used to derive that from.
   `routes/dashboard/` (Phase 4) is a single `Index.svelte` — the whole
-  resource is one action, matching `web/views/dashboard/`. §0 dropped the
-  macro half of the card grid in Phase 0B, so there is no date picker to
-  port: the range is always this month vs. last month, resolved client-side
-  with two `computeDateRange` calls (`lib/dateRanges.ts`) and sent as
-  `this_start`/`this_end`/`last_start`/`last_end` to `/api/dashboard`, mirroring
-  `handle_dashboard.go`'s `tz_offset`-based computation exactly.
+  resource is one action. §0 dropped the macro half of the card grid in
+  Phase 0B, so there is no date picker to port: the range is always this
+  month vs. last month, resolved client-side with two `computeDateRange`
+  calls (`lib/dateRanges.ts`, not `internal/handlers`'s function of the same
+  pre-Phase-7 name) and sent as `this_start`/`this_end`/`last_start`/`last_end`
+  to `/api/dashboard`.
   `routes/account/`, `routes/delete_data/` and `routes/exports/` (Phase 5) are
   the destructive-posts-and-a-download trio. `routes/account/Index.svelte` is
   pure navigation with no fetch at all — the first route in the SPA with no
@@ -128,23 +123,22 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   link in `routes/exports/Index.svelte` stays a plain anchor straight to
   `/api/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no
   way to reach the browser's save flow, and a GET needs no CSRF token anyway.
-  The anchor falls outside `BASE_PATH`, so `router.ts`'s `onLinkClick` already
-  leaves it alone.
+  The anchor carries `download`, so `router.ts`'s `onLinkClick` already leaves
+  it alone — that check runs before the (now-trivial, since Phase 7 flattened
+  `BASE_PATH` to `""`) same-origin check.
   `routes/login/` and `routes/register/` (Phase 6) are the two the rest of the
-  SPA has always assumed: `AuthMiddleware`'s guest exemption now covers
-  `/app/login` and `/app/register` alongside the legacy `/login`/`/register`,
-  so a guest can reach them without being bounced to the template login page.
+  SPA has always assumed: `AuthMiddleware`'s guest exemption covers `/login`
+  and `/register`, so a guest can reach them without being bounced elsewhere.
   Submitting posts to `/api/login`/`/api/register` through `lib/api.ts`, not a
   plain form post — a rejected credential has to redraw the same page with an
   error, which only a fetch call can do without a reload. Success is different:
   it navigates with `window.location.assign` rather than the client router,
   since `RenewToken`/session state is a boundary every piece of client-held
   state needs reset against (§5, Phase 6). That reachability is also what
-  finally answers `TODO.md`'s note on session-expiry redirects: `lib/api.ts`'s
-  `LOGIN_PATH` now points at `/app/login` instead of the legacy page, and the
-  one call that must not bounce a guest off its own page —
-  `Header.svelte`'s `/api/session` probe, now reachable from a guest route for
-  the first time — opts out with `skipAuthRedirect`.
+  answers `TODO.md`'s note on session-expiry redirects: `lib/api.ts`'s
+  `LOGIN_PATH` points at `/login`, and the one call that must not bounce a
+  guest off its own page — `Header.svelte`'s `/api/session` probe — opts out
+  with `skipAuthRedirect` there.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself (Phase 0.6): they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the

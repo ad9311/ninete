@@ -11,17 +11,16 @@ type quickExpenseRequestBody struct {
 	CategoryID int    `json:"category_id"`
 	// TZOffset is Date.getTimezoneOffset() from the client, sent explicitly.
 	// This is quick-add's own zone consumer (§3.6 of docs/spa-migration.md,
-	// "Consumer 2") and is not retired alongside the named date ranges: it has
-	// nothing to do with computeDateRange, and dropping it would silently
-	// resolve "today"/"yesterday" against UTC for any non-UTC user.
+	// "Consumer 2") and was not retired alongside the named date ranges: it has
+	// nothing to do with them, and dropping it would silently resolve
+	// "today"/"yesterday" against UTC for any non-UTC user.
 	TZOffset int `json:"tz_offset"`
 }
 
-// PostAPIExpensesQuick is PostExpensesQuick's JSON twin. When the description
-// has no remembered category yet, it answers 422 with a "category_id" field
-// entry rather than creating anything — the client shows a category picker and
-// resubmits with category_id set, the same two-step flow the template's
-// re-render did.
+// PostAPIExpensesQuick creates an expense from the quick-add input. When the
+// description has no remembered category yet, it answers 422 with a
+// "category_id" field entry rather than creating anything — the client shows a
+// category picker and resubmits with category_id set.
 func (h *Handler) PostAPIExpensesQuick(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)

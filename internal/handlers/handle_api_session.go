@@ -11,7 +11,7 @@ type apiSession struct {
 }
 
 // GetAPISession answers with the current user. The SPA shell needs it to render
-// chrome without a template, and it is the route the API middleware chain is
+// its chrome, and it is the route the API middleware chain is
 // verified through — a chi sub-router with no routes at all never builds its
 // middleware chain, so the group needs at least one.
 func (h *Handler) GetAPISession(w http.ResponseWriter, r *http.Request) {

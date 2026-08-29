@@ -65,12 +65,12 @@ type apiExpenseBudgetsResponse struct {
 	EditRows []apiBudgetEditRow `json:"edit_rows"`
 }
 
-// GetAPIExpenseBudgets is buildBudgetsPage's JSON twin. mode is sent by the
-// client rather than derived from a date_range key server-side, because the
-// API no longer receives the key — only the bounds it resolves to (§3.6 of
-// docs/spa-migration.md) — and mode is exactly the piece of client-side
-// knowledge (from budgetDateRanges' Value→Mode table, ported to the client)
-// that bounds alone cannot recover.
+// GetAPIExpenseBudgets renders the budgets view. mode is sent by the client
+// rather than derived from a date_range key server-side, because the API only
+// ever receives the bounds a named range resolves to (§3.6 of
+// docs/spa-migration.md); mode is exactly the piece of client-side knowledge
+// (the range→mode table, now living in the SPA) that bounds alone cannot
+// recover.
 func (h *Handler) GetAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
@@ -149,11 +149,11 @@ type expenseBudgetsRequestBody struct {
 	Amounts map[string]uint64 `json:"amounts"`
 }
 
-// PutAPIExpenseBudgets is PostExpensesBudgets's JSON twin: a zero amount
-// clears that category's budget, matching SaveExpenseBudgets's existing "zero
-// deletes" contract. An *omitted* category is left untouched rather than
-// cleared — SaveExpenseBudgets only visits the keys it is handed — so the
-// client posts every edit row, the way the template form posts every field.
+// PutAPIExpenseBudgets saves the budget edit rows. A zero amount clears that
+// category's budget, matching SaveExpenseBudgets's "zero deletes" contract.
+// An *omitted* category is left untouched rather than cleared —
+// SaveExpenseBudgets only visits the keys it is handed — so the client posts
+// every edit row rather than only the changed ones.
 func (h *Handler) PutAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)

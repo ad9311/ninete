@@ -21,10 +21,11 @@ import RecurrentExpensesShow from "./routes/recurrent_expenses/Show.svelte";
 import LoginIndex from "./routes/login/Index.svelte";
 import RegisterIndex from "./routes/register/Index.svelte";
 
-// The SPA is staged under /app/* until Phase 7 moves it to "/" (§7 decision
-// 2). Every route pattern below is relative to this — routes never mention it
-// themselves, so the Phase 7 move is a one-line change here.
-export const BASE_PATH = "/app";
+// The SPA lives at "/" since Phase 7 moved it off "/app/*" (§7 decision 2).
+// Every route pattern below is relative to this constant rather than the
+// literal, so isUnderBasePath/navigate/toRoutePath keep working unchanged
+// with an empty prefix.
+export const BASE_PATH = "";
 
 export interface RouteDef {
   /** Pattern relative to BASE_PATH, e.g. "/recurrent-expenses/:id/edit". */
@@ -98,7 +99,12 @@ function decodeParam(value: string): string {
   }
 }
 
-/** Segment-boundary prefix test: "/apple" is not under a BASE_PATH of "/app". */
+// Segment-boundary prefix test, kept for the Phase 7 BASE_PATH of "": every
+// same-origin path is under an empty base, including "/api/...". That is the
+// intent — the catch-all serves the shell for everything the API and /static
+// do not claim — but it means this can no longer be the check that keeps the
+// client router off a non-route link. onLinkClick's `download` and `target`
+// tests are what do that now (see routes/exports/Index.svelte).
 function isUnderBasePath(pathname: string): boolean {
   return pathname === BASE_PATH || pathname.startsWith(`${BASE_PATH}/`);
 }

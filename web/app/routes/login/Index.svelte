@@ -3,8 +3,11 @@
   // rather than staying inside the SPA (§5, Phase 6 note in
   // docs/spa-migration.md): RenewToken/session state is a boundary every
   // piece of client-held state needs reset against, and a hard navigation is
-  // the simplest way to get that. BASE_PATH itself, not "/", so the login
-  // that started inside the SPA lands back inside it.
+  // the simplest way to get that. `BASE_PATH || "/"` rather than BASE_PATH
+  // alone: BASE_PATH is "" since Phase 7, and location.assign("") resolves
+  // against the current document, which reloads /login instead of navigating
+  // to the dashboard. The fallback keeps the seam if the SPA is ever staged
+  // under a prefix again.
   import { APIRequestError, post } from "../../lib/api";
   import { BASE_PATH } from "../../router";
 
@@ -19,7 +22,7 @@
     pending = true;
     try {
       await post("/login", { email, password });
-      window.location.assign(BASE_PATH);
+      window.location.assign(BASE_PATH || "/");
     } catch (err) {
       error =
         err instanceof APIRequestError ? err.message : "Something went wrong.";

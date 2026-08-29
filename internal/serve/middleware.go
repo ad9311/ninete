@@ -40,17 +40,15 @@ func (*Server) WithTimeout(dur time.Duration) func(http.Handler) http.Handler {
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	guestRoutes := map[string]bool{
-		"/login":        true,
-		"/register":     true,
-		"/app/login":    true,
-		"/app/register": true,
+		"/login":    true,
+		"/register": true,
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Trailing slash trimmed before the lookup: guestRoutes matches exactly,
-		// but root.Get("/app/*") matches "/app/login/" too, so a bookmark
-		// carrying the slash would miss the exemption and bounce a guest away
-		// from the login page they asked for.
+		// but root.Get("/*") matches "/login/" too, so a bookmark carrying the
+		// slash would miss the exemption and bounce a guest away from the
+		// login page they asked for.
 		path := r.URL.Path
 		if path != "/" {
 			path = strings.TrimSuffix(path, "/")
@@ -196,7 +194,6 @@ func (s *Server) setTmplData(next http.Handler) http.Handler {
 			"isUserSignedIn": isUserSignedIn,
 			"currentUser":    currentUser,
 			"version":        prog.Version,
-			"indexBundle":    s.bundlePath("index"),
 			"appBundle":      s.bundlePath("app"),
 		}
 
@@ -296,10 +293,10 @@ const (
 // RemoteAddr, which realClientIP has already rewritten from the proxy's
 // forwarded header, so the key is the actual client rather than Caddy.
 //
-// The returned middleware is shared by every route it guards — /login,
-// /register and their /api twins — so a client draws on one budget rather than
-// one per route or one per chain. Call it once and pass the value around;
-// calling it again builds an independent counter and multiplies the allowance.
+// The returned middleware is shared by both routes it guards — /api/login and
+// /api/register — so a client draws on one budget rather than one per route.
+// Call it once and pass the value around; calling it again builds an
+// independent counter and multiplies the allowance.
 //
 // Disabled under ENV=test: the suite performs a hundred logins from one
 // synthetic address, which is exactly the pattern this blocks. The middleware
@@ -309,22 +306,7 @@ func (s *Server) authRateLimit() func(http.Handler) http.Handler {
 		return func(next http.Handler) http.Handler { return next }
 	}
 
-	return newAuthRateLimit(s.tooManyCredentialAttempts)
-}
-
-// tooManyCredentialAttempts answers a throttled credential attempt in the shape
-// the receiving chain speaks. One limiter guards both chains, so the response
-// cannot be fixed at construction time: the HTML error page goes through a
-// render helper, and the API chain drops setTmplData, so rendering it from
-// there panics in tmplData and the client gets a recovered, empty 500.
-func (s *Server) tooManyCredentialAttempts(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == apiPathPrefix || strings.HasPrefix(r.URL.Path, apiPathPrefix+"/") {
-		s.handlers.APITooManyRequests(w, r)
-
-		return
-	}
-
-	s.handlers.TooManyRequests(w, r)
+	return newAuthRateLimit(s.handlers.APITooManyRequests)
 }
 
 func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Handler {

@@ -89,7 +89,7 @@
     </h1>
     <nav class="card-actions" aria-label="Recurrent expense navigation">
       <a
-        href={`/app/recurrent-expenses/${id}/edit`}
+        href={`${BASE_PATH}/recurrent-expenses/${id}/edit`}
         class="card-action-link"
         aria-label="Edit recurrent expense"
         title="Edit recurrent expense"

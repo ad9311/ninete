@@ -19,8 +19,8 @@ type apiExpenseStatsResponse struct {
 	Data []apiExpenseStatRow `json:"data"`
 }
 
-// GetAPIExpensesStats is GetExpensesStats's JSON twin: explicit [start, end)
-// bounds instead of date_range+tz_offset (§3.6 of docs/spa-migration.md).
+// GetAPIExpensesStats answers the stats view. It takes explicit [start, end)
+// bounds rather than date_range+tz_offset (§3.6 of docs/spa-migration.md).
 func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)

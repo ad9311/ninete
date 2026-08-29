@@ -114,9 +114,9 @@ func (b recurrentExpenseRequestBody) toParams() logic.RecurrentExpenseParams {
 // Context Middleware
 // ----------------------------------------------------------------------------- //
 
-// APIRecurrentExpenseContext is RecurrentExpenseContext's JSON-answering
-// twin: a malformed or missing id answers the same 404 envelope every other
-// /api/* failure uses instead of the HTML not-found page.
+// APIRecurrentExpenseContext looks the recurrent expense up once for the
+// /api/recurrent-expenses/{id} subtree: a malformed or missing id answers the
+// same 404 envelope every other /api/* failure uses.
 func (h *Handler) APIRecurrentExpenseContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -145,16 +145,15 @@ func (h *Handler) APIRecurrentExpenseContext(next http.Handler) http.Handler {
 // ----------------------------------------------------------------------------- //
 
 // GetAPIRecurrentExpenses lists a user's recurrent expenses. ?archived=true
-// answers what /recurrent-expenses/archived renders on the template side —
-// one endpoint rather than two routes, now that the client router owns the
-// query string (§2.3 of docs/spa-migration.md).
+// answers the archived list — one endpoint rather than two routes, now that
+// the client router owns the query string (§2.3 of docs/spa-migration.md).
 func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
 
 	archived, _ := strconv.ParseBool(r.URL.Query().Get("archived"))
 
-	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"}, "")
+	opts := userScopedQueryOpts(r, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"})
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.RecurrentExpenseArchivedFilter(archived))
 
 	totalCount, err := h.store.CountRecurrentExpenses(ctx, opts.Filters)
@@ -201,7 +200,7 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 
 	h.WriteJSON(w, http.StatusOK, apiRecurrentExpenseListResponse{
 		Data:       data,
-		Pagination: newAPIPagination(newPaginationData(r, opts, totalCount, "")),
+		Pagination: newAPIPagination(newPaginationData(r, opts, totalCount)),
 	})
 }
 
@@ -254,8 +253,8 @@ func (h *Handler) PostAPIRecurrentExpenses(w http.ResponseWriter, r *http.Reques
 // because recurrentExpenseRequestBody has no pointer fields: an omitted key
 // decodes to the zero value and is written as one, so a body carrying only
 // "amount" would clear the tags and reset occurrence_limit to 0 (unlimited).
-// That matches the template form's POST, which also submits every field. A
-// real partial update means pointer fields here and a merge in toParams.
+// The client therefore submits every field. A real partial update means
+// pointer fields here and a merge in toParams.
 func (h *Handler) PutAPIRecurrentExpense(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
@@ -322,8 +321,7 @@ func (h *Handler) DeleteAPIRecurrentExpense(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PostAPIRecurrentExpenseUnarchive is the JSON twin of
-// PostRecurrentExpensesUnarchive: puts an archived recurrent expense back in
+// PostAPIRecurrentExpenseUnarchive puts an archived recurrent expense back in
 // rotation. Editing one never does this on its own — the owner has to ask.
 func (h *Handler) PostAPIRecurrentExpenseUnarchive(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

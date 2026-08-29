@@ -1,6 +1,6 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4 and 5 landed.
+Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4, 5 and 6 landed.
 Audience: the maintainer reading it once, and an agent picking up any single phase later
 without the conversation that produced it. Section 7 records the decisions already made — do
 not re-litigate them.
@@ -971,7 +971,7 @@ Destructive posts and the file download. Confirmation flows must stay at least a
 today's — a client-side `confirm()` is not equivalent to a form post. Export links stay plain
 anchors.
 
-### Phase 6 — Auth views
+### Phase 6 — Auth views — landed (#128)
 
 Login, register, logout. Last because they are the session boundaries: `RenewToken` and
 `Destroy` (`handle_auth.go:50/90/105/110`) invalidate every piece of client state the SPA is

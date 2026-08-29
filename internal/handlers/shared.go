@@ -15,11 +15,6 @@ const defaultPerPage = 15
 // cannot ask the database for an unbounded page.
 var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
 
-// PerPageChoices exposes the allowed page sizes to templates.
-func PerPageChoices() []int {
-	return slices.Clone(perPageChoices)
-}
-
 func normalizePerPage(raw string) int {
 	perPage, err := strconv.Atoi(raw)
 	if err != nil || !slices.Contains(perPageChoices, perPage) {
@@ -39,7 +34,6 @@ type PaginationData struct {
 	SortField   string
 	SortOrder   string
 	CategoryID  int
-	DateRange   string
 	Search      string
 	Tag         string
 	DateFrom    string
@@ -48,7 +42,7 @@ type PaginationData struct {
 }
 
 func userScopedQueryOpts(
-	r *http.Request, userID int, defaultSort repo.Sorting, defaultDateRange string,
+	r *http.Request, userID int, defaultSort repo.Sorting,
 ) repo.QueryOptions {
 	q := r.URL.Query()
 
@@ -89,21 +83,10 @@ func userScopedQueryOpts(
 		})
 	}
 
-	dateRangeKey := q.Get("date_range")
-	if dateRangeKey == "" {
-		dateRangeKey = defaultDateRange
-	}
-	if dr, ok := computeDateRange(dateRangeKey, parseTZOffset(r)); ok {
-		opts.Filters.FilterFields = append(opts.Filters.FilterFields,
-			repo.FilterField{Name: "date", Value: dr.start, Operator: ">="},
-			repo.FilterField{Name: "date", Value: dr.end, Operator: "<"},
-		)
-	}
-
 	return opts
 }
 
-func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, defaultDateRange string) PaginationData { //nolint:lll
+func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) PaginationData {
 	totalPages := 0
 	if opts.Pagination.PerPage > 0 {
 		totalPages = (totalCount + opts.Pagination.PerPage - 1) / opts.Pagination.PerPage
@@ -111,11 +94,6 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, 
 
 	q := r.URL.Query()
 	categoryID, _ := strconv.Atoi(q.Get("category_id"))
-
-	dateRange := q.Get("date_range")
-	if dateRange == "" {
-		dateRange = defaultDateRange
-	}
 
 	return PaginationData{
 		CurrentPage: opts.Pagination.Page,
@@ -127,7 +105,6 @@ func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int, 
 		SortField:   opts.Sorting.Field,
 		SortOrder:   opts.Sorting.Order,
 		CategoryID:  categoryID,
-		DateRange:   dateRange,
 	}
 }
 

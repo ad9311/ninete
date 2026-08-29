@@ -23,9 +23,9 @@ type apiDashboardResponse struct {
 	Data apiDashboardSummary `json:"data"`
 }
 
-// GetAPIDashboard is GetDashboard's JSON twin: explicit [start, end) bounds
-// for the current and prior month, computed client-side by
-// lib/dateRanges.ts, instead of tz_offset (§3.6 of docs/spa-migration.md).
+// GetAPIDashboard answers the dashboard cards. It takes explicit [start, end)
+// bounds for the current and prior month, computed client-side by
+// lib/dateRanges.ts, rather than a tz_offset (§3.6 of docs/spa-migration.md).
 func (h *Handler) GetAPIDashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)

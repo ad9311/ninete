@@ -2,10 +2,10 @@
 // `bun build` command line because Svelte components need a bundler plugin,
 // and the CLI has no flag for one.
 //
-// Entry points during the SPA migration (docs/spa-migration.md §3.9): the
-// Stimulus entry stays until Phase 7 removes it; Phase 1 adds the Svelte one
-// beside it. Sources live outside `web/static/`, which is served verbatim;
-// only the build output belongs under it.
+// One entry point, the Svelte SPA (docs/spa-migration.md §3.9) — Phase 7
+// removed the Stimulus entry that used to build alongside it. Sources live
+// outside `web/static/`, which is served verbatim; only the build output
+// belongs under it.
 //
 // Filenames carry a content hash (Phase 1, deferred from 0.1): each entry
 // builds separately so its output name is unambiguous, and the two filenames
@@ -25,10 +25,7 @@ interface Entry {
   path: string;
 }
 
-const entries: Entry[] = [
-  { name: "index", path: "web/static/js/index.ts" },
-  { name: "app", path: "web/app/index.ts" },
-];
+const entries: Entry[] = [{ name: "app", path: "web/app/index.ts" }];
 
 // The generation this build replaces. It is read *before* anything is written
 // and kept alive afterwards on purpose: scripts/deploy.sh builds the JS into
