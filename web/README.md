@@ -9,8 +9,9 @@ Three directories:
 - `web/app/` — Svelte sources for the SPA. **Never served.** Build output only ever lands in
   `web/static/js/build/`.
 
-Phase 7 of `docs/spa-migration.md` deleted every rendered page and moved the SPA from `/app/*` to
-`/`; Phase 8 dropped the templates that used to live under `web/views/`. `web/app/README.md` is
+Phase 7 of `docs/spa-migration.md` deleted every rendered page — and with them every template
+that used to live under `web/views/` — and moved the SPA from `/app/*` to `/`; Phase 8 is the
+documentation and dead-table cleanup that followed. `web/app/README.md` is
 the reference for the Svelte sources themselves — layout, naming, what goes in `lib/` vs.
 `components/` vs. `routes/`.
 
@@ -59,16 +60,17 @@ Served from `/static/*`, which is mounted on the root router **outside** the app
 chain. Serving an asset must never load a session or query the database — see the "Static assets
 stay off the app chain" invariant in `CLAUDE.md` before changing how these are served.
 
-Responses carry `Cache-Control: public, max-age=300`. Bundle filenames are content-hashed (see
-"The build" below), so the short window is only a habit at this point — a cache-busted deploy no
-longer strictly needs it.
+Responses carry `Cache-Control: public, max-age=300`. The JS bundle's filename is content-hashed
+(see "The build" below) and so is safe from a stale cache regardless, but `layout.css` and the
+images are not — the short window is what keeps a deploy from serving a stale stylesheet, so do
+not raise it without hashing those too.
 
 - `web/static/css/layout.css` — one hand-written stylesheet for the whole app. Design tokens are
   custom properties on `:root`. Theming swaps a `theme-light`/`theme-dark` class on `<html>`; the
   shell's inline nonce'd script sets it before first paint, and `web/app`'s theme handling
   persists the choice in `localStorage`. Linted with `stylelint` via `make lint-fix`.
-- `web/static/js/build/` — generated bundle, manifest and sibling CSS from component `<style>`
-  blocks. Git-ignored. Never edited by hand — see "The build" below.
+- `web/static/js/build/` — the generated bundle and its manifest. Git-ignored. Never edited by
+  hand — see "The build" below.
 - `web/static/img/` — currently just `favicon.ico`, referenced by the shell.
 
 ---
@@ -95,11 +97,16 @@ plugin the `bun build` CLI has no flag for.
 web/app/**                            sources, the single entry point (web/app/index.ts)
        ↓  bun run web/build.ts   (make build-static-js)
 web/static/js/build/app-<hash>.js     minified bundle, git-ignored, served from /static/*
-web/static/js/build/app-<hash>.css    component <style> blocks, compiled to a sibling file —
-                                       nothing is injected at runtime, so the CSP nonce never
-                                       enters the picture (docs/spa-migration.md §3.4)
 web/static/js/build/manifest.json     {"app": "app-<hash>.js"}
 ```
+
+- **No component carries a `<style>` block, and the build assumes it.** Styling lives in
+  `web/static/css/layout.css` (§5 decision 5, `web/app/README.md`), which the shell links
+  directly. A `<style>` block would make `bun-plugin-svelte` emit a sibling
+  `app-<hash>.css` that nothing links — and that `web/build.ts` then prunes, since its `keep`
+  set holds only the manifest's values. Adding component styles therefore means three edits at
+  once: record the CSS output in the manifest, link it from the shell, and wire `stylelint` up
+  to reach it.
 
 - **The bundle is git-ignored.** Run `make build-static-js` after editing any `.ts` or `.svelte`;
   `make dev` does it as part of its build, and the test suite depends on it because

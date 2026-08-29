@@ -11,7 +11,10 @@ be broken; this file holds the description that helps you find your way.
 3. It creates repository queries via `repo.New(app, sqlDB)`.
 4. It creates business logic via `logic.New(app, queries)`.
 5. It creates the HTTP server via `serve.New(app, store, sqlDB)` — the `*sql.DB` is handed over because the session store (`scs/sqlite3store`) persists sessions in the same database.
-6. It loads templates via `server.LoadTemplates()`.
+6. It loads the shell template via `server.LoadTemplates()`, then the asset manifest via
+   `server.LoadAssetManifest()` — in that order, because the manifest's missing-file branch
+   reads the loaded template map to tell "no `web/` tree at all" from "the bundle was never
+   built" (`internal/serve/manifest.go`).
 7. It starts HTTP serving via `server.Start()`.
 
 ## Request Flow (`internal/serve` -> `internal/handlers`)
@@ -25,16 +28,19 @@ be broken; this file holds the description that helps you find your way.
      not be swapped for chi's `middleware.RealIP`.
 3. `/static/*` is mounted on the root router by `setUpFileServer`, outside the app
    chain, and adds only a `Cache-Control` header (`staticCacheControl`, five
-   minutes — the bundle filenames carry no content hash, so the window stays short
-   and `http.FileServer` answers the revalidation with a 304 off `Last-Modified`).
-4. App middleware, for the two non-API, non-static routes — `GetApp` (the SPA shell catch-all)
-   and `POST /logout` (`setUpAppMiddlewares`, applied to a `chi` group), in order:
+   minutes — the JS bundle's filename is content-hashed, but `layout.css` and the
+   images are not, so the window stays short for their sake and `http.FileServer`
+   answers the revalidation with a 304 off `Last-Modified`).
+4. App middleware, for the three non-API, non-static routes — `GetApp` (the SPA shell catch-all),
+   `POST /logout` and `POST /csp-report` (`setUpAppMiddlewares`, applied to a `chi` group), in
+   order:
    - Session load/save (`scs`).
    - Request body limit, then a five-second timeout.
    - CSP nonce and headers (`contentSecurityPolicy`).
-   - CSRF middleware (`nosurf`).
-   - Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group. `NotFound`/`MethodNotAllowed` are registered on the group for that reason.
-   - Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`).
+   - CSRF middleware (`nosurf`), which exempts `/csp-report`: browsers post violation reports
+     automatically and carry no token.
+   - Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group, which is why `GetApp` is registered here rather than on the root router. Nothing registers `NotFound`/`MethodNotAllowed` on this group any more: the `/*` catch-all answers every unmatched path with the shell, and the client router shows its own "Not found". Only the `/api/*` group registers them (see below).
+   - Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`), and lets `/csp-report` through unauthenticated.
 5. Route-level context middleware may run for resource-specific lookups.
 6. Handler executes endpoint behavior in `internal/handlers`.
 7. Handler calls `logic.Store` methods.
@@ -153,19 +159,19 @@ corrupts data or silently disables `ON DELETE CASCADE`.
 
 ### `internal/serve`
 - **Role**: HTTP server infrastructure/lifecycle.
-- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`, `internal/serve/template_func.go`.
+- **Key files**: `internal/serve/serve.go`, `internal/serve/middleware.go`, `internal/serve/routes.go`, `internal/serve/template.go`, `internal/serve/manifest.go`.
 - **Responsibilities**:
 - Configure Chi router and SCS session manager.
 - Register global middleware and routes.
 - Configure CSRF and auth redirection.
 - Build and inject template/request context data.
-- Parse/cache templates and expose lookup callback to handlers.
-- Provide the template function map (`template_func.go`): currency and timestamp formatting, row summing, and the URL builders that carry sort, filter, search and pagination state across links.
+- Parse/cache the shell template and expose lookup/reload callbacks to handlers.
+- Read the asset manifest (`manifest.go`) and resolve the content-hashed bundle path handed to the shell.
 - Start and gracefully shut down HTTP server.
 
-The templates and static assets this package serves are documented in
-`web/README.md`, including the partial namespace, the template data contract and
-the CSP nonce rule.
+The shell template and static assets this package serves are documented in
+`web/README.md`, including the shell's data contract, the CSP nonce rule and the
+Svelte build chain.
 
 ### `internal/handlers`
 - **Role**: HTTP handlers and rendering.
