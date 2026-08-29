@@ -103,7 +103,7 @@ whichever command opens it first, so claim it deliberately once with
 `ENV=<env> ./build/migrate stamp` (or `make stamp`).
 
 **No `SELECT *` or `RETURNING *` in `internal/repo`.** Every file declares a
-columns constant (`expenseColumns`, `macroEntryColumns`, …) naming its table's
+columns constant (`expenseColumns`, `recurrentExpenseColumns`, …) naming its table's
 columns in physical order, and queries concatenate it. The `Scan` calls read
 positionally, so a reordered table would put values in the wrong struct fields
 with no error from SQLite or the driver.

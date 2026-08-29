@@ -117,9 +117,11 @@ The app will start at `http://localhost:8080` (or the port configured in `.env`)
 The development build:
 - Rebuilds the static JS bundle
 - Compiles the Go binary and runs it with `ENV=development`
-- Re-parses templates server-side on render (throttled), so template edits show up on the next
-  page load without recompiling — refresh the browser to see them. Navigation itself is
-  SPA-style via Turbo.
+- Re-parses the SPA shell template server-side on render (throttled), so edits to
+  `web/views/app/index.html` show up on the next page load without recompiling — refresh the
+  browser to see them. Editing anything under `web/app/` needs `make build-static-js` instead,
+  since the Svelte bundle is built ahead of time. Navigation itself never reaches the server:
+  `web/app/router.ts` handles it client-side.
 
 ### Other useful commands:
 
