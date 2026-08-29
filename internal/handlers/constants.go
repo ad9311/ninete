@@ -27,6 +27,13 @@ const (
 const (
 	AppLoginPath     = "/login"
 	AppDashboardPath = "/"
+
+	// ExportExpensesPath is on the page chain rather than under /api so an
+	// expired session redirects to the login page instead of answering a 401
+	// the browser cannot act on (see GetExportsExpenses). Like AppLoginPath, a
+	// bundle cannot import a Go constant: routes/exports/Index.svelte holds
+	// this literal a second time, and the two have to change together.
+	ExportExpensesPath = "/exports/expenses.json"
 )
 
 // -------------------------------------------------------------- //

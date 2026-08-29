@@ -121,11 +121,17 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   the same pattern `routes/recurrent_expenses/Show.svelte` already established
   for a single record — deliberate, not weaker, at account scale. The download
   link in `routes/exports/Index.svelte` stays a plain anchor straight to
-  `/api/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no
-  way to reach the browser's save flow, and a GET needs no CSRF token anyway.
-  The anchor carries `download`, so `router.ts`'s `onLinkClick` already leaves
-  it alone — that check runs before the (now-trivial, since Phase 7 flattened
-  `BASE_PATH` to `""`) same-origin check.
+  `/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no way
+  to reach the browser's save flow, and a GET needs no CSRF token anyway. That
+  path is on the page chain, not under `/api`, so an expired session redirects
+  to the login page — the API chain's `401` carries no `Location`, and a
+  navigation has nothing to follow. The anchor carries `rel="external"`, so
+  `router.ts`'s `onLinkClick` leaves it alone — that check runs before the
+  (now-trivial, since Phase 7 flattened `BASE_PATH` to `""`) same-origin check.
+  It is deliberately not `download`: that attribute also opts out, but it makes
+  the browser save whatever comes back, so an expired session would save the
+  login page as a file. `Content-Disposition: attachment` starts the save
+  instead, only when the response really is the export.
   `routes/login/` and `routes/register/` (Phase 6) are the two the rest of the
   SPA has always assumed: `AuthMiddleware`'s guest exemption covers `/login`
   and `/register`, so a guest can reach them without being bounced elsewhere.

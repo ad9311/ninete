@@ -103,8 +103,8 @@ function decodeParam(value: string): string {
 // same-origin path is under an empty base, including "/api/...". That is the
 // intent — the catch-all serves the shell for everything the API and /static
 // do not claim — but it means this can no longer be the check that keeps the
-// client router off a non-route link. onLinkClick's `download` and `target`
-// tests are what do that now (see routes/exports/Index.svelte).
+// client router off a non-route link. onLinkClick's `download`, `target` and
+// rel="external" tests are what do that now (see routes/exports/Index.svelte).
 function isUnderBasePath(pathname: string): boolean {
   return pathname === BASE_PATH || pathname.startsWith(`${BASE_PATH}/`);
 }
@@ -162,9 +162,10 @@ export function onPopState(handler: (path: string) => void): () => void {
   return () => window.removeEventListener("popstate", listener);
 }
 
-// An internal <a> is same-origin, under BASE_PATH, has no target/download
-// override, and was not already handled (a modifier click opens a new tab, a
-// prevented default means another handler claimed it).
+// An internal <a> is same-origin, under BASE_PATH, carries no override
+// (`target`, `download`, or rel="external"), and was not already handled (a
+// modifier click opens a new tab, a prevented default means another handler
+// claimed it).
 function isNavigableClick(
   event: MouseEvent,
   anchor: HTMLAnchorElement,
@@ -175,6 +176,10 @@ function isNavigableClick(
   }
   if (anchor.target && anchor.target !== "_self") return false;
   if (anchor.hasAttribute("download")) return false;
+  // rel="external" means the server owns this URL: let the browser make a real
+  // request so it can act on whatever comes back, a redirect included. The
+  // export link needs this — see routes/exports/Index.svelte.
+  if (anchor.relList.contains("external")) return false;
   if (anchor.origin !== window.location.origin) return false;
   // An in-page anchor ("#section", or any href landing on the current path with
   // a fragment) is the browser's job. Claiming it would preventDefault the

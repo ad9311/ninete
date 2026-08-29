@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -16,6 +17,13 @@ func (s *Server) setUpRoutes() {
 
 		root.Post(cspReportPath, s.handlers.PostCSPReport)
 		root.Post("/logout", s.handlers.PostLogout)
+
+		// The expense export. It answers with a file rather than a page, but
+		// it belongs to this chain and not to /api: it is reached by a plain
+		// anchor, so an expired session has to produce a redirect the browser
+		// can follow. Registered before the "/*" catch-all, which would
+		// otherwise serve the SPA shell for it.
+		root.Get(handlers.ExportExpensesPath, s.handlers.GetExportsExpenses)
 
 		// The SPA shell (docs/spa-migration.md, Phase 7). Wildcarded so every
 		// client route resolves on a hard refresh, including one the client
@@ -52,7 +60,6 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/session", s.handlers.GetAPISession)
 		api.Get("/categories", s.handlers.GetAPICategories)
 		api.Get("/dashboard", s.handlers.GetAPIDashboard)
-		api.Get("/exports/expenses.json", s.handlers.GetAPIExportsExpenses)
 
 		api.Route("/delete-data", func(deleteData chi.Router) {
 			deleteData.Get("/", s.handlers.GetAPIDeleteData)

@@ -6,12 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAPIExportsExpenses(t *testing.T) {
+func TestExportsExpenses(t *testing.T) {
 	s := spec.New(t)
 	handler := s.WrappedHandler()
 
@@ -20,13 +21,25 @@ func TestAPIExportsExpenses(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			name: "should_require_authentication",
+			// Not a standalone reproduction, and worth being exact about why:
+			// this passes even with the route deleted, because "/*" then
+			// serves the SPA shell and AuthMiddleware redirects that. What it
+			// pins is the pair — this case says the path redirects when
+			// signed out, the next says the same path really serves the
+			// export when signed in. Only both together rule out the bug,
+			// which was the export answering an expired session with the API
+			// chain's 401: no Location, nothing for a navigation to follow,
+			// so the browser saved the JSON error envelope as expenses.json.
+			// Move the route back under /api and the second case fails.
+			name: "should_redirect_a_signed_out_visitor_to_the_login_page",
 			fn: func(t *testing.T) {
-				req := spec.NewGetRequest("/api/exports/expenses.json", nil)
+				req := spec.NewGetRequest(handlers.ExportExpensesPath, nil)
 				rec := httptest.NewRecorder()
 				handler.ServeHTTP(rec, req)
 
-				require.Equal(t, http.StatusUnauthorized, rec.Code)
+				require.Equal(t, http.StatusSeeOther, rec.Code)
+				require.Equal(t, handlers.AppLoginPath, rec.Header().Get("Location"))
+				require.NotContains(t, rec.Header().Get("Content-Disposition"), "attachment")
 			},
 		},
 		{
@@ -46,7 +59,7 @@ func TestAPIExportsExpenses(t *testing.T) {
 					Tags: []string{"food"},
 				})
 
-				res, body := doJSON(t, handler, http.MethodGet, "/api/exports/expenses.json", nil, cookies, "")
+				res, body := doJSON(t, handler, http.MethodGet, handlers.ExportExpensesPath, nil, cookies, "")
 				require.Equal(t, http.StatusOK, res.StatusCode)
 				require.Contains(t, res.Header.Get("Content-Disposition"), "attachment")
 				require.Contains(t, res.Header.Get("Content-Disposition"), "expenses-")
