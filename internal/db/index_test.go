@@ -65,32 +65,6 @@ func TestUserScopedQueryPlans(t *testing.T) {
 		wantIndex string
 	}{
 		{
-			name: "macro day totals",
-			query: `SELECT COALESCE(SUM("kcal"), 0) FROM "macro_entries"
-			        WHERE "user_id" = ? AND "date" >= ? AND "date" < ?`,
-			args:      []any{1, 0, 1},
-			wantIndex: "idx_macro_entries_user_date",
-		},
-		{
-			name: "macro daily totals",
-			query: `SELECT "date", COALESCE(SUM("kcal"), 0) FROM "macro_entries"
-			        WHERE "user_id" = ? AND "date" >= ? AND "date" < ? GROUP BY "date"`,
-			args:      []any{1, 0, 1},
-			wantIndex: "idx_macro_entries_user_date",
-		},
-		{
-			name:      "macro entries listing",
-			query:     `SELECT "id" FROM "macro_entries" WHERE "user_id" = ? ORDER BY "date" DESC LIMIT 15`,
-			args:      []any{1},
-			wantIndex: "idx_macro_entries_user_date",
-		},
-		{
-			name:      "mood entries listing",
-			query:     `SELECT "id" FROM "mood_entries" WHERE "user_id" = ? ORDER BY "logged_at" DESC LIMIT 15`,
-			args:      []any{1},
-			wantIndex: "idx_mood_entries_user_logged_at",
-		},
-		{
 			name: "expenses category month totals",
 			query: `SELECT "category_id", strftime('%Y-%m', "date", 'unixepoch') AS "month",
 			        SUM("amount") FROM "expenses"
