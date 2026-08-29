@@ -52,7 +52,7 @@ func (s *Store) ExportExpenses(ctx context.Context, userID int) ([]ExportExpense
 		expenseIDs = append(expenseIDs, e.ID)
 	}
 
-	tagRows, err := s.queries.SelectTagRows(ctx, repo.TaggableTypeExpense, "expenses", expenseIDs, userID)
+	tagRows, err := s.queries.SelectTagRows(ctx, repo.TaggableExpense(), expenseIDs, userID)
 	if err != nil {
 		return nil, err
 	}

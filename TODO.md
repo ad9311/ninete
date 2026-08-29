@@ -36,47 +36,6 @@ Don't add a shared abstraction on top of it pre-emptively; reject-and-report
 (registration), silently-reuse (tags), and upsert (budgets) are different
 conflict semantics, not the same code three times.
 
-## A nested validation failure publishes the inner struct's field name
-
-`ValidationError.Fields` (`internal/logic/logic.go`) is keyed by
-`validator.FieldError.Field()`, which is the leaf Go field name — it says nothing
-about which struct the field belongs to. Every `ValidateStruct` call a use-case
-makes on a *secondary* params struct therefore lands in the same flat map as the
-request's own fields.
-
-The reachable case today is tags. `ensureTagsForUserTx` (`internal/logic/logic_tag.go`)
-validates one `TagParams{Name: name}` per tag, and `normalizeTagNames` does not
-truncate, so `POST /expenses` (or a recurrent expense) carrying a
-tag longer than 20 characters fails with `[Name:max]` — `fields` comes back as
-`{"name": "max"}`. None of those payloads has a `name` key; the offending value
-arrived under `tags`. A client that highlights inputs by field key marks nothing,
-and on an endpoint that *does* own a `name` field it would mark the wrong input.
-
-The same shape would appear for any future nested params struct sharing a field
-name with its parent, where the two entries would silently overwrite each other.
-
-Phase 2 should decide how a nested failure names itself — map the tag case onto
-`tags`, or key nested entries by a path rather than the leaf name — before the
-first endpoint that accepts tags is ported.
-
-## `SelectTagsForTaggable` takes its owner table as a plain string
-
-`SelectTagsForTaggable` (`internal/repo/tagging.go`) interpolates its
-`ownerTable` argument straight into the `INNER JOIN` of
-`selectTagsForTaggableBase` with `fmt.Sprintf`. Every caller today passes a
-literal — `"expenses"` and `"recurrent_expenses"` — so nothing is
-wrong at runtime, but the safety is a convention rather than something the type
-system or a whitelist enforces, unlike every other query in the package, where
-`QueryOptions` validates column names against `validExpenseFields()` and friends.
-
-The gosec exclusion added for `internal/repo` in `.golangci.yml` covers this
-call site along with the `QueryOptions` ones, so a future caller that passed a
-non-literal here would not be flagged.
-
-Give `ownerTable` a defined type with constants beside `TaggableTypeExpense`,
-so the pairing of taggable type and owner table is expressed once and a caller
-cannot supply an arbitrary string.
-
 ## An expired session on an `/api/*` link fails silently instead of redirecting
 
 `web/app/routes/exports/Index.svelte` points a plain `<a download>` at

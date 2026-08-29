@@ -104,12 +104,11 @@ func ExtractTagNames(tags []repo.Tag) []string {
 
 func (s *Store) FindTagRows(
 	ctx context.Context,
-	taggableType string,
-	joinTable string,
+	taggable repo.Taggable,
 	targetIDs []int,
 	userID int,
 ) ([]repo.TagRow, error) {
-	rows, err := s.queries.SelectTagRows(ctx, taggableType, joinTable, targetIDs, userID)
+	rows, err := s.queries.SelectTagRows(ctx, taggable, targetIDs, userID)
 	if err != nil {
 		return rows, err
 	}
@@ -120,12 +119,12 @@ func (s *Store) FindTagRows(
 func (s *Store) replaceTagsTx(
 	ctx context.Context,
 	tq *repo.TxQueries,
-	taggableType string,
+	taggable repo.Taggable,
 	targetID int,
 	userID int,
 	tagNames []string,
 ) error {
-	if err := tq.DeleteTaggingsByTarget(ctx, taggableType, targetID); err != nil {
+	if err := tq.DeleteTaggingsByTarget(ctx, taggable, targetID); err != nil {
 		return err
 	}
 
@@ -140,9 +139,9 @@ func (s *Store) replaceTagsTx(
 
 	for _, tag := range tags {
 		err := tq.InsertOrIgnoreTagging(ctx, repo.InsertTaggingParams{
-			TagID:        tag.ID,
-			TaggableID:   targetID,
-			TaggableType: taggableType,
+			TagID:      tag.ID,
+			TaggableID: targetID,
+			Taggable:   taggable,
 		})
 		if err != nil {
 			return err
@@ -164,8 +163,11 @@ func (s *Store) ensureTagsForUserTx(
 	}
 
 	for _, name := range tagNames {
+		// TagParams is a secondary struct: these names arrived under the
+		// request's "tags" key, not a "name" of its own, so a failure has to
+		// say "tags" rather than TagParams' leaf field name.
 		if err := s.ValidateStruct(TagParams{Name: name}); err != nil {
-			return nil, err
+			return nil, underField(err, "tags")
 		}
 
 		err := tq.InsertOrIgnoreTag(ctx, repo.InsertTagParams{

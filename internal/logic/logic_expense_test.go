@@ -2,6 +2,7 @@ package logic_test
 
 import (
 	"database/sql"
+	"strings"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/logic"
@@ -55,6 +56,34 @@ func TestCreateExpense(t *testing.T) {
 			fn: func(t *testing.T) {
 				_, err := s.Store.CreateExpense(ctx, user.ID, newExpenseParams(0, "no", 0, 0, nil))
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			// Genuine reproduction: before nested failures were re-keyed,
+			// TagParams' leaf field name reached the client as {"name": "max"}
+			// — a field this payload does not carry. The value arrived under
+			// "tags".
+			name: "should_report_an_over_long_tag_under_the_tags_field",
+			fn: func(t *testing.T) {
+				longTag := strings.Repeat("t", 21)
+
+				_, err := s.Store.CreateExpense(
+					ctx,
+					user.ID,
+					newExpenseParams(
+						category.ID,
+						"expense description over long tag",
+						550,
+						1735689600,
+						[]string{longTag},
+					),
+				)
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+
+				var valErr *logic.ValidationError
+				require.ErrorAs(t, err, &valErr)
+				require.Equal(t, map[string]string{"tags": "max"}, valErr.Fields)
+				require.NotContains(t, valErr.Fields, "name")
 			},
 		},
 	}
@@ -275,7 +304,7 @@ func TestFindExpenseTagsAndRows(t *testing.T) {
 				require.Equal(t, "tag_c_1", tags[1].Name)
 
 				ids := []int{expenseOne.ID, expenseTwo.ID}
-				rows, err := s.Store.FindTagRows(ctx, repo.TaggableTypeExpense, "expenses", ids, user.ID)
+				rows, err := s.Store.FindTagRows(ctx, repo.TaggableExpense(), ids, user.ID)
 				require.NoError(t, err)
 				require.Len(t, rows, 3)
 				require.Equal(t, expenseOne.ID, rows[0].TargetID)
@@ -297,7 +326,7 @@ func TestFindExpenseTagsAndRows(t *testing.T) {
 				require.NoError(t, err)
 				require.Empty(t, tags)
 
-				rows, err := s.Store.FindTagRows(ctx, repo.TaggableTypeExpense, "expenses", []int{}, user.ID)
+				rows, err := s.Store.FindTagRows(ctx, repo.TaggableExpense(), []int{}, user.ID)
 				require.NoError(t, err)
 				require.Empty(t, rows)
 			},
@@ -449,14 +478,14 @@ func TestDeleteExpense(t *testing.T) {
 					),
 				)
 
-				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, expense.ID)
+				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableExpense(), expense.ID)
 				require.NoError(t, err)
 				require.Equal(t, 1, count)
 
 				_, err = s.Store.DeleteExpense(ctx, expense.ID, user.ID)
 				require.NoError(t, err)
 
-				count, err = s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, expense.ID)
+				count, err = s.Queries.CountTaggingsByTarget(ctx, repo.TaggableExpense(), expense.ID)
 				require.NoError(t, err)
 				require.Equal(t, 0, count)
 			},

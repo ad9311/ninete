@@ -40,7 +40,7 @@ func (s *Store) FindExpense(ctx context.Context, id, userID int) (repo.Expense, 
 }
 
 func (s *Store) FindExpenseTags(ctx context.Context, expenseID, userID int) ([]repo.Tag, error) {
-	tags, err := s.queries.SelectTagsForTaggable(ctx, repo.TaggableTypeExpense, "expenses", expenseID, userID)
+	tags, err := s.queries.SelectTagsForTaggable(ctx, repo.TaggableExpense(), expenseID, userID)
 	if err != nil {
 		return tags, err
 	}
@@ -69,7 +69,7 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 			return txErr
 		}
 
-		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableExpense(), expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err
@@ -99,7 +99,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params Expens
 			return txErr
 		}
 
-		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableExpense(), expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err
@@ -122,7 +122,7 @@ func (s *Store) DeleteExpense(ctx context.Context, id, userID int) (int, error) 
 			return txErr
 		}
 
-		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeExpense, deletedID)
+		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableExpense(), deletedID)
 	})
 	if err != nil {
 		return 0, err

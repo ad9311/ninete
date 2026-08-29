@@ -494,7 +494,7 @@ func TestRecurrentExpenseTags(t *testing.T) {
 				_, err = s.Store.DeleteRecurrentExpense(ctx, re.ID, user.ID)
 				require.NoError(t, err)
 
-				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeRecurrentExpense, re.ID)
+				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableRecurrentExpense(), re.ID)
 				require.NoError(t, err)
 				require.Zero(t, count)
 			},

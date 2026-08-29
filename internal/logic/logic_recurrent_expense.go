@@ -49,8 +49,7 @@ func (s *Store) FindRecurrentExpense(ctx context.Context, id, userID int) (repo.
 func (s *Store) FindRecurrentExpenseTags(ctx context.Context, recurrentExpenseID, userID int) ([]repo.Tag, error) {
 	tags, err := s.queries.SelectTagsForTaggable(
 		ctx,
-		repo.TaggableTypeRecurrentExpense,
-		"recurrent_expenses",
+		repo.TaggableRecurrentExpense(),
 		recurrentExpenseID,
 		userID,
 	)
@@ -90,7 +89,7 @@ func (s *Store) CreateRecurrentExpense(
 		return s.replaceTagsTx(
 			ctx,
 			tq,
-			repo.TaggableTypeRecurrentExpense,
+			repo.TaggableRecurrentExpense(),
 			recurrentExpense.ID,
 			userID,
 			params.Tags,
@@ -133,7 +132,7 @@ func (s *Store) UpdateRecurrentExpense(
 		return s.replaceTagsTx(
 			ctx,
 			tq,
-			repo.TaggableTypeRecurrentExpense,
+			repo.TaggableRecurrentExpense(),
 			recurrentExpense.ID,
 			userID,
 			params.Tags,
@@ -160,7 +159,7 @@ func (s *Store) DeleteRecurrentExpense(ctx context.Context, id, userID int) (int
 			return txErr
 		}
 
-		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeRecurrentExpense, deletedID)
+		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableRecurrentExpense(), deletedID)
 	})
 	if err != nil {
 		return 0, err
@@ -217,9 +216,9 @@ func (s *Store) copyRecurrentExpense(ctx context.Context, re repo.RecurrentExpen
 
 		err = tq.CopyTaggings(
 			ctx,
-			repo.TaggableTypeRecurrentExpense,
+			repo.TaggableRecurrentExpense(),
 			re.ID,
-			repo.TaggableTypeExpense,
+			repo.TaggableExpense(),
 			expense.ID,
 		)
 		if err != nil {

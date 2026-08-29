@@ -231,7 +231,7 @@ func (s *Store) CreateQuickExpense(
 			return txErr
 		}
 
-		return s.replaceTagsTx(ctx, tq, repo.TaggableTypeExpense, expense.ID, userID, params.Tags)
+		return s.replaceTagsTx(ctx, tq, repo.TaggableExpense(), expense.ID, userID, params.Tags)
 	})
 	if err != nil {
 		return expense, err

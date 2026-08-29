@@ -182,7 +182,7 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 		ids = append(ids, re.ID)
 	}
 
-	tagRows, err := h.store.FindTagRows(ctx, repo.TaggableTypeRecurrentExpense, "recurrent_expenses", ids, user.ID)
+	tagRows, err := h.store.FindTagRows(ctx, repo.TaggableRecurrentExpense(), ids, user.ID)
 	if err != nil {
 		h.WriteAPIError(w, err)
 
