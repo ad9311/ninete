@@ -12,7 +12,7 @@ if a document is added, add it here too, or nobody will find it.
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
-| `docs/spa-migration.md` | **Migration complete (Phase 8).** Historical record of the staged plan that replaced the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
+| `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
@@ -24,7 +24,7 @@ if a document is added, add it here too, or nobody will find it.
 ## Project Scope
 NINETE is a personal tracking app for expenses. It has one user — the owner — and will almost certainly never have two people using it at the same time. Treat that as a fixed design constraint, not a temporary stage the project will grow out of.
 
-**Macros, foods and moods have been dropped.** The decision is recorded in `docs/spa-migration.md` §0 and the code was removed in that plan's Phase 0B. The *tables* survive until Phase 8, along with `internal/repo/{macro_entry,macro_goal,food,mood_entry}.go` and their column constants, so `TestColumnConstantsMatchSchema` keeps guarding the schema; those repo files have no callers on purpose. Do not revive the features and do not port them to the SPA. Expenses and what hangs off them — recurrent expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are what the app keeps.
+**Macros, foods and moods have been dropped.** The decision is recorded in `docs/spa-migration.md` §0, the code was removed in that plan's Phase 0B, and the `foods`, `macro_entries`, `macro_goals` and `mood_entries` tables — along with `internal/repo/{macro_entry,macro_goal,food,mood_entry}.go`, their column constants, and the `TestColumnConstantsMatchSchema` cases guarding them — were dropped in Phase 8. Do not revive the features and do not port them to the SPA. Expenses and what hangs off them — recurrent expenses, budgets, tags, categories, dashboard, exports, delete-data, auth — are what the app keeps.
 
 The app is still built multi-user and must stay that way: auth flows exist, and every table holding personal data is scoped by `user_id` (`categories` is the one shared lookup table). That scoping is an ownership and correctness boundary — a query that forgets `user_id` is a bug that leaks or destroys another account's data — and it is cheap to maintain. It is not an ambition to serve many people at once.
 
@@ -103,7 +103,7 @@ whichever command opens it first, so claim it deliberately once with
 `ENV=<env> ./build/migrate stamp` (or `make stamp`).
 
 **No `SELECT *` or `RETURNING *` in `internal/repo`.** Every file declares a
-columns constant (`expenseColumns`, `macroEntryColumns`, …) naming its table's
+columns constant (`expenseColumns`, `recurrentExpenseColumns`, …) naming its table's
 columns in physical order, and queries concatenate it. The `Scan` calls read
 positionally, so a reordered table would put values in the wrong struct fields
 with no error from SQLite or the driver.

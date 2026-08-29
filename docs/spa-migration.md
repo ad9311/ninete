@@ -1,10 +1,16 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: **complete as of Phase 8 (2026-08-29).** Every phase below landed and the app has run in
-production on the SPA since. This document is now a historical record, not a plan with work
-left in it — kept because comments throughout `web/app/` and `internal/` cite its sections as
-the rationale for a design decision. Read a cited section to understand *why*; do not treat
-anything here as an open task, and do not re-litigate a decision recorded in section 7.
+Status: **complete, Phase 8's table drop included (2026-08-29).** Every phase below landed,
+the app has run in production on the SPA since Phase 7, and the retired `foods`,
+`macro_entries`, `macro_goals` and `mood_entries` tables — along with their
+`internal/repo/` files — are gone. This document is now a historical record, not a plan with
+work left in it — kept because comments throughout `web/app/` and `internal/` cite its
+sections as the rationale for a design decision. Read a cited section to understand *why*; do
+not treat anything here as an open task, and do not re-litigate a decision recorded in
+section 7.
+
+Audience: the maintainer re-reading a decision, and an agent that needs the rationale behind a
+comment citing one of these sections without the conversation that produced it.
 
 **Starting point.** `main` has no Svelte tooling at all. A throwaway spike on
 `experiment/svelte-api` (commit `84b9d4a`) proved the pieces work together — Svelte 5 under
@@ -45,7 +51,8 @@ doing it in the wrong order wastes a phase.
    Stimulus controllers, nav links, and the macro half of the dashboard. **Done.**
 2. **Table removal — Phase 8, at the very end.** `foods`, `macro_entries`, `macro_goals`,
    `mood_entries`, and the `taggings` rows pointing at mood entries. Irreversible, and gated on
-   an export.
+   the owner confirming the data is no longer needed. **Done** — owner confirmed 2026-08-29
+   that no export was needed.
 
 **Why the code cannot wait for the cleanup phase.** Phase 2's pilot resource *was* Foods, and
 Phase 4 ported macros and moods with their Chart.js views. Deferring removal means porting 18
@@ -1056,9 +1063,15 @@ Then the second half of §0's removal — **the only irreversible step in this p
   column constant against a table that no longer exists.
 - The deploy ordering in `CLAUDE.md` says migrations apply while the previous binary is still
   serving, so a migration that removes something the running code reads errors until the
-  restart. This one is safe precisely because Phase 0B removed every caller a release earlier:
-  the running binary still contains those repo methods and never invokes them. That ordering is
-  the reason for the two-step split, not an accident of it.
+  restart. Phase 0B removed almost every caller a release earlier, which is the reason for the
+  two-step split. **One caller was not removed, and it matters:** `DeleteAllUserData`
+  (`internal/logic/logic_account.go`) still called `DeleteAllMacroEntriesByUser`,
+  `DeleteAllMacroGoalsByUser`, `DeleteAllFoodsByUser` and `DeleteAllMoodEntriesByUser`
+  deliberately, so a user who had rows there would not keep them after asking to delete all
+  their data. Phase 8 drops those calls in the same change as the tables, so between the
+  migration and the restart the previous binary answers `POST /api/delete-data` with
+  `no such table: macro_entries`. The whole delete runs in one transaction, so it rolls back
+  whole — nothing is half-deleted, and the request succeeds once the new binary is serving.
 
 ---
 
