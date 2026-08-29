@@ -434,6 +434,33 @@ func TestDeleteExpense(t *testing.T) {
 				require.ErrorIs(t, err, sql.ErrNoRows)
 			},
 		},
+		{
+			name: "should_delete_taggings_with_the_expense",
+			fn: func(t *testing.T) {
+				expense := s.CreateExpense(
+					t,
+					user.ID,
+					newExpenseParams(
+						category.ID,
+						"expense description 18",
+						1900,
+						1737331200,
+						[]string{"tag delete expense"},
+					),
+				)
+
+				count, err := s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, expense.ID)
+				require.NoError(t, err)
+				require.Equal(t, 1, count)
+
+				_, err = s.Store.DeleteExpense(ctx, expense.ID, user.ID)
+				require.NoError(t, err)
+
+				count, err = s.Queries.CountTaggingsByTarget(ctx, repo.TaggableTypeExpense, expense.ID)
+				require.NoError(t, err)
+				require.Equal(t, 0, count)
+			},
+		},
 	}
 
 	for _, tc := range cases {

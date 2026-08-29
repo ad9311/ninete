@@ -108,13 +108,27 @@ func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params Expens
 	return expense, nil
 }
 
+// DeleteExpense removes the record and its taggings together. The taggings row
+// points at the id, not at a foreign key, so leaving it behind would hand its
+// tags to whichever expense SQLite gives that rowid next.
 func (s *Store) DeleteExpense(ctx context.Context, id, userID int) (int, error) {
-	i, err := s.queries.DeleteExpense(ctx, id, userID)
+	var deletedID int
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var txErr error
+
+		deletedID, txErr = tq.DeleteExpense(ctx, id, userID)
+		if txErr != nil {
+			return txErr
+		}
+
+		return tq.DeleteTaggingsByTarget(ctx, repo.TaggableTypeExpense, deletedID)
+	})
 	if err != nil {
 		return 0, err
 	}
 
-	return i, nil
+	return deletedID, nil
 }
 
 func (s *Store) DeleteAllExpenses(ctx context.Context, userID int) error {

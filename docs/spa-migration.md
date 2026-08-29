@@ -1,9 +1,10 @@
 # Plan — Migrate NINETE to a Svelte SPA
 
-Status: approved 2026-08-22. Scope reduced 2026-08-23 — read §0 first. Phases 0.1–0.7, 0B, 1, 2, 3, 4, 5 and 6 landed.
-Audience: the maintainer reading it once, and an agent picking up any single phase later
-without the conversation that produced it. Section 7 records the decisions already made — do
-not re-litigate them.
+Status: **complete as of Phase 8 (2026-08-29).** Every phase below landed and the app has run in
+production on the SPA since. This document is now a historical record, not a plan with work
+left in it — kept because comments throughout `web/app/` and `internal/` cite its sections as
+the rationale for a design decision. Read a cited section to understand *why*; do not treat
+anything here as an open task, and do not re-litigate a decision recorded in section 7.
 
 **Starting point.** `main` has no Svelte tooling at all. A throwaway spike on
 `experiment/svelte-api` (commit `84b9d4a`) proved the pieces work together — Svelte 5 under
