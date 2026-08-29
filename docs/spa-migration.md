@@ -1031,8 +1031,15 @@ Exit: `web/views/` holds the shell and nothing else.
 
 Rewrite `web/README.md` (its template-partial namespace and Turbo/Stimulus sections become
 wrong), update `CLAUDE.md`'s route map, UI/Assets section and the render-helper invariant,
-update `docs/architecture.md`'s request flow. Remove dead Go helpers (`render.go`'s page
-helpers, `tmplData`, the template loader in `internal/serve/template.go`).
+update `docs/architecture.md`'s request flow.
+
+**Correction, found while doing this phase: `render.go`'s page helpers, `tmplData`, and the
+template loader in `internal/serve/template.go` are not dead.** `GetApp`
+(`internal/handlers/handle_app.go`) still calls `renderPage` → `render` → `tmplData` to serve the
+shell with its `cspNonce`/`csrfToken`/bundle-path values — it is the one render call Phase 7 left
+in the codebase, and `CLAUDE.md`'s "Render helpers need `setTmplData`" invariant already documents
+it as intentional. This line originally assumed that line of "dead Go helpers" would go away too;
+it does not, and none of it should be deleted.
 
 Then the second half of §0's removal — **the only irreversible step in this plan**:
 

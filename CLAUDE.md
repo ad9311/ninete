@@ -16,7 +16,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
-| `web/README.md` | How the directories under `web/` work and how code reaches the browser: template data contract, CSP nonce rule, the Svelte build chain. **Partly stale since Phase 7 removed the templates, Turbo and Stimulus — its rewrite is Phase 8's job; where it disagrees with this file's UI/Assets section or `web/app/README.md`, they win** | **Before editing anything under `web/`** |
+| `web/README.md` | How the directories under `web/` work and how code reaches the browser: the shell template's data contract, CSP nonce rule, the Svelte build chain | **Before editing anything under `web/`** |
 | `web/app/README.md` | Working rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, where tests go, and what lint and formatting cover | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
 | `README.md` | Setup, prerequisites, commands, troubleshooting | Running the project locally for the first time |
@@ -219,9 +219,8 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 ## UI/Assets Structure
 **The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page,
 dropped Turbo and Stimulus, and moved the app from `/app/*` to `/`. `web/app/README.md` is the
-reference for the Svelte sources — read it before adding a file there. `web/README.md` still
-describes the pre-Phase-7 world in places; Phase 8 owns its rewrite, so prefer this section and
-`web/app/README.md` where the two disagree.
+reference for the Svelte sources — read it before adding a file there. `web/README.md` covers the
+shell template and the build chain from source to browser.
 
 - **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
   entry point; `web/build.ts` bundles it.
