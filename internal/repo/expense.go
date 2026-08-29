@@ -331,11 +331,11 @@ func (q *TxQueries) UpdateExpense(
 
 const deleteExpense = `DELETE FROM "expenses" WHERE "id" = ? AND "user_id" = ? RETURNING "id"`
 
-func (q *Queries) DeleteExpense(ctx context.Context, id, userID int) (int, error) {
+func (q *TxQueries) DeleteExpense(ctx context.Context, id, userID int) (int, error) {
 	var i int
 
 	err := q.wrapQuery(deleteExpense, func() error {
-		row := q.db.QueryRowContext(ctx, deleteExpense, id, userID)
+		row := q.tx.QueryRowContext(ctx, deleteExpense, id, userID)
 
 		return row.Scan(&i)
 	})
