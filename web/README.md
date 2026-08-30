@@ -9,11 +9,9 @@ Three directories:
 - `web/app/` — Svelte sources for the SPA. **Never served.** Build output only ever lands in
   `web/static/js/build/`.
 
-Phase 7 of `docs/spa-migration.md` deleted every rendered page — and with them every template
-that used to live under `web/views/` — and moved the SPA from `/app/*` to `/`; Phase 8 is the
-documentation and dead-table cleanup that followed. `web/app/README.md` is
-the reference for the Svelte sources themselves — layout, naming, what goes in `lib/` vs.
-`components/` vs. `routes/`.
+There are no rendered pages: the SPA is served from `/`, and `web/views/` holds the shell alone.
+`docs/spa-migration.md` records how it got that way. `web/app/README.md` is the reference for the
+Svelte sources themselves — layout, naming, what goes in `lib/` vs. `components/` vs. `routes/`.
 
 ---
 

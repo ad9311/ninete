@@ -6,12 +6,12 @@ Only build output (`web/static/js/build/`) is served.
 
 Layout and naming rules: `docs/spa-migration.md` §3.9.
 
-- `index.ts` — entry point (Phase 1). Mounts `App.svelte` onto `#app`, the
+- `index.ts` — entry point. Mounts `App.svelte` onto `#app`, the
   mount point `web/views/app/index.html` renders.
 - `App.svelte` — the shell's chrome (`Header`, `Footer`, `Spinner`) and the
-  router's `$state`-held current path (Phase 1).
-- `router.ts` — the hand-rolled path router: `BASE_PATH` (`""` since Phase 7
-  moved the SPA to `/`), the `routes` match table, `matchRoute`/`toRoutePath`
+  router's `$state`-held current path.
+- `router.ts` — the hand-rolled path router: `BASE_PATH` (`""`, since the SPA
+  is served from `/`), the `routes` match table, `matchRoute`/`toRoutePath`
   (pure), and the two DOM listeners (`onPopState`, `onLinkClick`) App.svelte
   wires up in an effect. See `docs/spa-migration.md` §3.7.
   Prefer `` `${BASE_PATH}/...` `` over a hardcoded literal in a link — the
@@ -21,33 +21,35 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   boundary neither language can import across; `api.ts`'s `LOGIN_PATH` is the
   third copy. All three change together.
 - `lib/` — plain `.ts` modules, no components
-  - `api.ts` — the `/api/*` fetch wrapper (Phase 0.4). Every request goes
+  - `api.ts` — the `/api/*` fetch wrapper. Every request goes
     through it: it attaches `X-CSRF-Token` from the shell's
     `<meta name="csrf-token">` (nosurf's cookie is `HttpOnly`, so JS cannot read
     the token anywhere else), sends a `401` to `/login`, and turns the JSON
     error envelope into an `APIRequestError` carrying `status` and `fields`.
   - `dates.ts` — the three formatters from `localDateController` plus the
-    `YYYY-MM-DD` ⇄ epoch helpers (Phase 0.5). `formatDateUTC` is for calendar
+    `YYYY-MM-DD` ⇄ epoch helpers. `formatDateUTC` is for calendar
     dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
     epoch seconds in an `int64`, so nothing but that split keeps them apart.
     Read `docs/spa-migration.md` §3.6 before touching it.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
-    (Phase 2). Categories are a shared lookup table (CLAUDE.md), not a
+    Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
   - `currency.ts` — money helpers carrying over the retired `currency` template
-    function and `amountController.ts`'s cents conversion (Phase 2):
+    function and `amountController.ts`'s cents conversion:
     `formatCurrency` for display, `centsToInputValue`/`inputValueToCents` for
     a form field. Amounts are unsigned cents end to end, never a float.
     `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
     "left" amount) — `Intl`'s currency formatting already prints a leading
-    `-` for a negative value, so there is no second formatter (Phase 3).
+    `-` for a negative value, so there is no second formatter.
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
-    field (Phase 2). Normalization (lowercase, trim,
+    field. Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
     the same strings there and back.
-  - `dateRanges.ts` — the client-side twin of `computeDateRange`
-    (`internal/handlers/expense_shared.go`), ported one for one down to the
-    month arithmetic (Phase 3, §3.6 "Retiring `tz_offset` on the API side").
+  - `dateRanges.ts` — resolves named date ranges in the browser, the job the
+    server used to do before §3.6 ("Retiring `tz_offset` on the API side")
+    moved it client-side. There is no Go counterpart any more; the API takes
+    explicit bounds and `internal/handlers/expense_shared.go` only parses
+    them (`parseAPIDateBounds`).
     `computeDateRange(key)` resolves a named range (`this_month`, `six_months`,
     ...) to explicit UTC-midnight `[start, end)` epoch-second bounds using the
     browser's own local calendar — the same role `tz_offset` played
@@ -56,31 +58,25 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     (`dateRangeLabels`/`budgetDateRanges`) a select needs; the budget table
     also carries each range's month vs. months mode, since the API can no
     longer derive it from a key it never receives.
-- `components/` — shared, resource-agnostic components only. Phase 1 adds
-  `Header.svelte` (theme switch, session-aware nav dropdown, logout form —
-  ports `themeController`/`navController`), `Footer.svelte` (reads the shell's
-  `<meta name="version">`) and `Spinner.svelte` (the loading backdrop, §3.7 —
-  App.svelte subscribes it to `lib/pending.ts`, which `lib/api.ts` drives; no
-  route sets it by hand). `ThemeSwitch` stays inlined in `Header.svelte` rather than its own
-  file: it has exactly one caller, and rule 2 below reserves this directory for
-  things more than one resource uses. Phase 2 adds `Icon.svelte`: a single
-  lucide icon built with `createElement` and swapped into the DOM for the
-  placeholder element via an action, replacing `data-lucide` +
-  `createIcons()`'s scan (§2.3 of docs/spa-migration.md, "Per-component icon
-  rendering") — DOM APIs, not `{@html}`, so §3.4 rule 3's ban never enters it.
-  Phase 3 adds two more, both used by more than one resource already:
-  `LocalDate.svelte` ports `localDateController.ts`'s two display modes — a
-  calendar date with UTC getters, or an instant with local getters and a
-  `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte` ports
-  `dateHelpController.ts`'s tap-triggered popover (quick-add's date-format
-  help, the expense search panel's date-bounds help), closing on outside
-  click or Escape.
-- `routes/<resource>/` — mirrors `web/views/<resource>/`, one file per action.
-  Phase 1's match table held only a placeholder at `/`; Phase 2 replaced it
-  with the first real resource route (below), and Phase 4 finally replaces the
-  placeholder itself with `routes/dashboard/Index.svelte`.
-  `routes/recurrent_expenses/` (Phase 2, the pilot resource — §7 decision 12)
-  is the first full example: `Index.svelte`/`Archived.svelte` are thin
+- `components/` — shared, resource-agnostic components only:
+  `Header.svelte` (theme switch, session-aware nav dropdown, logout form),
+  `Footer.svelte` (reads the shell's `<meta name="version">`) and
+  `Spinner.svelte` (the loading backdrop, §3.7 — App.svelte subscribes it to
+  `lib/pending.ts`, which `lib/api.ts` drives; no route sets it by hand).
+  `ThemeSwitch` stays inlined in `Header.svelte` rather than its own file: it
+  has exactly one caller, and rule 2 below reserves this directory for things
+  more than one resource uses. `Icon.svelte` renders a single lucide icon,
+  built with `createElement` and swapped into the DOM for the placeholder
+  element via an action rather than one global `data-lucide` scan (§2.3 of
+  docs/spa-migration.md, "Per-component icon rendering") — DOM APIs, not
+  `{@html}`, so §3.4 rule 3's ban never enters it. `LocalDate.svelte` has two
+  display modes — a calendar date with UTC getters, or an instant with local
+  getters and a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
+  is a tap-triggered popover (quick-add's date-format help, the expense search
+  panel's date-bounds help), closing on outside click or Escape.
+- `routes/<resource>/` — one directory per resource, one file per action.
+  `routes/recurrent_expenses/` (the pilot resource — §7 decision 12) is the
+  fullest example: `Index.svelte`/`Archived.svelte` are thin
   wrappers around a shared `List.svelte` (one table, parameterized by
   `archived`, since §3.9 rule 1 keeps the two actions as separate files but
   the markup is identical); `New.svelte`/`Edit.svelte` wrap a shared
@@ -91,30 +87,27 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   reaches its route as a `search` prop — `App.svelte` tracks it separately
   from the matched path, since a page/sort/filter change must not remount the
   routed component the way a real path change does.
-  `routes/expenses/` (Phase 3) is the largest example: `List.svelte` adds a
-  search panel (description, tag, explicit `date_from`/`date_to`, a
-  billed/created toggle) on top of the category and date-range filters
-  Phase 2's List introduced, since the named date range now resolves
-  client-side via `lib/dateRanges.ts` instead of riding along as
+  `routes/expenses/` is the largest: `List.svelte` carries a search panel
+  (description, tag, explicit `date_from`/`date_to`, a billed/created toggle)
+  on top of the category and date-range filters, and the named date range
+  resolves client-side via `lib/dateRanges.ts` rather than riding along as
   `date_range`+`tz_offset`; `Form.svelte` adds a calendar-date field
   (`lib/dates.ts`'s `calendarDateToUnix`/`todayCalendarDate`); `New.svelte`
   toggles between it and `QuickAddForm.svelte`, which posts to
   `/expenses/quick` with an explicit `tz_offset` (§3.6's "Consumer 2" — quick
   add keeps a client zone even though the named ranges retire theirs) and
-  shows a category picker on the first `category_id` field error, mirroring
-  the template's re-render-to-ask-for-a-category flow without a page
-  reload; `Stats.svelte` and `Budgets.svelte` are their own routes, the
-  latter sending the `mode` (`month`/`months`) explicitly since the API
+  shows a category picker on the first `category_id` field error, asking for
+  a category without a page reload; `Stats.svelte` and `Budgets.svelte` are
+  their own routes, the latter sending the `mode` (`month`/`months`)
+  explicitly since the API
   no longer receives the range key it used to derive that from.
-  `routes/dashboard/` (Phase 4) is a single `Index.svelte` — the whole
-  resource is one action. §0 dropped the macro half of the card grid in
-  Phase 0B, so there is no date picker to port: the range is always this
-  month vs. last month, resolved client-side with two `computeDateRange`
-  calls (`lib/dateRanges.ts`, not `internal/handlers`'s function of the same
-  pre-Phase-7 name) and sent as `this_start`/`this_end`/`last_start`/`last_end`
-  to `/api/dashboard`.
-  `routes/account/`, `routes/delete_data/` and `routes/exports/` (Phase 5) are
-  the destructive-posts-and-a-download trio. `routes/account/Index.svelte` is
+  `routes/dashboard/` is a single `Index.svelte` — the whole resource is one
+  action. There is no date picker: the range is always this month vs. last
+  month, resolved client-side with two `computeDateRange` calls
+  (`lib/dateRanges.ts`) and sent as
+  `this_start`/`this_end`/`last_start`/`last_end` to `/api/dashboard`.
+  `routes/account/`, `routes/delete_data/` and `routes/exports/` are the
+  destructive-posts-and-a-download trio. `routes/account/Index.svelte` is
   pure navigation with no fetch at all — the first route in the SPA with no
   `$effect`. `routes/delete_data/Index.svelte` gates each `del()` call through
   `lib/api.ts` behind `confirm()`, the same pattern
@@ -127,31 +120,31 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   to the login page — the API chain's `401` carries no `Location`, and a
   navigation has nothing to follow. The anchor carries `rel="external"`, so
   `router.ts`'s `onLinkClick` leaves it alone — that check runs before the
-  (now-trivial, since Phase 7 flattened `BASE_PATH` to `""`) same-origin check.
+  same-origin check, which is trivial while `BASE_PATH` is `""`.
   It is deliberately not `download`: that attribute also opts out, but it makes
   the browser save whatever comes back, so an expired session would save the
   login page as a file. `Content-Disposition: attachment` starts the save
   instead, only when the response really is the export.
-  `routes/login/` and `routes/register/` (Phase 6) are the two the rest of the
-  SPA has always assumed: `AuthMiddleware`'s guest exemption covers `/login`
+  `routes/login/` and `routes/register/` are the two the rest of the SPA
+  assumes: `AuthMiddleware`'s guest exemption covers `/login`
   and `/register`, so a guest can reach them without being bounced elsewhere.
   Submitting posts to `/api/login`/`/api/register` through `lib/api.ts`, not a
   plain form post — a rejected credential has to redraw the same page with an
   error, which only a fetch call can do without a reload. Success is different:
   it navigates with `window.location.assign` rather than the client router,
   since `RenewToken`/session state is a boundary every piece of client-held
-  state needs reset against (§5, Phase 6). That reachability is also what
+  state needs reset against (§5). That reachability is also what
   answers `TODO.md`'s note on session-expiry redirects: `lib/api.ts`'s
   `LOGIN_PATH` points at `/login`, and the one call that must not bounce a
   guest off its own page — `Header.svelte`'s `/api/session` probe — opts out
   with `skipAuthRedirect` there.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
-  for the test setup itself (Phase 0.6): they fail when vitest can no longer
+  for the test setup itself: they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the
   client one, or when the jsdom opt-in stops working.
 
 The directory is bundled by `web/build.ts`, which takes `index.ts` as its one
-entry point; `lib/dates.ts` was unit-tested without a bundle since Phase 0.5.
+entry point; `lib/dates.ts` is unit-tested without a bundle.
 
 ## Tests
 
