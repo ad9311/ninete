@@ -236,7 +236,7 @@ shell template and the build chain from source to browser.
 - **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
   entry point; `web/build.ts` bundles it.
 - `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
-  carries its own `<html>` document — there is no shared layout and no partials any more.
+  carries its own `<html>` document — there is no shared chrome and no partials any more.
 - Static assets live under `web/static/` (for example css/js/img). `web/static/css/layout.css`
   is the single stylesheet.
 - Route definitions are the source of truth in `internal/serve/routes.go`; the client-side route
@@ -250,7 +250,6 @@ shell template and the build chain from source to browser.
 - **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`
   requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
   new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
-
 - **The shell must open with `{{ define "layout" }}`.** `parseTemplates`
   (`internal/serve/template.go`) executes it by that name; without the define it renders empty
   and returns a 500 at request time, not at startup. This is a template *name*, unrelated to the
