@@ -124,14 +124,15 @@ with no error from SQLite or the driver.
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
 
 Phase 7 of `docs/spa-migration.md` ("flip the switch") deleted every rendered page and moved the
-SPA from `/app/*` to `/`. Three Go routes are left outside `/api/*`:
+SPA from `/app/*` to `/`. These are the routes left outside `/api/*`:
 
 | Area | Routes | Handlers |
 | --- | --- | --- |
 | SPA shell | `/`, `/*` — a catch-all serving the shell for any non-API, non-static path. `/login` and `/register` are the guest-reachable exception in `AuthMiddleware`'s `guestRoutes` | `handle_app.go` |
 | Auth (non-API) | `POST /logout` | `handle_auth.go` |
 | Expense export | `GET /exports/expenses.json` — a file, but on the page chain: it is reached by a plain anchor, so an expired session must answer with a redirect the browser can follow, not the API chain's `401` | `handle_exports.go` |
-| Infrastructure | `/static/*`, `/csp-report` | `handle_csp_report.go` |
+| Infrastructure | `POST /csp-report` | `handle_csp_report.go` |
+| Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
 `/api/categories`, `/api/dashboard`, `/api/delete-data` (+
@@ -213,7 +214,7 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 - ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
 - Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
-- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `errs.go` (sentinel errors), `api.go` (JSON writers and the `/api/*` error mapping).
+- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `expense_search.go` (expense search/filter parsing), `errs.go` (sentinel errors), `api.go` (JSON writers and the `/api/*` error mapping).
 - Reads and deletes hang off `*Queries`; inserts and updates that participate in a transaction hang off `*TxQueries`. Multi-step writes go through `queries.WithTx`.
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
