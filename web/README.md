@@ -23,8 +23,10 @@ the reference for the Svelte sources themselves — layout, naming, what goes in
 document — there is no shared chrome and no partials any more, unlike the templates it replaced.
 It still opens with `{{ define "layout" }}`, and must: `parseTemplates` executes every view by
 that name, so removing the define renders an empty page and returns a 500 at request time, not at
-startup. The define is a template *name*, not the shared layout the SPA removed. It is still parsed and executed through the same machinery every other template used to
-go through (`internal/serve/template.go`'s `LoadTemplates`/`parseTemplates`,
+startup. The define is a template *name*, not the shared layout the SPA removed.
+
+It is still parsed and executed through the same machinery every other template used to go
+through (`internal/serve/template.go`'s `LoadTemplates`/`parseTemplates`,
 `internal/handlers/render.go`'s `render`/`renderPage`/`tmplData`), because it still needs
 per-request values injected server-side that a static file can't carry:
 
@@ -61,8 +63,8 @@ constraints decide whether it is reachable, and neither fails at build time:
 
 - **It must sit exactly one directory below `web/views`.** The glob in `template.go` uses `**`,
   which Go's `filepath.Glob` treats as a single path segment, not a recursive match. A view placed
-  directly in `web/views`, or nested two levels deep, is never parsed — `web/views/app/index.html`
-  is at the depth that works.
+  directly in `web/views`, or nested two levels deep, is never parsed —
+  `web/views/app/index.html` is at the depth that works.
 - **It needs a matching `handlers.TemplateName` constant.** Nothing checks the two agree at
   compile time; a mismatch logs `missing template` and returns a 500 at request time.
 
