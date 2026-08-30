@@ -75,8 +75,8 @@ never load a session or query the database.
 
 **Auth rate limit is one shared value** — `POST /api/login` and
 `POST /api/register` (the only two credential routes; there is no form-post
-pair any more) carry the same
-`authRateLimit()` middleware value, built once in `setUpAPIRoutes`, so a client
+pair any more) carry the same `authRateLimit()` middleware value, built once
+in `setUpAPIRoutes`, so a client
 draws on a single budget across both. Each call to `authRateLimit()` builds an
 independent counter, so calling it a second time multiplies the allowance
 against the same credentials. It is a no-op under `ENV=test` — the suite logs
@@ -86,8 +86,9 @@ in ~100 times from one address — and is covered directly in
 
 **Render helpers need `setTmplData`** — anything calling a render helper must sit
 inside the app middleware group, which is why `GetApp` (the only render call
-left in the codebase) is registered on the group rather than the root router. `tmplData` *panics* when the key is absent,
-so this is not a soft failure: the API chain drops `setTmplData`, and any
+left in the codebase) is registered on the group rather than the root router.
+`tmplData` *panics* when the key is absent, so this is not a soft failure: the
+API chain drops `setTmplData`, and any
 handler reachable from it — a fallback, a rate-limit handler — must use
 `api.go`'s JSON writers (`APINotFound`, `APITooManyRequests`, …) instead.
 
