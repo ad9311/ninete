@@ -1,8 +1,8 @@
 <script lang="ts">
-  // Ports delete_data/index.html. Each section's data-turbo-confirm form post
-  // becomes confirm() gating a real DELETE through lib/api.ts — the same
-  // deliberateness, not a weaker substitute (see routes/recurrent_expenses/
-  // Show.svelte's note on this pattern).
+  // Each section gates a real DELETE through lib/api.ts behind confirm().
+  // These are account-scale destructive actions, so the confirmation is
+  // deliberate (see routes/recurrent_expenses/Show.svelte's note on this
+  // pattern at resource scale).
   import { ArrowLeft } from "lucide";
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, del, get } from "../../lib/api";

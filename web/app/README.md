@@ -116,10 +116,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   `routes/account/`, `routes/delete_data/` and `routes/exports/` (Phase 5) are
   the destructive-posts-and-a-download trio. `routes/account/Index.svelte` is
   pure navigation with no fetch at all — the first route in the SPA with no
-  `$effect`. `routes/delete_data/Index.svelte` ports each `data-turbo-confirm`
-  form post as `confirm()` gating a real `del()` call through `lib/api.ts`,
-  the same pattern `routes/recurrent_expenses/Show.svelte` already established
-  for a single record — deliberate, not weaker, at account scale. The download
+  `$effect`. `routes/delete_data/Index.svelte` gates each `del()` call through
+  `lib/api.ts` behind `confirm()`, the same pattern
+  `routes/recurrent_expenses/Show.svelte` uses for a single record —
+  deliberate, at account scale. The download
   link in `routes/exports/Index.svelte` stays a plain anchor straight to
   `/exports/expenses.json`, outside `lib/api.ts`: a fetch response has no way
   to reach the browser's save flow, and a GET needs no CSRF token anyway. That
@@ -150,9 +150,8 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   compile a component, when it resolves Svelte's server build instead of the
   client one, or when the jsdom opt-in stops working.
 
-The directory is bundled from Phase 1 onward (`web/build.ts` adds `index.ts` as
-a second entry point, alongside the Stimulus one); `lib/dates.ts` was
-unit-tested without a bundle since Phase 0.5.
+The directory is bundled by `web/build.ts`, which takes `index.ts` as its one
+entry point; `lib/dates.ts` was unit-tested without a bundle since Phase 0.5.
 
 ## Tests
 

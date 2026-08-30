@@ -12,7 +12,7 @@ if a document is added, add it here too, or nobody will find it.
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
-| `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the templates + Turbo frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
+| `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
@@ -218,8 +218,8 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
-**The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page,
-dropped Turbo and Stimulus, and moved the app from `/app/*` to `/`. `web/app/README.md` is the
+**The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page
+and moved the app from `/app/*` to `/`. `web/app/README.md` is the
 reference for the Svelte sources — read it before adding a file there. `web/README.md` covers the
 shell template and the build chain from source to browser.
 

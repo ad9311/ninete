@@ -1,10 +1,9 @@
 <script lang="ts">
-  // Ports web/static/js/controllers/themeController.ts and navController.ts
-  // (docs/spa-migration.md §2.2): same localStorage key, same
-  // theme-light/theme-dark classes on <html>, same outside-click-closes
-  // dropdown behavior. The inline anti-FOUC script in the shell already set
-  // the class before this mounts; applying it again here matches what the
-  // Stimulus controller's connect() did too.
+  // Theme and nav behavior for the shell (docs/spa-migration.md §2.2):
+  // localStorage key `theme`, theme-light/theme-dark classes on <html>, and an
+  // outside click closing the dropdown. The inline anti-FOUC script in the
+  // shell already set the class before this mounts, so applying it again here
+  // is a re-assertion, not the first write.
   import { get, csrfToken } from "../lib/api";
   import { BASE_PATH } from "../router";
 
