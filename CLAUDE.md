@@ -74,8 +74,8 @@ router by `setUpFileServer`, outside `setUpAppMiddlewares`. Serving an asset mus
 never load a session or query the database.
 
 **Auth rate limit is one shared value** — `POST /api/login` and
-`POST /api/register` (the only two credential routes since Phase 7 of
-`docs/spa-migration.md` retired the legacy form-post pair) carry the same
+`POST /api/register` (the only two credential routes; there is no form-post
+pair any more) carry the same
 `authRateLimit()` middleware value, built once in `setUpAPIRoutes`, so a client
 draws on a single budget across both. Each call to `authRateLimit()` builds an
 independent counter, so calling it a second time multiplies the allowance
@@ -85,9 +85,8 @@ in ~100 times from one address — and is covered directly in
 `internal/serve/routes_internal_test.go` instead.
 
 **Render helpers need `setTmplData`** — anything calling a render helper must sit
-inside the app middleware group, which is why `GetApp` (the only remaining
-render call since Phase 7 of `docs/spa-migration.md`) is registered on the
-group rather than the root router. `tmplData` *panics* when the key is absent,
+inside the app middleware group, which is why `GetApp` (the only render call
+left in the codebase) is registered on the group rather than the root router. `tmplData` *panics* when the key is absent,
 so this is not a soft failure: the API chain drops `setTmplData`, and any
 handler reachable from it — a fallback, a rate-limit handler — must use
 `api.go`'s JSON writers (`APINotFound`, `APITooManyRequests`, …) instead.
@@ -132,8 +131,8 @@ with no error from SQLite or the driver.
 ## Feature and Route Map
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
 
-Phase 7 of `docs/spa-migration.md` ("flip the switch") deleted every rendered page and moved the
-SPA from `/app/*` to `/`. These are the routes left outside `/api/*`:
+The SPA is served from `/` and there are no rendered pages. These are the routes outside
+`/api/*`:
 
 | Area | Routes | Handlers |
 | --- | --- | --- |
@@ -228,15 +227,14 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 
 ## UI/Assets Structure
-**The frontend is a Svelte SPA.** Phase 7 of `docs/spa-migration.md` deleted every rendered page
-and moved the app from `/app/*` to `/`. `web/app/README.md` is the
-reference for the Svelte sources — read it before adding a file there. `web/README.md` covers the
-shell template and the build chain from source to browser.
+**The frontend is a Svelte SPA**, served from `/`, with no rendered pages. `web/app/README.md`
+is the reference for the Svelte sources — read it before adding a file there. `web/README.md`
+covers the shell template and the build chain from source to browser.
 
 - **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
   entry point; `web/build.ts` bundles it.
 - `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
-  carries its own `<html>` document — there is no shared layout and no partials any more.
+  carries its own `<html>` document — there is no shared chrome and no partials any more.
 - Static assets live under `web/static/` (for example css/js/img). `web/static/css/layout.css`
   is the single stylesheet.
 - Route definitions are the source of truth in `internal/serve/routes.go`; the client-side route
@@ -250,22 +248,17 @@ shell template and the build chain from source to browser.
 - **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`
   requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
   new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
-
-Frontend failures that produce no build error and no obvious symptom:
-
-- **The shell must define `{{ define "layout" }}`.** `parseTemplates`
-  (`internal/serve/template.go`) executes each view by that name; a view without the define
-  renders empty and returns a 500 at request time, not at startup.
-- **Templates live exactly one directory below `web/views`.** The glob in `template.go` uses
-  `**`, which Go's `filepath.Glob` treats as a single path segment, not a recursive match. A
-  view placed directly in `web/views`, or nested two levels deep, is never parsed.
-- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks the two agree at
-  compile time; a mismatch logs `missing template` and returns a 500 at request time.
-- **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
-  Without it the browser drops the tag and posts to `/csp-report`.
+- **The shell must open with `{{ define "layout" }}`.** `parseTemplates`
+  (`internal/serve/template.go`) executes it by that name; without the define it renders empty
+  and returns a 500 at request time, not at startup. This is a template *name*, unrelated to the
+  shared page chrome the SPA removed — do not delete it as leftover.
 - **Never hardcode a path prefix in a link.** Write ``href={`${BASE_PATH}/...`}``; `BASE_PATH`
   is `""` today, and `router.ts`'s `onLinkClick` therefore claims *every* same-origin anchor.
   A link that must reach the server directly (the export download) needs `rel="external"`, or
   the client router swallows it. `download` also opts out, but it makes the browser save
   whatever comes back — including a redirect to the login page — so it belongs only on a URL
   that can never answer with anything but the file.
+
+The CSP nonce rule and the constraints on *adding* a view — the `filepath.Glob` depth limit and
+the `handlers.TemplateName` match — are in `web/README.md`'s shell-template section, which owns
+the template machinery.
