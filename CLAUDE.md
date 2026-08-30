@@ -15,7 +15,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
-| `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored, exists only on the maintainer's machine and the host | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
+| `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored here — it is a symlink into the private `ninete-secrets` repo (see below) | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
 | `web/README.md` | How the directories under `web/` work and how code reaches the browser: the shell template's data contract, CSP nonce rule, the Svelte build chain | **Before editing anything under `web/`** |
 | `web/app/README.md` | Working rules for the Svelte sources: what belongs in `lib/`, `components/`, `routes/<resource>/`, where tests go, and what lint and formatting cover | Before adding a file under `web/app/` |
 | `TODO.md` | Known bugs and follow-up work deliberately left out of the change that surfaced them | Before reporting a bug as new, and before "fixing" something adjacent |
@@ -37,6 +37,15 @@ for this app. See `docs/performance.md` for what is worth the effort instead.
 Production runs on a single Linux VPS with a standard FHS layout — no containers. `docs/deployment.md` covers the deploy script chain, the systemd unit, Caddy, migrations, and rollback. Read it before answering anything about how the app runs in production.
 
 Host specifics — exact paths, the service account, the hostname, cron, and the list of known gaps — are in `docs/deployment.local.md`, which is git-ignored because this repository is public. Keep it that way: a note that helps someone write code belongs in `deployment.md`, a note that helps someone reach the box belongs in `deployment.local.md`.
+
+That path is a **symlink into the private `ninete-secrets` repo**, which must be cloned as a sibling of this one. The parent directory can be named anything — the link is relative — so long as the two checkouts share it:
+
+```
+<parent>/ninete/docs/deployment.local.md -> ../../ninete-secrets/deployment.local.md
+<parent>/ninete-secrets/deployment.local.md
+```
+
+On a machine where `ninete-secrets` is not cloned the symlink dangles and the file simply reads as absent, which is the case the row above already tells you to assume. `/docs/*.local.md` in `.gitignore` covers the symlink itself, so it never lands in this public repo.
 
 Four facts from it that change how code should be written:
 - `prog.Load()` skips `.env` when `ENV=production`, so production config comes only from the process environment (systemd `EnvironmentFile=/etc/ninete/env`). A new config value must be added there, not to a `.env` on the host.
