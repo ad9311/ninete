@@ -22,9 +22,7 @@
   // §3.7 calls this a router-level flag, but the router is the wrong owner: it
   // knows a route changed, not that the route is still fetching, so a flag it
   // set would clear before the first row arrived. lib/pending.ts counts
-  // requests in flight instead and lib/api.ts drives it, which is also what
-  // Turbo's bar effectively covered — every visit and form submission it
-  // showed for was an HTTP request.
+  // requests in flight instead and lib/api.ts drives it.
   let pending = $state(false);
 
   function syncLocation(nextPath: string): void {

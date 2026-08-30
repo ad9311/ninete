@@ -1,8 +1,6 @@
 <script lang="ts">
-  // data-turbo-confirm in the legacy show.html is Turbo's wrapper around
-  // window.confirm() before it submits the form — calling confirm() directly
-  // here is the same deliberateness, not a weaker substitute (§5, Phase 5
-  // note in docs/spa-migration.md about confirm() applies to destructive
+  // Destructive actions call window.confirm() directly before the request
+  // (§5, Phase 5 note in docs/spa-migration.md covers confirm() for
   // account-wide actions; this is the same mechanism at resource scale).
   import { Repeat, SquarePen } from "lucide";
   import Icon from "../../components/Icon.svelte";

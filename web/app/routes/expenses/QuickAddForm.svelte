@@ -1,9 +1,8 @@
 <script lang="ts">
-  // Ports expenses/_quick_form.html (define "quick_expense_form"). tz_offset
-  // rides on the request explicitly rather than a Turbo hook injecting it —
-  // §3.6 of docs/spa-migration.md, "Consumer 2": quick-add's relative dates
-  // ("today", "yesterday") still need the client's own zone, and that has
-  // nothing to do with the named date ranges §3.6 retires from the API.
+  // tz_offset rides on the request explicitly — §3.6 of
+  // docs/spa-migration.md, "Consumer 2": quick-add's relative dates ("today",
+  // "yesterday") need the client's own zone, and that has nothing to do with
+  // the named date ranges §3.6 retires from the API.
   import { APIRequestError, post } from "../../lib/api";
   import { fetchCategories, type Category } from "../../lib/categories";
   import { navigate } from "../../router";

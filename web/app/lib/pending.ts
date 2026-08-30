@@ -1,18 +1,15 @@
-// The router-level loading flag (§3.7 of docs/spa-migration.md), replacing
-// Turbo's progress bar. Turbo drove its bar from navigation, but every visit it
-// covered was an HTTP request, and the SPA's equivalent unit is the same: a
-// route that fetches on mount, a form that submits. So the counter lives here
-// and `lib/api.ts` drives it from `request()`, which means a new route or a new
+// The router-level loading flag (§3.7 of docs/spa-migration.md). The unit of
+// work worth showing feedback for is an HTTP request, not a navigation: a route
+// that fetches on mount, a form that submits. So the counter lives here and
+// `lib/api.ts` drives it from `request()`, which means a new route or a new
 // resource gets the feedback without wiring anything — the failure this
 // replaces was a flag the router owned that no route ever set.
 //
 // No runes: §3.9 rule 3 keeps `lib/` component-free, and the tests run under
 // the node environment. App.svelte holds the `$state` and subscribes.
 
-// Carried over from Turbo's progressBarDelay, which this replaced (Phase 7 of
-// docs/spa-migration.md deleted the Turbo entry point). Requests that settle
-// inside it show nothing at all, which is the point: a
-// warm local fetch would otherwise flash the backdrop on every click.
+// Requests that settle inside this window show nothing at all, which is the
+// point: a warm local fetch would otherwise flash the backdrop on every click.
 export const PROGRESS_DELAY_MS = 250;
 
 type Listener = (visible: boolean) => void;

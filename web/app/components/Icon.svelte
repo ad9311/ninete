@@ -1,8 +1,7 @@
 <script lang="ts">
-  // Single-icon replacement for the data-lucide + createIcons() DOM scan that
-  // lib/icons.ts used to run (deleted in Phase 7): it fired on
-  // turbo:load/turbo:render and has no equivalent lifecycle event in the SPA
-  // (§2.3 of docs/spa-migration.md:
+  // Icons mount per component rather than through one global data-lucide +
+  // createIcons() DOM scan: there is no app-wide lifecycle event to hang a
+  // one-shot scan on (§2.3 of docs/spa-migration.md:
   // "Per-component icon rendering"). Builds the real <svg> via lucide's own
   // createElement and swaps it in for the placeholder element — DOM APIs, not
   // innerHTML, so §3.4 rule 3's {@html} ban never enters the picture. The
@@ -20,9 +19,9 @@
 
   function mount(node: HTMLElement) {
     const svg = createElement(icon, className ? { class: className } : {});
-    // createIcons() carried the placeholder's own attributes (here, just
-    // aria-hidden) onto the generated svg; this does the same so the icon
-    // stays hidden from assistive tech instead of reaching it unlabeled.
+    // Carry the placeholder's own attributes (here, just aria-hidden) onto
+    // the generated svg so the icon stays hidden from assistive tech instead
+    // of reaching it unlabeled.
     for (const attr of Array.from(node.attributes)) {
       svg.setAttribute(attr.name, attr.value);
     }

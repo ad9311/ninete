@@ -2,8 +2,7 @@
 // `bun build` command line because Svelte components need a bundler plugin,
 // and the CLI has no flag for one.
 //
-// One entry point, the Svelte SPA (docs/spa-migration.md §3.9) — Phase 7
-// removed the Stimulus entry that used to build alongside it. Sources live
+// One entry point, the Svelte SPA (docs/spa-migration.md §3.9). Sources live
 // outside `web/static/`, which is served verbatim; only the build output
 // belongs under it.
 //

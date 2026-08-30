@@ -19,9 +19,9 @@ if (
 
 export default [
   {
-    // Every TS source under web/: the Stimulus entry, the build script, and
-    // the Svelte sources in web/app/. Scoping this to web/static/js/ let
-    // web/build.ts through unlinted.
+    // Every TS source under web/: the build script and the Svelte sources in
+    // web/app/. Scoping this to web/static/js/ let web/build.ts through
+    // unlinted.
     files: ["web/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
