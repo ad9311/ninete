@@ -251,21 +251,17 @@ shell template and the build chain from source to browser.
   requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
   new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
 
-Frontend failures that produce no build error and no obvious symptom:
-
-- **The shell must define `{{ define "layout" }}`.** `parseTemplates`
-  (`internal/serve/template.go`) executes each view by that name; a view without the define
-  renders empty and returns a 500 at request time, not at startup.
-- **Templates live exactly one directory below `web/views`.** The glob in `template.go` uses
-  `**`, which Go's `filepath.Glob` treats as a single path segment, not a recursive match. A
-  view placed directly in `web/views`, or nested two levels deep, is never parsed.
-- **A view needs a matching `handlers.TemplateName` constant.** Nothing checks the two agree at
-  compile time; a mismatch logs `missing template` and returns a 500 at request time.
-- **Inline `<script>` and `<style>` must carry `nonce="{{ .cspNonce }}"`.**
-  Without it the browser drops the tag and posts to `/csp-report`.
+- **The shell must open with `{{ define "layout" }}`.** `parseTemplates`
+  (`internal/serve/template.go`) executes it by that name; without the define it renders empty
+  and returns a 500 at request time, not at startup. This is a template *name*, unrelated to the
+  shared page chrome the SPA removed — do not delete it as leftover.
 - **Never hardcode a path prefix in a link.** Write ``href={`${BASE_PATH}/...`}``; `BASE_PATH`
   is `""` today, and `router.ts`'s `onLinkClick` therefore claims *every* same-origin anchor.
   A link that must reach the server directly (the export download) needs `rel="external"`, or
   the client router swallows it. `download` also opts out, but it makes the browser save
   whatever comes back — including a redirect to the login page — so it belongs only on a URL
   that can never answer with anything but the file.
+
+The CSP nonce rule and the constraints on *adding* a view — the `filepath.Glob` depth limit and
+the `handlers.TemplateName` match — are in `web/README.md`'s shell-template section, which owns
+the template machinery.
