@@ -77,7 +77,10 @@
           </tr>
           <tr>
             <th>Description</th>
-            <td>{expense.description}</td>
+            <!-- `.data-table td:last-child` is nowrap for the list tables'
+              action column; every cell here is a last child, and a 50-character
+              description has to be allowed to wrap on a phone. -->
+            <td class="whitespace-normal">{expense.description}</td>
           </tr>
           <tr>
             <th>Amount</th>

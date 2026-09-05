@@ -48,8 +48,10 @@
   let refreshToken = $state(0);
 
   // The multi-month rows render the same three-part header whether or not the
-  // category has a budget — one is a <summary>, the other a <div>.
-  const budgetRowClass = "flex cursor-pointer items-center gap-3";
+  // category has a budget — one is a <summary>, the other a <div>. The pointer
+  // cursor is not part of it: the <div> expands nothing, so it would promise a
+  // click that does not exist.
+  const budgetRowClass = "flex items-center gap-3";
 
   // Locally editable amounts for the edit form, keyed by category id.
   let amountInputs = $state<Record<number, string | number>>({});
@@ -190,7 +192,7 @@
               <td colspan="3">
                 {#if row.has_budget}
                   <details>
-                    <summary class={budgetRowClass}>
+                    <summary class="{budgetRowClass} cursor-pointer">
                       <span class="font-medium">{row.category_name}</span>
                       <span class="font-semibold">
                         {formatCurrency(row.total)}

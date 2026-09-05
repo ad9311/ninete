@@ -236,16 +236,24 @@
     navigate(buildHref(overrides));
   }
 
-  // The search row's fields share a shape; the date pair narrows it. Written
-  // once rather than repeated across four labels, which is where the widths
-  // drifted apart before.
-  const searchFieldClass =
-    "text-muted inline-flex min-w-0 flex-1 basis-48 items-center gap-2 max-md:basis-auto";
+  // The search row's fields share a shape; the two strings below narrow it.
+  // Written once rather than repeated across four labels, which is where the
+  // widths drifted apart before.
+  //
+  // The shared string carries no `flex`/`flex-basis` of its own: the date
+  // labels append `dateFieldClass` to it, and Tailwind resolves two utilities
+  // setting the same property by their order in the *generated stylesheet*,
+  // not by their order in the attribute. A `basis-48` left in here would
+  // therefore beat the date fields' `basis-40` rather than losing to it.
+  const searchFieldClass = "text-muted inline-flex min-w-0 items-center gap-2";
+  // The description and tag fields, which grow into the spare width.
+  const textFieldClass = "flex-1 basis-48 max-md:basis-auto";
   // Fixed rather than growing: if the date inputs absorbed the spare width
   // there would be no free space for justify-end to push the cluster right. On
-  // a narrow screen they share the row instead.
+  // a narrow screen they share the row instead. `shrink` is spelled out
+  // because `flex-none` sets the whole shorthand, flex-shrink: 0 included.
   const dateFieldClass =
-    "flex-none basis-40 max-md:flex-1 max-md:basis-0 max-md:gap-1";
+    "flex-none shrink basis-40 max-md:flex-1 max-md:basis-0 max-md:gap-1";
 
   const sortableColumns: [string, string][] = [
     ["category_id", "Category"],
@@ -273,7 +281,7 @@
     aria-label="Search expenses"
     onsubmit={submitSearch}
   >
-    <label class={searchFieldClass}>
+    <label class="{searchFieldClass} {textFieldClass}">
       <span class="sr-only">Description</span>
       <Icon icon={AlignLeft} class="h-4 w-4 shrink-0" />
       <input
@@ -284,7 +292,7 @@
         maxlength="50"
       />
     </label>
-    <label class={searchFieldClass}>
+    <label class="{searchFieldClass} {textFieldClass}">
       <span class="sr-only">Tag</span>
       <Icon icon={Tag} class="h-4 w-4 shrink-0" />
       <input
