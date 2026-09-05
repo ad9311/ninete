@@ -28,8 +28,8 @@ be broken; this file holds the description that helps you find your way.
      not be swapped for chi's `middleware.RealIP`.
 3. `/static/*` is mounted on the root router by `setUpFileServer`, outside the app
    chain, and adds only a `Cache-Control` header (`staticCacheControl`, five
-   minutes — the JS bundle's filename is content-hashed, but `layout.css` and the
-   images are not, so the window stays short for their sake and `http.FileServer`
+   minutes — the JS bundle and the stylesheet carry a content hash, but the images
+   do not, so the window stays short for their sake and `http.FileServer`
    answers the revalidation with a 304 off `Last-Modified`).
 4. App middleware, for the three non-API, non-static routes — `GetApp` (the SPA shell catch-all),
    `POST /logout` and `POST /csp-report` (`setUpAppMiddlewares`, applied to a `chi` group), in
@@ -166,7 +166,7 @@ corrupts data or silently disables `ON DELETE CASCADE`.
 - Configure CSRF and auth redirection.
 - Build and inject template/request context data.
 - Parse/cache the shell template and expose lookup/reload callbacks to handlers.
-- Read the asset manifest (`manifest.go`) and resolve the content-hashed bundle path handed to the shell.
+- Read the asset manifest (`manifest.go`) and resolve the content-hashed bundle and stylesheet paths handed to the shell.
 - Start and gracefully shut down HTTP server.
 
 The shell template and static assets this package serves are documented in

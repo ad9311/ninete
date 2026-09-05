@@ -16,10 +16,10 @@ main() {
     echo "==> Installing dependencies..."
     bun install
 
-    echo "==> Building index.ts"
-    make build-static-js
+    echo "==> Building the frontend bundle and stylesheet..."
+    make build-static
 
-    echo "==> index.ts successfully compiled."
+    echo "==> Frontend assets successfully built."
 }
 
 # `exit` shares this line deliberately. Bash parses one command at a time and

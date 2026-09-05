@@ -91,6 +91,19 @@
     };
   });
 
+  // One table rather than four copies of the same anchor, with `divided`
+  // marking where the rule goes: the dropdown link styling is a long utility
+  // string, and hand-written copies of it are chances to drift.
+  const NAV_LINKS = [
+    { href: "/expenses", label: "Expenses" },
+    { href: "/recurrent-expenses", label: "Recurrent Expenses" },
+    { href: "/expenses/budgets", label: "Expense Budgets" },
+    { href: "/account", label: "Account", divided: true },
+  ];
+
+  const navLinkClass =
+    "text-fg hover:bg-surface-hover hover:text-primary block px-4 py-2 text-sm no-underline";
+
   function toggleNav(): void {
     navOpen = !navOpen;
   }
@@ -111,41 +124,66 @@
   }
 </script>
 
-<header class="site-header">
+<header
+  class="mb-6 flex items-center gap-3 rounded-xs border border-line bg-surface px-4 py-3"
+>
   <!-- Literal "/" rather than BASE_PATH: an empty href attribute (BASE_PATH
        since Phase 7 of docs/spa-migration.md) drops the anchor's implicit
        link role. -->
-  <a href="/" class="site-brand">NINETE</a>
-  <label class="theme-switch">
+  <a
+    href="/"
+    class="mr-auto text-xl font-bold tracking-wider text-fg no-underline"
+  >
+    NINETE
+  </a>
+  <label>
     <span class="sr-only">Theme</span>
-    <select bind:value={theme}>
+    <!-- The compact chrome controls override the app-wide control styling
+         rather than opting out of it: a utility sits in a later layer than the
+         base rule in app.css, so it simply wins. -->
+    <select
+      class="min-h-0 w-auto cursor-pointer rounded-xs border border-line bg-neutral px-3 py-2 text-sm font-medium text-fg hover:bg-neutral-hover"
+      bind:value={theme}
+    >
       <option value="auto">Automatic</option>
       <option value="light">Light</option>
       <option value="dark">Dark</option>
     </select>
   </label>
   {#if session}
-    <nav class="site-nav" use:closeOnOutsideClick>
+    <nav class="relative" use:closeOnOutsideClick>
       <button
         type="button"
-        class="site-nav-toggle"
+        class="inline-flex items-center gap-1 rounded-xs border border-line bg-neutral px-3 py-2 text-sm font-medium text-fg hover:bg-neutral-hover"
         aria-haspopup="true"
         onclick={toggleNav}
       >
-        {session.username} <span class="site-nav-caret">▾</span>
+        {session.username}
+        <span class="text-[0.7em] leading-none">▾</span>
       </button>
-      <ul class="site-nav-dropdown" class:open={navOpen}>
-        <li><a href={`${BASE_PATH}/expenses`}>Expenses</a></li>
+      <ul
+        class="absolute top-[calc(100%+0.5rem)] right-0 z-100 min-w-48 rounded-xs border border-line bg-surface py-2 shadow-popover"
+        class:hidden={!navOpen}
+      >
+        {#each NAV_LINKS as link (link.href)}
+          {#if link.divided}
+            <li class="my-2 h-px bg-line"></li>
+          {/if}
+          <li>
+            <a href={`${BASE_PATH}${link.href}`} class={navLinkClass}>
+              {link.label}
+            </a>
+          </li>
+        {/each}
         <li>
-          <a href={`${BASE_PATH}/recurrent-expenses`}>Recurrent Expenses</a>
-        </li>
-        <li><a href={`${BASE_PATH}/expenses/budgets`}>Expense Budgets</a></li>
-        <li class="site-nav-divider"></li>
-        <li><a href={`${BASE_PATH}/account`}>Account</a></li>
-        <li>
-          <form action="/logout" method="post" class="site-nav-logout">
+          <form action="/logout" method="post" class="block">
             <input type="hidden" name="csrf_token" value={csrfToken()} />
-            <button type="submit" class="site-nav-logout-btn">Logout</button>
+            <button
+              type="submit"
+              class="block w-full px-4 py-2 text-left text-sm text-danger hover:bg-surface-hover"
+            >
+              Logout
+            </button>
           </form>
         </li>
       </ul>

@@ -4,7 +4,8 @@
   // range is always this month vs. last month, computed client-side exactly
   // like Stats.svelte and List.svelte do (§3.6 of docs/spa-migration.md).
   import { SquareArrowOutUpRight } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange } from "../../lib/dateRanges";
@@ -47,30 +48,26 @@
 </script>
 
 {#if error}
-  <p class="form-error-text">{error}</p>
+  <p class="text-danger">{error}</p>
 {:else}
-  <div class="card-grid">
-    <section class="card" aria-labelledby="month-spending-card-title">
-      <header class="card-header">
-        <h2 id="month-spending-card-title" class="card-title">
-          This month's spending
-        </h2>
-        <div class="card-actions">
-          <a
-            href={`${BASE_PATH}/expenses`}
-            class="card-action-link"
-            aria-label="View expenses"
-            title="View expenses"
-          >
-            <Icon icon={SquareArrowOutUpRight} class="card-action-icon" />
-          </a>
-        </div>
-      </header>
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
+    <Card
+      title="This month's spending"
+      level={2}
+      actionsLabel="Spending actions"
+    >
+      {#snippet actions()}
+        <CardAction
+          icon={SquareArrowOutUpRight}
+          label="View expenses"
+          href={`${BASE_PATH}/expenses`}
+        />
+      {/snippet}
       {#if summary}
-        <span class="card-value amount-value"
-          >{formatCurrency(summary.this_month_total)}</span
-        >
-        <span class="card-delta">
+        <span class="text-2xl font-semibold text-fg">
+          {formatCurrency(summary.this_month_total)}
+        </span>
+        <span class="text-sm text-muted">
           {#if summary.month_change_sign}
             {summary.month_change_sign}{summary.month_change_pct}% vs last month
             ({formatCurrency(summary.last_month_total)})
@@ -79,29 +76,24 @@
           {/if}
         </span>
       {/if}
-    </section>
-    <section class="card" aria-labelledby="top-categories-card-title">
-      <header class="card-header">
-        <h2 id="top-categories-card-title" class="card-title">
-          Top categories this month
-        </h2>
-      </header>
+    </Card>
+    <Card title="Top categories this month" level={2}>
       {#if summary}
         {#if summary.top_categories.length > 0}
-          <ul class="summary-list">
+          <ul class="grid gap-2">
             {#each summary.top_categories as category (category.name)}
-              <li class="summary-list-item">
+              <li class="flex justify-between text-sm">
                 <span>{category.name}</span>
-                <span class="amount-value"
-                  >{formatCurrency(category.total)}</span
-                >
+                <span class="font-semibold text-fg">
+                  {formatCurrency(category.total)}
+                </span>
               </li>
             {/each}
           </ul>
         {:else}
-          <p class="card-empty">No expenses this month</p>
+          <p class="text-sm text-muted">No expenses this month</p>
         {/if}
       {/if}
-    </section>
+    </Card>
   </div>
 {/if}

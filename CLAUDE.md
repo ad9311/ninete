@@ -12,7 +12,7 @@ if a document is added, add it here too, or nobody will find it.
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
-| `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind and component libraries are deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
+| `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind (since adopted — §4.1 carries the outcome note) and component libraries were deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored here — it is a symlink into the private `ninete-secrets` repo (see below) | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
@@ -232,18 +232,25 @@ Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `
 is the reference for the Svelte sources — read it before adding a file there. `web/README.md`
 covers the shell template and the build chain from source to browser.
 
-- **Svelte sources live in `web/app/`, and are never served.** `web/app/index.ts` is the only
-  entry point; `web/build.ts` bundles it.
+- **Svelte and CSS sources live in `web/app/`, and are never served.** `web/build.ts` has two
+  entry points: `web/app/index.ts` (the SPA) and `web/app/app.css` (the stylesheet).
 - `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
   carries its own `<html>` document — there is no shared chrome and no partials any more.
-- Static assets live under `web/static/` (for example css/js/img). `web/static/css/layout.css`
-  is the single stylesheet.
+- `web/static/` holds build output and images, and is served verbatim. Nothing under it is
+  hand-written.
+- **Styling is Tailwind v4, CSS-first.** `web/app/app.css` is the whole stylesheet and there is no
+  `tailwind.config.js` — tokens, the dark variant and a short component layer live in that file.
+  Colours are theme roles (`bg-surface`, `text-muted`, `border-line`) that follow the
+  `theme-light`/`theme-dark` class on `<html>` by themselves, so **a `dark:` utility in a
+  component means a role is missing** — add it to `app.css`. Reach for a utility first, a shared
+  component next, and `app.css` last; `web/app/README.md`'s "Styling rule" is the full order and
+  `web/README.md`'s "Styling" section covers the machinery.
 - Route definitions are the source of truth in `internal/serve/routes.go`; the client-side route
   table is `web/app/router.ts`.
-- **The bundle is generated and git-ignored: run `make build-static-js` after editing any `.ts`
-  or `.svelte`.** `make dev` and `make test` do it for you; running `go test` directly does not,
-  and `internal/serve` asserts `/static/*` serves the bundle — so a skipped rebuild surfaces as
-  a red Go suite on a path unrelated to the change.
+- **Build output is generated and git-ignored: run `make build-static` after editing any `.ts`,
+  `.svelte` or `.css`.** `make dev` and `make test` do it for you; running `go test` directly
+  does not, and `internal/serve` asserts `/static/*` serves both the bundle and the stylesheet —
+  so a skipped rebuild surfaces as a red Go suite on a path unrelated to the change.
 - **`make test` does not run the frontend suite.** `make test-js` does, in two time zones. See
   `docs/spa-migration.md` §3.6 before touching anything dated.
 - **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`

@@ -28,6 +28,8 @@ main
 /build/
 /dist/
 /web/static/js/build
+/web/static/css/build
+/web/static/manifest.json
 
 # Databases
 /data/db/

@@ -5,7 +5,8 @@
   // own error path, so the remembered toggle (localStorage, same key) is the
   // whole of the port.
   import { Repeat, Wallet } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, post } from "../../lib/api";
   import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
@@ -51,35 +52,25 @@
   }
 </script>
 
-<section class="card" aria-labelledby="new-expense-card-title">
-  <header class="card-header">
-    <h1 id="new-expense-card-title" class="card-title">New expense</h1>
-    <nav class="card-actions" aria-label="Expense navigation">
-      <label class="quick-toggle" title="Quick add">
-        <input type="checkbox" checked={quick} onchange={toggleQuick} />
-        Quick
-      </label>
-      <a
-        href={`${BASE_PATH}/expenses`}
-        class="card-action-link"
-        aria-label="Expenses"
-        title="Expenses"
-      >
-        <Icon icon={Wallet} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card title="New expense" actionsLabel="Expense navigation">
+  {#snippet actions()}
+    <label
+      class="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-fg select-none"
+      title="Quick add"
+    >
+      <input type="checkbox" checked={quick} onchange={toggleQuick} />
+      Quick
+    </label>
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   {#if quick}
     <QuickAddForm />
   {:else}
     <Form submitLabel="Submit" {error} {pending} onSubmit={handleSubmit} />
   {/if}
-</section>
+</Card>

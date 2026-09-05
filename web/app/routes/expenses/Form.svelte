@@ -1,7 +1,7 @@
 <script lang="ts">
   // Ports expenses/_form.html (define "expense_form"). Same combined-error
-  // convention as recurrent_expenses/Form.svelte: one .form-error-text string,
-  // no per-field markup in the legacy template to port.
+  // convention as recurrent_expenses/Form.svelte: one error string above the
+  // form, no per-field markup in the legacy template to port.
   import { untrack } from "svelte";
   import { fetchCategories, type Category } from "../../lib/categories";
   import { centsToInputValue, inputValueToCents } from "../../lib/currency";
@@ -98,10 +98,10 @@
 </script>
 
 {#if formError || error}
-  <p class="form-error-text">{formError || error}</p>
+  <p class="text-danger">{formError || error}</p>
 {/if}
 
-<form onsubmit={handleSubmit}>
+<form onsubmit={handleSubmit} class="grid max-w-form gap-3">
   <label>
     Category
     <select bind:value={categoryId}>
@@ -130,7 +130,11 @@
     Date
     <input type="date" bind:value={dateInput} />
   </label>
-  <button type="submit" class="btn-primary form-submit" disabled={pending}>
+  <button
+    type="submit"
+    class="btn btn-primary mt-3 justify-self-end"
+    disabled={pending}
+  >
     {pending ? "Saving..." : submitLabel}
   </button>
 </form>

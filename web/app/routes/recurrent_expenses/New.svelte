@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Repeat } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, post } from "../../lib/api";
   import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
@@ -27,21 +28,13 @@
   }
 </script>
 
-<section class="card" aria-labelledby="new-recurrent-expense-card-title">
-  <header class="card-header">
-    <h1 id="new-recurrent-expense-card-title" class="card-title">
-      New recurrent expense
-    </h1>
-    <nav class="card-actions" aria-label="Recurrent expense navigation">
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card title="New recurrent expense" actionsLabel="Recurrent expense navigation">
+  {#snippet actions()}
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   <Form submitLabel="Submit" {error} {pending} onSubmit={handleSubmit} />
-</section>
+</Card>

@@ -1,0 +1,588 @@
+/* The whole stylesheet. Tailwind v4, CSS-first: there is no tailwind.config.js
+   and there must not be one — tokens, the dark variant and the component layer
+   are all declared here.
+
+   web/build.ts compiles this into a content-hashed file under
+   web/static/css/build/, and the shell links it through the asset manifest
+   (`appStylesheet`). It replaced web/static/css/layout.css, a 1373-line
+   hand-written sheet whose rules were mostly single-use layout; those live in
+   the markup as utilities now. See web/README.md for the build chain and
+   web/app/README.md for the rule on what may be added back here. */
+
+@import "tailwindcss";
+
+/* Tailwind scans for class names itself, but only below the CSS file's own
+   directory. `web/views/` is outside it and the shell carries classes on
+   <html>/<body>, so it is named explicitly. Sources, not build output: pointing
+   this at web/static/ would feed the previous build's classes back in and keep
+   deleted ones alive forever. */
+@source "../views/app/index.html";
+
+/* Theming is a class on <html>, not a media query: the shell's inline
+   anti-FOUC script writes `theme-light`/`theme-dark` before first paint and
+   components/Header.svelte re-asserts it from localStorage. `dark:` has to
+   follow that class, so Tailwind's own prefers-color-scheme default is
+   replaced. `:where()` keeps the variant at zero specificity, so a plain
+   utility later in the sheet still wins over a dark: one it does not pair
+   with. */
+@custom-variant dark (&:where(.theme-dark, .theme-dark *));
+
+/* Every themed value in the app, in one pair of blocks: the light values on
+   :root and the dark ones on html.theme-dark. `@theme` below maps each onto a
+   Tailwind token that reads the `--ui-*` variable rather than a literal, so
+   `bg-surface` resolves through this pair and follows the theme with no
+   `dark:` variant in the markup.
+
+   That indirection is the point: a view names the *role* (surface, muted,
+   danger) and this block owns what the role looks like in each theme. A
+   `dark:` utility appearing in a component means a role is missing — add it
+   here instead of pairing colours at the call site. */
+:root {
+  --ui-bg: #f4f4f5;
+  --ui-surface: #fff;
+  --ui-surface-muted: #f8fafc;
+  --ui-surface-hover: #f1f5f9;
+  --ui-fg: #0f172a;
+  --ui-muted: #64748b;
+  --ui-placeholder: #94a3b8;
+  --ui-line: #e2e8f0;
+  --ui-line-strong: #cbd5e1;
+  --ui-primary: #16a34a;
+  --ui-primary-hover: #15803d;
+  --ui-on-primary: #fff;
+  --ui-neutral: #f1f5f9;
+  --ui-neutral-hover: #e2e8f0;
+  --ui-danger: #dc2626;
+  --ui-danger-hover: #b91c1c;
+  --ui-on-danger: #fff;
+  --ui-chip: #f1f5f9;
+  --ui-chip-line: #e2e8f0;
+  --ui-chip-text: #475569;
+  --ui-tag: #f0fdf4;
+  --ui-tag-line: #bbf7d0;
+  --ui-tag-text: #15803d;
+  --ui-backdrop: rgb(244 244 245 / 62%);
+  --ui-shadow-card: 0 1px 3px rgb(0 0 0 / 8%), 0 1px 2px rgb(0 0 0 / 5%);
+  --ui-shadow-panel: 0 4px 6px rgb(0 0 0 / 7%), 0 2px 4px rgb(0 0 0 / 5%);
+  --ui-shadow-popover: 0 4px 12px rgb(0 0 0 / 8%);
+}
+
+html.theme-dark {
+  --ui-bg: #0f172a;
+  --ui-surface: #1e293b;
+  --ui-surface-muted: #18243a;
+  --ui-surface-hover: #273548;
+  --ui-fg: #e2e8f0;
+  --ui-muted: #94a3b8;
+  --ui-placeholder: #64748b;
+  --ui-line: #334155;
+  --ui-line-strong: #475569;
+  --ui-primary: #22c55e;
+  --ui-primary-hover: #16a34a;
+  --ui-on-primary: #052e16;
+  --ui-neutral: #273548;
+  --ui-neutral-hover: #334155;
+
+  /* Not the light theme's danger: the text colour has to lift off a dark
+     surface, while the solid button keeps its own strong red below. */
+  --ui-danger: #f87171;
+  --ui-danger-hover: #ef4444;
+  --ui-on-danger: #fff;
+  --ui-chip: #273548;
+  --ui-chip-line: #334155;
+  --ui-chip-text: #cbd5e1;
+  --ui-tag: #14321f;
+  --ui-tag-line: #166534;
+  --ui-tag-text: #86efac;
+  --ui-backdrop: rgb(15 23 42 / 62%);
+
+  /* Heavier than the light theme's: a soft shadow is invisible on a dark
+     surface. */
+  --ui-shadow-card: 0 1px 3px rgb(0 0 0 / 40%), 0 1px 2px rgb(0 0 0 / 30%);
+  --ui-shadow-panel: 0 4px 6px rgb(0 0 0 / 40%), 0 2px 4px rgb(0 0 0 / 30%);
+  --ui-shadow-popover: 0 4px 12px rgb(0 0 0 / 50%);
+}
+
+/* `static` rather than the default: Tailwind drops a theme variable no
+   utility referenced, and the base and component layers below read several of
+   these through `var()`, which that pass does not see. Not `inline` either —
+   an inlined token is substituted at the use site and never emitted, so the
+   same `var()` reads would resolve to nothing. */
+@theme static {
+  --font-sans: "IBM Plex Sans", "Helvetica Neue", "Noto Sans", sans-serif;
+  --color-bg: var(--ui-bg);
+  --color-surface: var(--ui-surface);
+  --color-surface-muted: var(--ui-surface-muted);
+  --color-surface-hover: var(--ui-surface-hover);
+  --color-fg: var(--ui-fg);
+  --color-muted: var(--ui-muted);
+  --color-placeholder: var(--ui-placeholder);
+  --color-line: var(--ui-line);
+  --color-line-strong: var(--ui-line-strong);
+  --color-primary: var(--ui-primary);
+  --color-primary-hover: var(--ui-primary-hover);
+  --color-on-primary: var(--ui-on-primary);
+  --color-neutral: var(--ui-neutral);
+  --color-neutral-hover: var(--ui-neutral-hover);
+  --color-danger: var(--ui-danger);
+  --color-danger-hover: var(--ui-danger-hover);
+  --color-on-danger: var(--ui-on-danger);
+  --color-chip: var(--ui-chip);
+  --color-chip-line: var(--ui-chip-line);
+  --color-chip-text: var(--ui-chip-text);
+  --color-tag: var(--ui-tag);
+  --color-tag-line: var(--ui-tag-line);
+  --color-tag-text: var(--ui-tag-text);
+  --color-backdrop: var(--ui-backdrop);
+
+  /* The solid danger button keeps the same strong red in both themes, so it is
+     a token of its own rather than a theme-swapped role. */
+  --color-danger-solid: #dc2626;
+  --color-danger-solid-hover: #b91c1c;
+
+  /* One radius for the whole app. Overriding Tailwind's own `xs` step keeps
+     the utility name native (`rounded-xs`) instead of inventing a synonym. */
+  --radius-xs: 0.15rem;
+
+  /* Page widths, as the container scale: `max-w-content`, `max-w-form`,
+     `max-w-auth`. */
+  --container-content: 74rem;
+  --container-form: 34rem;
+  --container-auth: 26rem;
+  --shadow-card: var(--ui-shadow-card);
+  --shadow-panel: var(--ui-shadow-panel);
+  --shadow-popover: var(--ui-shadow-popover);
+}
+
+/* ------------------------------------------------------------------ */
+
+/* Base — document defaults and form controls                          */
+
+/* ------------------------------------------------------------------ */
+
+/* Everything here is a genuine app-wide default. A rule that describes one
+   view does not belong in this layer; utilities beat it anyway, so it would
+   only be dead weight. */
+@layer base {
+  html {
+    min-height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    line-height: 1.4;
+  }
+
+  h1 {
+    font-size: clamp(1.25rem, 2.6vw, 1.5rem);
+    letter-spacing: 0.02em;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-decoration-color: color-mix(
+      in srgb,
+      var(--color-primary) 40%,
+      transparent
+    );
+    text-underline-offset: 0.2em;
+  }
+
+  a:hover {
+    text-decoration-color: var(--color-primary);
+  }
+
+  /* A form field is a label wrapping its own control everywhere in the app, so
+     the stacked label/control pair is a base rule rather than five utilities
+     repeated on 40-odd labels. The search bar's inline labels override it with
+     `inline-flex` at the call site — utilities sit in a later layer and win. */
+  form label {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  /* Every form control looks the same everywhere, so this is a base rule
+     rather than a `.field` class on 45 elements. Utilities sit in a later
+     layer and override it without a fight, which is how the header's compact
+     selects and the search toggle's hidden checkbox opt out. */
+  input:not([type="hidden"]),
+  select,
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 2.5rem;
+    padding-inline: 0.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xs);
+    background: var(--color-surface-muted);
+  }
+
+  input[type="date"] {
+    appearance: none;
+  }
+
+  input[type="checkbox"] {
+    width: 1rem;
+    min-height: 0;
+    height: 1rem;
+    padding: 0;
+  }
+
+  textarea {
+    min-height: 7rem;
+    padding-block: 0.5rem;
+    resize: vertical;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-placeholder);
+  }
+
+  input:hover,
+  select:hover,
+  textarea:hover {
+    border-color: var(--color-line-strong);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Disclosure triangles are replaced by an explicit icon everywhere they are
+     used, so the built-in marker is off by default rather than per summary. */
+  summary {
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+
+/* Components — the shared vocabulary                                  */
+
+/* ------------------------------------------------------------------ */
+
+/* Deliberately short. A class earns a place here only if it is used by more
+   than one route *and* utilities cannot express it in the markup without
+   drifting between copies. Anything single-use, and anything that is only
+   layout or spacing, belongs in the component that uses it. */
+@layer components {
+  /* Buttons. `button` itself is unstyled apart from the cursor, so an icon
+     button is plain utilities with nothing to override — `.btn` is the opt-in
+     for the real thing, and always carries a variant. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 6rem;
+    min-height: 2.2rem;
+    padding-inline: 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    font-weight: 500;
+  }
+
+  .btn-neutral {
+    border-color: var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-fg);
+  }
+
+  .btn-neutral:hover:not(:disabled) {
+    border-color: var(--color-line-strong);
+    background: var(--color-neutral-hover);
+  }
+
+  .btn-primary {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    border-color: var(--color-primary-hover);
+    background: var(--color-primary-hover);
+  }
+
+  .btn-danger {
+    border-color: var(--color-danger-solid);
+    background: var(--color-danger-solid);
+    color: var(--color-on-danger);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    border-color: var(--color-danger-solid-hover);
+    background: var(--color-danger-solid-hover);
+  }
+
+  /* Chips. Two variants: a neutral one for an absent value ("No tags") and a
+     green one for a real tag. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.6rem;
+    padding-inline: 0.5rem;
+    border: 1px solid var(--color-chip-line);
+    border-radius: var(--radius-xs);
+    background: var(--color-chip);
+    color: var(--color-chip-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .chip-tag {
+    border-color: var(--color-tag-line);
+    background: var(--color-tag);
+    color: var(--color-tag-text);
+  }
+
+  /* Tables. Five routes render one and they must not drift, so the chrome —
+     surface, header row, row separators, hover — is one class and its
+     descendants rather than utilities repeated per cell. */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-xs);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+
+  .data-table :is(th, td) {
+    padding: 0.7rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .data-table thead th,
+  .data-table tfoot th {
+    background: var(--color-surface-muted);
+    color: var(--color-muted);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .data-table thead th {
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .data-table tbody tr + tr :is(th, td) {
+    border-top: 1px solid var(--color-line);
+  }
+
+  .data-table tbody tr:hover {
+    background: var(--color-surface-hover);
+  }
+
+  .data-table td:last-child {
+    white-space: nowrap;
+  }
+
+  /* Pagination controls. Rendered by both list routes, as an <a> when the page
+     is reachable and a <span> when it is not, so the look cannot live on an
+     element selector. */
+  .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding-inline: 0.5rem;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-xs);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  a.page-link:hover {
+    border-color: var(--color-primary-hover);
+    background: var(--color-primary-hover);
+    color: var(--color-on-primary);
+  }
+
+  .page-link-current {
+    border-color: var(--color-line-strong);
+    background: var(--color-surface-muted);
+    color: var(--color-fg);
+  }
+
+  .page-link-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* The billed/created switch in the expense search panel. A checkbox drives
+     it, so the visible part is a sibling element with a knob in ::after —
+     neither of which a utility can reach. */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 999px;
+    background: var(--color-surface-muted);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0.125rem;
+    width: 0.875rem;
+    height: 0.875rem;
+    border-radius: 50%;
+    background: var(--color-muted);
+    transform: translateY(-50%);
+    transition:
+      transform 0.15s ease,
+      background 0.15s ease;
+  }
+
+  :checked ~ .toggle-switch {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+
+  :checked ~ .toggle-switch::after {
+    background: var(--color-on-primary);
+    transform: translate(1rem, -50%);
+  }
+
+  :focus-visible ~ .toggle-switch {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toggle-switch,
+    .toggle-switch::after {
+      transition: none;
+    }
+  }
+
+  /* Budget progress bars. <progress>'s fill is a vendor pseudo-element in
+     every engine, so its colour cannot come from a utility. `.is-over` on an
+     ancestor turns the whole row red. */
+  .budget-bar {
+    display: block;
+    flex: 1;
+    height: 0.5rem;
+    border: none;
+    border-radius: var(--radius-xs);
+    background: var(--color-line);
+    overflow: hidden;
+  }
+
+  .budget-bar::-webkit-progress-bar {
+    background: var(--color-line);
+  }
+
+  .budget-bar::-webkit-progress-value {
+    border-radius: var(--radius-xs);
+    background: var(--color-primary);
+  }
+
+  .budget-bar::-moz-progress-bar {
+    border-radius: var(--radius-xs);
+    background: var(--color-primary);
+  }
+
+  .is-over .budget-bar::-webkit-progress-value {
+    background: var(--color-danger);
+  }
+
+  .is-over .budget-bar::-moz-progress-bar {
+    background: var(--color-danger);
+  }
+
+  /* The loading backdrop. components/Spinner.svelte renders this once a
+     request has been in flight for lib/pending.ts's PROGRESS_DELAY_MS and
+     unmounts it when the last one settles.
+
+     The element is created on show and removed on hide, so the spin animation
+     starts from 0 every time. A permanently mounted hidden element would keep
+     an animation the browser reports as running but never advances while
+     nothing paints, and the ring renders frozen for its first moments.
+
+     Covering the viewport is also what blocks clicks: the element sits at the
+     top of the stacking order and swallows pointer events, so a slow request
+     cannot be submitted twice. Drop the size and background and you get a
+     centred spinner with no backdrop and no click-blocking. */
+  .route-progress-bar {
+    position: fixed;
+    z-index: 2147483647;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--color-backdrop);
+    transition: opacity 150ms ease-in;
+  }
+
+  .route-progress-bar::before {
+    content: "";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: -1.25rem 0 0 -1.25rem;
+    border: 3px solid var(--color-line-strong);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: loading-spin 700ms linear infinite;
+  }
+
+  @keyframes loading-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Reduce-motion still spins: a small rotating ring is the signal itself, and
+     swapping it for an opacity pulse reads as a fade rather than as progress.
+     The rotation is slowed instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .route-progress-bar::before {
+      animation-duration: 1.4s;
+    }
+  }
+}

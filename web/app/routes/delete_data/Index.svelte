@@ -4,7 +4,8 @@
   // deliberate (see routes/recurrent_expenses/Show.svelte's note on this
   // pattern at resource scale).
   import { ArrowLeft } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, del, get } from "../../lib/api";
   import { BASE_PATH } from "../../router";
   import type { DeleteDataCounts, DeleteDataCountsResponse } from "./types";
@@ -44,6 +45,41 @@
     };
   });
 
+  // The four scoped sections differ only in wording, count and endpoint, so
+  // they are a table rather than four near-identical blocks of markup — the
+  // shape that let one card's confirm() text drift from its endpoint before.
+  const SECTIONS: {
+    title: string;
+    path: string;
+    confirm: string;
+    count: (counts: DeleteDataCounts) => number;
+  }[] = [
+    {
+      title: "Expenses",
+      path: "/delete-data/expenses",
+      confirm: "Delete ALL your expenses? This cannot be undone.",
+      count: (c) => c.expenses,
+    },
+    {
+      title: "Recurrent Expenses",
+      path: "/delete-data/recurrent-expenses",
+      confirm: "Delete ALL your recurrent expenses? This cannot be undone.",
+      count: (c) => c.recurrent_expenses,
+    },
+    {
+      title: "Expense Budgets",
+      path: "/delete-data/expense-budgets",
+      confirm: "Delete your expense budgets? This cannot be undone.",
+      count: (c) => c.expense_budgets,
+    },
+    {
+      title: "Tags",
+      path: "/delete-data/tags",
+      confirm: "Delete ALL your tags? This cannot be undone.",
+      count: (c) => c.tags,
+    },
+  ];
+
   async function deleteSection(
     confirmMessage: string,
     path: string,
@@ -63,125 +99,51 @@
   }
 </script>
 
-<section class="card" aria-labelledby="account-delete-data-title">
-  <header class="card-header">
-    <h1 id="account-delete-data-title" class="card-title">Delete data</h1>
-    <nav class="card-actions" aria-label="Delete data actions">
-      <a
-        href={`${BASE_PATH}/account`}
-        class="card-action-link"
-        aria-label="Back to account"
-        title="Back to account"
-      >
-        <Icon icon={ArrowLeft} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
-  <p class="card-empty">
+<Card title="Delete data" actionsLabel="Delete data actions">
+  {#snippet actions()}
+    <CardAction
+      icon={ArrowLeft}
+      label="Back to account"
+      href={`${BASE_PATH}/account`}
+    />
+  {/snippet}
+  <p class="text-sm text-muted">
     Each action removes every record of that type for your account and cannot be
     undone.
   </p>
   {#if error}
-    <p class="form-error-text">{error}</p>
+    <p class="text-danger">{error}</p>
   {/if}
-</section>
+</Card>
 
 {#if counts}
-  <div class="card-grid">
-    <section class="card" aria-labelledby="account-expenses-title">
-      <header class="card-header">
-        <h2 id="account-expenses-title" class="card-title">Expenses</h2>
-      </header>
-      <span class="card-delta">{counts.expenses} record(s)</span>
-      <button
-        type="button"
-        class="btn-danger form-submit"
-        disabled={pending}
-        onclick={() =>
-          deleteSection(
-            "Delete ALL your expenses? This cannot be undone.",
-            "/delete-data/expenses",
-          )}
-      >
-        Delete
-      </button>
-    </section>
-
-    <section class="card" aria-labelledby="account-recurrent-expenses-title">
-      <header class="card-header">
-        <h2 id="account-recurrent-expenses-title" class="card-title">
-          Recurrent Expenses
-        </h2>
-      </header>
-      <span class="card-delta">{counts.recurrent_expenses} record(s)</span>
-      <button
-        type="button"
-        class="btn-danger form-submit"
-        disabled={pending}
-        onclick={() =>
-          deleteSection(
-            "Delete ALL your recurrent expenses? This cannot be undone.",
-            "/delete-data/recurrent-expenses",
-          )}
-      >
-        Delete
-      </button>
-    </section>
-
-    <section class="card" aria-labelledby="account-expense-budgets-title">
-      <header class="card-header">
-        <h2 id="account-expense-budgets-title" class="card-title">
-          Expense Budgets
-        </h2>
-      </header>
-      <span class="card-delta">{counts.expense_budgets} record(s)</span>
-      <button
-        type="button"
-        class="btn-danger form-submit"
-        disabled={pending}
-        onclick={() =>
-          deleteSection(
-            "Delete your expense budgets? This cannot be undone.",
-            "/delete-data/expense-budgets",
-          )}
-      >
-        Delete
-      </button>
-    </section>
-
-    <section class="card" aria-labelledby="account-tags-title">
-      <header class="card-header">
-        <h2 id="account-tags-title" class="card-title">Tags</h2>
-      </header>
-      <span class="card-delta">{counts.tags} record(s)</span>
-      <button
-        type="button"
-        class="btn-danger form-submit"
-        disabled={pending}
-        onclick={() =>
-          deleteSection(
-            "Delete ALL your tags? This cannot be undone.",
-            "/delete-data/tags",
-          )}
-      >
-        Delete
-      </button>
-    </section>
+  {@const loaded = counts}
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
+    {#each SECTIONS as section (section.path)}
+      <Card title={section.title} level={2}>
+        <span class="text-sm text-muted">
+          {section.count(loaded)} record(s)
+        </span>
+        <button
+          type="button"
+          class="btn btn-danger mt-3 justify-self-end"
+          disabled={pending}
+          onclick={() => deleteSection(section.confirm, section.path)}
+        >
+          Delete
+        </button>
+      </Card>
+    {/each}
   </div>
 
-  <section class="card" aria-labelledby="account-delete-all-title">
-    <header class="card-header">
-      <h2 id="account-delete-all-title" class="card-title">
-        Delete everything
-      </h2>
-    </header>
-    <p class="card-empty">
+  <Card title="Delete everything" level={2}>
+    <p class="text-sm text-muted">
       This removes every record across all sections above in one action. This
       cannot be undone.
     </p>
     <button
       type="button"
-      class="btn-danger form-submit"
+      class="btn btn-danger mt-3 justify-self-end"
       disabled={pending}
       onclick={() =>
         deleteSection(
@@ -191,5 +153,5 @@
     >
       Delete
     </button>
-  </section>
+  </Card>
 {/if}

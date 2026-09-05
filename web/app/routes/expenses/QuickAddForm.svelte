@@ -64,15 +64,14 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
+<form onsubmit={handleSubmit} class="grid max-w-form gap-3">
   {#if error}
-    <p class="form-error-text">{error}</p>
+    <p class="text-danger">{error}</p>
   {/if}
   <label>
-    <span class="quick-label-row">
+    <span class="inline-flex items-center gap-2">
       Quick add
-      <DateHelp label="Show accepted date formats">
-        <p class="date-help-title">Date can be:</p>
+      <DateHelp label="Show accepted date formats" title="Date can be:">
         <ul>
           <li>
             <code>today</code>, <code>yesterday</code>, <code>tomorrow</code>
@@ -90,7 +89,7 @@
       placeholder="Description, amount, date, tags"
     />
   </label>
-  <p class="quick-hint">
+  <p class="-mt-2 mb-2 text-sm text-muted">
     Example: Uber, 3344.22, today, travel; work — tags are optional,
     semicolon-separated.
   </p>
@@ -105,7 +104,11 @@
       </select>
     </label>
   {/if}
-  <button type="submit" class="btn-primary form-submit" disabled={pending}>
+  <button
+    type="submit"
+    class="btn btn-primary mt-3 justify-self-end"
+    disabled={pending}
+  >
     {pending ? "Saving..." : "Submit"}
   </button>
 </form>

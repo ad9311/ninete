@@ -157,8 +157,10 @@ A single script on the host runs the whole procedure, in order:
    Placed here deliberately: the version is a property of the code `pull.sh` just
    fetched, and declining before `build.sh` and `migrate.sh` costs nothing but an
    advanced checkout. See **Versioning** below.
-3. `build-js.sh` — `bun install` then `make build-static-js`. The JS bundle is
-   git-ignored, so it must be built on the host.
+3. `build-js.sh` — `bun install` then `make build-static`, which builds both the
+   JS bundle and the stylesheet. Both are git-ignored, so they must be built on
+   the host. The script keeps its name: renaming it would change a command line
+   the deploy privilege grant is written against.
 4. `build.sh` — builds `migrate`, `task`, and `ninete` with
    `CGO_ENABLED=1 CC=gcc -trimpath -buildvcs=false` and an `-ldflags` argument
    carrying `-s -w` plus the version stamp (see **Versioning** below), then

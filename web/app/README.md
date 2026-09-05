@@ -1,13 +1,17 @@
-# `web/app/` — Svelte sources
+# `web/app/` — Svelte and CSS sources
 
 Sources for the Svelte SPA. Nothing here is served: `setUpFileServer` mounts
 `web/static/` verbatim, so sources placed there would be publicly fetchable.
-Only build output (`web/static/js/build/`) is served.
+Only build output (`web/static/js/build/`, `web/static/css/build/`) is served.
 
 Layout and naming rules: `docs/spa-migration.md` §3.9.
 
 - `index.ts` — entry point. Mounts `App.svelte` onto `#app`, the
   mount point `web/views/app/index.html` renders.
+- `app.css` — the whole stylesheet, a Tailwind v4 source file. It is a second
+  build entry point rather than something `index.ts` imports, so it gets its
+  own content hash and its own manifest key. **`web/README.md`'s "Styling"
+  section is the reference**; the working rule here is the one below.
 - `App.svelte` — the shell's chrome (`Header`, `Footer`, `Spinner`) and the
   router's `$state`-held current path.
 - `router.ts` — the hand-rolled path router: `BASE_PATH` (`""`, since the SPA
@@ -41,6 +45,11 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
     "left" amount) — `Intl`'s currency formatting already prints a leading
     `-` for a negative value, so there is no second formatter.
+  - `pagination.ts` — `PER_PAGE_CHOICES`, `parsePage`/`parsePerPage` and
+    `pageRange`, shared by the two paginated lists and by
+    `components/PaginationFooter.svelte`. The per-page list doubles as the
+    allowlist a query string is validated against, so a `per_page` the UI
+    offers and one the URL may carry cannot drift apart.
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
     field. Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get
@@ -63,8 +72,19 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   `Footer.svelte` (reads the shell's `<meta name="version">`) and
   `Spinner.svelte` (the loading backdrop, §3.7 — App.svelte subscribes it to
   `lib/pending.ts`, which `lib/api.ts` drives; no route sets it by hand).
+  `Card.svelte` is the surface every route renders into — it owns the
+  section/header/heading markup and generates the heading id its
+  `aria-labelledby` points at, so a caller cannot forget one; `level={2}` is
+  for a card inside a grid of them, since a page may only have one `h1`.
+  `CardAction.svelte` is one icon action in that header, rendering an anchor
+  when it navigates and a button when it runs something so the two cannot look
+  different. `PaginationFooter.svelte` is the rows-per-page + page-links row
+  under a paginated table (named for the footer because each resource already
+  exports its own `Pagination` type, and a list imports both), and
+  `SortHeader.svelte` is one sortable column heading, carrying the `aria-sort`
+  the hand-written versions did not have.
   `ThemeSwitch` stays inlined in `Header.svelte` rather than its own file: it
-  has exactly one caller, and rule 2 below reserves this directory for things
+  has exactly one caller, and §3.9 rule 2 reserves this directory for things
   more than one resource uses. `Icon.svelte` renders a single lucide icon,
   built with `createElement` and swapped into the DOM for the placeholder
   element via an action rather than one global `data-lucide` scan (§2.3 of
@@ -143,8 +163,37 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   compile a component, when it resolves Svelte's server build instead of the
   client one, or when the jsdom opt-in stops working.
 
-The directory is bundled by `web/build.ts`, which takes `index.ts` as its one
-entry point; `lib/dates.ts` is unit-tested without a bundle.
+The directory is built by `web/build.ts` from two entry points, `index.ts` and
+`app.css`; `lib/dates.ts` is unit-tested without a bundle.
+
+### Styling rule
+
+**Reach for a utility first. Add to `app.css` only when you cannot.**
+
+Concretely, in order:
+
+1. **A utility in the markup.** This is where layout, spacing, sizing and
+   one-off colour belong, and it is where most of the retired `layout.css`
+   went. `prettier-plugin-tailwindcss` sorts the attribute, so class order is
+   never a review topic.
+2. **A shared component.** If the same markup appears in more than one route —
+   a titled panel, an icon action, a pagination footer — it is a component in
+   `components/`, not a class name repeated across files. The copies are what
+   drift, not the styling.
+3. **A local `const` holding the class string.** When one file repeats a long
+   utility string across sibling elements (the search row's fields, the nav
+   dropdown's links), name it once in `<script>`.
+4. **`app.css`'s component layer.** Last resort, and only when both are true:
+   more than one route needs it, _and_ utilities cannot express it — a vendor
+   pseudo-element, a `::before`, a `:checked ~` sibling, a keyframe.
+
+Two things are never right here:
+
+- **A `dark:` utility.** Colours are theme roles (`bg-surface`, `text-muted`,
+  `border-line`) resolved by `app.css`. Needing `dark:` means the role is
+  missing; add it to `app.css` instead of pairing colours at the call site.
+- **A `<style>` block in a component.** `stylelint` has no Svelte processor and
+  `web/build.ts` would emit a CSS file nothing links. See `web/README.md`.
 
 ## Tests
 
@@ -185,10 +234,16 @@ TypeScript with no compiler on either side of the wire, so a renamed field in a
 Go struct arrives as `undefined` in a component and nothing else in the chain
 notices.
 
-One gap: stylelint reads `web/static/css/**/*.css` only and has no Svelte
-processor, so a `<style>` block inside a component is formatted but not
-stylelinted. A handful of `eslint-plugin-svelte` rules cover part of that
-ground (`svelte/no-dupe-style-properties`,
+One gap: stylelint reads `web/app/**/*.css` — `app.css`, and nothing else —
+and has no Svelte processor, so a `<style>` block inside a component would be
+formatted but not stylelinted. A handful of `eslint-plugin-svelte` rules cover
+part of that ground (`svelte/no-dupe-style-properties`,
 `svelte/no-unknown-style-directive-property`). No component has a `<style>`
-block yet — §5 decision 5 keeps them on `layout.css` class names — so wire
-stylelint up if that changes rather than before.
+block, and the styling rule above says none should; wire stylelint up first if
+that ever changes.
+
+Nothing lints the _class names_ in markup. A typo in a utility is silently
+inert — Tailwind generates only what it finds, so `text-mutd` produces no rule
+and no error. `prettier-plugin-tailwindcss` is a hint rather than a check: it
+sorts what it recognises and leaves the rest at the end of the attribute, so an
+unsorted-looking class is worth a second look.

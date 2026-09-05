@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Repeat, SquarePen, Wallet } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import LocalDate from "../../components/LocalDate.svelte";
   import { APIRequestError, del, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
@@ -49,84 +50,72 @@
   }
 </script>
 
-<section class="card" aria-labelledby="expense-card-title">
-  <header class="card-header">
-    <h1 id="expense-card-title" class="card-title">Expense</h1>
-    <nav class="card-actions" aria-label="Expense navigation">
-      <a
-        href={`${BASE_PATH}/expenses/${id}/edit`}
-        class="card-action-link"
-        aria-label="Edit expense"
-        title="Edit expense"
-      >
-        <Icon icon={SquarePen} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/expenses`}
-        class="card-action-link"
-        aria-label="Expenses"
-        title="Expenses"
-      >
-        <Icon icon={Wallet} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card title="Expense" actionsLabel="Expense navigation">
+  {#snippet actions()}
+    <CardAction
+      icon={SquarePen}
+      label="Edit expense"
+      href={`${BASE_PATH}/expenses/${id}/edit`}
+    />
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   {#if loadError}
-    <p class="form-error-text">{loadError}</p>
+    <p class="text-danger">{loadError}</p>
   {/if}
   {#if expense}
-    <table>
-      <tbody>
-        <tr>
-          <th>Category</th>
-          <td>{expense.category_name}</td>
-        </tr>
-        <tr>
-          <th>Description</th>
-          <td>{expense.description}</td>
-        </tr>
-        <tr>
-          <th>Amount</th>
-          <td class="amount-value">{formatCurrency(expense.amount)}</td>
-        </tr>
-        <tr>
-          <th>Billed</th>
-          <td><LocalDate value={expense.date} /></td>
-        </tr>
-        <tr>
-          <th>Created</th>
-          <td><LocalDate value={expense.created_at} datetime /></td>
-        </tr>
-        <tr>
-          <th>Tags</th>
-          <td>
-            {#if expense.tags.length > 0}
-              <div class="chip-list">
-                {#each expense.tags as tag (tag)}
-                  <span class="chip chip-tag">{tag}</span>
-                {/each}
-              </div>
-            {:else}
-              <span class="chip chip-empty">No tags</span>
-            {/if}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <tbody>
+          <tr>
+            <th>Category</th>
+            <td>{expense.category_name}</td>
+          </tr>
+          <tr>
+            <th>Description</th>
+            <td>{expense.description}</td>
+          </tr>
+          <tr>
+            <th>Amount</th>
+            <td class="font-semibold text-fg">
+              {formatCurrency(expense.amount)}
+            </td>
+          </tr>
+          <tr>
+            <th>Billed</th>
+            <td><LocalDate value={expense.date} /></td>
+          </tr>
+          <tr>
+            <th>Created</th>
+            <td><LocalDate value={expense.created_at} datetime /></td>
+          </tr>
+          <tr>
+            <th>Tags</th>
+            <td>
+              {#if expense.tags.length > 0}
+                <div class="flex flex-wrap gap-2">
+                  {#each expense.tags as tag (tag)}
+                    <span class="chip chip-tag">{tag}</span>
+                  {/each}
+                </div>
+              {:else}
+                <span class="chip">No tags</span>
+              {/if}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <button
       type="button"
-      class="btn-danger form-submit"
+      class="btn btn-danger mt-3 justify-self-end"
       onclick={deleteExpense}
     >
       Delete
     </button>
   {/if}
-</section>
+</Card>
