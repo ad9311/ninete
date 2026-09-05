@@ -4,11 +4,21 @@
   // outside click closing the dropdown. The inline anti-FOUC script in the
   // shell already set the class before this mounts, so applying it again here
   // is a re-assertion, not the first write.
+  import { Monitor, Moon, Sun, type IconNode } from "lucide";
   import { get, csrfToken } from "../lib/api";
   import { BASE_PATH } from "../router";
+  import Icon from "./Icon.svelte";
 
   type Theme = "light" | "dark" | "auto";
   const THEME_KEY = "theme";
+
+  // The cycle order is also the button's order: clicking walks this list and
+  // wraps. `auto` stays last so the two explicit choices are one click apart.
+  const THEMES: { value: Theme; icon: IconNode; label: string }[] = [
+    { value: "light", icon: Sun, label: "Light" },
+    { value: "dark", icon: Moon, label: "Dark" },
+    { value: "auto", icon: Monitor, label: "System" },
+  ];
 
   interface Session {
     id: number;
@@ -104,6 +114,17 @@
   const navLinkClass =
     "text-fg hover:bg-surface-hover hover:text-primary block px-4 py-2 text-sm no-underline";
 
+  const current = $derived(
+    THEMES.find((entry) => entry.value === theme) ?? THEMES[0],
+  );
+  const next = $derived(
+    THEMES[(THEMES.indexOf(current) + 1) % THEMES.length].label,
+  );
+
+  function cycleTheme(): void {
+    theme = THEMES[(THEMES.indexOf(current) + 1) % THEMES.length].value;
+  }
+
   function toggleNav(): void {
     navOpen = !navOpen;
   }
@@ -136,20 +157,21 @@
   >
     NINETE
   </a>
-  <label>
-    <span class="sr-only">Theme</span>
-    <!-- The compact chrome controls override the app-wide control styling
-         rather than opting out of it: a utility sits in a later layer than the
-         base rule in app.css, so it simply wins. -->
-    <select
-      class="min-h-0 w-auto cursor-pointer rounded-xs border border-line bg-neutral px-3 py-2 text-sm font-medium text-fg hover:bg-neutral-hover"
-      bind:value={theme}
-    >
-      <option value="auto">Automatic</option>
-      <option value="light">Light</option>
-      <option value="dark">Dark</option>
-    </select>
-  </label>
+  <!-- One button cycling light -> dark -> system rather than a select: the
+       icon names the current theme and the accessible name names the next
+       one, so a screen reader hears what the click will do. Icon.svelte
+       builds its svg once on mount, so the {#key} is what swaps it. -->
+  <button
+    type="button"
+    class="inline-flex items-center justify-center rounded-xs border border-line bg-neutral px-3 py-2 text-sm font-medium text-fg hover:bg-neutral-hover"
+    aria-label={`Theme: ${current.label}. Switch to ${next}.`}
+    title={`Theme: ${current.label}`}
+    onclick={cycleTheme}
+  >
+    {#key current.value}
+      <Icon icon={current.icon} class="h-4 w-4" />
+    {/key}
+  </button>
   {#if session}
     <nav class="relative" use:closeOnOutsideClick>
       <button
