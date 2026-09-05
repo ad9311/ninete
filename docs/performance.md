@@ -28,6 +28,34 @@ caching layers, queues — buys nothing here. `MAX_OPEN_CONNS` defaults to 1
 overlapping requests, so serializing them costs microseconds nobody can
 perceive.
 
+### JSON encoding, and `encoding/json/v2`
+
+Measured 2026-09-04, on the Go 1.27 upgrade. Do not reopen this without a
+measurement that contradicts it.
+
+Go 1.27 reimplements `encoding/json` on top of the v2 engine by default —
+`go list -f '{{.GoFiles}}' encoding/json` selects the `v2_*.go` files, and only
+`GOEXPERIMENT=nojsonv2` brings the old implementation back. **The speedup
+therefore arrived with the toolchain bump, with no code change.** On 2000
+expense-shaped structs, encoding went from 879 µs and 2001 allocations to 670 µs
+and 2; decoding roughly halved.
+
+Rewriting call sites onto `encoding/json/v2` directly buys close to nothing on
+top of that: it is the same engine underneath. The v2 API's real advantages —
+`omitzero`, case-sensitive field matching, explicit options — are semantic, and
+nothing here needs them.
+
+There are three JSON sites outside tests, and none of them is near a bottleneck:
+`handlers/api.go` (API responses, one page of rows at a time),
+`handlers/handle_exports.go` (the export, the only one with volume, at 0.67 ms
+for 2000 rows), and `serve/manifest.go` (one `Unmarshal` at startup).
+
+The engine swap is a behavior surface as well as a speed one, since these
+responses feed the SPA. The Go suite asserts payload shape across the handler
+tests and passes on 1.27, which is the evidence that it held. If a
+JSON-shaped bug ever does appear, `GOEXPERIMENT=nojsonv2` at build time is the
+bisect switch — worth knowing it exists, not worth setting.
+
 ## If a pool larger than 1 is ever introduced anyway
 
 Three things would matter:
