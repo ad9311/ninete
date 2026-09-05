@@ -47,10 +47,15 @@
   const match = $derived(matchRoute(routes, path));
 </script>
 
-<div class="mx-auto w-full max-w-content px-4 pt-6 pb-8 md:pt-8 md:pb-12">
+<!-- min-h-dvh + flex-1 on <main> is what keeps the footer on the bottom edge
+     of a short page without taking it out of flow: a fixed footer would sit
+     over the tail of every long list instead. -->
+<div
+  class="mx-auto flex min-h-dvh w-full max-w-content flex-col px-4 pt-6 pb-8 md:pt-8 md:pb-12"
+>
   <Header />
   <Spinner visible={pending} />
-  <main class="grid gap-4 md:gap-6">
+  <main class="grid flex-1 content-start gap-4 md:gap-6">
     {#if match}
       {@const Route = match.component}
       <Route {...match.params} {search} />
