@@ -1,6 +1,7 @@
 <script lang="ts">
   // Renders the router-level pending flag (§3.7 of docs/spa-migration.md).
-  // Styling lives in layout.css under .route-progress-bar.
+  // Styling lives in web/app/app.css under .route-progress-bar: the ring is a
+  // ::before with an animation, which is not something a utility can carry.
   let { visible = false }: { visible?: boolean } = $props();
 </script>
 

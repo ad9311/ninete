@@ -562,6 +562,14 @@ codebase where every view is already a component — which is exactly the codeba
 Tailwind migration cheap. Interim mixed state (Tailwind on new views, `layout.css` on old) is
 possible but leaves the app looking like two apps for however many months this takes.
 
+**Outcome (2026-09-04): done, exactly as this section describes.** The Tailwind migration ran
+after the SPA migration closed, as its own single change against the finished component tree —
+not interleaved with a phase, and not incrementally, since the mixed state warned about above is
+worse for an agent than for a person: two vocabularies means a decision at every edit. Decision 5
+in §7 is superseded by this note; `layout.css` is gone, replaced by `web/app/app.css`. What
+replaced it, and the rule for what may be added back to it, is in `web/README.md` and
+`web/app/README.md` — those are current, this section is the record of why it waited.
+
 ### 4.2 Component libraries (Flowbite, Melt UI, Bits UI, shadcn-svelte)
 
 Same answer as Tailwind — **not during the migration** — but for a different and stronger reason,
@@ -721,7 +729,9 @@ make every later phase mechanical.
   comments inside markup — the rules themselves fire without it.)
 - Not covered, deliberately: stylelint has no Svelte processor, so a `<style>` block in a
   component is formatted but not stylelinted. No component has one yet (decision 5 keeps them
-  on `layout.css` class names); wire it up if that changes. `web/app/README.md` is where this
+  on `layout.css` class names, and the Tailwind migration that superseded decision 5 kept the
+  no-`<style>`-block rule for its own reasons); wire it up if that changes.
+  `web/app/README.md` is where this
   is kept current — the note here records the decision, not the state.
 
 **0.7 Documentation** — landed
@@ -1106,7 +1116,9 @@ Then the second half of §0's removal — **the only irreversible step in this p
 4. **`vitest` + `@testing-library/svelte` land in Phase 0**, configured with a non-UTC `TZ` (see
    §3.6) so date bugs fail on the first run rather than in production.
 5. **Tailwind is deferred** to a separate post-migration project. Components reference the
-   existing `layout.css` class names unchanged.
+   existing `layout.css` class names unchanged. **Superseded 2026-09-04** — that project ran and
+   `layout.css` is gone; see the outcome note in §4.1. The decision stands as written *for the
+   migration*, which is what it was about.
 6. **No component library during the migration** (§4.2) — it breaks the freeze rule and the
    Phase 3 oracle, and every styled library (Flowbite, shadcn-svelte, DaisyUI) is decision 5
    in disguise. If one is adopted afterwards it should be headless (Melt UI, Bits UI), added a

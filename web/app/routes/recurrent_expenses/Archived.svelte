@@ -1,27 +1,23 @@
 <script lang="ts">
   import { Repeat } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { BASE_PATH } from "../../router";
   import List from "./List.svelte";
 
   let { search = "" }: { search?: string } = $props();
 </script>
 
-<section class="card" aria-labelledby="archived-recurrent-expenses-card-title">
-  <header class="card-header">
-    <h1 id="archived-recurrent-expenses-card-title" class="card-title">
-      Archived recurrent expenses
-    </h1>
-    <nav class="card-actions" aria-label="Archived recurrent expense actions">
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card
+  title="Archived recurrent expenses"
+  actionsLabel="Archived recurrent expense actions"
+>
+  {#snippet actions()}
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   <List archived={true} basePath="/recurrent-expenses/archived" {search} />
-</section>
+</Card>

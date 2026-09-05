@@ -4,6 +4,8 @@
   // GetAPIExpenseBudgets's comment in internal/handlers/handle_api_expense_budgets.go
   // for why the API needs it spelled out once tz_offset+date_range retire.
   import { Pencil, Target, Wallet } from "lucide";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import Icon from "../../components/Icon.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
   import {
@@ -44,6 +46,12 @@
   let saveError = $state("");
   let saving = $state(false);
   let refreshToken = $state(0);
+
+  // The multi-month rows render the same three-part header whether or not the
+  // category has a budget — one is a <summary>, the other a <div>. The pointer
+  // cursor is not part of it: the <div> expands nothing, so it would promise a
+  // click that does not exist.
+  const budgetRowClass = "flex items-center gap-3";
 
   // Locally editable amounts for the edit form, keyed by category id.
   let amountInputs = $state<Record<number, string | number>>({});
@@ -119,32 +127,19 @@
   }
 </script>
 
-<section class="card" aria-labelledby="expense-budgets-card-title">
-  <header class="card-header">
-    <h1 id="expense-budgets-card-title" class="card-title">Expense budgets</h1>
-    <nav class="card-actions" aria-label="Expense navigation">
-      <a
-        href={`${BASE_PATH}/expenses`}
-        class="card-action-link"
-        aria-label="Expenses"
-        title="Expenses"
-      >
-        <Icon icon={Wallet} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/expenses/stats`}
-        class="card-action-link"
-        aria-label="Stats"
-        title="Stats"
-      >
-        <Icon icon={Target} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
-  <div class="filters">
-    <label>
+<Card title="Expense budgets" actionsLabel="Expense navigation">
+  {#snippet actions()}
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
+    <CardAction
+      icon={Target}
+      label="Stats"
+      href={`${BASE_PATH}/expenses/stats`}
+    />
+  {/snippet}
+  <div class="mb-3 flex flex-wrap justify-end gap-3">
+    <label class="inline-flex items-center gap-2 text-muted">
       <span class="sr-only">Date range</span>
-      <select value={dateRangeValue} onchange={onDateRangeChange}>
+      <select class="w-56" value={dateRangeValue} onchange={onDateRangeChange}>
         {#each BUDGET_DATE_RANGE_OPTIONS as option (option.value)}
           <option value={option.value}>{option.label}</option>
         {/each}
@@ -152,9 +147,9 @@
     </label>
   </div>
   {#if loadError}
-    <p class="form-error-text">{loadError}</p>
+    <p class="text-danger">{loadError}</p>
   {/if}
-  <div class="table-scroll">
+  <div class="overflow-x-auto">
     <table class="data-table">
       <thead>
         <tr>
@@ -169,96 +164,113 @@
       </thead>
       <tbody>
         {#each rows as row (row.category_name)}
-          {#if mode === "month"}
-            <tr class:budget-row-over={row.over}>
+          <!-- `is-over` is read by app.css to recolour the bar's vendor
+            pseudo-element, which no utility can reach; `text-danger` handles
+            the text half. -->
+          <tr class:is-over={row.over} class:text-danger={row.over}>
+            {#if mode === "month"}
               <td>{row.category_name}</td>
-              <td class="amount-value"
-                >{row.has_budget ? formatCurrency(row.budget) : "—"}</td
-              >
-              <td class="amount-value">{formatCurrency(row.total)}</td>
-              <td class="amount-value"
-                >{row.has_budget ? formatCurrency(row.left) : "—"}</td
-              >
+              <td class="font-semibold">
+                {row.has_budget ? formatCurrency(row.budget) : "—"}
+              </td>
+              <td class="font-semibold">{formatCurrency(row.total)}</td>
+              <td class="font-semibold">
+                {row.has_budget ? formatCurrency(row.left) : "—"}
+              </td>
               <td>
                 {#if row.has_budget}
-                  <div class="budget-progress">
-                    <progress max="100" value={row.bar_pct}></progress>
-                    <span class="budget-percent">{row.pct}%</span>
+                  <div class="flex min-w-32 items-center gap-2">
+                    <progress class="budget-bar" max="100" value={row.bar_pct}
+                    ></progress>
+                    <span class="text-sm whitespace-nowrap text-muted">
+                      {row.pct}%
+                    </span>
                   </div>
                 {/if}
               </td>
-            </tr>
-          {:else}
-            <tr class:budget-row-over={row.over}>
+            {:else}
               <td colspan="3">
                 {#if row.has_budget}
-                  <details class="budget-months">
-                    <summary class="budget-summary">
-                      <span class="budget-category">{row.category_name}</span>
-                      <span class="amount-value"
-                        >{formatCurrency(row.total)}</span
-                      >
-                      <span class="budget-per-month"
-                        >{formatCurrency(row.budget)}/mo</span
-                      >
+                  <details>
+                    <summary class="{budgetRowClass} cursor-pointer">
+                      <span class="font-medium">{row.category_name}</span>
+                      <span class="font-semibold">
+                        {formatCurrency(row.total)}
+                      </span>
+                      <span class="text-sm text-muted">
+                        {formatCurrency(row.budget)}/mo
+                      </span>
                     </summary>
-                    <p class="budget-months-note">
+                    <p class="mt-2 text-sm text-muted">
                       {row.months_over} of {row.month_count} months over · avg {formatCurrency(
                         row.avg_per_month,
                       )}
                     </p>
-                    <ul class="budget-month-list">
+                    <ul class="mt-2">
                       {#each row.months as month (month.month)}
                         <li
-                          class="budget-month"
-                          class:budget-row-over={month.over}
+                          class="flex items-center gap-3 py-1"
+                          class:is-over={month.over}
+                          class:text-danger={month.over}
                         >
-                          <span class="budget-month-label">{month.month}</span>
-                          <span class="amount-value"
-                            >{formatCurrency(month.total)}</span
-                          >
-                          <div class="budget-progress">
-                            <progress max="100" value={month.bar_pct}
+                          <span class="min-w-20 text-sm text-muted">
+                            {month.month}
+                          </span>
+                          <span class="font-semibold">
+                            {formatCurrency(month.total)}
+                          </span>
+                          <div class="flex min-w-32 items-center gap-2">
+                            <progress
+                              class="budget-bar"
+                              max="100"
+                              value={month.bar_pct}
                             ></progress>
-                            <span class="budget-percent">{month.pct}%</span>
+                            <span class="text-sm whitespace-nowrap text-muted">
+                              {month.pct}%
+                            </span>
                           </div>
                         </li>
                       {/each}
                     </ul>
                   </details>
                 {:else}
-                  <div class="budget-summary">
-                    <span class="budget-category">{row.category_name}</span>
-                    <span class="amount-value">{formatCurrency(row.total)}</span
-                    >
-                    <span class="budget-per-month">—</span>
+                  <div class={budgetRowClass}>
+                    <span class="font-medium">{row.category_name}</span>
+                    <span class="font-semibold">
+                      {formatCurrency(row.total)}
+                    </span>
+                    <span class="text-sm text-muted">—</span>
                   </div>
                 {/if}
               </td>
-            </tr>
-          {/if}
+            {/if}
+          </tr>
         {/each}
       </tbody>
       <tfoot>
         <tr>
           <th colspan={mode === "month" ? 5 : 3}>
             Total expenses
-            <span class="amount-value">{formatCurrency(totalAmount)}</span>
+            <span class="font-semibold text-fg">
+              {formatCurrency(totalAmount)}
+            </span>
           </th>
         </tr>
       </tfoot>
     </table>
   </div>
-  <details class="budget-edit">
-    <summary class="search-summary">
-      <Icon icon={Pencil} class="search-caret" />
+  <details class="mt-4">
+    <summary
+      class="inline-flex w-fit cursor-pointer items-center gap-2 py-1 text-sm text-muted hover:text-primary"
+    >
+      <Icon icon={Pencil} class="h-4 w-4" />
       Edit budgets
     </summary>
     {#if saveError}
-      <p class="form-error-text">{saveError}</p>
+      <p class="text-danger">{saveError}</p>
     {/if}
-    <form onsubmit={saveBudgets}>
-      <p class="budget-edit-hint">
+    <form onsubmit={saveBudgets} class="grid max-w-form gap-3">
+      <p class="my-2 text-sm text-muted">
         A blank amount clears that category's budget.
       </p>
       {#each editRows as row (row.category_id)}
@@ -277,9 +289,13 @@
           />
         </label>
       {/each}
-      <button type="submit" class="btn-primary form-submit" disabled={saving}>
+      <button
+        type="submit"
+        class="btn btn-primary mt-3 justify-self-end"
+        disabled={saving}
+      >
         {saving ? "Saving..." : "Save budgets"}
       </button>
     </form>
   </details>
-</section>
+</Card>

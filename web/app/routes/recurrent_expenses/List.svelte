@@ -2,11 +2,14 @@
   // Shared by Index.svelte and Archived.svelte (§3.9 rule 1 keeps them as
   // separate route files; the table itself is identical apart from which
   // half of the split GetAPIRecurrentExpenses's ?archived answers).
-  import { Rows3, Tag } from "lucide";
+  import { Tag } from "lucide";
   import Icon from "../../components/Icon.svelte";
+  import PaginationFooter from "../../components/PaginationFooter.svelte";
+  import SortHeader from "../../components/SortHeader.svelte";
   import { APIRequestError, get } from "../../lib/api";
   import { type Category, fetchCategories } from "../../lib/categories";
   import { formatCurrency } from "../../lib/currency";
+  import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type {
     Pagination,
@@ -22,8 +25,6 @@
 
   let { archived, basePath, search = "" }: Props = $props();
 
-  const PER_PAGE_CHOICES = [15, 25, 50, 100];
-
   let categories = $state<Category[]>([]);
   let rows = $state<RecurrentExpense[]>([]);
   let pagination = $state<Pagination | null>(null);
@@ -33,12 +34,8 @@
   const categoryId = $derived(Number(params.get("category_id") ?? "0"));
   const sortField = $derived(params.get("sort_field") ?? "created_at");
   const sortOrder = $derived(params.get("sort_order") ?? "DESC");
-  const page = $derived(Math.max(Number(params.get("page") ?? "1") || 1, 1));
-  const perPage = $derived(
-    PER_PAGE_CHOICES.includes(Number(params.get("per_page")))
-      ? Number(params.get("per_page"))
-      : 15,
-  );
+  const page = $derived(parsePage(params));
+  const perPage = $derived(parsePerPage(params));
   const totalAmount = $derived(rows.reduce((sum, row) => sum + row.amount, 0));
 
   $effect(() => {
@@ -117,26 +114,12 @@
     return buildHref({ sort_field: field, sort_order: order, page: 1 });
   }
 
-  function pageRange(totalPages: number, currentPage: number): number[] {
-    if (totalPages <= 0) return [];
-
-    let start = Math.max(currentPage - 2, 1);
-    const end = Math.min(start + 4, totalPages);
-    start = Math.max(end - 4, 1);
-
-    const pages: number[] = [];
-    for (let i = start; i <= end; i++) pages.push(i);
-
-    return pages;
-  }
-
   function onCategoryChange(event: Event): void {
     const value = (event.currentTarget as HTMLSelectElement).value;
     navigate(buildHref({ category_id: value ? Number(value) : 0, page: 1 }));
   }
 
-  function onPerPageChange(event: Event): void {
-    const value = Number((event.currentTarget as HTMLSelectElement).value);
+  function onPerPageChange(value: number): void {
     navigate(buildHref({ per_page: value, page: 1 }));
   }
 
@@ -148,11 +131,11 @@
   ];
 </script>
 
-<div class="filters">
-  <label>
+<div class="mb-3 flex flex-wrap justify-end gap-3">
+  <label class="inline-flex items-center gap-2 text-muted">
     <span class="sr-only">Category</span>
-    <Icon icon={Tag} class="filter-icon" />
-    <select value={categoryId || ""} onchange={onCategoryChange}>
+    <Icon icon={Tag} class="h-4 w-4 shrink-0" />
+    <select class="w-56" value={categoryId || ""} onchange={onCategoryChange}>
       <option value="">All categories</option>
       {#each categories as category (category.id)}
         <option value={category.id}>{category.name}</option>
@@ -162,24 +145,20 @@
 </div>
 
 {#if error}
-  <p class="form-error-text">{error}</p>
+  <p class="text-danger">{error}</p>
 {/if}
 
-<div class="table-scroll">
+<div class="overflow-x-auto">
   <table class="data-table">
     <thead>
       <tr>
         {#each sortableColumns as [field, label] (field)}
-          <th>
-            <a href={sortHref(field)} class="sort-link">
-              {label}
-              {#if sortField === field}
-                <span class="sort-indicator"
-                  >{sortOrder === "ASC" ? "▲" : "▼"}</span
-                >
-              {/if}
-            </a>
-          </th>
+          <SortHeader
+            {label}
+            href={sortHref(field)}
+            active={sortField === field}
+            order={sortOrder}
+          />
         {/each}
         <th>Runs</th>
         <th>Tags</th>
@@ -191,24 +170,24 @@
         <tr>
           <td>{row.category_name}</td>
           <td>{row.description}</td>
-          <td class="amount-value">{formatCurrency(row.amount)}</td>
+          <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
           <td>{row.period}</td>
           <td>
             {#if row.occurrence_limit}
               {row.occurrence_count} of {row.occurrence_limit}
             {:else}
-              <span class="chip chip-empty">Unlimited</span>
+              <span class="chip">Unlimited</span>
             {/if}
           </td>
           <td>
             {#if row.tags.length > 0}
-              <div class="chip-list">
+              <div class="flex flex-wrap gap-2">
                 {#each row.tags as tag (tag)}
                   <span class="chip chip-tag">{tag}</span>
                 {/each}
               </div>
             {:else}
-              <span class="chip chip-empty">No tags</span>
+              <span class="chip">No tags</span>
             {/if}
           </td>
           <td>
@@ -221,45 +200,19 @@
       <tr>
         <th colspan="7">
           Total {archived ? "archived " : ""}recurrent expenses
-          <span class="amount-value">{formatCurrency(totalAmount)}</span>
+          <span class="font-semibold text-fg"
+            >{formatCurrency(totalAmount)}</span
+          >
         </th>
       </tr>
     </tfoot>
   </table>
 </div>
 
-<div class="pagination-footer">
-  <label class="per-page">
-    <span class="sr-only">Rows per page</span>
-    <Icon icon={Rows3} class="filter-icon" />
-    <select value={perPage} onchange={onPerPageChange}>
-      {#each PER_PAGE_CHOICES as choice (choice)}
-        <option value={choice}>{choice} per page</option>
-      {/each}
-    </select>
-  </label>
-
-  {#if pagination && pagination.total_pages > 1}
-    <nav class="pagination" aria-label="Pagination">
-      {#if pagination.has_prev}
-        <a href={buildHref({ page: page - 1 })} class="pagination-link">Prev</a>
-      {:else}
-        <span class="pagination-link pagination-disabled">Prev</span>
-      {/if}
-
-      {#each pageRange(pagination.total_pages, page) as p (p)}
-        {#if p === page}
-          <span class="pagination-link pagination-current">{p}</span>
-        {:else}
-          <a href={buildHref({ page: p })} class="pagination-link">{p}</a>
-        {/if}
-      {/each}
-
-      {#if pagination.has_next}
-        <a href={buildHref({ page: page + 1 })} class="pagination-link">Next</a>
-      {:else}
-        <span class="pagination-link pagination-disabled">Next</span>
-      {/if}
-    </nav>
-  {/if}
-</div>
+<PaginationFooter
+  {pagination}
+  {page}
+  {perPage}
+  hrefFor={(target) => buildHref({ page: target })}
+  {onPerPageChange}
+/>

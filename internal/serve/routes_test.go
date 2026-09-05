@@ -11,22 +11,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// bundlePath reads the manifest the same way internal/serve does, so the test
+// assetPath reads the manifest the same way internal/serve does, so the test
 // checks a real deployed filename rather than a literal that would go stale
 // the moment web/build.ts's hashing changes it.
-func bundlePath(t *testing.T, entry string) string {
+func assetPath(t *testing.T, entry string) string {
 	t.Helper()
 
-	data, err := os.ReadFile("./web/static/js/build/manifest.json")
+	data, err := os.ReadFile("./web/static/manifest.json")
 	require.NoError(t, err)
 
 	var manifest map[string]string
 	require.NoError(t, json.Unmarshal(data, &manifest))
 
-	name, ok := manifest[entry]
+	path, ok := manifest[entry]
 	require.True(t, ok, "manifest missing entry %q", entry)
 
-	return "/static/js/build/" + name
+	return path
 }
 
 func hasCookie(res *http.Response, name string) bool {
@@ -64,7 +64,7 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_not_issue_session_or_csrf_cookies_for_assets",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, "/static/css/layout.css", nil)
+				res := doGet(t, s, assetPath(t, "css"), nil)
 
 				require.Equal(t, http.StatusOK, res.StatusCode)
 				require.False(t, hasCookie(res, "ninete_session"), "asset request loaded a session")
@@ -75,7 +75,7 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_send_cache_and_base_security_headers_for_assets",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, "/static/css/layout.css", nil)
+				res := doGet(t, s, assetPath(t, "css"), nil)
 
 				require.Equal(t, "public, max-age=300", res.Header.Get("Cache-Control"))
 				require.Equal(t, "nosniff", res.Header.Get("X-Content-Type-Options"))
@@ -98,13 +98,13 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_keep_the_cache_header_on_a_revalidated_asset",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, "/static/css/layout.css", nil)
+				res := doGet(t, s, assetPath(t, "css"), nil)
 				require.Equal(t, http.StatusOK, res.StatusCode)
 
 				lastModified := res.Header.Get("Last-Modified")
 				require.NotEmpty(t, lastModified)
 
-				req := spec.NewGetRequest("/static/css/layout.css", nil)
+				req := spec.NewGetRequest(assetPath(t, "css"), nil)
 				req.Header.Set("If-Modified-Since", lastModified)
 				rec := httptest.NewRecorder()
 				s.WrappedHandler().ServeHTTP(rec, req)
@@ -116,7 +116,7 @@ func TestStaticAssetsBypassAppMiddleware(t *testing.T) {
 		{
 			name: "should_serve_assets_without_authentication",
 			fn: func(t *testing.T) {
-				res := doGet(t, s, bundlePath(t, "app"), nil)
+				res := doGet(t, s, assetPath(t, "app"), nil)
 
 				require.Equal(t, http.StatusOK, res.StatusCode)
 			},

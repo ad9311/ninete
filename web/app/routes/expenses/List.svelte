@@ -7,21 +7,17 @@
   // (date_from/date_to) are plain YYYY-MM-DD strings the API parses itself,
   // unchanged from the template path.
   import { untrack } from "svelte";
-  import {
-    AlignLeft,
-    CalendarRange,
-    ChevronDown,
-    Rows3,
-    Search,
-    Tag,
-  } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import { AlignLeft, CalendarRange, ChevronDown, Search, Tag } from "lucide";
   import DateHelp from "../../components/DateHelp.svelte";
+  import Icon from "../../components/Icon.svelte";
+  import LocalDate from "../../components/LocalDate.svelte";
+  import PaginationFooter from "../../components/PaginationFooter.svelte";
+  import SortHeader from "../../components/SortHeader.svelte";
   import { APIRequestError, get } from "../../lib/api";
   import { type Category, fetchCategories } from "../../lib/categories";
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange, DATE_RANGE_OPTIONS } from "../../lib/dateRanges";
-  import LocalDate from "../../components/LocalDate.svelte";
+  import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type { Expense, ExpenseListResponse, Pagination } from "./types";
 
@@ -31,7 +27,6 @@
 
   let { search = "" }: Props = $props();
 
-  const PER_PAGE_CHOICES = [15, 25, 50, 100];
   const CREATED_DATE_FIELD = "created_at";
 
   let categories = $state<Category[]>([]);
@@ -43,12 +38,8 @@
   const categoryId = $derived(Number(params.get("category_id") ?? "0"));
   const sortField = $derived(params.get("sort_field") ?? "date");
   const sortOrder = $derived(params.get("sort_order") ?? "DESC");
-  const page = $derived(Math.max(Number(params.get("page") ?? "1") || 1, 1));
-  const perPage = $derived(
-    PER_PAGE_CHOICES.includes(Number(params.get("per_page")))
-      ? Number(params.get("per_page"))
-      : 15,
-  );
+  const page = $derived(parsePage(params));
+  const perPage = $derived(parsePerPage(params));
 
   const query = $derived(params.get("q") ?? "");
   const tag = $derived(params.get("tag") ?? "");
@@ -194,19 +185,6 @@
     return buildHref({ sort_field: field, sort_order: order, page: 1 });
   }
 
-  function pageRange(totalPages: number, currentPage: number): number[] {
-    if (totalPages <= 0) return [];
-
-    let start = Math.max(currentPage - 2, 1);
-    const end = Math.min(start + 4, totalPages);
-    start = Math.max(end - 4, 1);
-
-    const pages: number[] = [];
-    for (let i = start; i <= end; i++) pages.push(i);
-
-    return pages;
-  }
-
   function onCategoryChange(event: Event): void {
     const value = (event.currentTarget as HTMLSelectElement).value;
     navigate(
@@ -219,8 +197,7 @@
     navigate(buildHref({ date_range: value, page: 1 }));
   }
 
-  function onPerPageChange(event: Event): void {
-    const value = Number((event.currentTarget as HTMLSelectElement).value);
+  function onPerPageChange(value: number): void {
     navigate(buildHref({ per_page: value, page: 1 }));
   }
 
@@ -259,6 +236,25 @@
     navigate(buildHref(overrides));
   }
 
+  // The search row's fields share a shape; the two strings below narrow it.
+  // Written once rather than repeated across four labels, which is where the
+  // widths drifted apart before.
+  //
+  // The shared string carries no `flex`/`flex-basis` of its own: the date
+  // labels append `dateFieldClass` to it, and Tailwind resolves two utilities
+  // setting the same property by their order in the *generated stylesheet*,
+  // not by their order in the attribute. A `basis-48` left in here would
+  // therefore beat the date fields' `basis-40` rather than losing to it.
+  const searchFieldClass = "text-muted inline-flex min-w-0 items-center gap-2";
+  // The description and tag fields, which grow into the spare width.
+  const textFieldClass = "flex-1 basis-48 max-md:basis-auto";
+  // Fixed rather than growing: if the date inputs absorbed the spare width
+  // there would be no free space for justify-end to push the cluster right. On
+  // a narrow screen they share the row instead. `shrink` is spelled out
+  // because `flex-none` sets the whole shorthand, flex-shrink: 0 included.
+  const dateFieldClass =
+    "flex-none shrink basis-40 max-md:flex-1 max-md:basis-0 max-md:gap-1";
+
   const sortableColumns: [string, string][] = [
     ["category_id", "Category"],
     ["description", "Description"],
@@ -268,62 +264,87 @@
   ];
 </script>
 
-<details class="search-panel" bind:open={panelOpen}>
-  <summary class="search-summary">
-    <Icon icon={Search} class="filter-icon" />
+<details class="group mb-3" bind:open={panelOpen}>
+  <summary
+    class="inline-flex w-fit cursor-pointer items-center gap-2 py-1 text-sm text-muted hover:text-primary"
+  >
+    <Icon icon={Search} class="h-4 w-4 shrink-0" />
     <span>Search</span>
-    <Icon icon={ChevronDown} class="search-caret" />
+    <Icon
+      icon={ChevronDown}
+      class="h-4 w-4 transition-transform group-open:rotate-180"
+    />
   </summary>
   <form
-    class="search-bar"
+    class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 max-md:flex-col max-md:items-stretch"
     role="search"
     aria-label="Search expenses"
     onsubmit={submitSearch}
   >
-    <label class="search-field">
+    <label class="{searchFieldClass} {textFieldClass}">
       <span class="sr-only">Description</span>
-      <Icon icon={AlignLeft} class="filter-icon" />
+      <Icon icon={AlignLeft} class="h-4 w-4 shrink-0" />
       <input
         type="search"
+        class="min-w-0"
         bind:value={searchInput}
         placeholder="Description"
         maxlength="50"
       />
     </label>
-    <label class="search-field">
+    <label class="{searchFieldClass} {textFieldClass}">
       <span class="sr-only">Tag</span>
-      <Icon icon={Tag} class="filter-icon" />
+      <Icon icon={Tag} class="h-4 w-4 shrink-0" />
       <input
         type="search"
+        class="min-w-0"
         bind:value={tagInput}
         placeholder="Tag"
         maxlength="50"
       />
     </label>
-    <div class="search-date-group">
+    <!-- Grows to take the leftover width but packs its contents to the right,
+      so the free space collects between the tag input and the toggle. That,
+      plus a tighter internal gap than the row's, makes the toggle read as part
+      of the date cluster rather than as a trailer on the field before it. -->
+    <div
+      class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
+    >
+      <!-- The label's children are flat on purpose: `peer-checked:` reaches a
+        following *sibling*, so the two words cannot be nested in a wrapper. -->
       <label
-        class="date-toggle"
+        class="inline-flex flex-none cursor-pointer items-center gap-2 text-muted select-none max-md:mt-3 max-md:grow max-md:basis-full"
         title="Apply the date bounds to the billed date or the created date"
       >
-        <span class="sr-only"
-          >Apply date bounds to the created date instead of the billed date</span
+        <span class="sr-only">
+          Apply date bounds to the created date instead of the billed date
+        </span>
+        <input
+          type="checkbox"
+          class="peer absolute h-px w-px opacity-0"
+          bind:checked={dateFieldChecked}
+        />
+        <span class="toggle-switch" aria-hidden="true"></span>
+        <span class="min-w-16 text-sm peer-checked:hidden" aria-hidden="true">
+          Billed
+        </span>
+        <span
+          class="hidden min-w-16 text-sm peer-checked:inline"
+          aria-hidden="true"
         >
-        <input type="checkbox" bind:checked={dateFieldChecked} />
-        <span class="switch" aria-hidden="true"></span>
-        <span class="date-toggle-text" aria-hidden="true">
-          <span class="when-off">Billed</span>
-          <span class="when-on">Created</span>
+          Created
         </span>
       </label>
-      <label class="search-field search-field-date">
+      <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">From date</span>
-        <span class="search-date-label" aria-hidden="true">From</span>
+        <span class="text-sm" aria-hidden="true">From</span>
         <!-- The regex has to be an expression, not a quoted attribute: Svelte
           reads {4} inside a plain attribute value as an interpolation and the
           template's `\d{4}-\d{2}-\d{2}` would ship as `\d4-\d2-\d2`, which no
           real date matches, so the field could never pass validation. -->
         <input
           type="text"
+          class="min-w-0"
           bind:value={dateFromInput}
           placeholder="YYYY-MM-DD"
           inputmode="numeric"
@@ -332,12 +353,13 @@
           maxlength="10"
         />
       </label>
-      <label class="search-field search-field-date">
+      <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">To date</span>
-        <span class="search-date-label" aria-hidden="true">To</span>
+        <span class="text-sm" aria-hidden="true">To</span>
         <!-- Expression form, same reason as the From field above. -->
         <input
           type="text"
+          class="min-w-0"
           bind:value={dateToInput}
           placeholder="YYYY-MM-DD"
           inputmode="numeric"
@@ -348,9 +370,9 @@
       </label>
       <DateHelp
         label="Show accepted date format"
-        panelClass="date-help-panel-end"
+        title="Dates must be:"
+        panelClass="left-auto right-0 max-md:right-auto max-md:left-0"
       >
-        <p class="date-help-title">Dates must be:</p>
         <ul>
           <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
           <li>Both bounds are inclusive</li>
@@ -360,14 +382,16 @@
       </DateHelp>
     </div>
     {#if error}
-      <p class="form-error-text">{error}</p>
+      <p class="text-danger">{error}</p>
     {/if}
-    <div class="search-actions">
-      <button type="submit" class="btn-primary search-button">Search</button>
+    <div class="ml-auto flex gap-2 max-md:mt-3 max-md:ml-0">
+      <button type="submit" class="btn btn-primary min-w-20 max-md:flex-1">
+        Search
+      </button>
       {#if searchActive}
         <button
           type="button"
-          class="btn-neutral search-button"
+          class="btn btn-neutral min-w-20 max-md:flex-1"
           onclick={clearSearch}
         >
           Clear
@@ -377,21 +401,21 @@
   </form>
 </details>
 
-<div class="filters">
-  <label>
+<div class="mb-3 flex flex-wrap justify-end gap-3">
+  <label class="inline-flex items-center gap-2 text-muted">
     <span class="sr-only">Category</span>
-    <Icon icon={Tag} class="filter-icon" />
-    <select value={categoryId || ""} onchange={onCategoryChange}>
+    <Icon icon={Tag} class="h-4 w-4 shrink-0" />
+    <select class="w-56" value={categoryId || ""} onchange={onCategoryChange}>
       <option value="">All categories</option>
       {#each categories as category (category.id)}
         <option value={category.id}>{category.name}</option>
       {/each}
     </select>
   </label>
-  <label>
+  <label class="inline-flex items-center gap-2 text-muted">
     <span class="sr-only">Date range</span>
-    <Icon icon={CalendarRange} class="filter-icon" />
-    <select value={dateRangeValue} onchange={onDateRangeChange}>
+    <Icon icon={CalendarRange} class="h-4 w-4 shrink-0" />
+    <select class="w-56" value={dateRangeValue} onchange={onDateRangeChange}>
       <option value="all_time">All time</option>
       {#each DATE_RANGE_OPTIONS as option (option.value)}
         <option value={option.value}>{option.label}</option>
@@ -400,21 +424,17 @@
   </label>
 </div>
 
-<div class="table-scroll">
+<div class="overflow-x-auto">
   <table class="data-table">
     <thead>
       <tr>
         {#each sortableColumns as [field, label] (field)}
-          <th>
-            <a href={sortHref(field)} class="sort-link">
-              {label}
-              {#if sortField === field}
-                <span class="sort-indicator"
-                  >{sortOrder === "ASC" ? "▲" : "▼"}</span
-                >
-              {/if}
-            </a>
-          </th>
+          <SortHeader
+            {label}
+            href={sortHref(field)}
+            active={sortField === field}
+            order={sortOrder}
+          />
         {/each}
         <th>Tags</th>
         <th>Actions</th>
@@ -425,18 +445,18 @@
         <tr>
           <td>{row.category_name}</td>
           <td>{row.description}</td>
-          <td class="amount-value">{formatCurrency(row.amount)}</td>
+          <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
           <td><LocalDate value={row.date} /></td>
           <td><LocalDate value={row.created_at} datetime /></td>
           <td>
             {#if row.tags.length > 0}
-              <div class="chip-list">
+              <div class="flex flex-wrap gap-2">
                 {#each row.tags as t (t)}
                   <span class="chip chip-tag">{t}</span>
                 {/each}
               </div>
             {:else}
-              <span class="chip chip-empty">No tags</span>
+              <span class="chip">No tags</span>
             {/if}
           </td>
           <td><a href={`${BASE_PATH}/expenses/${row.id}`}>Visit</a></td>
@@ -447,45 +467,19 @@
       <tr>
         <th colspan="7">
           Total expenses
-          <span class="amount-value">{formatCurrency(totalAmount)}</span>
+          <span class="font-semibold text-fg"
+            >{formatCurrency(totalAmount)}</span
+          >
         </th>
       </tr>
     </tfoot>
   </table>
 </div>
 
-<div class="pagination-footer">
-  <label class="per-page">
-    <span class="sr-only">Rows per page</span>
-    <Icon icon={Rows3} class="filter-icon" />
-    <select value={perPage} onchange={onPerPageChange}>
-      {#each PER_PAGE_CHOICES as choice (choice)}
-        <option value={choice}>{choice} per page</option>
-      {/each}
-    </select>
-  </label>
-
-  {#if pagination && pagination.total_pages > 1}
-    <nav class="pagination" aria-label="Pagination">
-      {#if pagination.has_prev}
-        <a href={buildHref({ page: page - 1 })} class="pagination-link">Prev</a>
-      {:else}
-        <span class="pagination-link pagination-disabled">Prev</span>
-      {/if}
-
-      {#each pageRange(pagination.total_pages, page) as p (p)}
-        {#if p === page}
-          <span class="pagination-link pagination-current">{p}</span>
-        {:else}
-          <a href={buildHref({ page: p })} class="pagination-link">{p}</a>
-        {/if}
-      {/each}
-
-      {#if pagination.has_next}
-        <a href={buildHref({ page: page + 1 })} class="pagination-link">Next</a>
-      {:else}
-        <span class="pagination-link pagination-disabled">Next</span>
-      {/if}
-    </nav>
-  {/if}
-</div>
+<PaginationFooter
+  {pagination}
+  {page}
+  {perPage}
+  hrefFor={(target) => buildHref({ page: target })}
+  {onPerPageChange}
+/>

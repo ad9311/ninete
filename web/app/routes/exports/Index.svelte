@@ -24,26 +24,21 @@
   // Content-Disposition: attachment is what starts the save now, so the
   // browser downloads only when the response really is the export.
   import { Download } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
 </script>
 
-<section class="card" aria-labelledby="exports-card-title">
-  <header class="card-header">
-    <h1 id="exports-card-title" class="card-title">Exports</h1>
-    <nav class="card-actions" aria-label="Export actions">
-      <a
-        href="/exports/expenses.json"
-        class="card-action-link"
-        aria-label="Download expenses"
-        title="Download expenses"
-        rel="external"
-      >
-        <Icon icon={Download} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
-  <p>
+<Card title="Exports" actionsLabel="Export actions">
+  {#snippet actions()}
+    <CardAction
+      icon={Download}
+      label="Download expenses"
+      href="/exports/expenses.json"
+      rel="external"
+    />
+  {/snippet}
+  <p class="text-muted">
     Download all your expenses as a JSON file. Includes category and tag names.
     All dates are Unix timestamps in UTC.
   </p>
-</section>
+</Card>

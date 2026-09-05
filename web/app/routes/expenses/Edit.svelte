@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Eye, Repeat, Wallet } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
   import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
@@ -51,38 +52,22 @@
   }
 </script>
 
-<section class="card" aria-labelledby="edit-expense-card-title">
-  <header class="card-header">
-    <h1 id="edit-expense-card-title" class="card-title">Edit expense</h1>
-    <nav class="card-actions" aria-label="Expense navigation">
-      <a
-        href={`${BASE_PATH}/expenses/${id}`}
-        class="card-action-link"
-        aria-label="View expense"
-        title="View expense"
-      >
-        <Icon icon={Eye} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/expenses`}
-        class="card-action-link"
-        aria-label="Expenses"
-        title="Expenses"
-      >
-        <Icon icon={Wallet} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card title="Edit expense" actionsLabel="Expense navigation">
+  {#snippet actions()}
+    <CardAction
+      icon={Eye}
+      label="View expense"
+      href={`${BASE_PATH}/expenses/${id}`}
+    />
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   {#if loadError}
-    <p class="form-error-text">{loadError}</p>
+    <p class="text-danger">{loadError}</p>
   {:else if expense}
     <!-- Remounts on a param-only route change — see the identical comment in
       recurrent_expenses/Edit.svelte. -->
@@ -96,4 +81,4 @@
       />
     {/key}
   {/if}
-</section>
+</Card>

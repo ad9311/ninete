@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Eye, Repeat } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
   import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
@@ -53,32 +54,24 @@
   }
 </script>
 
-<section class="card" aria-labelledby="edit-recurrent-expense-card-title">
-  <header class="card-header">
-    <h1 id="edit-recurrent-expense-card-title" class="card-title">
-      Edit recurrent expense
-    </h1>
-    <nav class="card-actions" aria-label="Recurrent expense navigation">
-      <a
-        href={`${BASE_PATH}/recurrent-expenses/${id}`}
-        class="card-action-link"
-        aria-label="View recurrent expense"
-        title="View recurrent expense"
-      >
-        <Icon icon={Eye} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/recurrent-expenses`}
-        class="card-action-link"
-        aria-label="Recurrent expenses"
-        title="Recurrent expenses"
-      >
-        <Icon icon={Repeat} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
+<Card
+  title="Edit recurrent expense"
+  actionsLabel="Recurrent expense navigation"
+>
+  {#snippet actions()}
+    <CardAction
+      icon={Eye}
+      label="View recurrent expense"
+      href={`${BASE_PATH}/recurrent-expenses/${id}`}
+    />
+    <CardAction
+      icon={Repeat}
+      label="Recurrent expenses"
+      href={`${BASE_PATH}/recurrent-expenses`}
+    />
+  {/snippet}
   {#if loadError}
-    <p class="form-error-text">{loadError}</p>
+    <p class="text-danger">{loadError}</p>
   {:else if recurrentExpense}
     <!-- Form seeds its fields from `initial` once and then diverges as the
       user types, so a new record arriving in the same component instance
@@ -95,4 +88,4 @@
       />
     {/key}
   {/if}
-</section>
+</Card>

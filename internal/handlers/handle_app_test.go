@@ -42,10 +42,14 @@ func TestGetApp(t *testing.T) {
 				require.Equal(t, http.StatusOK, rec.Code)
 				require.Contains(t, rec.Body.String(), `<div id="app">`)
 				require.Contains(t, rec.Body.String(), `name="csrf-token"`)
-				// The manifest-resolved, content-hashed bundle path — never the
-				// literal /static/js/build/app.js a stale reference would leave
-				// behind.
+				// The manifest-resolved, content-hashed paths — never the
+				// literal /static/js/build/app.js or /static/css/layout.css a
+				// stale reference would leave behind. Both are asserted: the
+				// stylesheet gained its hash with the Tailwind migration, and a
+				// shell that linked a name web/build.ts no longer writes would
+				// render every page unstyled with no other signal.
 				require.Contains(t, rec.Body.String(), `src="/static/js/build/app-`)
+				require.Contains(t, rec.Body.String(), `href="/static/css/build/css-`)
 			},
 		},
 		{

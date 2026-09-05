@@ -16,3 +16,5 @@
 !web/views/
 !web/views/**
 web/static/js/build/**
+web/static/css/build/**
+web/static/manifest.json

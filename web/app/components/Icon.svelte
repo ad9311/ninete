@@ -6,8 +6,8 @@
   // createElement and swaps it in for the placeholder element — DOM APIs, not
   // innerHTML, so §3.4 rule 3's {@html} ban never enters the picture. The
   // class goes on the svg itself, matching how createIcons carried the
-  // original element's class over, so existing rules like .card-action-icon
-  // apply unchanged.
+  // original element's class over, so a caller's sizing utilities land on the
+  // element that actually paints.
   import { createElement, type IconNode } from "lucide";
 
   interface Props {

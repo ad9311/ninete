@@ -1,8 +1,7 @@
 <script lang="ts">
   // Ports recurrent_expenses/_form.html. The legacy form shows one combined
   // error message rather than per-field highlighting (there is no per-field
-  // markup in the template), so this does the same — see .form-error-text
-  // below, matching common/_form_error.html.
+  // markup in the template), so this does the same.
   import { untrack } from "svelte";
   import { fetchCategories, type Category } from "../../lib/categories";
   import { centsToInputValue, inputValueToCents } from "../../lib/currency";
@@ -88,10 +87,10 @@
 </script>
 
 {#if amountError || error}
-  <p class="form-error-text">{amountError || error}</p>
+  <p class="text-danger">{amountError || error}</p>
 {/if}
 
-<form onsubmit={handleSubmit}>
+<form onsubmit={handleSubmit} class="grid max-w-form gap-3">
   <label>
     Category
     <select bind:value={categoryId}>
@@ -124,7 +123,11 @@
     Occurrence limit (0 = unlimited)
     <input type="number" min="0" step="1" bind:value={occurrenceLimit} />
   </label>
-  <button type="submit" class="btn-primary form-submit" disabled={pending}>
+  <button
+    type="submit"
+    class="btn btn-primary mt-3 justify-self-end"
+    disabled={pending}
+  >
     {pending ? "Saving..." : submitLabel}
   </button>
 </form>

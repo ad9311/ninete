@@ -47,15 +47,15 @@
   const match = $derived(matchRoute(routes, path));
 </script>
 
-<div class="page-shell">
+<div class="mx-auto w-full max-w-content px-4 pt-6 pb-8 md:pt-8 md:pb-12">
   <Header />
   <Spinner visible={pending} />
-  <main class="page-main">
+  <main class="grid gap-4 md:gap-6">
     {#if match}
       {@const Route = match.component}
       <Route {...match.params} {search} />
     {:else}
-      <p>Not found.</p>
+      <p class="text-muted">Not found.</p>
     {/if}
   </main>
   <Footer />

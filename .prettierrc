@@ -1,5 +1,10 @@
 {
-  "plugins": ["prettier-plugin-go-template", "prettier-plugin-svelte"],
+  "plugins": [
+    "prettier-plugin-go-template",
+    "prettier-plugin-svelte",
+    "prettier-plugin-tailwindcss"
+  ],
+  "tailwindStylesheet": "./web/app/app.css",
   "overrides": [
     {
       "files": ["*.html"],

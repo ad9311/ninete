@@ -12,7 +12,9 @@
     Tooltip,
   } from "chart.js";
   import { Target, Wallet } from "lucide";
-  import Icon from "../../components/Icon.svelte";
+  import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
+  import SortHeader from "../../components/SortHeader.svelte";
   import { APIRequestError, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange, DATE_RANGE_OPTIONS } from "../../lib/dateRanges";
@@ -166,32 +168,19 @@
   ];
 </script>
 
-<section class="card" aria-labelledby="expense-stats-card-title">
-  <header class="card-header">
-    <h1 id="expense-stats-card-title" class="card-title">Expense stats</h1>
-    <nav class="card-actions" aria-label="Expense navigation">
-      <a
-        href={`${BASE_PATH}/expenses`}
-        class="card-action-link"
-        aria-label="Expenses"
-        title="Expenses"
-      >
-        <Icon icon={Wallet} class="card-action-icon" />
-      </a>
-      <a
-        href={`${BASE_PATH}/expenses/budgets`}
-        class="card-action-link"
-        aria-label="Budgets"
-        title="Budgets"
-      >
-        <Icon icon={Target} class="card-action-icon" />
-      </a>
-    </nav>
-  </header>
-  <div class="filters">
-    <label>
+<Card title="Expense stats" actionsLabel="Expense navigation">
+  {#snippet actions()}
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
+    <CardAction
+      icon={Target}
+      label="Budgets"
+      href={`${BASE_PATH}/expenses/budgets`}
+    />
+  {/snippet}
+  <div class="mb-3 flex flex-wrap justify-end gap-3">
+    <label class="inline-flex items-center gap-2 text-muted">
       <span class="sr-only">Date range</span>
-      <select value={dateRangeValue} onchange={onDateRangeChange}>
+      <select class="w-56" value={dateRangeValue} onchange={onDateRangeChange}>
         <option value="all_time">All time</option>
         {#each DATE_RANGE_OPTIONS as option (option.value)}
           <option value={option.value}>{option.label}</option>
@@ -200,26 +189,22 @@
     </label>
   </div>
   {#if error}
-    <p class="form-error-text">{error}</p>
+    <p class="text-danger">{error}</p>
   {/if}
-  <div class="chart-container">
+  <div class="max-w-full py-4">
     <canvas use:mountChart={rows}></canvas>
   </div>
-  <div class="table-scroll">
+  <div class="overflow-x-auto">
     <table class="data-table">
       <thead>
         <tr>
           {#each sortableColumns as [field, label] (field)}
-            <th>
-              <a href={sortHref(field)} class="sort-link">
-                {label}
-                {#if sortField === field}
-                  <span class="sort-indicator"
-                    >{sortOrder === "ASC" ? "▲" : "▼"}</span
-                  >
-                {/if}
-              </a>
-            </th>
+            <SortHeader
+              {label}
+              href={sortHref(field)}
+              active={sortField === field}
+              order={sortOrder}
+            />
           {/each}
         </tr>
       </thead>
@@ -227,7 +212,7 @@
         {#each rows as row (row.name)}
           <tr>
             <td>{row.name}</td>
-            <td class="amount-value">{formatCurrency(row.total)}</td>
+            <td class="font-semibold text-fg">{formatCurrency(row.total)}</td>
           </tr>
         {/each}
       </tbody>
@@ -235,10 +220,12 @@
         <tr>
           <th colspan="2">
             Total expenses
-            <span class="amount-value">{formatCurrency(totalAmount)}</span>
+            <span class="font-semibold text-fg">
+              {formatCurrency(totalAmount)}
+            </span>
           </th>
         </tr>
       </tfoot>
     </table>
   </div>
-</section>
+</Card>

@@ -24,7 +24,7 @@ VERSION_LDFLAGS   := -X $(INTERNAL_PATH)/prog.Version=$(VERSION) \
                      -X $(INTERNAL_PATH)/prog.BuildTime=$(BUILD_TIME)
 
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static-js version snapshot
+.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static version snapshot
 
 # ========= App / Dev =========
 build: ## Build the application binary
@@ -33,7 +33,7 @@ build: ## Build the application binary
 	@mkdir -p ./data/db/dev
 	@$(GO_BUILD_ENVS) go build -ldflags "$(VERSION_LDFLAGS)" -o ./build/dev ./cmd/ninete/main.go
 
-dev: build-static-js build ## Run the app in development mode
+dev: build-static build ## Run the app in development mode
 	@echo "Starting application..."
 	@ENV=development ./build/dev
 
@@ -101,19 +101,19 @@ deps: ## Install and tidy dependencies
 	go mod download
 	go mod tidy
 
-build-static-js: ## Build the frontend entrypoints into web/static/js/build with bun
-	@echo "Building static JS bundle..."
+build-static: ## Build the frontend bundle and stylesheet into web/static with bun
+	@echo "Building static assets..."
 	bun run web/build.ts
 
 # ========= Tests ===========
-# build-static-js is a dependency because internal/serve asserts that /static/*
-# serves the bundle, and the bundle is git-ignored.
-test: build-static-js build clean-test-db ## Runs the tests
+# build-static is a dependency because internal/serve asserts that /static/*
+# serves the built assets, and they are git-ignored.
+test: build-static build clean-test-db ## Runs the tests
 	@echo "Running tests..."
 	@mkdir -p ./data/db/test
 	ENV=test go test $(if $(func),-run $(func),) $(pkg)
 
-test-verbose: build-static-js build clean-test-db ## Runs the tests in verbose mode
+test-verbose: build-static build clean-test-db ## Runs the tests in verbose mode
 	@echo "Running tests in verbose mode"
 	@mkdir -p ./data/db/test
 	ENV=test go test -v $(if $(func),-run $(func),) $(pkg)

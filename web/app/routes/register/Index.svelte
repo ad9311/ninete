@@ -33,13 +33,15 @@
   }
 </script>
 
-<section class="auth-page">
-  <div class="auth-card">
-    <h1>REGISTER</h1>
+<section class="grid place-items-center md:min-h-[calc(100vh-8rem)]">
+  <div
+    class="grid w-full max-w-auth gap-4 rounded-xs border border-line bg-surface p-4 shadow-panel md:p-6"
+  >
+    <h1 class="text-center">REGISTER</h1>
     {#if error}
-      <p class="form-error-text">{error}</p>
+      <p class="text-danger">{error}</p>
     {/if}
-    <form onsubmit={handleSubmit} class="form-stack">
+    <form onsubmit={handleSubmit} class="grid gap-3">
       <label>
         Username
         <input
@@ -80,11 +82,15 @@
         Invitation code
         <input type="text" name="invitationCode" bind:value={invitationCode} />
       </label>
-      <button type="submit" class="btn-primary form-submit" disabled={pending}>
+      <button
+        type="submit"
+        class="btn btn-primary mt-3 justify-self-end"
+        disabled={pending}
+      >
         {pending ? "Registering..." : "Register"}
       </button>
     </form>
-    <p class="auth-switch">
+    <p class="text-center text-muted">
       Already have an account? <a href={`${BASE_PATH}/login`}>Login</a>
     </p>
   </div>

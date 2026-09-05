@@ -7,6 +7,6 @@
     "";
 </script>
 
-<footer class="site-footer">
-  <span class="site-footer-version">{version}</span>
+<footer class="mt-8 flex justify-end border-t border-line pt-3">
+  <span class="text-sm text-muted tabular-nums">{version}</span>
 </footer>

@@ -45,7 +45,7 @@ make deps
 
 This runs `go mod download` and `go mod tidy`.
 
-Then install the JavaScript dependencies (needed for `make build-static-js` and `make lint-fix`):
+Then install the JavaScript dependencies (needed for `make build-static` and `make lint-fix`):
 
 ```bash
 bun install
@@ -115,12 +115,12 @@ make dev
 The app will start at `http://localhost:8080` (or the port configured in `.env`).
 
 The development build:
-- Rebuilds the static JS bundle
+- Rebuilds the JS bundle and the stylesheet
 - Compiles the Go binary and runs it with `ENV=development`
 - Re-parses the SPA shell template server-side on render (throttled), so edits to
   `web/views/app/index.html` show up on the next page load without recompiling — refresh the
-  browser to see them. Editing anything under `web/app/` needs `make build-static-js` instead,
-  since the Svelte bundle is built ahead of time. Navigation itself never reaches the server:
+  browser to see them. Editing anything under `web/app/` needs `make build-static` instead,
+  since the bundle and the stylesheet are built ahead of time. Navigation itself never reaches the server:
   `web/app/router.ts` handles it client-side.
 
 ### Other useful commands:
@@ -128,7 +128,7 @@ The development build:
 - `make build` — Build the binary without running
 - `make version` — Print the version this checkout would build
 - `make snapshot` — Write a snapshot of the development database
-- `make build-static-js` — Build only the static JS bundle
+- `make build-static` — Build only the frontend bundle and stylesheet
 - `make test-js` — Run the frontend tests in both configured time zones
 - `make lint` — Run golangci-lint and shellcheck without fixing
 - `make lint-fix` — Run all formatters and linters with automatic fixes
@@ -277,9 +277,9 @@ make migrate
 ```
 
 **Static assets not updating**
-Rebuild the JS bundle:
+Rebuild the frontend bundle and stylesheet:
 ```bash
-make build-static-js
+make build-static
 ```
 
 ## License
