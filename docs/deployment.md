@@ -15,6 +15,18 @@ cross-compilation and no artifact shipped from a developer machine; everything i
 built on the VPS from the checked-out source. CGO is required
 (`mattn/go-sqlite3`), so the host needs a working `gcc`.
 
+Because the build happens on the host, **the host's Go toolchain must be at least
+the version in the `go` directive of `go.mod`**. That directive is the only source
+of truth for the minimum — CI resolves it the same way, through
+`go-version-file: "go.mod"`. Raising it is therefore a deployment change as much
+as a code change: upgrade the host first, then merge the bump, or the next deploy
+fails at `build.sh`. Go's own `GOTOOLCHAIN=auto` would paper over the gap by
+downloading the newer toolchain mid-build, but that is silent, needs egress to
+`proxy.golang.org`, and leaves the toolchain that produced the binary outside
+anything recorded — install it on the host deliberately instead. The distribution,
+the installed version, and how Go is installed there are in
+`docs/deployment.local.md` under "Host toolchain".
+
 Three binaries are built: `ninete`, `migrate`, and `task`. Build output lands in a
 directory private to the service account, and the finished `ninete` binary is then
 copied to a root-owned location on the system path — which is what the systemd

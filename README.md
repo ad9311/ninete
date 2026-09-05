@@ -14,7 +14,7 @@ In practice it runs single-user. Data stays user-scoped for correctness, but the
 
 ## Prerequisites
 
-- **Go** 1.25.6 or higher
+- **Go** 1.27.0 or higher
 - **Bun** (for installing JS deps and building static assets)
 - **golangci-lint** (for linting)
 - **shellcheck** (for linting the deploy scripts under `scripts/`) — `make lint-sh`
