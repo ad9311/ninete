@@ -38,17 +38,19 @@ type expenseSearch struct {
 	createdStart int64
 	createdEnd   int64
 	hasBounds    bool
-	// explicitRange records whether the request carried its own date_range, in
-	// which case the user's choice wins over any implicit widening.
+	// explicitRange records whether the request picked a date range of its own,
+	// in which case that choice wins over any implicit widening. It is set by
+	// the caller, not parsed here: the client resolves its named range to
+	// start/end itself and never sends date_range, so the presence of those
+	// bounds is what "explicit" means on this chain (GetAPIExpenses).
 	explicitRange bool
 }
 
 func parseExpenseSearch(r *http.Request) (expenseSearch, error) {
 	q := r.URL.Query()
 	search := expenseSearch{
-		Query:         strings.TrimSpace(q.Get("q")),
-		Tag:           strings.TrimSpace(q.Get("tag")),
-		explicitRange: q.Get("date_range") != "",
+		Query: strings.TrimSpace(q.Get("q")),
+		Tag:   strings.TrimSpace(q.Get("tag")),
 	}
 
 	if utf8.RuneCountInString(search.Query) > searchTermMax ||

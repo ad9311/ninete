@@ -94,9 +94,15 @@ func TestExpenseSearchBounds(t *testing.T) {
 			},
 		},
 		{
+			// explicitRange is set by GetAPIExpenses from the presence of the
+			// preset bounds, never parsed from the query — the client resolves
+			// its named range itself — so the field is set the way the handler
+			// sets it. handle_api_expenses_test.go covers the same path through
+			// a real request.
 			"should_keep_the_billed_preset_for_a_text_search_with_a_range",
 			func(t *testing.T) {
-				search := parse(t, "q=coffee&date_range=six_months")
+				search := parse(t, "q=coffee")
+				search.explicitRange = true
 				opts := presetOpts()
 				search.apply(&opts, 1)
 
