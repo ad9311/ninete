@@ -206,13 +206,11 @@ func seedExpenses(s *logic.Store, userID int) error {
 		date := time.Now().AddDate(0, -(i / 4), -(i*7)%28).Unix()
 
 		if _, err := s.CreateExpense(ctx, userID, logic.ExpenseParams{
-			ExpenseBaseParams: logic.ExpenseBaseParams{
-				CategoryID:  (i % len(CategoryNames())) + 1,
-				Description: descriptions[i%len(descriptions)],
-				Amount:      amounts[i%len(amounts)],
-			},
-			Date: date,
-			Tags: tags,
+			CategoryID:  (i % len(CategoryNames())) + 1,
+			Description: descriptions[i%len(descriptions)],
+			Amount:      amounts[i%len(amounts)],
+			Date:        date,
+			Tags:        tags,
 		}); err != nil {
 			return err
 		}

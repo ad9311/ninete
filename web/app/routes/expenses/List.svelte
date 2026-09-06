@@ -422,7 +422,7 @@
       That, plus a tighter internal gap than the row's, keeps the mode and the
       bounds it governs reading as one group. -->
     <div
-      class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
+      class="flex min-w-0 flex-1 basis-120 flex-wrap items-center justify-end gap-2 max-md:basis-auto"
     >
       <!-- The mode comes before the fields it governs: it decides how many
         there are, so reading it first is the order the panel is used in. -->

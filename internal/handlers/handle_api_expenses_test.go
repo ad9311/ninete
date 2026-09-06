@@ -153,12 +153,10 @@ func TestAPIExpenses(t *testing.T) {
 				ownerID, _, _ := apiUser(t, s, "api_exp_owner", "api_exp_owner@example.com", "api_exp_password_3")
 				category := s.CreateCategory(t, "api_exp_cat_3")
 				expense := s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  category.ID,
-						Description: "Owner only",
-						Amount:      500,
-					},
-					Date: 1755993600,
+					CategoryID:  category.ID,
+					Description: "Owner only",
+					Amount:      500,
+					Date:        1755993600,
 				})
 
 				_, otherCookies, _ := apiUser(t, s, "api_exp_other", "api_exp_other@example.com", "api_exp_password_4")
@@ -175,20 +173,16 @@ func TestAPIExpenses(t *testing.T) {
 				categoryB := s.CreateCategory(t, "api_exp_cat_5b")
 
 				inRange := s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  categoryA.ID,
-						Description: "Coffee shop",
-						Amount:      450,
-					},
-					Date: 1755993600, // 2025-08-24
+					CategoryID:  categoryA.ID,
+					Description: "Coffee shop",
+					Amount:      450,
+					Date:        1755993600, // 2025-08-24
 				})
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  categoryB.ID,
-						Description: "Coffee beans",
-						Amount:      1200,
-					},
-					Date: 1753488000, // 2025-07-26, a different month
+					CategoryID:  categoryB.ID,
+					Description: "Coffee beans",
+					Amount:      1200,
+					Date:        1753488000, // 2025-07-26, a different month
 				})
 
 				start, end := monthBounds(time.Unix(1755993600, 0))
@@ -222,15 +216,11 @@ func TestAPIExpenses(t *testing.T) {
 				category := s.CreateCategory(t, "api_exp_cat_10")
 
 				inRange := s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Cinema tickets", Amount: 450,
-					},
+					CategoryID: category.ID, Description: "Cinema tickets", Amount: 450,
 					Date: 1755993600, // 2025-08-24
 				})
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Cinema snacks", Amount: 1200,
-					},
+					CategoryID: category.ID, Description: "Cinema snacks", Amount: 1200,
 					Date: 1753488000, // 2025-07-26, a different month
 				})
 
@@ -270,12 +260,12 @@ func TestAPIExpenses(t *testing.T) {
 				categoryB := s.CreateCategory(t, "api_exp_cat_7b")
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryA.ID, Description: "Small", Amount: 100},
-					Date:              1755993600,
+					CategoryID: categoryA.ID, Description: "Small", Amount: 100,
+					Date: 1755993600,
 				})
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryB.ID, Description: "Big", Amount: 900},
-					Date:              1755993600,
+					CategoryID: categoryB.ID, Description: "Big", Amount: 900,
+					Date: 1755993600,
 				})
 
 				res, body := doJSON(t, handler, http.MethodGet, "/api/expenses/stats", nil, cookies, "")
@@ -303,8 +293,8 @@ func TestAPIExpenses(t *testing.T) {
 				category := s.CreateCategory(t, "api_exp_cat_8")
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: category.ID, Description: "Rent", Amount: 5000},
-					Date:              1755993600,
+					CategoryID: category.ID, Description: "Rent", Amount: 5000,
+					Date: 1755993600,
 				})
 				s.SaveExpenseBudgets(t, ownerID, map[int]uint64{category.ID: 10000})
 

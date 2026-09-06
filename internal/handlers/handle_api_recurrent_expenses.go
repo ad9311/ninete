@@ -94,11 +94,9 @@ type recurrentExpenseRequestBody struct {
 
 func (b recurrentExpenseRequestBody) toParams() logic.RecurrentExpenseParams {
 	return logic.RecurrentExpenseParams{
-		ExpenseBaseParams: logic.ExpenseBaseParams{
-			CategoryID:  b.CategoryID,
-			Description: b.Description,
-			Amount:      b.Amount,
-		},
+		CategoryID:      b.CategoryID,
+		Description:     b.Description,
+		Amount:          b.Amount,
 		Period:          b.Period,
 		OccurrenceLimit: b.OccurrenceLimit,
 		// Reuses the same normalization the form path gets from

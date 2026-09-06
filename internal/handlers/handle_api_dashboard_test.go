@@ -83,16 +83,16 @@ func TestAPIDashboard(t *testing.T) {
 				lastStart, lastEnd := prevMonthBounds(now)
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryA.ID, Description: "Rent", Amount: 3000},
-					Date:              thisStart,
+					CategoryID: categoryA.ID, Description: "Rent", Amount: 3000,
+					Date: thisStart,
 				})
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryB.ID, Description: "Food", Amount: 1000},
-					Date:              thisStart,
+					CategoryID: categoryB.ID, Description: "Food", Amount: 1000,
+					Date: thisStart,
 				})
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{CategoryID: categoryA.ID, Description: "Old rent", Amount: 2000},
-					Date:              lastStart,
+					CategoryID: categoryA.ID, Description: "Old rent", Amount: 2000,
+					Date: lastStart,
 				})
 
 				res, body := doJSON(
@@ -127,9 +127,7 @@ func TestAPIDashboard(t *testing.T) {
 				lastStart, lastEnd := prevMonthBounds(now)
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Only this month", Amount: 500,
-					},
+					CategoryID: category.ID, Description: "Only this month", Amount: 500,
 					Date: thisStart,
 				})
 

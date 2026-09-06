@@ -50,13 +50,11 @@ func TestExportsExpenses(t *testing.T) {
 				)
 				category := s.CreateCategory(t, "api_exp_dl_cat_1")
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  category.ID,
-						Description: "lunch",
-						Amount:      1250,
-					},
-					Date: 1735689600,
-					Tags: []string{"food"},
+					CategoryID:  category.ID,
+					Description: "lunch",
+					Amount:      1250,
+					Date:        1735689600,
+					Tags:        []string{"food"},
 				})
 
 				res, body := doJSON(t, handler, http.MethodGet, handlers.ExportExpensesPath, nil, cookies, "")

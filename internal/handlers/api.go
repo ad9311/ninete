@@ -62,8 +62,7 @@ func (h *Handler) WriteJSONError(w http.ResponseWriter, status int, err error) {
 // Nothing is user-facing by default, so an unexpected driver error cannot
 // describe itself to the browser the way a re-rendered form does.
 func (h *Handler) WriteAPIError(w http.ResponseWriter, err error, userErrors ...error) {
-	var validationErr *logic.ValidationError
-	if errors.As(err, &validationErr) {
+	if validationErr, ok := errors.AsType[*logic.ValidationError](err); ok {
 		h.WriteJSON(w, http.StatusUnprocessableEntity, APIError{
 			Error:  validationErr.Error(),
 			Fields: validationErr.Fields,
