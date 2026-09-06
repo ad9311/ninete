@@ -164,6 +164,20 @@ describe("the Range/Day mode", () => {
     expect(dayField().value).toBe("2026-09-03");
   });
 
+  // A reproduction: the resync effect re-runs on any navigation, `q` and `tag`
+  // included, and used to rewrite the mode from two empty bounds — which are
+  // equal, so a text search submitted from Range snapped back to Day and took
+  // the To field with it.
+  it("keeps an explicit Range choice across a text search", async () => {
+    const { rerender } = renderList();
+
+    await fireEvent.click(modeRadio("Range"));
+    await rerender({ search: "?q=coffee" });
+
+    expect(modeRadio("Range").checked).toBe(true);
+    expect(toFieldOrNull()).not.toBeNull();
+  });
+
   // Day is only the default mode. It must not put bounds on a search nobody
   // asked to bound: an untouched panel searches whatever the range select says.
   it("sends no created bounds when the day field is left empty", async () => {

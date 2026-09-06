@@ -90,7 +90,10 @@ without hashing those too.
   public path of the hashed file. Git-ignored; read by `internal/serve/manifest.go` at startup.
 - `web/static/img/` — currently just `favicon.ico`, referenced by the shell.
 - `web/static/fonts/` — IBM Plex Mono, self-hosted: the latin subset at weights 400 and 600, the
-  only two the amount column renders. Committed rather than generated, and referenced from
+  only two the amount column renders, with `OFL.txt` beside them. That licence file is not
+  optional: the SIL Open Font License requires its text and IBM's copyright notice to accompany
+  every distributed copy of the font, and both this repository and every deploy are copies.
+  Committed rather than generated, and referenced from
   `app.css`'s `@font-face` rules by absolute `/static/fonts/...` URLs. Those URLs are why the CSS
   entry in `web/build.ts` carries `external: ["/static/*"]` — the bundler would otherwise try to
   resolve them on disk and fail the build. The CSP is `font-src 'self'`

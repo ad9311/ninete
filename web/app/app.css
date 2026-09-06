@@ -22,7 +22,10 @@
    weights that column renders (400 and 600) and only the latin subset are
    shipped — the same files Google Fonts serves for that subset, copied into
    web/static/fonts/ because the CSP is `font-src 'self'` and a CDN link would
-   be blocked. Licensed under the SIL Open Font License 1.1.
+   be blocked. Licensed under the SIL Open Font License 1.1, whose text and
+   copyright notice ship beside the files as web/static/fonts/OFL.txt — the
+   licence requires them to travel with every copy, and this comment does not
+   count: it never leaves the source tree.
 
    The paths are absolute /static URLs rather than relative ones: this file
    builds into web/static/css/build/ under a content hash, and a relative url()

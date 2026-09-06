@@ -112,10 +112,16 @@
   // two dates the only source of truth, and a shared link reopens in the mode
   // it was searched in.
   //
-  // Two empty bounds are equal too, so an unsearched panel opens on Day — the
-  // common case. That decides the *mode* alone: with both fields empty no
-  // bound is sent either way, and a half-filled pair is still refused rather
-  // than quietly narrowed (see createdBounds above).
+  // Day is the opening mode, which is the initial value below rather than
+  // anything derived: an unbounded URL says nothing about the mode, and the
+  // resync must leave a deliberate Range choice alone. It re-runs on every
+  // navigation — including one that only changed `q` or `tag` — so rewriting
+  // the mode unconditionally would snap the panel back to Day the moment a
+  // text search was submitted from Range, taking the To field with it.
+  //
+  // This decides the *mode* alone: with both fields empty no bound is sent
+  // either way, and a half-filled pair is still refused rather than quietly
+  // narrowed (see createdBounds above).
   let singleDay = $state(true);
   type DateMode = "range" | "day";
   const dateMode = $derived<DateMode>(singleDay ? "day" : "range");
@@ -125,7 +131,7 @@
     tagInput = tag;
     dateFromInput = dateFrom;
     dateToInput = dateTo;
-    singleDay = dateFrom === dateTo;
+    if (hasDateBounds) singleDay = dateFrom === dateTo;
   });
 
   // The To field is unmounted in Day mode but its value keeps following From,
@@ -355,7 +361,12 @@
   const segmentClass =
     "flex cursor-pointer items-center justify-center px-3 py-1 text-sm " +
     "text-muted select-none peer-checked:bg-primary peer-checked:text-on-primary " +
-    "peer-focus-visible:outline-2 peer-focus-visible:outline-primary " +
+    // Inset: an outline paints outside the border box, the span is flush
+    // against the fieldset's padding box on every edge, and the fieldset
+    // clips with `overflow-hidden` — so a normal ring is painted straight
+    // into the clipped region and never appears.
+    "peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-2 " +
+    "peer-focus-visible:outline-primary " +
     "hover:text-primary peer-checked:hover:text-on-primary";
 
   const sortableColumns: [string, string][] = [
