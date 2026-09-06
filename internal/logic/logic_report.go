@@ -94,7 +94,16 @@ func (s *Store) BuildMonthlyReport(ctx context.Context, userID int, month time.T
 		return report, err
 	}
 
-	expenses, categoryNameByID, err := s.reportExpenses(ctx, userID, start, end)
+	// Read once and threaded through everything below. Categories are a
+	// shared lookup table, so every part of the report resolves an id through
+	// the same map — which is also what makes the budget table's name keying
+	// safe: both sides of that lookup come from here.
+	categoryNameByID, err := s.reportCategoryNames(ctx)
+	if err != nil {
+		return report, err
+	}
+
+	expenses, err := s.reportExpenses(ctx, userID, start, end)
 	if err != nil {
 		return report, err
 	}
@@ -116,18 +125,33 @@ func (s *Store) BuildMonthlyReport(ctx context.Context, userID int, month time.T
 		return report, err
 	}
 
-	if report.Budgets, err = s.reportBudgets(ctx, userID, report.CategoryTotals); err != nil {
+	if report.Budgets, err = s.reportBudgets(ctx, userID, report.CategoryTotals, categoryNameByID); err != nil {
 		return report, err
 	}
 
 	return report, nil
 }
 
+// reportCategoryNames reads the shared category lookup table once per report.
+func (s *Store) reportCategoryNames(ctx context.Context) (map[int]string, error) {
+	categories, err := s.queries.SelectCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	nameByID := make(map[int]string, len(categories))
+	for _, category := range categories {
+		nameByID[category.ID] = category.Name
+	}
+
+	return nameByID, nil
+}
+
 func (s *Store) reportExpenses(
 	ctx context.Context,
 	userID int,
 	start, end int64,
-) ([]repo.Expense, map[int]string, error) {
+) ([]repo.Expense, error) {
 	expenses, err := s.queries.SelectExpenses(ctx, repo.QueryOptions{
 		// Largest first, so a section reads as a ranking rather than as the
 		// order the rows happened to be entered in.
@@ -142,20 +166,10 @@ func (s *Store) reportExpenses(
 		},
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	categories, err := s.queries.SelectCategories(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	categoryNameByID := make(map[int]string, len(categories))
-	for _, category := range categories {
-		categoryNameByID[category.ID] = category.Name
-	}
-
-	return expenses, categoryNameByID, nil
+	return expenses, nil
 }
 
 // reportSectionNames maps each expense to the grouping tag that owns it. The
@@ -230,6 +244,7 @@ func (s *Store) reportBudgets(
 	ctx context.Context,
 	userID int,
 	categoryTotals []ReportCategoryTotal,
+	nameByID map[int]string,
 ) ([]ReportBudget, error) {
 	budgets, err := s.FindExpenseBudgets(ctx, userID)
 	if err != nil {
@@ -238,16 +253,6 @@ func (s *Store) reportBudgets(
 
 	if len(budgets) == 0 {
 		return nil, nil
-	}
-
-	categories, err := s.queries.SelectCategories(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	nameByID := make(map[int]string, len(categories))
-	for _, category := range categories {
-		nameByID[category.ID] = category.Name
 	}
 
 	totalByName := make(map[string]uint64, len(categoryTotals))
