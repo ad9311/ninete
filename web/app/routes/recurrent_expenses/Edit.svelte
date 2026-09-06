@@ -81,7 +81,7 @@
     {#key recurrentExpense.id}
       <Form
         initial={recurrentExpense}
-        submitLabel="Submit"
+        submitLabel="Save changes"
         error={submitError}
         {pending}
         onSubmit={handleSubmit}

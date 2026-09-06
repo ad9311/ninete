@@ -74,7 +74,7 @@
     {#key expense.id}
       <Form
         initial={expense}
-        submitLabel="Submit"
+        submitLabel="Save changes"
         error={submitError}
         {pending}
         onSubmit={handleSubmit}

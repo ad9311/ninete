@@ -162,15 +162,20 @@
         {/each}
         <th>Runs</th>
         <th>Tags</th>
-        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {#each rows as row (row.id)}
         <tr>
           <td>{row.category_name}</td>
-          <td>{row.description}</td>
-          <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
+          <td>
+            <a href={`${BASE_PATH}/recurrent-expenses/${row.id}`}
+              >{row.description}</a
+            >
+          </td>
+          <td class="amount font-semibold text-fg">
+            {formatCurrency(row.amount)}
+          </td>
           <td>{row.period}</td>
           <td>
             {#if row.occurrence_limit}
@@ -190,17 +195,14 @@
               <span class="chip">No tags</span>
             {/if}
           </td>
-          <td>
-            <a href={`${BASE_PATH}/recurrent-expenses/${row.id}`}>Visit</a>
-          </td>
         </tr>
       {/each}
     </tbody>
     <tfoot>
       <tr>
-        <th colspan="7">
+        <th colspan="6">
           Total {archived ? "archived " : ""}recurrent expenses
-          <span class="font-semibold text-fg"
+          <span class="amount font-semibold text-fg"
             >{formatCurrency(totalAmount)}</span
           >
         </th>

@@ -31,6 +31,7 @@ export interface BudgetDateRangeOption extends DateRangeOption {
 /** Matches handlers.budgetDateRanges — the budgets page's range/mode pairs. */
 export const BUDGET_DATE_RANGE_OPTIONS: BudgetDateRangeOption[] = [
   { value: "this_month", label: "This month", mode: "month" },
+  { value: "next_month", label: "Next month", mode: "month" },
   { value: "last_month", label: "Last month", mode: "month" },
   { value: "six_months", label: "Last 6 months", mode: "months" },
   { value: "this_year", label: "This year", mode: "months" },

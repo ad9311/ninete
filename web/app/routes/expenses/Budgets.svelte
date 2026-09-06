@@ -170,11 +170,11 @@
           <tr class:is-over={row.over} class:text-danger={row.over}>
             {#if mode === "month"}
               <td>{row.category_name}</td>
-              <td class="font-semibold">
+              <td class="amount font-semibold">
                 {row.has_budget ? formatCurrency(row.budget) : "—"}
               </td>
-              <td class="font-semibold">{formatCurrency(row.total)}</td>
-              <td class="font-semibold">
+              <td class="amount font-semibold">{formatCurrency(row.total)}</td>
+              <td class="amount font-semibold">
                 {row.has_budget ? formatCurrency(row.left) : "—"}
               </td>
               <td>
@@ -194,17 +194,19 @@
                   <details>
                     <summary class="{budgetRowClass} cursor-pointer">
                       <span class="font-medium">{row.category_name}</span>
-                      <span class="font-semibold">
+                      <span class="amount font-semibold">
                         {formatCurrency(row.total)}
                       </span>
                       <span class="text-sm text-muted">
-                        {formatCurrency(row.budget)}/mo
+                        <span class="amount">{formatCurrency(row.budget)}</span
+                        >/mo
                       </span>
                     </summary>
                     <p class="mt-2 text-sm text-muted">
-                      {row.months_over} of {row.month_count} months over · avg {formatCurrency(
-                        row.avg_per_month,
-                      )}
+                      {row.months_over} of {row.month_count} months over · avg
+                      <span class="amount"
+                        >{formatCurrency(row.avg_per_month)}</span
+                      >
                     </p>
                     <ul class="mt-2">
                       {#each row.months as month (month.month)}
@@ -216,7 +218,7 @@
                           <span class="min-w-20 text-sm text-muted">
                             {month.month}
                           </span>
-                          <span class="font-semibold">
+                          <span class="amount font-semibold">
                             {formatCurrency(month.total)}
                           </span>
                           <div class="flex min-w-32 items-center gap-2">
@@ -236,7 +238,7 @@
                 {:else}
                   <div class={budgetRowClass}>
                     <span class="font-medium">{row.category_name}</span>
-                    <span class="font-semibold">
+                    <span class="amount font-semibold">
                       {formatCurrency(row.total)}
                     </span>
                     <span class="text-sm text-muted">—</span>
@@ -251,7 +253,7 @@
         <tr>
           <th colspan={mode === "month" ? 5 : 3}>
             Total expenses
-            <span class="font-semibold text-fg">
+            <span class="amount font-semibold text-fg">
               {formatCurrency(totalAmount)}
             </span>
           </th>

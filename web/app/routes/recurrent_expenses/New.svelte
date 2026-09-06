@@ -36,5 +36,10 @@
       href={`${BASE_PATH}/recurrent-expenses`}
     />
   {/snippet}
-  <Form submitLabel="Submit" {error} {pending} onSubmit={handleSubmit} />
+  <Form
+    submitLabel="Create recurrent expense"
+    {error}
+    {pending}
+    onSubmit={handleSubmit}
+  />
 </Card>
