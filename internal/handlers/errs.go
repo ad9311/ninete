@@ -29,8 +29,6 @@ var (
 	ErrAPIUnavailable   = errors.New("the request could not be completed, please try again")
 	ErrAPIInvalidJSON   = errors.New("request body must be valid JSON")
 
-	ErrSearchDateFormat    = errors.New("dates must use the YYYY-MM-DD format")
-	ErrSearchDateRange     = errors.New("the from date must be on or before the to date")
 	ErrBudgetCategoryField = errors.New("invalid budget field name")
 	ErrSearchTermTooLong   = errors.New("search terms must be at most 50 characters")
 

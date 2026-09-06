@@ -128,7 +128,7 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 
 	search, err := parseExpenseSearch(r)
 	if err != nil {
-		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrSearchDateFormat, ErrSearchDateRange)
+		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrAPIInvalidDateRange)
 
 		return
 	}
@@ -140,10 +140,10 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// parseExpenseSearch reads explicitRange from date_range, which this chain
-	// never receives: the client resolves its named range to bounds itself
-	// (§3.6 of docs/spa-migration.md). Bounds present *is* the explicit range
-	// here, and without this a text search would take clearsPresetRange's
+	// The only place explicitRange is set. This chain never receives a
+	// date_range: the client resolves its named range to bounds itself (§3.6 of
+	// docs/spa-migration.md), so bounds present *is* the explicit range here.
+	// Without this a text search would take clearsPresetRange's
 	// implicit-widening branch and delete the very bounds the client asked for.
 	search.explicitRange = hasBounds
 	search.apply(&opts, user.ID)

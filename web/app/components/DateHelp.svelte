@@ -13,8 +13,10 @@
     /** Heading above the list of accepted formats. */
     title: string;
     /**
-     * Utilities appended to the panel, for the one caller that has to flip it
-     * to the right edge so it does not overflow the viewport.
+     * Utilities appended to the panel, for a caller whose icon sits at the
+     * right edge and therefore has to hang the panel from `right-0` instead.
+     * The panel caps its own width against the viewport, so this only decides
+     * which way it opens, not whether it fits.
      */
     panelClass?: string;
     children: Snippet;
@@ -64,7 +66,7 @@
     <Icon icon={Info} class="h-4 w-4" />
   </button>
   <div
-    class="absolute top-[calc(100%+0.5rem)] left-0 z-100 w-max max-w-64 rounded-xs border border-line bg-surface p-3 shadow-popover {panelClass}"
+    class="absolute top-[calc(100%+0.5rem)] left-0 z-100 w-max max-w-[min(16rem,calc(100vw-2rem))] rounded-xs border border-line bg-surface p-3 shadow-popover {panelClass}"
     role="tooltip"
     hidden={!open}
   >

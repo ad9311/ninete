@@ -89,8 +89,8 @@
             </td>
           </tr>
           <tr>
-            <th>Billed</th>
-            <td><LocalDate value={expense.date} /></td>
+            <th>Billed month</th>
+            <td><LocalDate value={expense.date} month /></td>
           </tr>
           <tr>
             <th>Created</th>

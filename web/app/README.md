@@ -31,10 +31,15 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     the token anywhere else), sends a `401` to `/login`, and turns the JSON
     error envelope into an `APIRequestError` carrying `status` and `fields`.
   - `dates.ts` — the three formatters from `localDateController` plus the
-    `YYYY-MM-DD` ⇄ epoch helpers. `formatDateUTC` is for calendar
-    dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
-    epoch seconds in an `int64`, so nothing but that split keeps them apart.
-    Read `docs/spa-migration.md` §3.6 before touching it.
+    `YYYY-MM-DD` ⇄ epoch helpers and their `YYYY-MM` twins. `formatDateUTC` and
+    `formatMonthUTC` are for calendar dates and `formatDate`/`formatDateTime`
+    for instants; the two kinds are both epoch seconds in an `int64`, so nothing
+      but that split keeps them apart. The month helpers exist because the expense
+    billed date is picked and shown as a month while still being stored as a
+    calendar date, and `localDayStart`/`localDayEnd` turn a typed day into the
+    epoch bounds that filter an *instant* column — local midnight, not UTC, so
+    the server is never told a zone. Read `docs/spa-migration.md` §3.6 before
+    touching it.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
     Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
@@ -89,9 +94,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   built with `createElement` and swapped into the DOM for the placeholder
   element via an action rather than one global `data-lucide` scan (§2.3 of
   docs/spa-migration.md, "Per-component icon rendering") — DOM APIs, not
-  `{@html}`, so §3.4 rule 3's ban never enters it. `LocalDate.svelte` has two
-  display modes — a calendar date with UTC getters, or an instant with local
-  getters and a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
+  `{@html}`, so §3.4 rule 3's ban never enters it. `LocalDate.svelte` has three
+  display modes — a calendar date with UTC getters, the same value as its month
+  alone (`month`, the expense billed date), or an instant with local getters and
+  a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
   is a tap-triggered popover (quick-add's date-format help, the expense search
   panel's date-bounds help), closing on outside click or Escape.
 - `routes/<resource>/` — one directory per resource, one file per action.
@@ -108,11 +114,13 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   from the matched path, since a page/sort/filter change must not remount the
   routed component the way a real path change does.
   `routes/expenses/` is the largest: `List.svelte` carries a search panel
-  (description, tag, explicit `date_from`/`date_to`, a billed/created toggle)
-  on top of the category and date-range filters, and the named date range
-  resolves client-side via `lib/dateRanges.ts` rather than riding along as
-  `date_range`+`tz_offset`; `Form.svelte` adds a calendar-date field
-  (`lib/dates.ts`'s `calendarDateToUnix`/`todayCalendarDate`); `New.svelte`
+  (description, tag, explicit `date_from`/`date_to` bounds on the created date,
+  and a single-day box) on top of the category and date-range filters; both the
+  named date range and those bounds resolve to epoch bounds client-side
+  (`lib/dateRanges.ts`, `lib/dates.ts`'s `localDayStart`/`localDayEnd`) rather
+  than riding along as `date_range`+`tz_offset`; `Form.svelte` adds a
+  calendar-month field (`lib/dates.ts`'s
+  `calendarMonthToUnix`/`todayCalendarMonth`); `New.svelte`
   toggles between it and `QuickAddForm.svelte`, which posts to
   `/expenses/quick` with an explicit `tz_offset` (§3.6's "Consumer 2" — quick
   add keeps a client zone even though the named ranges retire theirs) and
@@ -210,6 +218,13 @@ The default environment is Node, not jsdom, because `lib/` holds no components
 and a module there that reaches for `document` should fail its own test rather
 than pass because a DOM happened to be present. A component test opts in with
 `// @vitest-environment jsdom` on the first line of the file.
+
+`routes/expenses/List.test.ts` is the pattern for testing a route component: it
+mocks `lib/api`, `lib/categories` and `router` with `vi.mock`, then asserts on
+the href handed to `navigate`. Prefer a `lib/` unit test where the logic can
+live there; reach for this when the behaviour *is* the interaction, as the
+search panel's "Single day" box is — it has no query parameter of its own, so
+the URL the form produces is the only thing that can be checked.
 
 `make lint-fix` covers `.svelte`: `prettier-plugin-svelte` formats the whole
 file, and eslint runs `svelte-eslint-parser` with the TS parser nested inside

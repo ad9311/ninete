@@ -1,76 +1,56 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"slices"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
 
 const (
-	// searchDateLayout is the only accepted date input format (YYYY-MM-DD).
-	searchDateLayout = "2006-01-02"
 	// searchTermMax bounds free-text search input.
 	searchTermMax = 50
-	secondsPerDay = int64(24 * 60 * 60)
 
-	// searchFieldBilled and searchFieldCreated are the columns the date bounds
-	// may target: the billed date the user entered, or the record's creation
-	// timestamp.
-	searchFieldBilled  = "date"
+	// searchFieldBilled is the billed-date column. The explicit search bounds
+	// no longer target it — the billed date is picked and displayed as a month,
+	// so a day-precision bound on it meant nothing — but the preset date_range
+	// filter still does, which is what apply drops it by name for.
+	searchFieldBilled = "date"
+	// searchFieldCreated is the column the explicit search bounds target.
 	searchFieldCreated = "created_at"
-
-	// SearchDateFieldDefault is the date column the bounds target unless the
-	// request asks for another one.
-	SearchDateFieldDefault = searchFieldBilled
-	// SearchDateFieldCreated is the opt-in column, submitted by the toggle.
-	SearchDateFieldCreated = searchFieldCreated
 )
 
-// normalizeSearchDateField whitelists the requested date column. An unknown
-// value falls back to the billed date rather than erroring, so a stale or
-// hand-edited link still returns sensible results.
-func normalizeSearchDateField(raw string) string {
-	if raw == searchFieldCreated {
-		return searchFieldCreated
-	}
-
-	return searchFieldBilled
-}
-
-// expenseSearch holds the expense index search inputs. The exported fields are
-// echoed back to the form; the unexported ones are the parsed date bounds.
+// expenseSearch holds the expense index search inputs.
+//
+// The created-date bounds arrive already resolved, as epoch seconds, for the
+// same reason named ranges do (§3.6 of docs/spa-migration.md, "Retiring
+// tz_offset on the API side"): created_at is an *instant*, so turning the day
+// the user typed into a [start, end) window needs their zone, and the client is
+// the only party that knows it. The server never sees the YYYY-MM-DD string and
+// never has to be told a zone — a fixed server-side zone would be wrong for
+// every request made from anywhere else.
 type expenseSearch struct {
-	Query    string
-	Tag      string
-	DateFrom string
-	DateTo   string
-	// DateField is the column the date bounds apply to: searchFieldBilled or
-	// searchFieldCreated.
-	DateField string
+	Query string
+	Tag   string
 
-	fromUnix int64
-	toUnix   int64
-	hasFrom  bool
-	hasTo    bool
-	// explicitRange records whether the request carried its own date_range, in
-	// which case the user's choice wins over any implicit widening.
+	createdStart int64
+	createdEnd   int64
+	hasBounds    bool
+	// explicitRange records whether the request picked a date range of its own,
+	// in which case that choice wins over any implicit widening. It is set by
+	// the caller, not parsed here: the client resolves its named range to
+	// start/end itself and never sends date_range, so the presence of those
+	// bounds is what "explicit" means on this chain (GetAPIExpenses).
 	explicitRange bool
 }
 
 func parseExpenseSearch(r *http.Request) (expenseSearch, error) {
 	q := r.URL.Query()
 	search := expenseSearch{
-		Query:         strings.TrimSpace(q.Get("q")),
-		Tag:           strings.TrimSpace(q.Get("tag")),
-		DateFrom:      strings.TrimSpace(q.Get("date_from")),
-		DateTo:        strings.TrimSpace(q.Get("date_to")),
-		DateField:     normalizeSearchDateField(strings.TrimSpace(q.Get("date_field"))),
-		explicitRange: q.Get("date_range") != "",
+		Query: strings.TrimSpace(q.Get("q")),
+		Tag:   strings.TrimSpace(q.Get("tag")),
 	}
 
 	if utf8.RuneCountInString(search.Query) > searchTermMax ||
@@ -78,56 +58,13 @@ func parseExpenseSearch(r *http.Request) (expenseSearch, error) {
 		return search, ErrSearchTermTooLong
 	}
 
-	if search.DateFrom != "" {
-		from, err := parseSearchDate(search.DateFrom)
-		if err != nil {
-			return search, err
-		}
-		search.fromUnix = from
-		search.hasFrom = true
+	start, end, hasBounds, err := parseAPICreatedBounds(q)
+	if err != nil {
+		return search, err
 	}
-
-	if search.DateTo != "" {
-		to, err := parseSearchDate(search.DateTo)
-		if err != nil {
-			return search, err
-		}
-		// The bound is inclusive, so filter against the start of the next day.
-		search.toUnix = to + secondsPerDay
-		search.hasTo = true
-	}
-
-	if search.hasFrom && search.hasTo && search.toUnix <= search.fromUnix {
-		return search, ErrSearchDateRange
-	}
+	search.createdStart, search.createdEnd, search.hasBounds = start, end, hasBounds
 
 	return search, nil
-}
-
-func parseSearchDate(value string) (int64, error) {
-	// time.Parse accepts unpadded components such as "2026-1-5"; the form input
-	// declares a strict \d{4}-\d{2}-\d{2} pattern, so reject anything the browser
-	// itself would refuse rather than echoing it back into an invalid field.
-	if len(value) != len(searchDateLayout) {
-		return 0, fmt.Errorf("%w: %q", ErrSearchDateFormat, value)
-	}
-
-	date, err := time.Parse(searchDateLayout, value)
-	if err != nil {
-		return 0, fmt.Errorf("%w: %q", ErrSearchDateFormat, value)
-	}
-
-	return date.Unix(), nil
-}
-
-// dateField is DateField with the zero value resolved, so a search built
-// outside parseExpenseSearch still targets the billed date.
-func (s expenseSearch) dateField() string {
-	return normalizeSearchDateField(s.DateField)
-}
-
-func (s expenseSearch) hasDateBounds() bool {
-	return s.hasFrom || s.hasTo
 }
 
 func (s expenseSearch) hasTextSearch() bool {
@@ -139,7 +76,7 @@ func (s expenseSearch) hasTextSearch() bool {
 // time so that matches older than the default range are not silently hidden —
 // unless the request picked a date_range itself.
 func (s expenseSearch) clearsPresetRange() bool {
-	if s.hasDateBounds() {
+	if s.hasBounds {
 		return true
 	}
 
@@ -152,18 +89,22 @@ func (s expenseSearch) apply(opts *repo.QueryOptions, userID int) {
 	fields := opts.Filters.FilterFields
 
 	if s.clearsPresetRange() {
-		// The preset range always filters on the billed date, so it is dropped
-		// whichever column the explicit bounds target.
+		// The preset range filters on the billed date and the explicit bounds
+		// filter on created_at, so the two can never combine into a meaningful
+		// window — the preset is dropped whenever the search overrides it.
 		fields = slices.DeleteFunc(fields, func(f repo.FilterField) bool {
 			return f.Name == searchFieldBilled
 		})
 
-		field := s.dateField()
-		if s.hasFrom {
-			fields = append(fields, repo.FilterField{Name: field, Value: s.fromUnix, Operator: ">="})
-		}
-		if s.hasTo {
-			fields = append(fields, repo.FilterField{Name: field, Value: s.toUnix, Operator: "<"})
+		if s.hasBounds {
+			fields = append(fields,
+				repo.FilterField{
+					Name: searchFieldCreated, Value: s.createdStart, Operator: ">=",
+				},
+				repo.FilterField{
+					Name: searchFieldCreated, Value: s.createdEnd, Operator: "<",
+				},
+			)
 		}
 	}
 

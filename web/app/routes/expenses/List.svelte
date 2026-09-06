@@ -4,8 +4,13 @@
   // app. §3.6 of docs/spa-migration.md governs the date-range half: named
   // ranges (the date_range select) resolve to explicit [start, end) bounds
   // client-side via lib/dateRanges.ts, while the explicit search bounds
-  // (date_from/date_to) are plain YYYY-MM-DD strings the API parses itself,
-  // unchanged from the template path.
+  // (date_from/date_to) stay YYYY-MM-DD in the URL, because that is what the
+  // form fields hold and what a shared link should carry — but they are
+  // resolved to epoch bounds here before the fetch, exactly as named ranges
+  // are. They target created_at, an *instant*, so the day they name only
+  // becomes a window once the viewer's zone is applied, and the browser is the
+  // only party that knows it. The billed date is a month now, so a
+  // day-precision bound on it meant nothing; date_range filters that.
   import { untrack } from "svelte";
   import { AlignLeft, CalendarRange, ChevronDown, Search, Tag } from "lucide";
   import DateHelp from "../../components/DateHelp.svelte";
@@ -17,6 +22,7 @@
   import { type Category, fetchCategories } from "../../lib/categories";
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange, DATE_RANGE_OPTIONS } from "../../lib/dateRanges";
+  import { localDayEnd, localDayStart } from "../../lib/dates";
   import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type { Expense, ExpenseListResponse, Pagination } from "./types";
@@ -26,8 +32,6 @@
   }
 
   let { search = "" }: Props = $props();
-
-  const CREATED_DATE_FIELD = "created_at";
 
   let categories = $state<Category[]>([]);
   let rows = $state<Expense[]>([]);
@@ -45,12 +49,42 @@
   const tag = $derived(params.get("tag") ?? "");
   const dateFrom = $derived(params.get("date_from") ?? "");
   const dateTo = $derived(params.get("date_to") ?? "");
-  const dateField = $derived(
-    params.get("date_field") === CREATED_DATE_FIELD
-      ? CREATED_DATE_FIELD
-      : "date",
-  );
   const hasDateBounds = $derived(dateFrom !== "" || dateTo !== "");
+  // Resolved here rather than in the fetch effect so a lopsided or malformed
+  // pair in a hand-edited URL surfaces as one error message instead of a failed
+  // request.
+  //
+  // Both bounds or neither. Completing the missing side from the one that was
+  // given is what this used to do, and it turned a From-only search into a
+  // one-day search while the "Single day" box sat unchecked — the listing came
+  // back near-empty with nothing on screen saying why. The box is how a one-day
+  // search is asked for.
+  const createdBounds = $derived.by(() => {
+    if (!hasDateBounds) return null;
+    if (dateFrom === "" || dateTo === "") return "half" as const;
+
+    let start: number;
+    let end: number;
+    try {
+      start = localDayStart(dateFrom);
+      end = localDayEnd(dateTo);
+    } catch {
+      return "invalid" as const;
+    }
+
+    // Caught here rather than left to the API, whose message names start and
+    // end — the epoch bounds computed just above, which are not the From and To
+    // fields the user filled in.
+    if (start > end) return "inverted" as const;
+
+    return { start, end };
+  });
+  const CREATED_BOUNDS_ERRORS: Record<"half" | "invalid" | "inverted", string> =
+    {
+      half: "Fill in both dates, or tick Single day to search one day.",
+      invalid: "Dates must use the YYYY-MM-DD format.",
+      inverted: "The From date must be on or before the To date.",
+    };
   const hasTextSearch = $derived(query !== "" || tag !== "");
   const searchActive = $derived(hasDateBounds || hasTextSearch);
   const explicitRange = $derived(params.has("date_range"));
@@ -71,15 +105,38 @@
   let tagInput = $state("");
   let dateFromInput = $state("");
   let dateToInput = $state("");
-  let dateFieldChecked = $state(false);
+  // "Single day" is not its own query parameter: a one-day search is exactly
+  // date_from === date_to, so the URL already says it. Deriving it keeps the
+  // two dates the only source of truth, and a shared link reopens in the mode
+  // it was searched in.
+  let singleDay = $state(false);
 
   $effect(() => {
     searchInput = query;
     tagInput = tag;
     dateFromInput = dateFrom;
     dateToInput = dateTo;
-    dateFieldChecked = dateField === CREATED_DATE_FIELD;
+    singleDay = dateFrom !== "" && dateFrom === dateTo;
   });
+
+  // The To field mirrors From while the box is checked, so the disabled input
+  // shows the day actually being searched instead of a stale bound. Unchecking
+  // leaves that value in place, which is the useful starting point for widening
+  // the range.
+  $effect(() => {
+    if (singleDay) dateToInput = dateFromInput;
+  });
+
+  // Checking the box with only the To field filled would otherwise mirror an
+  // empty From over it and throw the date away. Fold it back into From first;
+  // the effect above then keeps the two in step.
+  function onSingleDayChange(event: Event): void {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    if (checked && dateFromInput.trim() === "" && dateToInput.trim() !== "") {
+      dateFromInput = dateToInput;
+    }
+    singleDay = checked;
+  }
 
   const SEARCH_PANEL_KEY = "search-panel-open";
 
@@ -126,23 +183,32 @@
 
   $effect(() => {
     let cancelled = false;
-    const bounds = computeDateRange(dateRangeValue);
+    // The preset range's bounds, on the billed date. The search's own bounds
+    // (createdBounds) filter created_at and are a separate pair for that
+    // reason; the API drops this one whenever they are present.
+    const rangeBounds = computeDateRange(dateRangeValue);
+
+    if (typeof createdBounds === "string") {
+      rows = [];
+      pagination = null;
+      error = CREATED_BOUNDS_ERRORS[createdBounds];
+
+      return;
+    }
 
     get<ExpenseListResponse>("/expenses", {
       params: {
         q: query || undefined,
         tag: tag || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-        date_field:
-          dateField === CREATED_DATE_FIELD ? CREATED_DATE_FIELD : undefined,
+        created_start: createdBounds?.start,
+        created_end: createdBounds?.end,
         category_id: categoryId > 0 ? categoryId : undefined,
         sort_field: sortField,
         sort_order: sortOrder,
         page,
         per_page: perPage,
-        start: bounds?.start,
-        end: bounds?.end,
+        start: rangeBounds?.start,
+        end: rangeBounds?.end,
       },
     })
       .then((result) => {
@@ -208,8 +274,10 @@
         q: searchInput.trim() || undefined,
         tag: tagInput.trim() || undefined,
         date_from: dateFromInput.trim() || undefined,
-        date_to: dateToInput.trim() || undefined,
-        date_field: dateFieldChecked ? CREATED_DATE_FIELD : undefined,
+        // Read from From rather than the mirrored input: the effect that keeps
+        // them equal has not necessarily flushed when this runs.
+        date_to:
+          (singleDay ? dateFromInput.trim() : dateToInput.trim()) || undefined,
         page: 1,
       }),
     );
@@ -221,7 +289,6 @@
       tag: undefined,
       date_from: undefined,
       date_to: undefined,
-      date_field: undefined,
       page: 1,
     };
     // An active search forces the range select to all_time; dropping it here
@@ -252,14 +319,21 @@
   // there would be no free space for justify-end to push the cluster right. On
   // a narrow screen they share the row instead. `shrink` is spelled out
   // because `flex-none` sets the whole shorthand, flex-shrink: 0 included.
+  //
+  // The basis is wider than a bare text field would need because these are
+  // native date inputs: the picker icon and the browser's own YYYY-MM-DD
+  // rendering have a larger intrinsic minimum, and at 10rem they sat cramped.
+  // The extra width comes out of the cluster's leading whitespace, which is
+  // what narrows the gap to the tag field. Desktop only — `max-md:basis-0`
+  // already hands the fields the full row once it stacks.
   const dateFieldClass =
-    "flex-none shrink basis-40 max-md:flex-1 max-md:basis-0 max-md:gap-1";
+    "flex-none shrink basis-48 max-md:flex-1 max-md:basis-0 max-md:gap-1";
 
   const sortableColumns: [string, string][] = [
     ["category_id", "Category"],
     ["description", "Description"],
     ["amount", "Amount"],
-    ["date", "Billed"],
+    ["date", "Billed month"],
     ["created_at", "Created"],
   ];
 </script>
@@ -304,82 +378,72 @@
       />
     </label>
     <!-- Grows to take the leftover width but packs its contents to the right,
-      so the free space collects between the tag input and the toggle. That,
-      plus a tighter internal gap than the row's, makes the toggle read as part
-      of the date cluster rather than as a trailer on the field before it. -->
+      so the free space collects between the tag input and the date cluster.
+      That, plus a tighter internal gap than the row's, keeps the two bounds
+      and their help popover reading as one group. -->
     <div
       class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
     >
-      <!-- The label's children are flat on purpose: `peer-checked:` reaches a
-        following *sibling*, so the two words cannot be nested in a wrapper. -->
-      <label
-        class="inline-flex flex-none cursor-pointer items-center gap-2 text-muted select-none max-md:mt-3 max-md:grow max-md:basis-full"
-        title="Apply the date bounds to the billed date or the created date"
-      >
-        <span class="sr-only">
-          Apply date bounds to the created date instead of the billed date
-        </span>
-        <input
-          type="checkbox"
-          class="peer absolute h-px w-px opacity-0"
-          bind:checked={dateFieldChecked}
-        />
-        <span class="toggle-switch" aria-hidden="true"></span>
-        <span class="min-w-16 text-sm peer-checked:hidden" aria-hidden="true">
-          Billed
-        </span>
-        <span
-          class="hidden min-w-16 text-sm peer-checked:inline"
-          aria-hidden="true"
-        >
-          Created
-        </span>
-      </label>
       <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">From date</span>
+        <span class="sr-only">Created from date</span>
         <span class="text-sm" aria-hidden="true">From</span>
-        <!-- The regex has to be an expression, not a quoted attribute: Svelte
-          reads {4} inside a plain attribute value as an interpolation and the
-          template's `\d{4}-\d{2}-\d{2}` would ship as `\d4-\d2-\d2`, which no
-          real date matches, so the field could never pass validation. -->
-        <input
-          type="text"
-          class="min-w-0"
-          bind:value={dateFromInput}
-          placeholder="YYYY-MM-DD"
-          inputmode="numeric"
-          pattern={"\\d{4}-\\d{2}-\\d{2}"}
-          title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
-          maxlength="10"
-        />
+        <!-- A date input's value is already YYYY-MM-DD, which is exactly what
+          the URL carries and what localDayStart/localDayEnd parse, so the
+          browser's own picker and validation replace the pattern and length
+          checks this field used to spell out by hand. -->
+        <input type="date" class="min-w-0" bind:value={dateFromInput} />
       </label>
       <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">To date</span>
+        <span class="sr-only">Created to date</span>
         <span class="text-sm" aria-hidden="true">To</span>
-        <!-- Expression form, same reason as the From field above. -->
         <input
-          type="text"
+          type="date"
           class="min-w-0"
           bind:value={dateToInput}
-          placeholder="YYYY-MM-DD"
-          inputmode="numeric"
-          pattern={"\\d{4}-\\d{2}-\\d{2}"}
-          title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
-          maxlength="10"
+          disabled={singleDay}
         />
       </label>
-      <DateHelp
-        label="Show accepted date format"
-        title="Dates must be:"
-        panelClass="left-auto right-0 max-md:right-auto max-md:left-0"
+      <!-- The checkbox and the help icon share a line. On a narrow screen it
+        takes the full width and pushes them to opposite edges, which is the
+        only row in the stacked panel with two things small enough to sit side
+        by side; on desktop it is just the pair, in the cluster's order. -->
+      <div
+        class="flex flex-none items-center gap-2 max-md:mt-3 max-md:w-full max-md:justify-between"
       >
-        <ul>
-          <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
-          <li>Both bounds are inclusive</li>
-          <li>Leave empty to use the date range filter</li>
-          <li>Bounds apply to the billed or created date, per the selector</li>
-        </ul>
-      </DateHelp>
+        <!-- A native checkbox: app.css already sizes one, and unlike the toggle
+          this replaced there is no custom switch to build out of a sibling. It
+          sits after the fields it governs: it changes what the To input means,
+          so it reads as a modifier on the pair rather than as a heading. -->
+        <label
+          class="inline-flex flex-none cursor-pointer items-center gap-2 text-sm text-muted select-none"
+          title="Search a single created day instead of a range"
+        >
+          <input
+            type="checkbox"
+            checked={singleDay}
+            onchange={onSingleDayChange}
+          />
+          Single day
+        </label>
+        <!-- The icon sits at the right edge in both layouts, so the panel hangs
+          from its right edge in both. Letting it fall back to `left-0` on
+          narrow screens pushed 16rem of popover off the viewport and put a
+          horizontal scrollbar on the page. -->
+        <DateHelp
+          label="Show what the date bounds do"
+          title="Date bounds:"
+          panelClass="left-auto right-0"
+        >
+          <ul>
+            <li>Both bounds are inclusive</li>
+            <li>Fill in both, or leave both empty for the date range filter</li>
+            <li>
+              Bounds apply to the created date; the range filter is billed
+            </li>
+            <li>Single day searches one day, using the From date alone</li>
+          </ul>
+        </DateHelp>
+      </div>
     </div>
     {#if error}
       <p class="text-danger">{error}</p>
@@ -446,7 +510,7 @@
           <td>{row.category_name}</td>
           <td>{row.description}</td>
           <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
-          <td><LocalDate value={row.date} /></td>
+          <td><LocalDate value={row.date} month /></td>
           <td><LocalDate value={row.created_at} datetime /></td>
           <td>
             {#if row.tags.length > 0}

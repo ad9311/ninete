@@ -56,6 +56,18 @@ func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err err
 	return parseAPIBoundPair(q, "start", "end")
 }
 
+// parseAPICreatedBounds reads the expense search's explicit created_at bounds.
+// A second pair rather than a reuse of start/end because the two filter
+// different columns — start/end bound the billed date the preset range picked,
+// these bound the creation instant the search box asked for.
+//
+// They are resolved client-side for the reason expenseSearch documents:
+// created_at is an instant, so the day the user typed only becomes a window
+// once a zone is applied, and the client is the only party that knows it.
+func parseAPICreatedBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
+	return parseAPIBoundPair(q, "created_start", "created_end")
+}
+
 // parseAPIRequiredDateBounds is parseAPIBoundPair for an endpoint with no
 // all_time case — /api/dashboard always compares two specific months, so a
 // missing bound is malformed input rather than "no filter".
