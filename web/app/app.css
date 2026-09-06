@@ -211,7 +211,7 @@ html.theme-dark {
   /* Every form control looks the same everywhere, so this is a base rule
      rather than a `.field` class on 45 elements. Utilities sit in a later
      layer and override it without a fight, which is how the header's compact
-     selects and the search toggle's hidden checkbox opt out. */
+     selects opt out. */
   input:not([type="hidden"]),
   select,
   textarea {
@@ -258,6 +258,13 @@ html.theme-dark {
   }
 
   button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Matches the disabled button treatment so the search panel's mirrored To
+     field reads as inert rather than empty. */
+  input:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }

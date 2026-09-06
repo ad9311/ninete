@@ -86,13 +86,38 @@
   let tagInput = $state("");
   let dateFromInput = $state("");
   let dateToInput = $state("");
+  // "Single day" is not its own query parameter: a one-day search is exactly
+  // date_from === date_to, so the URL already says it. Deriving it keeps the
+  // two dates the only source of truth, and a shared link reopens in the mode
+  // it was searched in.
+  let singleDay = $state(false);
 
   $effect(() => {
     searchInput = query;
     tagInput = tag;
     dateFromInput = dateFrom;
     dateToInput = dateTo;
+    singleDay = dateFrom !== "" && dateFrom === dateTo;
   });
+
+  // The To field mirrors From while the box is checked, so the disabled input
+  // shows the day actually being searched instead of a stale bound. Unchecking
+  // leaves that value in place, which is the useful starting point for widening
+  // the range.
+  $effect(() => {
+    if (singleDay) dateToInput = dateFromInput;
+  });
+
+  // Checking the box with only the To field filled would otherwise mirror an
+  // empty From over it and throw the date away. Fold it back into From first;
+  // the effect above then keeps the two in step.
+  function onSingleDayChange(event: Event): void {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    if (checked && dateFromInput.trim() === "" && dateToInput.trim() !== "") {
+      dateFromInput = dateToInput;
+    }
+    singleDay = checked;
+  }
 
   const SEARCH_PANEL_KEY = "search-panel-open";
 
@@ -230,7 +255,10 @@
         q: searchInput.trim() || undefined,
         tag: tagInput.trim() || undefined,
         date_from: dateFromInput.trim() || undefined,
-        date_to: dateToInput.trim() || undefined,
+        // Read from From rather than the mirrored input: the effect that keeps
+        // them equal has not necessarily flushed when this runs.
+        date_to:
+          (singleDay ? dateFromInput.trim() : dateToInput.trim()) || undefined,
         page: 1,
       }),
     );
@@ -336,6 +364,19 @@
       <span class="flex-none text-sm text-muted max-md:mt-3" aria-hidden="true">
         Created
       </span>
+      <!-- A native checkbox: app.css already sizes one, and unlike the toggle
+        this replaced there is no custom switch to build out of a sibling. -->
+      <label
+        class="inline-flex flex-none cursor-pointer items-center gap-2 text-sm text-muted select-none max-md:mt-3 max-md:grow max-md:basis-full"
+        title="Search a single created day instead of a range"
+      >
+        <input
+          type="checkbox"
+          checked={singleDay}
+          onchange={onSingleDayChange}
+        />
+        Single day
+      </label>
       <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">Created from date</span>
         <span class="text-sm" aria-hidden="true">From</span>
@@ -367,6 +408,7 @@
           pattern={"\\d{4}-\\d{2}-\\d{2}"}
           title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
           maxlength="10"
+          disabled={singleDay}
         />
       </label>
       <DateHelp
@@ -379,6 +421,7 @@
           <li>Both bounds are inclusive</li>
           <li>Leave empty to use the date range filter</li>
           <li>Bounds apply to the created date; the range filter is billed</li>
+          <li>Single day searches one day, using the From date alone</li>
         </ul>
       </DateHelp>
     </div>

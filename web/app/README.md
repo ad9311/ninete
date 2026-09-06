@@ -217,6 +217,13 @@ and a module there that reaches for `document` should fail its own test rather
 than pass because a DOM happened to be present. A component test opts in with
 `// @vitest-environment jsdom` on the first line of the file.
 
+`routes/expenses/List.test.ts` is the pattern for testing a route component: it
+mocks `lib/api`, `lib/categories` and `router` with `vi.mock`, then asserts on
+the href handed to `navigate`. Prefer a `lib/` unit test where the logic can
+live there; reach for this when the behaviour *is* the interaction, as the
+search panel's "Single day" box is — it has no query parameter of its own, so
+the URL the form produces is the only thing that can be checked.
+
 `make lint-fix` covers `.svelte`: `prettier-plugin-svelte` formats the whole
 file, and eslint runs `svelte-eslint-parser` with the TS parser nested inside
 it, so both `@typescript-eslint` and the 37 `eslint-plugin-svelte` rules apply.
