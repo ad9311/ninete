@@ -50,22 +50,41 @@
   const dateFrom = $derived(params.get("date_from") ?? "");
   const dateTo = $derived(params.get("date_to") ?? "");
   const hasDateBounds = $derived(dateFrom !== "" || dateTo !== "");
-  // Resolved here rather than in the fetch effect so a malformed date in a
-  // hand-edited URL surfaces as one error message instead of a failed request.
-  // Both bounds or neither: the API rejects a half-open pair, and an open-ended
-  // created_at search is what the date_range select is for.
+  // Resolved here rather than in the fetch effect so a lopsided or malformed
+  // pair in a hand-edited URL surfaces as one error message instead of a failed
+  // request.
+  //
+  // Both bounds or neither. Completing the missing side from the one that was
+  // given is what this used to do, and it turned a From-only search into a
+  // one-day search while the "Single day" box sat unchecked — the listing came
+  // back near-empty with nothing on screen saying why. The box is how a one-day
+  // search is asked for.
   const createdBounds = $derived.by(() => {
     if (!hasDateBounds) return null;
+    if (dateFrom === "" || dateTo === "") return "half" as const;
 
+    let start: number;
+    let end: number;
     try {
-      return {
-        start: localDayStart(dateFrom || dateTo),
-        end: localDayEnd(dateTo || dateFrom),
-      };
+      start = localDayStart(dateFrom);
+      end = localDayEnd(dateTo);
     } catch {
       return "invalid" as const;
     }
+
+    // Caught here rather than left to the API, whose message names start and
+    // end — the epoch bounds computed just above, which are not the From and To
+    // fields the user filled in.
+    if (start > end) return "inverted" as const;
+
+    return { start, end };
   });
+  const CREATED_BOUNDS_ERRORS: Record<"half" | "invalid" | "inverted", string> =
+    {
+      half: "Fill in both dates, or tick Single day to search one day.",
+      invalid: "Dates must use the YYYY-MM-DD format.",
+      inverted: "The From date must be on or before the To date.",
+    };
   const hasTextSearch = $derived(query !== "" || tag !== "");
   const searchActive = $derived(hasDateBounds || hasTextSearch);
   const explicitRange = $derived(params.has("date_range"));
@@ -169,10 +188,10 @@
     // reason; the API drops this one whenever they are present.
     const rangeBounds = computeDateRange(dateRangeValue);
 
-    if (createdBounds === "invalid") {
+    if (typeof createdBounds === "string") {
       rows = [];
       pagination = null;
-      error = "Dates must use the YYYY-MM-DD format.";
+      error = CREATED_BOUNDS_ERRORS[createdBounds];
 
       return;
     }
@@ -417,7 +436,7 @@
         >
           <ul>
             <li>Both bounds are inclusive</li>
-            <li>Leave empty to use the date range filter</li>
+            <li>Fill in both, or leave both empty for the date range filter</li>
             <li>
               Bounds apply to the created date; the range filter is billed
             </li>

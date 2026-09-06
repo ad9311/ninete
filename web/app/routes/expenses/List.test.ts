@@ -3,9 +3,11 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The first test of a route component rather than of the toolchain
-// (toolchain/Probe.test.ts is that). It covers the search panel's "Single day"
-// box, whose whole behaviour is client-side: no query parameter of its own, so
-// the only proof it works is the URL the form navigates to.
+// (toolchain/Probe.test.ts is that). It covers the parts of the search panel
+// that are wholly client-side: the "Single day" box, which has no query
+// parameter of its own, so the only proof it works is the URL the form
+// navigates to; and the created-date bounds, which are validated and resolved
+// to epoch seconds here rather than by the API.
 vi.mock("../../lib/api", async () => {
   const actual =
     await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
@@ -41,11 +43,13 @@ vi.mock("../../router", () => ({
   navigate: (href: string) => navigate(href),
 }));
 
+import { get } from "../../lib/api";
 import List from "./List.svelte";
 
 afterEach(cleanup);
 beforeEach(() => {
   navigate.mockClear();
+  vi.mocked(get).mockClear();
 });
 
 function singleDayBox(): HTMLInputElement {
@@ -162,5 +166,48 @@ describe("the single-day box derived from the URL", () => {
     renderList("?q=coffee");
 
     expect(singleDayBox().checked).toBe(false);
+  });
+});
+
+describe("the created-date bounds", () => {
+  // Reproductions, not invariant guards: a half-filled pair used to complete
+  // itself from the bound that was given, so a From-only search quietly became
+  // a one-day search while the box above sat unchecked.
+  it("rejects a From-only search rather than narrowing it to that day", async () => {
+    renderList("?date_from=2026-08-01");
+
+    expect(await screen.findByText(/Fill in both dates/)).toBeTruthy();
+    expect(vi.mocked(get)).not.toHaveBeenCalled();
+    expect(singleDayBox().checked).toBe(false);
+  });
+
+  it("rejects a To-only search the same way", async () => {
+    renderList("?date_to=2026-08-01");
+
+    expect(await screen.findByText(/Fill in both dates/)).toBeTruthy();
+    expect(vi.mocked(get)).not.toHaveBeenCalled();
+  });
+
+  // The API answers an inverted pair with a message naming start and end,
+  // which are not the fields on screen.
+  it("names From and To when the range is inverted, without asking the API", async () => {
+    renderList("?date_from=2026-09-05&date_to=2026-09-03");
+
+    expect(
+      await screen.findByText(/From date must be on or before the To date/),
+    ).toBeTruthy();
+    expect(vi.mocked(get)).not.toHaveBeenCalled();
+  });
+
+  it("sends both bounds for a valid range", () => {
+    renderList("?date_from=2026-09-03&date_to=2026-09-05");
+
+    const params = vi.mocked(get).mock.calls[0][1]?.params as Record<
+      string,
+      unknown
+    >;
+    expect(typeof params.created_start).toBe("number");
+    expect(typeof params.created_end).toBe("number");
+    expect(params.created_start).toBeLessThan(params.created_end as number);
   });
 });
