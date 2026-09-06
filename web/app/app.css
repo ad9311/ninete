@@ -38,63 +38,77 @@
    `dark:` utility appearing in a component means a role is missing — add it
    here instead of pairing colours at the call site. */
 :root {
-  --ui-bg: #f4f4f5;
-  --ui-surface: #fff;
-  --ui-surface-muted: #f8fafc;
-  --ui-surface-hover: #f1f5f9;
-  --ui-fg: #0f172a;
-  --ui-muted: #64748b;
-  --ui-placeholder: #94a3b8;
-  --ui-line: #e2e8f0;
-  --ui-line-strong: #cbd5e1;
-  --ui-primary: #16a34a;
-  --ui-primary-hover: #15803d;
-  --ui-on-primary: #fff;
-  --ui-neutral: #f1f5f9;
-  --ui-neutral-hover: #e2e8f0;
-  --ui-danger: #dc2626;
-  --ui-danger-hover: #b91c1c;
-  --ui-on-danger: #fff;
-  --ui-chip: #f1f5f9;
-  --ui-chip-line: #e2e8f0;
-  --ui-chip-text: #475569;
-  --ui-tag: #f0fdf4;
-  --ui-tag-line: #bbf7d0;
-  --ui-tag-text: #15803d;
-  --ui-backdrop: rgb(244 244 245 / 62%);
+  /* Catppuccin Latte. Roles the palette has no swatch for — the hover step of
+     an accent — are that accent darkened by hand, since Latte ships one shade
+     per hue. */
+  --ui-bg: #e6e9ef;
+  --ui-surface: #eff1f5;
+  --ui-surface-muted: #e6e9ef;
+  --ui-surface-hover: #dce0e8;
+  --ui-fg: #4c4f69;
+  --ui-muted: #6c6f85;
+  --ui-placeholder: #8c8fa1;
+  --ui-line: #ccd0da;
+  --ui-line-strong: #acb0be;
+  --ui-primary: #40a02b;
+  --ui-primary-hover: #35871f;
+  --ui-on-primary: #eff1f5;
+  --ui-neutral: #ccd0da;
+  --ui-neutral-hover: #bcc0cc;
+  --ui-danger: #d20f39;
+  --ui-danger-hover: #b00c30;
+  --ui-on-danger: #eff1f5;
+  --ui-danger-solid: #d20f39;
+  --ui-danger-solid-hover: #b00c30;
+  --ui-chip: #ccd0da;
+  --ui-chip-line: #bcc0cc;
+  --ui-chip-text: #5c5f77;
+
+  /* Latte has no tinted surface steps, so the tag chip is the green accent
+     blended into the base at 15% and 35%, with a darkened green for text the
+     pale fill cannot otherwise carry. */
+  --ui-tag: #d5e5d7;
+  --ui-tag-line: #b2d5ae;
+  --ui-tag-text: #2f6f21;
+  --ui-backdrop: rgb(230 233 239 / 62%);
   --ui-shadow-card: 0 1px 3px rgb(0 0 0 / 8%), 0 1px 2px rgb(0 0 0 / 5%);
   --ui-shadow-panel: 0 4px 6px rgb(0 0 0 / 7%), 0 2px 4px rgb(0 0 0 / 5%);
   --ui-shadow-popover: 0 4px 12px rgb(0 0 0 / 8%);
 }
 
 html.theme-dark {
-  --ui-bg: #0f172a;
-  --ui-surface: #1e293b;
-  --ui-surface-muted: #18243a;
-  --ui-surface-hover: #273548;
-  --ui-fg: #e2e8f0;
-  --ui-muted: #94a3b8;
-  --ui-placeholder: #64748b;
-  --ui-line: #334155;
-  --ui-line-strong: #475569;
-  --ui-primary: #22c55e;
-  --ui-primary-hover: #16a34a;
-  --ui-on-primary: #052e16;
-  --ui-neutral: #273548;
-  --ui-neutral-hover: #334155;
+  /* Catppuccin Macchiato. Its accents are pastel and lighter than the
+     surfaces, so the roles carrying text *on* an accent (--ui-on-primary,
+     --ui-on-danger) are the base colour rather than white. */
+  --ui-bg: #1e2030;
+  --ui-surface: #24273a;
+  --ui-surface-muted: #1e2030;
+  --ui-surface-hover: #363a4f;
+  --ui-fg: #cad3f5;
+  --ui-muted: #a5adcb;
+  --ui-placeholder: #8087a2;
+  --ui-line: #494d64;
+  --ui-line-strong: #5b6078;
+  --ui-primary: #a6da95;
+  --ui-primary-hover: #94d182;
+  --ui-on-primary: #24273a;
+  --ui-neutral: #363a4f;
+  --ui-neutral-hover: #494d64;
 
-  /* Not the light theme's danger: the text colour has to lift off a dark
-     surface, while the solid button keeps its own strong red below. */
-  --ui-danger: #f87171;
-  --ui-danger-hover: #ef4444;
-  --ui-on-danger: #fff;
-  --ui-chip: #273548;
-  --ui-chip-line: #334155;
-  --ui-chip-text: #cbd5e1;
-  --ui-tag: #14321f;
-  --ui-tag-line: #166534;
-  --ui-tag-text: #86efac;
-  --ui-backdrop: rgb(15 23 42 / 62%);
+  /* Red resting, maroon on hover: a pastel accent on a dark surface has to
+     brighten rather than deepen to read as hovered. */
+  --ui-danger: #ed8796;
+  --ui-danger-hover: #ee99a0;
+  --ui-on-danger: #24273a;
+  --ui-danger-solid: #ed8796;
+  --ui-danger-solid-hover: #ee99a0;
+  --ui-chip: #363a4f;
+  --ui-chip-line: #494d64;
+  --ui-chip-text: #b8c0e0;
+  --ui-tag: #2c3b33;
+  --ui-tag-line: #3f5a48;
+  --ui-tag-text: #a6da95;
+  --ui-backdrop: rgb(30 32 48 / 62%);
 
   /* Heavier than the light theme's: a soft shadow is invisible on a dark
      surface. */
@@ -135,10 +149,11 @@ html.theme-dark {
   --color-tag-text: var(--ui-tag-text);
   --color-backdrop: var(--ui-backdrop);
 
-  /* The solid danger button keeps the same strong red in both themes, so it is
-     a token of its own rather than a theme-swapped role. */
-  --color-danger-solid: #dc2626;
-  --color-danger-solid-hover: #b91c1c;
+  /* The solid danger button. A separate role from --color-danger because the
+     text colour is the one that has to lift off a surface, while the button is
+     the accent itself. */
+  --color-danger-solid: var(--ui-danger-solid);
+  --color-danger-solid-hover: var(--ui-danger-solid-hover);
 
   /* One radius for the whole app. Overriding Tailwind's own `xs` step keeps
      the utility name native (`rounded-xs`) instead of inventing a synonym. */
