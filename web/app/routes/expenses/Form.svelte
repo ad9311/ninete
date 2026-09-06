@@ -88,7 +88,7 @@
     try {
       date = calendarMonthToUnix(monthInput);
     } catch {
-      formError = "Billed month must be a valid month.";
+      formError = "Billed month must be a valid YYYY-MM month.";
       return;
     }
     formError = "";
@@ -134,7 +134,17 @@
   </label>
   <label>
     Billed month
-    <input type="month" bind:value={monthInput} />
+    <!-- Firefox and Safari have no month picker: they fall the field back to a
+      text box, where the shape has to be spelled out or the only feedback for
+      "September 2026" is the submit error below. Chrome renders its own picker
+      and ignores both attributes. The pattern is an expression because `{4}` in
+      an attribute string is Svelte interpolation, not a quantifier. -->
+    <input
+      type="month"
+      bind:value={monthInput}
+      placeholder="YYYY-MM"
+      pattern={"\\d{4}-\\d{2}"}
+    />
   </label>
   <button
     type="submit"
