@@ -87,9 +87,12 @@ settings form pre-fills from the browser's
 
 ## Phases
 
-### Phase 1 — settings table and UI
+Each heading carries its state. Update it in the same change that moves it —
+a plan that does not say what is already built is worse than no plan.
 
-Ships standing alone: the page saves and reloads, and nothing consumes the
+### Phase 1 — settings table and UI — **done** (PR #151)
+
+Shipped standing alone: the page saves and reloads, and nothing consumes the
 settings yet.
 
 - Migration (`user_version` 32):
@@ -124,7 +127,7 @@ settings yet.
   along in the response rather than being repeated in the client, so the
   checkboxes cap where the server does.
 
-### Phase 2 — the PDF, on demand
+### Phase 2 — the PDF, on demand — **not started**
 
 - `github.com/go-pdf/fpdf`.
 - A new `internal/report` package, kept pure: rows in, PDF bytes out, no HTTP
@@ -143,7 +146,7 @@ settings yet.
   it would add a large external binary and fight the unit's
   `ProtectSystem=strict` sandbox.
 
-### Phase 3 — email
+### Phase 3 — email — **not started**
 
 - `report_deliveries` table recording the period sent, so a cron job that fires
   twice does not send twice.
