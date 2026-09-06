@@ -69,9 +69,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     browser's own local calendar — the same role `tz_offset` played
     server-side — and the API only ever receives those bounds, never the key.
     `DATE_RANGE_OPTIONS`/`BUDGET_DATE_RANGE_OPTIONS` are the two option tables
-    (`dateRangeLabels`/`budgetDateRanges`) a select needs; the budget table
-    also carries each range's month vs. months mode, since the API can no
-    longer derive it from a key it never receives.
+    a select needs, and they are client-owned — there is no server-side range
+    table left to keep them in step with. The budget table also carries each
+    range's month vs. months mode, since the API can no longer derive it from
+    a key it never receives.
 - `components/` — shared, resource-agnostic components only:
   `Header.svelte` (theme switch, session-aware nav dropdown, logout form),
   `Footer.svelte` (reads the shell's `<meta name="version">`) and

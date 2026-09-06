@@ -282,6 +282,7 @@
             type="number"
             min="0"
             step="0.01"
+            placeholder="0.00"
             value={amountInputs[row.category_id] ?? ""}
             oninput={(event) => {
               amountInputs[row.category_id] = (
