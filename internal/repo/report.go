@@ -10,7 +10,6 @@ import (
 // section it belongs to.
 type ExpenseGroupTag struct {
 	ExpenseID int
-	TagID     int
 	TagName   string
 }
 
@@ -27,7 +26,7 @@ type ExpenseGroupTag struct {
 // there is no chunking to do: the grouping tags are capped well below SQLite's
 // parameter limit, however many expenses the month holds.
 const selectExpenseGroupTagsPrefix = `
-SELECT tg."taggable_id", t."id", t."name"
+SELECT tg."taggable_id", t."name"
 FROM "taggings" tg
 INNER JOIN "tags" t ON t."id" = tg."tag_id"
 INNER JOIN "expenses" e ON e."id" = tg."taggable_id"
@@ -94,7 +93,7 @@ func (q *Queries) SelectExpenseGroupTags(
 		for rows.Next() {
 			var row ExpenseGroupTag
 
-			if err := rows.Scan(&row.ExpenseID, &row.TagID, &row.TagName); err != nil {
+			if err := rows.Scan(&row.ExpenseID, &row.TagName); err != nil {
 				return err
 			}
 

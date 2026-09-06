@@ -61,9 +61,17 @@ func (h *Handler) GetReportsExpenses(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// parseReportMonth reads the month parameter, defaulting to last month — the
-// period the scheduled report will send, and the one a person asking for "the
-// report" on the 1st means.
+// parseReportMonth reads the month parameter, defaulting to last month for a
+// request that omits it.
+//
+// The default resolves in UTC, while the picker that normally supplies the
+// parameter resolves it in the browser's zone (lib/dates.ts's
+// lastCalendarMonth) — so on the 1st the two can name different months for a
+// few hours. The saved ReportSetting.Timezone exists to settle exactly that
+// question and is deliberately not consulted here yet: phase 3 has to resolve
+// the same period for the scheduled send, and the two should be made to agree
+// through one helper rather than by this function guessing first. Reachable
+// only by hitting the URL with no query, since the picker always sends one.
 func parseReportMonth(raw string) (time.Time, error) {
 	if raw == "" {
 		now := time.Now().UTC()

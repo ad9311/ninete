@@ -171,6 +171,14 @@ As built, with the parts that were not obvious from the plan:
 
 ### Phase 3 — email — **not started**
 
+Settle first, before any of the below: **the on-demand default and the
+scheduled send must resolve "last month" the same way.** `parseReportMonth`
+defaults in UTC today, `lib/dates.ts`'s `lastCalendarMonth` resolves in the
+browser's zone, and the saved `ReportSetting.Timezone` — which exists for this
+exact question — is consulted by neither. One helper resolving the period from
+the saved zone, used by the handler default and by the task, is the shape that
+cannot drift.
+
 - `report_deliveries` table recording the period sent, so a cron job that fires
   twice does not send twice.
 - Resend, reached over SMTP with the standard library's `net/smtp`, so

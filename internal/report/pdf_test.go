@@ -149,7 +149,3 @@ func TestRender(t *testing.T) {
 		t.Run(c.name, c.fn)
 	}
 }
-
-func TestTitle(t *testing.T) {
-	require.Equal(t, "Expense report — September 2026", report.Title(sampleReport()))
-}

@@ -1,10 +1,15 @@
 package report
 
 import (
+	"bytes"
+	"compress/zlib"
+	"io"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/go-pdf/fpdf"
 	"github.com/stretchr/testify/require"
 )
@@ -112,4 +117,88 @@ func TestTruncate(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, c.fn)
 	}
+}
+
+// inflateStreams returns the concatenated text of every FlateDecode stream in
+// the document. fpdf compresses its content streams, so this is what it takes
+// to assert on what is actually drawn on a page rather than only on the
+// document's structure.
+func inflateStreams(t *testing.T, doc []byte) string {
+	t.Helper()
+
+	var out strings.Builder
+
+	rest := doc
+	for {
+		open := bytes.Index(rest, []byte("stream\n"))
+		if open < 0 {
+			break
+		}
+
+		body := rest[open+len("stream\n"):]
+
+		close := bytes.Index(body, []byte("\nendstream"))
+		if close < 0 {
+			break
+		}
+
+		reader, err := zlib.NewReader(bytes.NewReader(body[:close]))
+		if err == nil {
+			inflated, err := io.ReadAll(reader)
+			require.NoError(t, err)
+			require.NoError(t, reader.Close())
+			out.Write(inflated)
+		}
+
+		// Past the marker, not onto it: "endstream\n" itself contains
+		// "stream\n", so landing on it would make the next search resume
+		// inside the delimiter and skip the streams that follow.
+		rest = body[close+len("\nendstream"):]
+	}
+
+	require.NotEmpty(t, out.String(), "no content stream could be inflated")
+
+	return out.String()
+}
+
+// TestExpenseTableHeadRepeatsAfterAPageBreak is a real reproduction: before
+// the header followed its rows over a break, a report spilling onto a second
+// page left every row after page 1 with unlabelled columns.
+func TestExpenseTableHeadRepeatsAfterAPageBreak(t *testing.T) {
+	expenses := make([]logic.ReportExpense, 0, 200)
+	for range 200 {
+		expenses = append(expenses, logic.ReportExpense{
+			Description:  "Expense",
+			CategoryName: "Food",
+			Amount:       1000,
+		})
+	}
+
+	out, err := Render(logic.MonthlyReport{
+		Month:        monthForTest(),
+		Total:        200000,
+		ExpenseCount: len(expenses),
+		Sections:     []logic.ReportSection{{Total: 200000, Expenses: expenses}},
+	})
+	require.NoError(t, err)
+
+	content := inflateStreams(t, out)
+
+	pages := strings.Count(content, "Expense")
+	require.Positive(t, pages, "the rows were not drawn at all")
+
+	// One header per page the table occupies, not one for the whole document.
+	require.GreaterOrEqual(t, strings.Count(content, "Description"), 2,
+		"the column header did not follow the rows onto the next page")
+}
+
+func monthForTest() time.Time {
+	return time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC)
+}
+
+// TestTitle guards the string that reaches the PDF metadata, which is the only
+// place a reader sees the report named.
+func TestTitle(t *testing.T) {
+	require.Equal(t, "Expense report — September 2026",
+		title(logic.MonthlyReport{Month: monthForTest()}))
 }

@@ -285,31 +285,49 @@ func (s *Store) reportBudgets(
 	return out, nil
 }
 
+// sectionKey identifies a section by what it is, not by what it is called. The
+// residual bucket is a different section from a tag that happens to share its
+// label, so the two must not collide in the lookup below.
+type sectionKey struct {
+	name     string
+	untagged bool
+}
+
 // buildReportSections assigns every expense to its section and orders the
 // result: by total descending, with Untagged pinned last and empty sections
 // simply never created, since a section only exists once something lands in it.
+//
+// Whether an expense is residual is decided by the assignment — no grouping
+// tag was resolved for it — and never by comparing the resulting name against
+// UntaggedSectionName. A user's tags cannot collide with that label today,
+// since every tag name is lowercased by prog.NormalizeLowerTrim, but a
+// structural fact should not rest on a normalization rule two packages away.
 func buildReportSections(
 	expenses []repo.Expense,
 	categoryNameByID map[int]string,
 	sectionByExpenseID map[int]string,
 	grouped bool,
 ) []ReportSection {
-	byName := make(map[string]*ReportSection)
+	byKey := make(map[sectionKey]*ReportSection)
 	order := make([]*ReportSection, 0)
 
 	for _, expense := range expenses {
 		name := ""
+		untagged := false
+
 		if grouped {
 			name = sectionByExpenseID[expense.ID]
 			if name == "" {
-				name = UntaggedSectionName
+				name, untagged = UntaggedSectionName, true
 			}
 		}
 
-		section, ok := byName[name]
+		key := sectionKey{name: name, untagged: untagged}
+
+		section, ok := byKey[key]
 		if !ok {
-			section = &ReportSection{Name: name, Untagged: grouped && name == UntaggedSectionName}
-			byName[name] = section
+			section = &ReportSection{Name: name, Untagged: untagged}
+			byKey[key] = section
 			order = append(order, section)
 		}
 

@@ -70,7 +70,7 @@ func Render(report logic.MonthlyReport) ([]byte, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(pageMargin, pageMargin, pageMargin)
 	pdf.SetAutoPageBreak(true, pageMargin)
-	pdf.SetTitle(Title(report), true)
+	pdf.SetTitle(title(report), true)
 	pdf.AddPage()
 
 	// The core fonts are Latin-1, so a description typed with an accent would
@@ -80,6 +80,18 @@ func Render(report logic.MonthlyReport) ([]byte, error) {
 	tr := pdf.UnicodeTranslatorFromDescriptor("cp1252")
 
 	d := &drawer{pdf: pdf, tr: tr}
+
+	// A break mid-table would otherwise leave the following page with
+	// unlabelled columns. The hook rather than a check after keepTogether,
+	// because fpdf's own automatic break fires from inside CellFormat and gets
+	// there first, so an explicit check never sees the overflow. It draws
+	// nothing until the expense table is being laid out, which is why the
+	// first AddPage below produces no stray header.
+	pdf.SetHeaderFunc(func() {
+		if d.inExpenseTable {
+			d.expenseTableHead()
+		}
+	})
 
 	d.header(report)
 	d.summary(report)
@@ -95,9 +107,11 @@ func Render(report logic.MonthlyReport) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Title is the report's human name, used for the PDF metadata and by the
-// handler for the download filename.
-func Title(report logic.MonthlyReport) string {
+// title is the report's human name, and goes into the PDF metadata so a reader
+// sees it in the viewer's title bar and in a file manager's preview. It is not
+// the download filename: that is a slug the handler builds from the month, and
+// an em dash and a space belong in metadata rather than on a filesystem.
+func title(report logic.MonthlyReport) string {
 	return "Expense report — " + report.Month.Format("January 2006")
 }
 
@@ -106,6 +120,9 @@ func Title(report logic.MonthlyReport) string {
 type drawer struct {
 	pdf *fpdf.Fpdf
 	tr  func(string) string
+	// inExpenseTable gates the page header: only the expense list has column
+	// labels worth repeating, and only while its rows are being drawn.
+	inExpenseTable bool
 }
 
 func (d *drawer) setColor(c [3]int) {
@@ -232,9 +249,11 @@ func (d *drawer) sections(report logic.MonthlyReport) {
 	}
 
 	d.heading("Expenses", rowHeight*3)
-	// Printed once rather than per section: the columns do not change, and a
-	// header under every tag turned the list into stripes.
+	// Printed once per page rather than per section: the columns do not
+	// change, and a header under every tag turned the list into stripes.
 	d.expenseTableHead()
+
+	d.inExpenseTable = true
 
 	for _, section := range report.Sections {
 		// An ungrouped report has one nameless section, so its header row is
@@ -261,6 +280,8 @@ func (d *drawer) sections(report logic.MonthlyReport) {
 
 		d.pdf.Ln(3)
 	}
+
+	d.inExpenseTable = false
 
 	d.pdf.SetFont("Helvetica", "B", 11)
 	d.setColor(inkColor)

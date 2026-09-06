@@ -119,7 +119,19 @@
     <span class="text-sm text-muted">
       Which month to download. Defaults to the one that just ended.
     </span>
-    <input type="month" bind:value={month} />
+    <!-- Clearing the box snaps back to the default rather than leaving it
+         empty. An empty value sends "?month=", which the server reads as
+         absent and answers with last month — a blank picker handing back a
+         specific month. `required` cannot help: this input is outside a form,
+         so nothing validates it, and CardAction's `disabled` only reaches its
+         button branch, not the anchor this link renders as. -->
+    <input
+      type="month"
+      bind:value={month}
+      onchange={() => {
+        if (month === "") month = lastCalendarMonth();
+      }}
+    />
   </label>
 
   {#if loadError}
