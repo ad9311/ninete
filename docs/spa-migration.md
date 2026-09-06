@@ -155,7 +155,7 @@ Two of the survivors need decisions rather than a port:
 | Auth redirect `303 → /login` | `internal/serve/middleware.go:41` | `401` JSON on `/api/*`, §3.1 |
 | CSRF token in every form | `common/_csrf.html`, `nosurf` at `middleware.go:79` | `X-CSRF-Token` header, §3.2 |
 | Error re-render preserving input | `render.go:renderErr` | Client keeps form state; API returns `422` + field errors |
-| `tz_offset` query injection | `web/static/js/index.ts:11-17` (a Turbo event) | Retired for listings — client computes explicit bounds, §3.6. Quick-add still needs a client zone, sent explicitly |
+| `tz_offset` query injection | `web/static/js/index.ts:11-17` (a Turbo event) | Retired for listings — client computes explicit bounds, §3.6, for the search's created-at bounds as well as for named ranges. Quick-add still needs a client zone, sent explicitly |
 | Pagination / sort / filter via query string | `handlers/shared.go`, `expense_search.go` | Client router owns the query string, API reads it unchanged |
 | Icons rendered on `turbo:load` | `index.ts` + `icons.ts` | Per-component icon rendering |
 | Loading spinner | Turbo's `.turbo-progress-bar`, restyled in `layout.css` | Own component, §3.7 |
@@ -323,6 +323,21 @@ After §0, calendar dates survive in exactly two *stored* places — `expenses.d
 `recurrent_expenses.last_copy_created_at` — which narrows this section's blast radius but does
 not soften any of its rules. `last_copy_created_at` is the one to watch: the name says instant,
 the value is a calendar date.
+
+> **Outcome note (post-migration).** `expenses.date` is still a calendar date and still stored
+> at UTC midnight, but the app no longer shows or picks its day: the form is an
+> `<input type="month">` writing day 01, and `formatMonthUTC` renders `Sep 2026`. Rows written
+> before that change keep a real day, which nothing reads — the month is what displays and what
+> the preset ranges bound. The rules below are unchanged; the value simply has one less digit of
+> meaning. The same change dropped the expense search's billed/created toggle: the explicit
+> `date_from`/`date_to` bounds now always filter `created_at`. Because that is an **instant**,
+> the day they name only becomes a `[start, end)` window once a zone is applied — so they are
+> resolved client-side by `localDayStart`/`localDayEnd` and sent as
+> `created_start`/`created_end` epoch seconds, exactly as named ranges are. The server parses no
+> date string and is told no zone. Resolving them server-side in UTC was the failure this section
+> warns about, found in production: an expense created at 20:00 on the 3rd in UTC-5 is 01:00 on
+> the 4th in UTC, so a search for the 3rd dropped a row the listing itself labelled "Sep 3". A
+> fixed server-side zone would only have moved the failure to whoever is not in it.
 
 Budget and dashboard month bounds are calendar dates too, but they are **computed, never
 stored** — `expense_budgets` has no date column at all, only `amount` against a

@@ -2,11 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   calendarDateToUnix,
+  calendarMonthToUnix,
   formatDate,
   formatDateTime,
   formatDateUTC,
+  formatMonthUTC,
+  localDayEnd,
+  localDayStart,
   todayCalendarDate,
+  todayCalendarMonth,
   unixToCalendarDate,
+  unixToCalendarMonth,
 } from "./dates";
 
 // A calendar date the app would store: UTC midnight, epoch seconds.
@@ -171,6 +177,181 @@ describe("todayCalendarDate", () => {
 
   it("returns a well-formed date for the real clock", () => {
     expect(todayCalendarDate()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+// Bounding an instant column by a day the user typed. These run in both
+// configured zones and assert with *local* getters, so they say the same thing
+// east and west of UTC — which is the point: the server is never told a zone,
+// and a fixed server-side zone would be wrong for every request made from
+// anywhere else (docs/spa-migration.md §3.6).
+describe("localDayStart and localDayEnd", () => {
+  // Reads a bound back as the local wall clock it lands on.
+  function local(unix: number) {
+    const d = new Date(unix * 1000);
+
+    return {
+      date: `${String(d.getFullYear()).padStart(4, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
+      hours: d.getHours(),
+      minutes: d.getMinutes(),
+      seconds: d.getSeconds(),
+    };
+  }
+
+  it.each([
+    "2026-01-01", // year start
+    "2026-02-28", // short month end
+    "2028-02-29", // leap day
+    "2026-08-31", // month end
+    "2026-09-03", // the day from the production report
+    "2026-12-31", // year end
+  ])("starts %s at local midnight", (date) => {
+    expect(local(localDayStart(date))).toEqual({
+      date,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
+  });
+
+  it.each([
+    { day: "2026-01-01", next: "2026-01-02" },
+    { day: "2026-02-28", next: "2026-03-01" }, // non-leap month end
+    { day: "2028-02-28", next: "2028-02-29" }, // leap year
+    { day: "2026-08-31", next: "2026-09-01" },
+    { day: "2026-12-31", next: "2027-01-01" }, // year boundary
+  ])("ends $day at the start of $next", ({ day, next }) => {
+    expect(local(localDayEnd(day))).toEqual({
+      date: next,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
+  });
+
+  // The reported bug, as a test: an expense entered at 20:00 on the 3rd is
+  // 01:00 on the 4th in UTC, so UTC-midnight bounds excluded it while the
+  // listing still labelled it "Sep 3".
+  it("contains an instant late on its own local day", () => {
+    const start = localDayStart("2026-09-03");
+    const end = localDayEnd("2026-09-03");
+    const evening = new Date(2026, 8, 3, 20, 0, 0).getTime() / 1000;
+
+    expect(evening).toBeGreaterThanOrEqual(start);
+    expect(evening).toBeLessThan(end);
+  });
+
+  it("excludes the first instant of the next local day", () => {
+    const end = localDayEnd("2026-09-03");
+    const nextMidnight = new Date(2026, 8, 4, 0, 0, 0).getTime() / 1000;
+
+    expect(end).toBe(nextMidnight);
+  });
+
+  // A DST day is 23 or 25 hours long. Adding a flat 86400 seconds would put
+  // the end bound an hour off the next midnight, hiding or over-including an
+  // hour of results — which is why localDayEnd steps the calendar day.
+  it.each([
+    "2026-03-08", // US spring forward
+    "2026-11-01", // US fall back
+    "2026-04-05", // NZ DST ends
+    "2026-09-27", // NZ DST starts
+  ])("spans exactly one calendar day across the transition at %s", (date) => {
+    const span = localDayEnd(date) - localDayStart(date);
+
+    // Whatever the zone does on this date, the bound lands on midnight.
+    expect(local(localDayEnd(date)).hours).toBe(0);
+    expect([23, 24, 25].map((h) => h * 3600)).toContain(span);
+  });
+
+  it.each(["2026-13-01", "2026-02-31", "2026-9-3", "2026-09", "", "nope"])(
+    "rejects %s",
+    (value) => {
+      expect(() => localDayStart(value)).toThrow(RangeError);
+      expect(() => localDayEnd(value)).toThrow(RangeError);
+    },
+  );
+
+  it("takes a two-digit year literally rather than as 19xx", () => {
+    expect(local(localDayStart("0026-08-22")).date).toBe("0026-08-22");
+  });
+});
+
+// The billed date is stored as a calendar date and shown as a month, so every
+// helper below has the same failure mode as formatDateUTC: a local getter moves
+// a UTC-midnight value back a day, and on the 1st that is the previous month.
+describe("formatMonthUTC", () => {
+  it.each([
+    { date: "2026-01-01", text: "Jan 2026" }, // year start, month start
+    { date: "2026-03-08", text: "Mar 2026" }, // US spring forward
+    { date: "2026-08-31", text: "Aug 2026" }, // month end
+    { date: "2026-09-27", text: "Sep 2026" }, // NZ DST starts
+    { date: "2026-12-31", text: "Dec 2026" }, // year end
+  ])("renders $date as $text", ({ date, text }) => {
+    expect(formatMonthUTC(calendarDateToUnix(date))).toBe(text);
+  });
+
+  it("does not shift the 1st of a month into the previous one", () => {
+    // The failing case for a local getter: west of UTC this reads as the last
+    // day of August, which is also a different month.
+    expect(formatMonthUTC(utcMidnight(2026, 9, 1))).toBe("Sep 2026");
+  });
+
+  it("throws on a value that is not a date", () => {
+    expect(() => formatMonthUTC(undefined as unknown as number)).toThrow(
+      RangeError,
+    );
+  });
+});
+
+describe("unixToCalendarMonth", () => {
+  it("drops the day a pre-month-picker row still carries", () => {
+    expect(unixToCalendarMonth(utcMidnight(2026, 9, 3))).toBe("2026-09");
+  });
+
+  it.each([
+    { date: "2026-01-01", month: "2026-01" },
+    { date: "2026-08-31", month: "2026-08" },
+    { date: "2026-12-31", month: "2026-12" },
+  ])("reads $date as $month", ({ date, month }) => {
+    expect(unixToCalendarMonth(calendarDateToUnix(date))).toBe(month);
+  });
+});
+
+describe("calendarMonthToUnix", () => {
+  it("returns UTC midnight of the 1st", () => {
+    expect(calendarMonthToUnix("2026-09")).toBe(utcMidnight(2026, 9, 1));
+  });
+
+  it("round-trips through unixToCalendarMonth", () => {
+    expect(unixToCalendarMonth(calendarMonthToUnix("2026-09"))).toBe("2026-09");
+  });
+
+  it("takes a two-digit year literally rather than as 19xx", () => {
+    expect(unixToCalendarDate(calendarMonthToUnix("0026-08"))).toBe(
+      "0026-08-01",
+    );
+  });
+
+  it.each(["2026-13", "2026-00", "2026-9", "2026", "2026-09-01", "", "nope"])(
+    "rejects %s",
+    (value) => {
+      expect(() => calendarMonthToUnix(value)).toThrow(RangeError);
+    },
+  );
+});
+
+describe("todayCalendarMonth", () => {
+  it("reads the viewer's own calendar month", () => {
+    // Late on the last day of the month locally: a UTC getter east of the
+    // viewer would already have rolled into the next month.
+    const now = new Date(2026, 7, 31, 23, 30, 0);
+
+    expect(todayCalendarMonth(now)).toBe("2026-08");
+  });
+
+  it("returns a well-formed month for the real clock", () => {
+    expect(todayCalendarMonth()).toMatch(/^\d{4}-\d{2}$/);
   });
 });
 

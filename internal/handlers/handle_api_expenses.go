@@ -128,7 +128,7 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 
 	search, err := parseExpenseSearch(r)
 	if err != nil {
-		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrSearchDateFormat, ErrSearchDateRange)
+		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrAPIInvalidDateRange)
 
 		return
 	}

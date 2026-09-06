@@ -4,8 +4,13 @@
   // app. §3.6 of docs/spa-migration.md governs the date-range half: named
   // ranges (the date_range select) resolve to explicit [start, end) bounds
   // client-side via lib/dateRanges.ts, while the explicit search bounds
-  // (date_from/date_to) are plain YYYY-MM-DD strings the API parses itself,
-  // unchanged from the template path.
+  // (date_from/date_to) stay YYYY-MM-DD in the URL, because that is what the
+  // form fields hold and what a shared link should carry — but they are
+  // resolved to epoch bounds here before the fetch, exactly as named ranges
+  // are. They target created_at, an *instant*, so the day they name only
+  // becomes a window once the viewer's zone is applied, and the browser is the
+  // only party that knows it. The billed date is a month now, so a
+  // day-precision bound on it meant nothing; date_range filters that.
   import { untrack } from "svelte";
   import { AlignLeft, CalendarRange, ChevronDown, Search, Tag } from "lucide";
   import DateHelp from "../../components/DateHelp.svelte";
@@ -17,6 +22,7 @@
   import { type Category, fetchCategories } from "../../lib/categories";
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange, DATE_RANGE_OPTIONS } from "../../lib/dateRanges";
+  import { localDayEnd, localDayStart } from "../../lib/dates";
   import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type { Expense, ExpenseListResponse, Pagination } from "./types";
@@ -26,8 +32,6 @@
   }
 
   let { search = "" }: Props = $props();
-
-  const CREATED_DATE_FIELD = "created_at";
 
   let categories = $state<Category[]>([]);
   let rows = $state<Expense[]>([]);
@@ -45,12 +49,23 @@
   const tag = $derived(params.get("tag") ?? "");
   const dateFrom = $derived(params.get("date_from") ?? "");
   const dateTo = $derived(params.get("date_to") ?? "");
-  const dateField = $derived(
-    params.get("date_field") === CREATED_DATE_FIELD
-      ? CREATED_DATE_FIELD
-      : "date",
-  );
   const hasDateBounds = $derived(dateFrom !== "" || dateTo !== "");
+  // Resolved here rather than in the fetch effect so a malformed date in a
+  // hand-edited URL surfaces as one error message instead of a failed request.
+  // Both bounds or neither: the API rejects a half-open pair, and an open-ended
+  // created_at search is what the date_range select is for.
+  const createdBounds = $derived.by(() => {
+    if (!hasDateBounds) return null;
+
+    try {
+      return {
+        start: localDayStart(dateFrom || dateTo),
+        end: localDayEnd(dateTo || dateFrom),
+      };
+    } catch {
+      return "invalid" as const;
+    }
+  });
   const hasTextSearch = $derived(query !== "" || tag !== "");
   const searchActive = $derived(hasDateBounds || hasTextSearch);
   const explicitRange = $derived(params.has("date_range"));
@@ -71,14 +86,12 @@
   let tagInput = $state("");
   let dateFromInput = $state("");
   let dateToInput = $state("");
-  let dateFieldChecked = $state(false);
 
   $effect(() => {
     searchInput = query;
     tagInput = tag;
     dateFromInput = dateFrom;
     dateToInput = dateTo;
-    dateFieldChecked = dateField === CREATED_DATE_FIELD;
   });
 
   const SEARCH_PANEL_KEY = "search-panel-open";
@@ -126,23 +139,32 @@
 
   $effect(() => {
     let cancelled = false;
-    const bounds = computeDateRange(dateRangeValue);
+    // The preset range's bounds, on the billed date. The search's own bounds
+    // (createdBounds) filter created_at and are a separate pair for that
+    // reason; the API drops this one whenever they are present.
+    const rangeBounds = computeDateRange(dateRangeValue);
+
+    if (createdBounds === "invalid") {
+      rows = [];
+      pagination = null;
+      error = "Dates must use the YYYY-MM-DD format.";
+
+      return;
+    }
 
     get<ExpenseListResponse>("/expenses", {
       params: {
         q: query || undefined,
         tag: tag || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-        date_field:
-          dateField === CREATED_DATE_FIELD ? CREATED_DATE_FIELD : undefined,
+        created_start: createdBounds?.start,
+        created_end: createdBounds?.end,
         category_id: categoryId > 0 ? categoryId : undefined,
         sort_field: sortField,
         sort_order: sortOrder,
         page,
         per_page: perPage,
-        start: bounds?.start,
-        end: bounds?.end,
+        start: rangeBounds?.start,
+        end: rangeBounds?.end,
       },
     })
       .then((result) => {
@@ -209,7 +231,6 @@
         tag: tagInput.trim() || undefined,
         date_from: dateFromInput.trim() || undefined,
         date_to: dateToInput.trim() || undefined,
-        date_field: dateFieldChecked ? CREATED_DATE_FIELD : undefined,
         page: 1,
       }),
     );
@@ -221,7 +242,6 @@
       tag: undefined,
       date_from: undefined,
       date_to: undefined,
-      date_field: undefined,
       page: 1,
     };
     // An active search forces the range select to all_time; dropping it here
@@ -259,7 +279,7 @@
     ["category_id", "Category"],
     ["description", "Description"],
     ["amount", "Amount"],
-    ["date", "Billed"],
+    ["date", "Billed month"],
     ["created_at", "Created"],
   ];
 </script>
@@ -304,39 +324,20 @@
       />
     </label>
     <!-- Grows to take the leftover width but packs its contents to the right,
-      so the free space collects between the tag input and the toggle. That,
-      plus a tighter internal gap than the row's, makes the toggle read as part
-      of the date cluster rather than as a trailer on the field before it. -->
+      so the free space collects between the tag input and the date cluster.
+      That, plus a tighter internal gap than the row's, keeps the two bounds
+      and their help popover reading as one group. -->
     <div
       class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
     >
-      <!-- The label's children are flat on purpose: `peer-checked:` reaches a
-        following *sibling*, so the two words cannot be nested in a wrapper. -->
-      <label
-        class="inline-flex flex-none cursor-pointer items-center gap-2 text-muted select-none max-md:mt-3 max-md:grow max-md:basis-full"
-        title="Apply the date bounds to the billed date or the created date"
-      >
-        <span class="sr-only">
-          Apply date bounds to the created date instead of the billed date
-        </span>
-        <input
-          type="checkbox"
-          class="peer absolute h-px w-px opacity-0"
-          bind:checked={dateFieldChecked}
-        />
-        <span class="toggle-switch" aria-hidden="true"></span>
-        <span class="min-w-16 text-sm peer-checked:hidden" aria-hidden="true">
-          Billed
-        </span>
-        <span
-          class="hidden min-w-16 text-sm peer-checked:inline"
-          aria-hidden="true"
-        >
-          Created
-        </span>
-      </label>
+      <!-- Names the column the bounds filter on. The billed/created toggle
+        that used to say this is gone: the bounds are always created_at now,
+        so it is a static label rather than a control. -->
+      <span class="flex-none text-sm text-muted max-md:mt-3" aria-hidden="true">
+        Created
+      </span>
       <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">From date</span>
+        <span class="sr-only">Created from date</span>
         <span class="text-sm" aria-hidden="true">From</span>
         <!-- The regex has to be an expression, not a quoted attribute: Svelte
           reads {4} inside a plain attribute value as an interpolation and the
@@ -354,7 +355,7 @@
         />
       </label>
       <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">To date</span>
+        <span class="sr-only">Created to date</span>
         <span class="text-sm" aria-hidden="true">To</span>
         <!-- Expression form, same reason as the From field above. -->
         <input
@@ -377,7 +378,7 @@
           <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
           <li>Both bounds are inclusive</li>
           <li>Leave empty to use the date range filter</li>
-          <li>Bounds apply to the billed or created date, per the selector</li>
+          <li>Bounds apply to the created date; the range filter is billed</li>
         </ul>
       </DateHelp>
     </div>
@@ -446,7 +447,7 @@
           <td>{row.category_name}</td>
           <td>{row.description}</td>
           <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
-          <td><LocalDate value={row.date} /></td>
+          <td><LocalDate value={row.date} month /></td>
           <td><LocalDate value={row.created_at} datetime /></td>
           <td>
             {#if row.tags.length > 0}

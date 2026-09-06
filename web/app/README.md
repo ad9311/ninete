@@ -31,10 +31,15 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     the token anywhere else), sends a `401` to `/login`, and turns the JSON
     error envelope into an `APIRequestError` carrying `status` and `fields`.
   - `dates.ts` — the three formatters from `localDateController` plus the
-    `YYYY-MM-DD` ⇄ epoch helpers. `formatDateUTC` is for calendar
-    dates and `formatDate`/`formatDateTime` for instants; the two kinds are both
-    epoch seconds in an `int64`, so nothing but that split keeps them apart.
-    Read `docs/spa-migration.md` §3.6 before touching it.
+    `YYYY-MM-DD` ⇄ epoch helpers and their `YYYY-MM` twins. `formatDateUTC` and
+    `formatMonthUTC` are for calendar dates and `formatDate`/`formatDateTime`
+    for instants; the two kinds are both epoch seconds in an `int64`, so nothing
+      but that split keeps them apart. The month helpers exist because the expense
+    billed date is picked and shown as a month while still being stored as a
+    calendar date, and `localDayStart`/`localDayEnd` turn a typed day into the
+    epoch bounds that filter an *instant* column — local midnight, not UTC, so
+    the server is never told a zone. Read `docs/spa-migration.md` §3.6 before
+    touching it.
   - `categories.ts` — `fetchCategories()`, wrapping `GET /api/categories`
     Categories are a shared lookup table (CLAUDE.md), not a
     resource of their own, so this is the whole of it: an id and a name.
@@ -89,9 +94,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   built with `createElement` and swapped into the DOM for the placeholder
   element via an action rather than one global `data-lucide` scan (§2.3 of
   docs/spa-migration.md, "Per-component icon rendering") — DOM APIs, not
-  `{@html}`, so §3.4 rule 3's ban never enters it. `LocalDate.svelte` has two
-  display modes — a calendar date with UTC getters, or an instant with local
-  getters and a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
+  `{@html}`, so §3.4 rule 3's ban never enters it. `LocalDate.svelte` has three
+  display modes — a calendar date with UTC getters, the same value as its month
+  alone (`month`, the expense billed date), or an instant with local getters and
+  a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
   is a tap-triggered popover (quick-add's date-format help, the expense search
   panel's date-bounds help), closing on outside click or Escape.
 - `routes/<resource>/` — one directory per resource, one file per action.

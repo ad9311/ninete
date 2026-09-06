@@ -6,9 +6,9 @@
   import { fetchCategories, type Category } from "../../lib/categories";
   import { centsToInputValue, inputValueToCents } from "../../lib/currency";
   import {
-    calendarDateToUnix,
-    todayCalendarDate,
-    unixToCalendarDate,
+    calendarMonthToUnix,
+    todayCalendarMonth,
+    unixToCalendarMonth,
   } from "../../lib/dates";
   import { joinTagNames, parseTagsInput } from "../../lib/tags";
   import type { Expense, ExpenseRequestBody } from "./types";
@@ -43,8 +43,14 @@
     seed ? Number(centsToInputValue(seed.amount)) : "",
   );
   let tagsInput = $state(seed ? joinTagNames(seed.tags) : "");
-  let dateInput = $state(
-    seed ? unixToCalendarDate(seed.date) : todayCalendarDate(),
+  // The billed date is picked and shown as a month; the API still stores a
+  // calendar date, so this submits UTC midnight of the 1st. A row written
+  // before the month picker carries a real day, which unixToCalendarMonth
+  // drops — editing such an expense therefore rewrites its date to the 1st of
+  // the same month, which is the intended migration and changes nothing the
+  // app displays or filters on.
+  let monthInput = $state(
+    seed ? unixToCalendarMonth(seed.date) : todayCalendarMonth(),
   );
   let formError = $state("");
 
@@ -80,9 +86,9 @@
 
     let date: number;
     try {
-      date = calendarDateToUnix(dateInput);
+      date = calendarMonthToUnix(monthInput);
     } catch {
-      formError = "Date must be a valid calendar date.";
+      formError = "Billed month must be a valid month.";
       return;
     }
     formError = "";
@@ -127,8 +133,8 @@
     />
   </label>
   <label>
-    Date
-    <input type="date" bind:value={dateInput} />
+    Billed month
+    <input type="month" bind:value={monthInput} />
   </label>
   <button
     type="submit"
