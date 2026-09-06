@@ -358,25 +358,6 @@
     <div
       class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
     >
-      <!-- Names the column the bounds filter on. The billed/created toggle
-        that used to say this is gone: the bounds are always created_at now,
-        so it is a static label rather than a control. -->
-      <span class="flex-none text-sm text-muted max-md:mt-3" aria-hidden="true">
-        Created
-      </span>
-      <!-- A native checkbox: app.css already sizes one, and unlike the toggle
-        this replaced there is no custom switch to build out of a sibling. -->
-      <label
-        class="inline-flex flex-none cursor-pointer items-center gap-2 text-sm text-muted select-none max-md:mt-3 max-md:grow max-md:basis-full"
-        title="Search a single created day instead of a range"
-      >
-        <input
-          type="checkbox"
-          checked={singleDay}
-          onchange={onSingleDayChange}
-        />
-        Single day
-      </label>
       <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">Created from date</span>
         <span class="text-sm" aria-hidden="true">From</span>
@@ -411,19 +392,48 @@
           disabled={singleDay}
         />
       </label>
-      <DateHelp
-        label="Show accepted date format"
-        title="Dates must be:"
-        panelClass="left-auto right-0 max-md:right-auto max-md:left-0"
+      <!-- The checkbox and the help icon share a line. On a narrow screen it
+        takes the full width and pushes them to opposite edges, which is the
+        only row in the stacked panel with two things small enough to sit side
+        by side; on desktop it is just the pair, in the cluster's order. -->
+      <div
+        class="flex flex-none items-center gap-2 max-md:mt-3 max-md:w-full max-md:justify-between"
       >
-        <ul>
-          <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
-          <li>Both bounds are inclusive</li>
-          <li>Leave empty to use the date range filter</li>
-          <li>Bounds apply to the created date; the range filter is billed</li>
-          <li>Single day searches one day, using the From date alone</li>
-        </ul>
-      </DateHelp>
+        <!-- A native checkbox: app.css already sizes one, and unlike the toggle
+          this replaced there is no custom switch to build out of a sibling. It
+          sits after the fields it governs: it changes what the To input means,
+          so it reads as a modifier on the pair rather than as a heading. -->
+        <label
+          class="inline-flex flex-none cursor-pointer items-center gap-2 text-sm text-muted select-none"
+          title="Search a single created day instead of a range"
+        >
+          <input
+            type="checkbox"
+            checked={singleDay}
+            onchange={onSingleDayChange}
+          />
+          Single day
+        </label>
+        <!-- The icon sits at the right edge in both layouts, so the panel hangs
+          from its right edge in both. Letting it fall back to `left-0` on
+          narrow screens pushed 16rem of popover off the viewport and put a
+          horizontal scrollbar on the page. -->
+        <DateHelp
+          label="Show accepted date format"
+          title="Dates must be:"
+          panelClass="left-auto right-0"
+        >
+          <ul>
+            <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
+            <li>Both bounds are inclusive</li>
+            <li>Leave empty to use the date range filter</li>
+            <li>
+              Bounds apply to the created date; the range filter is billed
+            </li>
+            <li>Single day searches one day, using the From date alone</li>
+          </ul>
+        </DateHelp>
+      </div>
     </div>
     {#if error}
       <p class="text-danger">{error}</p>
