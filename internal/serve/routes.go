@@ -25,6 +25,10 @@ func (s *Server) setUpRoutes() {
 		// otherwise serve the SPA shell for it.
 		root.Get(handlers.ExportExpensesPath, s.handlers.GetExportsExpenses)
 
+		// The monthly report PDF, on the page chain for the same reason as the
+		// export above.
+		root.Get(handlers.ReportExpensesPath, s.handlers.GetReportsExpenses)
+
 		// The SPA shell (docs/spa-migration.md, Phase 7). Wildcarded so every
 		// client route resolves on a hard refresh, including one the client
 		// router itself does not recognize — that is its own "not found" to

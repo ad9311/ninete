@@ -280,6 +280,23 @@ export function todayCalendarMonth(now: Date = new Date()): string {
 }
 
 /**
+ * The calendar month before the one the viewer's clock is showing, as
+ * `YYYY-MM` — what the monthly report's month picker defaults to, since a
+ * report asked for on the 1st means the month that just ended.
+ *
+ * Local getters, like todayCalendarMonth: the question is which month it is
+ * where the user is, and on the 1st the two zones disagree for a few hours.
+ */
+export function lastCalendarMonth(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  // Date.UTC normalizes month -1 to December of the previous year, so January
+  // needs no special case.
+  return unixToCalendarMonth(Date.UTC(year, month - 1, 1) / 1000);
+}
+
+/**
  * The calendar date the viewer's own clock is showing, as `YYYY-MM-DD`. Local
  * getters are correct here and only here: the question is what day it is where
  * the user is, which is exactly what a `<input type="date">` defaults to.

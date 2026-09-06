@@ -68,6 +68,9 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     ...) to explicit UTC-midnight `[start, end)` epoch-second bounds using the
     browser's own local calendar — the same role `tz_offset` played
     server-side — and the API only ever receives those bounds, never the key.
+    `lastCalendarMonth` is the month picker's default on the report page — the
+    month that just ended, read with local getters for the same reason
+    `todayCalendarMonth` uses them.
     `DATE_RANGE_OPTIONS`/`BUDGET_DATE_RANGE_OPTIONS` are the two option tables
     a select needs, and they are client-owned — there is no server-side range
     table left to keep them in step with. The budget table also carries each
@@ -166,6 +169,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   cannot quietly rewrite a setting it does not recognise. The response's
   `configured` flag is what distinguishes "saved as UTC" from "never saved":
   before a first save the field seeds from the browser instead.
+  It also carries the report download: a month picker plus a plain anchor to
+  `/reports/expenses.pdf?month=YYYY-MM`, outside `lib/api.ts` and marked
+  `rel="external"`, for exactly the reasons the exports link documents below.
+  The month is sent as `YYYY-MM` rather than as resolved bounds because the
+  billed date is month-precision and carries no zone — the §3.6 argument for
+  client-resolved bounds does not apply to it.
   `docs/monthly-report.md` holds the report's rules.
   `routes/login/` and `routes/register/` are the two the rest of the SPA
   assumes: `AuthMiddleware`'s guest exemption covers `/login`

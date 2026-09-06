@@ -127,7 +127,7 @@ settings yet.
   along in the response rather than being repeated in the client, so the
   checkboxes cap where the server does.
 
-### Phase 2 — the PDF, on demand — **not started**
+### Phase 2 — the PDF, on demand — **done**
 
 - `github.com/go-pdf/fpdf`.
 - A new `internal/report` package, kept pure: rows in, PDF bytes out, no HTTP
@@ -145,6 +145,29 @@ settings yet.
   cannot render here; a headless-Chrome HTML-to-PDF pipeline is rejected —
   it would add a large external binary and fight the unit's
   `ProtectSystem=strict` sandbox.
+
+As built, with the parts that were not obvious from the plan:
+
+- **The month travels as `?month=YYYY-MM`, not as resolved bounds.** Every
+  `/api/expenses*` range sends epoch bounds the client resolved, because
+  `created_at` is an *instant* and only the browser knows the zone (§3.6 of
+  `docs/spa-migration.md`). The billed date is not an instant: it is
+  month-precision and carries no zone, so the month is the whole of the input
+  and the server needs nothing else. An omitted `month` means last month.
+- **`budgetLeft`/`budgetPercent` moved to `internal/logic` as `BudgetLeft` and
+  `BudgetPercent`.** The budgets endpoint and the report both need them, and a
+  second copy is the kind that drifts — the report would go on saying "under
+  budget" after the endpoint's rule changed.
+- **The bars are scaled against the largest category, not the month's total.**
+  With one dominant category every other bar rounds to nothing otherwise.
+- **The core fonts are Latin-1**, so the renderer runs every string through
+  fpdf's cp1252 translator. An expense described in Spanish is the normal case
+  here, and without it the accents reach the page as mojibake.
+- **The expense table's column header prints once**, under the "Expenses"
+  heading rather than under every tag section — repeated, it turned the list
+  into stripes.
+- **Long text is truncated with an ellipsis** rather than left to fpdf, which
+  clips silently: a cut word reads as a missing word.
 
 ### Phase 3 — email — **not started**
 

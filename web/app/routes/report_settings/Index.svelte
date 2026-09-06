@@ -6,8 +6,11 @@
   // The tag list rides along on GET /api/report-settings rather than coming
   // from a listing endpoint of its own — tags are created as free text on the
   // expense forms and have never had one.
+  import { Download } from "lucide";
   import Card from "../../components/Card.svelte";
+  import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
+  import { lastCalendarMonth } from "../../lib/dates";
   import { browserTimezone, timezoneOptions } from "./timezones";
   import type { ReportSettingsResponse, ReportTag } from "./types";
 
@@ -24,6 +27,9 @@
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
+  // The month the download asks for, defaulting to the month that just ended
+  // — the period the scheduled report will send.
+  let month = $state(lastCalendarMonth());
 
   const zones = $derived(timezoneOptions(timezone));
   const atTagLimit = $derived(
@@ -87,11 +93,34 @@
   }
 </script>
 
-<Card title="Monthly report">
+<Card title="Monthly report" actionsLabel="Report actions">
+  {#snippet actions()}
+    <!-- A plain anchor to the page-chain endpoint, outside lib/api.ts, for the
+         reason routes/exports/Index.svelte spells out: a fetch response cannot
+         reach the browser's save flow, and an expired session must be able to
+         redirect. rel="external" keeps router.ts's onLinkClick off it; it is
+         deliberately not `download`, which would save a redirect to the login
+         page as a file. The path is handlers.ReportExpensesPath, held here a
+         second time because a bundle cannot import a Go constant. -->
+    <CardAction
+      icon={Download}
+      label="Download report"
+      href={`/reports/expenses.pdf?month=${month}`}
+      rel="external"
+    />
+  {/snippet}
   <p class="text-sm text-muted">
     The monthly report covers one billed month — every expense whose date falls
     in it, whatever day you actually made the purchase.
   </p>
+
+  <label class="grid max-w-form gap-1">
+    <span class="font-bold">Report month</span>
+    <span class="text-sm text-muted">
+      Which month to download. Defaults to the one that just ended.
+    </span>
+    <input type="month" bind:value={month} />
+  </label>
 
   {#if loadError}
     <p class="text-danger">{loadError}</p>

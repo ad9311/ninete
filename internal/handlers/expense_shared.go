@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/repo"
 )
 
@@ -254,8 +255,8 @@ func buildBudgetRows(
 		}
 
 		if row.HasBudget {
-			row.Left = budgetLeft(budget, total)
-			row.Pct, row.BarPct = budgetPercent(total, budget)
+			row.Left = logic.BudgetLeft(budget, total)
+			row.Pct, row.BarPct = logic.BudgetPercent(total, budget)
 
 			if mode == budgetModeMonths {
 				row.Months, row.MonthsOver = buildBudgetMonthRows(monthsByCategoryID[categoryID], monthKeys, budget)
@@ -325,7 +326,7 @@ func buildBudgetMonthRows(
 
 	for _, key := range monthKeys {
 		total := totalByMonth[key]
-		pct, barPct := budgetPercent(total, budget)
+		pct, barPct := logic.BudgetPercent(total, budget)
 		month := budgetMonthRow{
 			Month:  key,
 			Total:  total,
@@ -342,34 +343,6 @@ func buildBudgetMonthRows(
 	}
 
 	return months, over
-}
-
-// budgetLeft is the signed remainder of a budget. Both operands are cent
-// amounts one person entered by hand, so neither half of the subtraction can
-// approach the int64 range.
-func budgetLeft(budget, total uint64) int64 {
-	if budget >= total {
-		return int64(budget - total) //nolint:gosec // cent amount, far below int64 max
-	}
-
-	return -int64(total - budget) //nolint:gosec // cent amount, far below int64 max
-}
-
-// budgetPercent returns the true percent and the percent clamped to 100 for
-// the client's progress bar. A zero budget never reaches here — a cleared
-// amount is deleted rather than stored — but it is guarded anyway, since it
-// would divide.
-func budgetPercent(total, budget uint64) (int, int) {
-	if budget == 0 {
-		return 0, 0
-	}
-
-	pct := int(total * 100 / budget) //nolint:gosec // both operands are page-sized cent amounts
-	if pct > 100 {
-		return pct, 100
-	}
-
-	return pct, pct
 }
 
 func buildBudgetEditRows(categories []repo.Category, budgetByCategoryID map[int]uint64) []budgetEditRow {
