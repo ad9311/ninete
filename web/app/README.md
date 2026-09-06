@@ -98,8 +98,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   display modes — a calendar date with UTC getters, the same value as its month
   alone (`month`, the expense billed date), or an instant with local getters and
   a `formatDateTime` title tooltip (§3.6) — and `DateHelp.svelte`
-  is a tap-triggered popover (quick-add's date-format help, the expense search
-  panel's date-bounds help), closing on outside click or Escape.
+  is a tap-triggered popover (quick-add's date-format help), closing on outside
+  click or Escape. It is down to that one caller since the expense search
+  panel dropped its date-bounds help, so it no longer meets the "more than one
+  resource" bar for `components/`.
 - `routes/<resource>/` — one directory per resource, one file per action.
   `routes/recurrent_expenses/` (the pilot resource — §7 decision 12) is the
   fullest example: `Index.svelte`/`Archived.svelte` are thin

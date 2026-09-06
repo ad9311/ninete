@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // The first test of a route component rather than of the toolchain
 // (toolchain/Probe.test.ts is that). It covers the parts of the search panel
-// that are wholly client-side: the "Single day" box, which has no query
-// parameter of its own, so the only proof it works is the URL the form
-// navigates to; and the created-date bounds, which are validated and resolved
+// that are wholly client-side: the Range/Day mode, which has no query
+// parameter of its own — a one-day search is date_from === date_to — so the
+// only proof it works is the URL the form navigates to; and the created-date bounds, which are validated and resolved
 // to epoch seconds here rather than by the API.
 vi.mock("../../lib/api", async () => {
   const actual =
@@ -52,8 +52,8 @@ beforeEach(() => {
   vi.mocked(get).mockClear();
 });
 
-function singleDayBox(): HTMLInputElement {
-  return screen.getByLabelText("Single day") as HTMLInputElement;
+function modeRadio(label: "Range" | "Day"): HTMLInputElement {
+  return screen.getByLabelText(label) as HTMLInputElement;
 }
 
 // The accessible name is the whole label's text, so it picks up the visible
@@ -62,8 +62,20 @@ function fromField(): HTMLInputElement {
   return screen.getByLabelText(/^Created from date/) as HTMLInputElement;
 }
 
+// Day mode renames the single remaining field rather than keeping a "From"
+// with nothing to pair with.
+function dayField(): HTMLInputElement {
+  return screen.getByLabelText(/^Created day/) as HTMLInputElement;
+}
+
 function toField(): HTMLInputElement {
   return screen.getByLabelText(/^Created to date/) as HTMLInputElement;
+}
+
+// Day mode removes the To field outright, so its absence needs a query that
+// returns null instead of throwing.
+function toFieldOrNull(): HTMLInputElement | null {
+  return screen.queryByLabelText(/^Created to date/) as HTMLInputElement | null;
 }
 
 // The panel is a <details>, and whether it starts open depends on
@@ -82,38 +94,43 @@ async function submit(): Promise<void> {
   await fireEvent.submit(screen.getByRole("search"));
 }
 
-describe("the single-day search box", () => {
-  it("is unchecked and leaves the To field editable by default", () => {
+describe("the Range/Day mode", () => {
+  it("starts on Day, with one field and no To", () => {
     renderList();
 
-    expect(singleDayBox().checked).toBe(false);
-    expect(toField().disabled).toBe(false);
+    expect(modeRadio("Day").checked).toBe(true);
+    expect(modeRadio("Range").checked).toBe(false);
+    expect(dayField()).toBeTruthy();
+    expect(toFieldOrNull()).toBeNull();
   });
 
-  it("disables the To field and mirrors From into it when checked", async () => {
+  it("brings the To field back when Range is chosen", async () => {
     renderList();
 
-    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(singleDayBox());
+    await fireEvent.input(dayField(), { target: { value: "2026-09-03" } });
+    await fireEvent.click(modeRadio("Range"));
 
-    expect(toField().disabled).toBe(true);
+    expect(fromField().value).toBe("2026-09-03");
+    expect(toField().disabled).toBe(false);
+    // The mirrored date comes back with it, as the starting point for widening.
     expect(toField().value).toBe("2026-09-03");
   });
 
-  it("keeps mirroring while From changes", async () => {
+  it("drops the To field again on the way back to Day", async () => {
     renderList();
 
-    await fireEvent.click(singleDayBox());
-    await fireEvent.input(fromField(), { target: { value: "2026-09-04" } });
+    await fireEvent.click(modeRadio("Range"));
+    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
+    await fireEvent.click(modeRadio("Day"));
 
-    expect(toField().value).toBe("2026-09-04");
+    expect(toFieldOrNull()).toBeNull();
+    expect(dayField().value).toBe("2026-09-03");
   });
 
   it("searches one day, sending the same date as both bounds", async () => {
     renderList();
 
-    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(singleDayBox());
+    await fireEvent.input(dayField(), { target: { value: "2026-09-03" } });
     await submit();
 
     const href = navigate.mock.calls[0][0] as string;
@@ -122,63 +139,101 @@ describe("the single-day search box", () => {
     expect(params.get("date_to")).toBe("2026-09-03");
   });
 
-  // Checking the box mirrors From over To, so a date typed only into To would
-  // otherwise be silently discarded.
-  it("folds a To-only date back into From when checked", async () => {
-    renderList();
+  it("follows the day field, not the date the To field last held", async () => {
+    renderList("?date_from=2026-09-03&date_to=2026-09-05");
 
-    await fireEvent.input(toField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(singleDayBox());
+    await fireEvent.click(modeRadio("Day"));
+    await fireEvent.input(dayField(), { target: { value: "2026-09-09" } });
+    await submit();
 
-    expect(fromField().value).toBe("2026-09-03");
-    expect(toField().value).toBe("2026-09-03");
+    const href = navigate.mock.calls[0][0] as string;
+    const params = new URLSearchParams(href.split("?")[1]);
+    expect(params.get("date_from")).toBe("2026-09-09");
+    expect(params.get("date_to")).toBe("2026-09-09");
   });
 
-  it("leaves the mirrored date in place when unchecked, ready to widen", async () => {
+  // Switching to Day mirrors From over To, so a date typed only into To would
+  // otherwise be silently discarded along with the field.
+  it("folds a To-only date back into the day field", async () => {
     renderList();
 
-    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(singleDayBox());
-    await fireEvent.click(singleDayBox());
+    await fireEvent.click(modeRadio("Range"));
+    await fireEvent.input(toField(), { target: { value: "2026-09-03" } });
+    await fireEvent.click(modeRadio("Day"));
 
-    expect(toField().disabled).toBe(false);
-    expect(toField().value).toBe("2026-09-03");
+    expect(dayField().value).toBe("2026-09-03");
+  });
+
+  // A reproduction: the resync effect re-runs on any navigation, `q` and `tag`
+  // included, and used to rewrite the mode from two empty bounds — which are
+  // equal, so a text search submitted from Range snapped back to Day and took
+  // the To field with it.
+  it("keeps an explicit Range choice across a text search", async () => {
+    const { rerender } = renderList();
+
+    await fireEvent.click(modeRadio("Range"));
+    await rerender({ search: "?q=coffee" });
+
+    expect(modeRadio("Range").checked).toBe(true);
+    expect(toFieldOrNull()).not.toBeNull();
+  });
+
+  // Day is only the default mode. It must not put bounds on a search nobody
+  // asked to bound: an untouched panel searches whatever the range select says.
+  it("sends no created bounds when the day field is left empty", async () => {
+    renderList();
+
+    await submit();
+
+    const href = navigate.mock.calls[0][0] as string;
+    const params = new URLSearchParams(href.split("?")[1]);
+    expect(params.get("date_from")).toBeNull();
+    expect(params.get("date_to")).toBeNull();
   });
 });
 
-describe("the single-day box derived from the URL", () => {
-  it("is checked when a search bounds one day", () => {
+describe("the mode derived from the URL", () => {
+  it("opens on Day when a search bounds one day", () => {
     renderList("?date_from=2026-09-03&date_to=2026-09-03");
 
-    expect(singleDayBox().checked).toBe(true);
-    expect(toField().disabled).toBe(true);
+    expect(modeRadio("Day").checked).toBe(true);
+    expect(toFieldOrNull()).toBeNull();
   });
 
-  it("is unchecked for a real range", () => {
+  it("opens on Range for a real range", () => {
     renderList("?date_from=2026-09-03&date_to=2026-09-05");
 
-    expect(singleDayBox().checked).toBe(false);
+    expect(modeRadio("Range").checked).toBe(true);
     expect(toField().disabled).toBe(false);
   });
 
-  // Both empty are also "equal", which must not read as a one-day search.
-  it("is unchecked when neither bound is set", () => {
+  // Two empty bounds are equal, which is what makes Day the opening mode.
+  it("opens on Day when neither bound is set", () => {
     renderList("?q=coffee");
 
-    expect(singleDayBox().checked).toBe(false);
+    expect(modeRadio("Day").checked).toBe(true);
+  });
+
+  // A half-filled pair is neither: it opens on Range, where both fields are on
+  // screen to be completed, and says so rather than narrowing to one day.
+  it("opens on Range when only one bound is set", () => {
+    renderList("?date_from=2026-08-01");
+
+    expect(modeRadio("Range").checked).toBe(true);
+    expect(toField().value).toBe("");
   });
 });
 
 describe("the created-date bounds", () => {
   // Reproductions, not invariant guards: a half-filled pair used to complete
   // itself from the bound that was given, so a From-only search quietly became
-  // a one-day search while the box above sat unchecked.
+  // a one-day search while the panel still showed Range.
   it("rejects a From-only search rather than narrowing it to that day", async () => {
     renderList("?date_from=2026-08-01");
 
     expect(await screen.findByText(/Fill in both dates/)).toBeTruthy();
     expect(vi.mocked(get)).not.toHaveBeenCalled();
-    expect(singleDayBox().checked).toBe(false);
+    expect(modeRadio("Range").checked).toBe(true);
   });
 
   it("rejects a To-only search the same way", async () => {

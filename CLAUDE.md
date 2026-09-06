@@ -236,8 +236,8 @@ covers the shell template and the build chain from source to browser.
   entry points: `web/app/index.ts` (the SPA) and `web/app/app.css` (the stylesheet).
 - `web/views/` holds exactly one template, the SPA shell `web/views/app/index.html`, which
   carries its own `<html>` document — there is no shared chrome and no partials any more.
-- `web/static/` holds build output and images, and is served verbatim. Nothing under it is
-  hand-written.
+- `web/static/` holds build output, images and fonts, and is served verbatim. Apart from those
+  binary assets, nothing under it is hand-written.
 - **Styling is Tailwind v4, CSS-first.** `web/app/app.css` is the whole stylesheet and there is no
   `tailwind.config.js` — tokens, the dark variant and a short component layer live in that file.
   Colours are theme roles (`bg-surface`, `text-muted`, `border-line`) that follow the
