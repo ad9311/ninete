@@ -51,10 +51,8 @@ func (t Taggable) Type() string { return t.taggableType }
 // Interpolating its empty table name would produce a syntactically broken
 // query rather than an honest error.
 func (t Taggable) validate() error {
-	for _, known := range []Taggable{TaggableExpense(), TaggableRecurrentExpense()} {
-		if t == known {
-			return nil
-		}
+	if slices.Contains([]Taggable{TaggableExpense(), TaggableRecurrentExpense()}, t) {
+		return nil
 	}
 
 	return ErrUnknownTaggable

@@ -137,12 +137,12 @@ func inflateStreams(t *testing.T, doc []byte) string {
 
 		body := rest[open+len("stream\n"):]
 
-		close := bytes.Index(body, []byte("\nendstream"))
-		if close < 0 {
+		before, after, ok := bytes.Cut(body, []byte("\nendstream"))
+		if !ok {
 			break
 		}
 
-		reader, err := zlib.NewReader(bytes.NewReader(body[:close]))
+		reader, err := zlib.NewReader(bytes.NewReader(before))
 		if err == nil {
 			inflated, err := io.ReadAll(reader)
 			require.NoError(t, err)
@@ -153,7 +153,7 @@ func inflateStreams(t *testing.T, doc []byte) string {
 		// Past the marker, not onto it: "endstream\n" itself contains
 		// "stream\n", so landing on it would make the next search resume
 		// inside the delimiter and skip the streams that follow.
-		rest = body[close+len("\nendstream"):]
+		rest = after
 	}
 
 	require.NotEmpty(t, out.String(), "no content stream could be inflated")

@@ -79,13 +79,11 @@ func TestSelectTagRowsExceedsParameterLimit(t *testing.T) {
 	category := s.CreateCategory(t, "tag_rows_limit_category")
 
 	expense := s.CreateExpense(t, user.ID, logic.ExpenseParams{
-		ExpenseBaseParams: logic.ExpenseBaseParams{
-			CategoryID:  category.ID,
-			Description: "tag_rows_limit_expense",
-			Amount:      100,
-		},
-		Date: 1735689600,
-		Tags: []string{"tag_rows_limit_tag"},
+		CategoryID:  category.ID,
+		Description: "tag_rows_limit_expense",
+		Amount:      100,
+		Date:        1735689600,
+		Tags:        []string{"tag_rows_limit_tag"},
 	})
 
 	// Padding ids are negative so they cannot collide with a real row.

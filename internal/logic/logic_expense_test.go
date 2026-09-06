@@ -634,12 +634,10 @@ func newExpenseParams(
 	tags []string,
 ) logic.ExpenseParams {
 	return logic.ExpenseParams{
-		ExpenseBaseParams: logic.ExpenseBaseParams{
-			CategoryID:  categoryID,
-			Description: description,
-			Amount:      amount,
-		},
-		Date: date,
-		Tags: tags,
+		CategoryID:  categoryID,
+		Description: description,
+		Amount:      amount,
+		Date:        date,
+		Tags:        tags,
 	}
 }

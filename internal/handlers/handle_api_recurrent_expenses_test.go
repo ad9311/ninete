@@ -192,12 +192,10 @@ func TestAPIRecurrentExpenses(t *testing.T) {
 				ownerID, _, _ := apiUser(t, s, "api_re_owner", "api_re_owner@example.com", "api_re_password_3")
 				category := s.CreateCategory(t, "api_re_cat_3")
 				recurrentExpense := s.CreateRecurrentExpense(t, ownerID, logic.RecurrentExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  category.ID,
-						Description: "Owner only",
-						Amount:      500,
-					},
-					Period: 1,
+					CategoryID:  category.ID,
+					Description: "Owner only",
+					Amount:      500,
+					Period:      1,
 				})
 
 				_, otherCookies, _ := apiUser(t, s, "api_re_other", "api_re_other@example.com", "api_re_password_4")
@@ -217,11 +215,9 @@ func TestAPIRecurrentExpenses(t *testing.T) {
 				category := s.CreateCategory(t, "api_re_cat_5")
 
 				recurrentExpense := s.CreateRecurrentExpense(t, ownerID, logic.RecurrentExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID:  category.ID,
-						Description: "Limited",
-						Amount:      500,
-					},
+					CategoryID:      category.ID,
+					Description:     "Limited",
+					Amount:          500,
 					Period:          1,
 					OccurrenceLimit: 1,
 				})

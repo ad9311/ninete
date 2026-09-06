@@ -196,13 +196,11 @@ func (s *Store) CreateQuickExpense(
 	var expense repo.Expense
 
 	params := ExpenseParams{
-		ExpenseBaseParams: ExpenseBaseParams{
-			CategoryID:  categoryID,
-			Description: parsed.Description,
-			Amount:      parsed.Amount,
-		},
-		Date: parsed.Date,
-		Tags: parsed.Tags,
+		CategoryID:  categoryID,
+		Description: parsed.Description,
+		Amount:      parsed.Amount,
+		Date:        parsed.Date,
+		Tags:        parsed.Tags,
 	}
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err

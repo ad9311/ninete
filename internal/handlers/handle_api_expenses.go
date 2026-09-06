@@ -53,13 +53,11 @@ type expenseRequestBody struct {
 
 func (b expenseRequestBody) toParams() logic.ExpenseParams {
 	return logic.ExpenseParams{
-		ExpenseBaseParams: logic.ExpenseBaseParams{
-			CategoryID:  b.CategoryID,
-			Description: b.Description,
-			Amount:      b.Amount,
-		},
-		Date: b.Date,
-		Tags: logic.NormalizeTagNames(b.Tags),
+		CategoryID:  b.CategoryID,
+		Description: b.Description,
+		Amount:      b.Amount,
+		Date:        b.Date,
+		Tags:        logic.NormalizeTagNames(b.Tags),
 	}
 }
 

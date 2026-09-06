@@ -47,15 +47,11 @@ func TestAPIDeleteData(t *testing.T) {
 				category := s.CreateCategory(t, "api_del_cat_1")
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Rent", Amount: 1000,
-					},
+					CategoryID: category.ID, Description: "Rent", Amount: 1000,
 					Date: 1735689600,
 				})
 				s.CreateRecurrentExpense(t, ownerID, logic.RecurrentExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Subscription", Amount: 500,
-					},
+					CategoryID: category.ID, Description: "Subscription", Amount: 500,
 					Period: 1,
 				})
 				require.NoError(t, s.Store.SaveExpenseBudgets(t.Context(), ownerID, map[int]uint64{category.ID: 2000}))
@@ -84,9 +80,7 @@ func TestAPIDeleteData(t *testing.T) {
 				category := s.CreateCategory(t, "api_del_cat_2")
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Groceries", Amount: 300,
-					},
+					CategoryID: category.ID, Description: "Groceries", Amount: 300,
 					Date: 1735689600,
 				})
 				s.CreateTag(t, ownerID, "api_del_tag_2")
@@ -114,15 +108,11 @@ func TestAPIDeleteData(t *testing.T) {
 				category := s.CreateCategory(t, "api_del_cat_3")
 
 				s.CreateExpense(t, ownerID, logic.ExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Utilities", Amount: 400,
-					},
+					CategoryID: category.ID, Description: "Utilities", Amount: 400,
 					Date: 1735689600,
 				})
 				s.CreateRecurrentExpense(t, ownerID, logic.RecurrentExpenseParams{
-					ExpenseBaseParams: logic.ExpenseBaseParams{
-						CategoryID: category.ID, Description: "Gym", Amount: 200,
-					},
+					CategoryID: category.ID, Description: "Gym", Amount: 200,
 					Period: 1,
 				})
 				require.NoError(t, s.Store.SaveExpenseBudgets(t.Context(), ownerID, map[int]uint64{category.ID: 1500}))
