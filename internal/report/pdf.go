@@ -318,6 +318,12 @@ func (d *drawer) budgets(budgets []logic.ReportBudget) {
 // truncate shortens s with an ellipsis until it fits width, so a long
 // description pushes nothing out of its column. fpdf clips silently otherwise,
 // which reads as a missing word rather than as a cut.
+//
+// It shrinks by runes, never by bytes: an accented description is the normal
+// case here, and a byte-wise cut would land mid-rune and put a replacement
+// character on the page. When width is too small to hold even one character
+// plus the ellipsis, the loop runs out and returns a bare leading rune — one
+// character says more than an ellipsis wider than its own column.
 func truncate(pdf *fpdf.Fpdf, s string, width float64) string {
 	if pdf.GetStringWidth(s) <= width {
 		return s
