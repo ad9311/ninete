@@ -15,14 +15,13 @@ import (
 const UntaggedSectionName = "Untagged"
 
 // ReportExpense is one line of the report's expense list.
+//
+// There is no billed date on it: every expense in a report shares one, by
+// definition of the period, and it is already printed in the header.
 type ReportExpense struct {
 	Description  string
 	CategoryName string
 	Amount       uint64
-	// BilledAt is the billed month, the same UTC-midnight value the expense
-	// stores. Every expense in a report shares its month, so this is here for
-	// the row's own sake rather than to be printed per line.
-	BilledAt int64
 }
 
 // ReportSection is one tag's expenses, or the residual Untagged bucket.
@@ -319,7 +318,6 @@ func buildReportSections(
 			Description:  expense.Description,
 			CategoryName: reportCategoryName(categoryNameByID, expense.CategoryID),
 			Amount:       expense.Amount,
-			BilledAt:     expense.Date,
 		})
 	}
 
