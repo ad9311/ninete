@@ -111,7 +111,12 @@
   // date_from === date_to, so the URL already says it. Deriving it keeps the
   // two dates the only source of truth, and a shared link reopens in the mode
   // it was searched in.
-  let singleDay = $state(false);
+  //
+  // Two empty bounds are equal too, so an unsearched panel opens on Day — the
+  // common case. That decides the *mode* alone: with both fields empty no
+  // bound is sent either way, and a half-filled pair is still refused rather
+  // than quietly narrowed (see createdBounds above).
+  let singleDay = $state(true);
   type DateMode = "range" | "day";
   const dateMode = $derived<DateMode>(singleDay ? "day" : "range");
 
@@ -120,7 +125,7 @@
     tagInput = tag;
     dateFromInput = dateFrom;
     dateToInput = dateTo;
-    singleDay = dateFrom !== "" && dateFrom === dateTo;
+    singleDay = dateFrom === dateTo;
   });
 
   // The To field is unmounted in Day mode but its value keeps following From,

@@ -95,17 +95,31 @@ async function submit(): Promise<void> {
 }
 
 describe("the Range/Day mode", () => {
-  it("starts on Range, with both bounds on screen", () => {
+  it("starts on Day, with one field and no To", () => {
     renderList();
 
-    expect(modeRadio("Range").checked).toBe(true);
-    expect(modeRadio("Day").checked).toBe(false);
-    expect(toField().disabled).toBe(false);
+    expect(modeRadio("Day").checked).toBe(true);
+    expect(modeRadio("Range").checked).toBe(false);
+    expect(dayField()).toBeTruthy();
+    expect(toFieldOrNull()).toBeNull();
   });
 
-  it("replaces the two fields with one when Day is chosen", async () => {
+  it("brings the To field back when Range is chosen", async () => {
     renderList();
 
+    await fireEvent.input(dayField(), { target: { value: "2026-09-03" } });
+    await fireEvent.click(modeRadio("Range"));
+
+    expect(fromField().value).toBe("2026-09-03");
+    expect(toField().disabled).toBe(false);
+    // The mirrored date comes back with it, as the starting point for widening.
+    expect(toField().value).toBe("2026-09-03");
+  });
+
+  it("drops the To field again on the way back to Day", async () => {
+    renderList();
+
+    await fireEvent.click(modeRadio("Range"));
     await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
     await fireEvent.click(modeRadio("Day"));
 
@@ -116,8 +130,7 @@ describe("the Range/Day mode", () => {
   it("searches one day, sending the same date as both bounds", async () => {
     renderList();
 
-    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(modeRadio("Day"));
+    await fireEvent.input(dayField(), { target: { value: "2026-09-03" } });
     await submit();
 
     const href = navigate.mock.calls[0][0] as string;
@@ -144,21 +157,24 @@ describe("the Range/Day mode", () => {
   it("folds a To-only date back into the day field", async () => {
     renderList();
 
+    await fireEvent.click(modeRadio("Range"));
     await fireEvent.input(toField(), { target: { value: "2026-09-03" } });
     await fireEvent.click(modeRadio("Day"));
 
     expect(dayField().value).toBe("2026-09-03");
   });
 
-  it("brings the To field back carrying the searched day, ready to widen", async () => {
+  // Day is only the default mode. It must not put bounds on a search nobody
+  // asked to bound: an untouched panel searches whatever the range select says.
+  it("sends no created bounds when the day field is left empty", async () => {
     renderList();
 
-    await fireEvent.input(fromField(), { target: { value: "2026-09-03" } });
-    await fireEvent.click(modeRadio("Day"));
-    await fireEvent.click(modeRadio("Range"));
+    await submit();
 
-    expect(toField().disabled).toBe(false);
-    expect(toField().value).toBe("2026-09-03");
+    const href = navigate.mock.calls[0][0] as string;
+    const params = new URLSearchParams(href.split("?")[1]);
+    expect(params.get("date_from")).toBeNull();
+    expect(params.get("date_to")).toBeNull();
   });
 });
 
@@ -177,11 +193,20 @@ describe("the mode derived from the URL", () => {
     expect(toField().disabled).toBe(false);
   });
 
-  // Both empty are also "equal", which must not read as a one-day search.
-  it("opens on Range when neither bound is set", () => {
+  // Two empty bounds are equal, which is what makes Day the opening mode.
+  it("opens on Day when neither bound is set", () => {
     renderList("?q=coffee");
 
+    expect(modeRadio("Day").checked).toBe(true);
+  });
+
+  // A half-filled pair is neither: it opens on Range, where both fields are on
+  // screen to be completed, and says so rather than narrowing to one day.
+  it("opens on Range when only one bound is set", () => {
+    renderList("?date_from=2026-08-01");
+
     expect(modeRadio("Range").checked).toBe(true);
+    expect(toField().value).toBe("");
   });
 });
 
