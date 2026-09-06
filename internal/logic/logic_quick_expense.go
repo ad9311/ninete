@@ -24,20 +24,20 @@ const (
 	// quickTagsMax bounds how many tags a single quick-add can attach.
 	quickTagsMax = 10
 	// quickFieldsMin/Max are the accepted comma-separated field counts:
-	// "description, amount, date" with an optional trailing tag list.
+	// "description, amount, month" with an optional trailing tag list.
 	quickFieldsMin = 3
 	quickFieldsMax = 4
 )
 
-// quickDateLayouts are attempted in order when parsing an explicit date.
-var quickDateLayouts = []string{ //nolint:gochecknoglobals // static lookup table
-	"2 January 2006",
-	"2 Jan 2006",
-	"January 2 2006",
-	"Jan 2 2006",
-	"2006-01-02",
-	"02/01/2006",
-	"02-01-2006",
+// quickMonthLayouts are attempted in order when parsing an explicit month.
+// They are month-precision on purpose: expenses.date stores the billed month,
+// picked as an <input type="month"> everywhere else and rendered as "Sep 2026",
+// so a day the user typed here would be discarded by everything downstream.
+// Each layout leaves the day at 1, which is what the month picker writes too.
+var quickMonthLayouts = []string{ //nolint:gochecknoglobals // static lookup table
+	"2006-01",
+	"January 2006",
+	"Jan 2006",
 }
 
 // QuickExpenseParsed holds the fields extracted from a quick-add input string.
@@ -48,11 +48,12 @@ type QuickExpenseParsed struct {
 	Tags        []string
 }
 
-// ParseQuickExpense parses a "description, amount, date[, tags]" input into
+// ParseQuickExpense parses a "description, amount, month[, tags]" input into
 // structured fields. The optional trailing field is a semicolon-separated tag
 // list ("mytag1; mytag2"), so tag names cannot contain ";" or ",".
 // tzOffsetMinutes is the client's Date.getTimezoneOffset() value, used to
-// resolve relative dates ("today"/"yesterday") to the client's calendar day.
+// resolve the relative months ("last"/"current"/"next") against the client's
+// own calendar month.
 func ParseQuickExpense(raw string, tzOffsetMinutes int) (QuickExpenseParsed, error) {
 	var parsed QuickExpenseParsed
 
@@ -127,26 +128,31 @@ func parseDollarsToCents(s string) (uint64, error) {
 	return uint64(math.Round(dollars * 100)), nil
 }
 
+// parseQuickDate resolves the date field to the first day of a billed month.
+// The three relative keywords are resolved against the *client's* calendar
+// month, not UTC's: the two disagree for |tzOffsetMinutes| around every month
+// turnover — at 20:00 on 31 August in UTC-5 the UTC clock already reads
+// September — and "current" is exactly the word used to file an expense for
+// the month that just ended. That is the only job tz_offset has left.
 func parseQuickDate(s string, tzOffsetMinutes int) (int64, error) {
 	loc := time.FixedZone("client", -tzOffsetMinutes*60)
-	now := time.Now().In(loc)
-	year, month, day := now.Date()
-	today := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	year, month, _ := time.Now().In(loc).Date()
+	// time.Date normalizes month 0 and 13 into the neighbouring year.
+	firstOfMonth := func(offset int) int64 {
+		return time.Date(year, month+time.Month(offset), 1, 0, 0, 0, 0, time.UTC).Unix()
+	}
 
 	switch strings.ToLower(s) {
-	case "today":
-		return today.Unix(), nil
-	case "yesterday":
-		return today.AddDate(0, 0, -1).Unix(), nil
-	case "tomorrow":
-		return today.AddDate(0, 0, 1).Unix(), nil
-	case "next month":
-		// First day of the month after the client's current month.
-		return time.Date(year, month+1, 1, 0, 0, 0, 0, time.UTC).Unix(), nil
+	case "last":
+		return firstOfMonth(-1), nil
+	case "current":
+		return firstOfMonth(0), nil
+	case "next":
+		return firstOfMonth(1), nil
 	}
 
 	titled := titleCaseWords(s)
-	for _, layout := range quickDateLayouts {
+	for _, layout := range quickMonthLayouts {
 		if t, err := time.Parse(layout, titled); err == nil {
 			return t.Unix(), nil
 		}

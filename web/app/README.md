@@ -127,9 +127,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   than riding along as `date_range`+`tz_offset`; `Form.svelte` adds a
   calendar-month field (`lib/dates.ts`'s
   `calendarMonthToUnix`/`todayCalendarMonth`); `New.svelte`
-  toggles between it and `QuickAddForm.svelte`, which posts to
+  toggles between it and `QuickAddForm.svelte`, whose date field is a *month*
+  (`last`/`current`/`next`, or an explicit `2026-07`/`Jul 2026`) like every
+  other date input, and which posts to
   `/expenses/quick` with an explicit `tz_offset` (§3.6's "Consumer 2" — quick
-  add keeps a client zone even though the named ranges retire theirs) and
+  add keeps a client zone even though the named ranges retire theirs, now only
+  to pick the client's calendar month rather than its day) and
   shows a category picker on the first `category_id` field error, asking for
   a category without a page reload; `Stats.svelte` and `Budgets.svelte` are
   their own routes, the latter sending the `mode` (`month`/`months`)

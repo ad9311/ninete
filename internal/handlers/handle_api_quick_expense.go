@@ -12,8 +12,9 @@ type quickExpenseRequestBody struct {
 	// TZOffset is Date.getTimezoneOffset() from the client, sent explicitly.
 	// This is quick-add's own zone consumer (§3.6 of docs/spa-migration.md,
 	// "Consumer 2") and was not retired alongside the named date ranges: it has
-	// nothing to do with them, and dropping it would silently resolve
-	// "today"/"yesterday" against UTC for any non-UTC user.
+	// nothing to do with them, and dropping it would resolve
+	// "last"/"current"/"next" against UTC's calendar month rather than the
+	// client's, which disagree for hours around every month turnover.
 	TZOffset int `json:"tz_offset"`
 }
 
