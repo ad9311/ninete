@@ -3,7 +3,7 @@
   // rather than derived from a range key server-side — see
   // GetAPIExpenseBudgets's comment in internal/handlers/handle_api_expense_budgets.go
   // for why the API needs it spelled out once tz_offset+date_range retire.
-  import { Pencil, Target, Wallet } from "lucide";
+  import { ChartColumn, Pencil, Wallet } from "lucide";
   import Card from "../../components/Card.svelte";
   import CardAction from "../../components/CardAction.svelte";
   import Icon from "../../components/Icon.svelte";
@@ -131,7 +131,7 @@
   {#snippet actions()}
     <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
     <CardAction
-      icon={Target}
+      icon={ChartColumn}
       label="Stats"
       href={`${BASE_PATH}/expenses/stats`}
     />
