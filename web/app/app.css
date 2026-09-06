@@ -18,6 +18,31 @@
    deleted ones alive forever. */
 @source "../views/app/index.html";
 
+/* IBM Plex Mono, self-hosted. Only the amount column uses it, so only the two
+   weights that column renders (400 and 600) and only the latin subset are
+   shipped — the same files Google Fonts serves for that subset, copied into
+   web/static/fonts/ because the CSP is `font-src 'self'` and a CDN link would
+   be blocked. Licensed under the SIL Open Font License 1.1.
+
+   The paths are absolute /static URLs rather than relative ones: this file
+   builds into web/static/css/build/ under a content hash, and a relative url()
+   would resolve against that directory. */
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-latin-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/static/fonts/ibm-plex-mono-latin-600.woff2") format("woff2");
+}
+
 /* Theming is a class on <html>, not a media query: the shell's inline
    anti-FOUC script writes `theme-light`/`theme-dark` before first paint and
    components/Header.svelte re-asserts it from localStorage. `dark:` has to
@@ -124,6 +149,11 @@ html.theme-dark {
    same `var()` reads would resolve to nothing. */
 @theme static {
   --font-sans: "IBM Plex Sans", "Helvetica Neue", "Noto Sans", sans-serif;
+
+  /* Amounts only, in the expense listing. Overrides Tailwind's default mono
+     stack so the figures are the one shipped face everywhere rather than
+     whatever mono the machine happens to have. */
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Menlo", monospace;
   --color-bg: var(--ui-bg);
   --color-surface: var(--ui-surface);
   --color-surface-muted: var(--ui-surface-muted);

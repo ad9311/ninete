@@ -1,8 +1,9 @@
 <script lang="ts">
   // Ports dateHelpController.ts: a tap-triggered popover, closing on outside
-  // click or Escape. Shared by the quick-add form and the expense search
-  // panel's date-bounds tooltip (§3.9 rule 2 — components/ is for anything
-  // more than one resource uses).
+  // click or Escape. The expense search panel used to render a second one for
+  // its date bounds; the quick-add form's date-format help is the only caller
+  // left, so this now sits in components/ with one user rather than the two
+  // §3.9 rule 2 asks for.
   import type { Snippet } from "svelte";
   import { Info } from "lucide";
   import Icon from "./Icon.svelte";
@@ -12,17 +13,10 @@
     label: string;
     /** Heading above the list of accepted formats. */
     title: string;
-    /**
-     * Utilities appended to the panel, for a caller whose icon sits at the
-     * right edge and therefore has to hang the panel from `right-0` instead.
-     * The panel caps its own width against the viewport, so this only decides
-     * which way it opens, not whether it fits.
-     */
-    panelClass?: string;
     children: Snippet;
   }
 
-  let { label, title, panelClass = "", children }: Props = $props();
+  let { label, title, children }: Props = $props();
   let open = $state(false);
 
   function toggle(event: MouseEvent): void {
@@ -66,14 +60,14 @@
     <Icon icon={Info} class="h-4 w-4" />
   </button>
   <div
-    class="absolute top-[calc(100%+0.5rem)] left-0 z-100 w-max max-w-[min(16rem,calc(100vw-2rem))] rounded-xs border border-line bg-surface p-3 shadow-popover {panelClass}"
+    class="absolute top-[calc(100%+0.5rem)] left-0 z-100 w-max max-w-[min(16rem,calc(100vw-2rem))] rounded-xs border border-line bg-surface p-3 shadow-popover"
     role="tooltip"
     hidden={!open}
   >
     <p class="mb-2 text-sm font-semibold text-fg">{title}</p>
-    <!-- The list styling lives here rather than at each call site: both
-         callers pass the same shape (a <ul> of <li>s with <code> in them) and
-         had their own copy of the utilities for it. -->
+    <!-- The list styling lives here rather than at the call site: the caller
+         passes a <ul> of <li>s with <code> in them and used to carry its own
+         copy of the utilities for it. -->
     <div
       class="text-sm text-muted [&_code]:text-fg [&_li]:mb-1 [&_ul]:list-none [&_ul]:pl-4"
     >

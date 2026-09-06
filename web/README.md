@@ -5,7 +5,7 @@ Reference for the frontend half of NINETE. `CLAUDE.md` at the repo root covers c
 Three directories:
 
 - `web/views/` — exactly one Go `html/template` file: the SPA shell.
-- `web/static/` — build output (the JS bundle and the stylesheet) and images, served from
+- `web/static/` — build output (the JS bundle and the stylesheet), images and fonts, served from
   `/static/*`.
 - `web/app/` — Svelte and CSS sources for the SPA. **Never served.** Build output only ever lands
   in `web/static/js/build/` and `web/static/css/build/`.
@@ -70,7 +70,7 @@ constraints decide whether it is reachable, and neither fails at build time:
 
 ---
 
-## `web/static` — build output and images
+## `web/static` — build output, images and fonts
 
 Served from `/static/*`, which is mounted on the root router **outside** the app middleware
 chain. Serving an asset must never load a session or query the database — see the "Static assets
@@ -78,7 +78,7 @@ stay off the app chain" invariant in `CLAUDE.md` before changing how these are s
 
 Responses carry `Cache-Control: public, max-age=300`. The bundle and the stylesheet both carry a
 content hash (see "The build" below) and so are safe from a stale cache regardless; the images
-are not, and the short window is what keeps a deploy from serving a stale one, so do not raise it
+and fonts are not, and the short window is what keeps a deploy from serving a stale one, so do not raise it
 without hashing those too.
 
 - `web/static/css/build/` — the generated stylesheet. Git-ignored, never edited by hand. **The
@@ -89,6 +89,13 @@ without hashing those too.
 - `web/static/manifest.json` — the asset manifest both builds write, mapping an entry name to the
   public path of the hashed file. Git-ignored; read by `internal/serve/manifest.go` at startup.
 - `web/static/img/` — currently just `favicon.ico`, referenced by the shell.
+- `web/static/fonts/` — IBM Plex Mono, self-hosted: the latin subset at weights 400 and 600, the
+  only two the amount column renders. Committed rather than generated, and referenced from
+  `app.css`'s `@font-face` rules by absolute `/static/fonts/...` URLs. Those URLs are why the CSS
+  entry in `web/build.ts` carries `external: ["/static/*"]` — the bundler would otherwise try to
+  resolve them on disk and fail the build. The CSP is `font-src 'self'`
+  (`internal/serve/middleware.go`), so a font must be served from here; a Google Fonts link would
+  be blocked.
 
 ---
 

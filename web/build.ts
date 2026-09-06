@@ -26,6 +26,8 @@ interface Entry {
   /** Build output directory, and the only place this entry's files may land. */
   outdir: string;
   plugins: Bun.BunPlugin[];
+  /** Specifiers the bundler must leave alone instead of resolving on disk. */
+  external?: string[];
 }
 
 const entries: Entry[] = [
@@ -40,6 +42,12 @@ const entries: Entry[] = [
     path: "web/app/app.css",
     outdir: "web/static/css/build",
     plugins: [tailwind],
+    // app.css's @font-face rules point at /static/fonts/*.woff2, which are
+    // served verbatim and are not build inputs. Without this the bundler tries
+    // to resolve them as files relative to the CSS and fails the build; copying
+    // them into the output directory instead would put them in the path of the
+    // pruning pass below, which deletes anything the manifest does not name.
+    external: ["/static/*"],
   },
 ];
 
@@ -75,6 +83,7 @@ for (const entry of entries) {
     minify: true,
     naming: `${entry.name}-[hash].[ext]`,
     plugins: entry.plugins,
+    external: entry.external,
   });
 
   if (!result.success) {

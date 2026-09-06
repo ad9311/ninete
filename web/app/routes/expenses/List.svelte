@@ -13,7 +13,6 @@
   // day-precision bound on it meant nothing; date_range filters that.
   import { untrack } from "svelte";
   import { AlignLeft, CalendarRange, ChevronDown, Search, Tag } from "lucide";
-  import DateHelp from "../../components/DateHelp.svelte";
   import Icon from "../../components/Icon.svelte";
   import LocalDate from "../../components/LocalDate.svelte";
   import PaginationFooter from "../../components/PaginationFooter.svelte";
@@ -56,8 +55,8 @@
   //
   // Both bounds or neither. Completing the missing side from the one that was
   // given is what this used to do, and it turned a From-only search into a
-  // one-day search while the "Single day" box sat unchecked — the listing came
-  // back near-empty with nothing on screen saying why. The box is how a one-day
+  // one-day search while the panel still showed Range — the listing came back
+  // near-empty with nothing on screen saying why. Day mode is how a one-day
   // search is asked for.
   const createdBounds = $derived.by(() => {
     if (!hasDateBounds) return null;
@@ -81,7 +80,7 @@
   });
   const CREATED_BOUNDS_ERRORS: Record<"half" | "invalid" | "inverted", string> =
     {
-      half: "Fill in both dates, or tick Single day to search one day.",
+      half: "Fill in both dates, or switch to Day to search one day.",
       invalid: "Dates must use the YYYY-MM-DD format.",
       inverted: "The From date must be on or before the To date.",
     };
@@ -108,11 +107,13 @@
   let tagInput = $state("");
   let dateFromInput = $state("");
   let dateToInput = $state("");
-  // "Single day" is not its own query parameter: a one-day search is exactly
+  // The mode is not its own query parameter: a one-day search is exactly
   // date_from === date_to, so the URL already says it. Deriving it keeps the
   // two dates the only source of truth, and a shared link reopens in the mode
   // it was searched in.
   let singleDay = $state(false);
+  type DateMode = "range" | "day";
+  const dateMode = $derived<DateMode>(singleDay ? "day" : "range");
 
   $effect(() => {
     searchInput = query;
@@ -122,23 +123,25 @@
     singleDay = dateFrom !== "" && dateFrom === dateTo;
   });
 
-  // The To field mirrors From while the box is checked, so the disabled input
-  // shows the day actually being searched instead of a stale bound. Unchecking
-  // leaves that value in place, which is the useful starting point for widening
-  // the range.
+  // The To field is unmounted in Day mode but its value keeps following From,
+  // so switching back to Range shows the day just searched rather than a stale
+  // bound — the useful starting point for widening it.
   $effect(() => {
     if (singleDay) dateToInput = dateFromInput;
   });
 
-  // Checking the box with only the To field filled would otherwise mirror an
+  // Switching to Day with only the To field filled would otherwise mirror an
   // empty From over it and throw the date away. Fold it back into From first;
   // the effect above then keeps the two in step.
-  function onSingleDayChange(event: Event): void {
-    const checked = (event.currentTarget as HTMLInputElement).checked;
-    if (checked && dateFromInput.trim() === "" && dateToInput.trim() !== "") {
+  function selectDateMode(mode: DateMode): void {
+    if (
+      mode === "day" &&
+      dateFromInput.trim() === "" &&
+      dateToInput.trim() !== ""
+    ) {
       dateFromInput = dateToInput;
     }
-    singleDay = checked;
+    singleDay = mode === "day";
   }
 
   const SEARCH_PANEL_KEY = "search-panel-open";
@@ -332,6 +335,24 @@
   const dateFieldClass =
     "flex-none shrink basis-48 max-md:flex-1 max-md:basis-0 max-md:gap-1";
 
+  // The two bounds modes, as a segmented control rather than a checkbox: the
+  // choice changes what the fields below *mean*, and naming both halves says
+  // so where a lone "Single day" tickbox left the unticked state unnamed. Day
+  // then renders one field instead of a live one beside a disabled mirror.
+  const DATE_MODES: [DateMode, string][] = [
+    ["range", "Range"],
+    ["day", "Day"],
+  ];
+  // The visible half of each segment. The radio itself is `sr-only`, so the
+  // span carries both the look and the selected state — and it has to be the
+  // span rather than the label, because `peer-*` matches a *sibling* of the
+  // input and the label is its parent.
+  const segmentClass =
+    "flex cursor-pointer items-center justify-center px-3 py-1 text-sm " +
+    "text-muted select-none peer-checked:bg-primary peer-checked:text-on-primary " +
+    "peer-focus-visible:outline-2 peer-focus-visible:outline-primary " +
+    "hover:text-primary peer-checked:hover:text-on-primary";
+
   const sortableColumns: [string, string][] = [
     ["category_id", "Category"],
     ["description", "Description"],
@@ -382,71 +403,66 @@
     </label>
     <!-- Grows to take the leftover width but packs its contents to the right,
       so the free space collects between the tag input and the date cluster.
-      That, plus a tighter internal gap than the row's, keeps the two bounds
-      and their help popover reading as one group. -->
+      That, plus a tighter internal gap than the row's, keeps the mode and the
+      bounds it governs reading as one group. -->
     <div
       class="flex min-w-0 flex-1 basis-[30rem] flex-wrap items-center justify-end gap-2 max-md:basis-auto"
     >
+      <!-- The mode comes before the fields it governs: it decides how many
+        there are, so reading it first is the order the panel is used in. -->
+      <!-- The wrapper is what takes the full width once the panel stacks, so
+        the pill gets a line of its own and sits at the right edge while
+        keeping its natural width. Stretching the pill itself instead left two
+        very wide segments. On desktop it is an inert flex item around a
+        flex-none child, so the row is unchanged. -->
+      <div class="flex flex-none items-center max-md:w-full max-md:justify-end">
+        <fieldset
+          class="flex items-center overflow-hidden rounded-xs border border-line"
+        >
+          <legend class="sr-only">Created date bounds mode</legend>
+          {#each DATE_MODES as [value, label], index (value)}
+            <label class="inline-flex">
+              <input
+                type="radio"
+                class="peer sr-only"
+                name="date-mode"
+                {value}
+                checked={dateMode === value}
+                onchange={() => selectDateMode(value)}
+              />
+              <!-- The span, not the label, carries the look: `peer-*` matches
+                a sibling of the input, and the label is its parent. -->
+              <span
+                class="{segmentClass} {index === 0
+                  ? 'border-r border-line'
+                  : ''}"
+              >
+                {label}
+              </span>
+            </label>
+          {/each}
+        </fieldset>
+      </div>
       <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">Created from date</span>
-        <span class="text-sm" aria-hidden="true">From</span>
+        <span class="sr-only"
+          >{singleDay ? "Created day" : "Created from date"}</span
+        >
+        <span class="text-sm" aria-hidden="true"
+          >{singleDay ? "On" : "From"}</span
+        >
         <!-- A date input's value is already YYYY-MM-DD, which is exactly what
           the URL carries and what localDayStart/localDayEnd parse, so the
           browser's own picker and validation replace the pattern and length
           checks this field used to spell out by hand. -->
         <input type="date" class="min-w-0" bind:value={dateFromInput} />
       </label>
-      <label class="{searchFieldClass} {dateFieldClass}">
-        <span class="sr-only">Created to date</span>
-        <span class="text-sm" aria-hidden="true">To</span>
-        <input
-          type="date"
-          class="min-w-0"
-          bind:value={dateToInput}
-          disabled={singleDay}
-        />
-      </label>
-      <!-- The checkbox and the help icon share a line. On a narrow screen it
-        takes the full width and pushes them to opposite edges, which is the
-        only row in the stacked panel with two things small enough to sit side
-        by side; on desktop it is just the pair, in the cluster's order. -->
-      <div
-        class="flex flex-none items-center gap-2 max-md:mt-3 max-md:w-full max-md:justify-between"
-      >
-        <!-- A native checkbox: app.css already sizes one, and unlike the toggle
-          this replaced there is no custom switch to build out of a sibling. It
-          sits after the fields it governs: it changes what the To input means,
-          so it reads as a modifier on the pair rather than as a heading. -->
-        <label
-          class="inline-flex flex-none cursor-pointer items-center gap-2 text-sm text-muted select-none"
-          title="Search a single created day instead of a range"
-        >
-          <input
-            type="checkbox"
-            checked={singleDay}
-            onchange={onSingleDayChange}
-          />
-          Single day
+      {#if !singleDay}
+        <label class="{searchFieldClass} {dateFieldClass}">
+          <span class="sr-only">Created to date</span>
+          <span class="text-sm" aria-hidden="true">To</span>
+          <input type="date" class="min-w-0" bind:value={dateToInput} />
         </label>
-        <!-- The icon sits at the right edge in both layouts, so the panel hangs
-          from its right edge in both. Letting it fall back to `left-0` on
-          narrow screens pushed 16rem of popover off the viewport and put a
-          horizontal scrollbar on the page. -->
-        <DateHelp
-          label="Show what the date bounds do"
-          title="Date bounds:"
-          panelClass="left-auto right-0"
-        >
-          <ul>
-            <li>Both bounds are inclusive</li>
-            <li>Fill in both, or leave both empty for the date range filter</li>
-            <li>
-              Bounds apply to the created date; the range filter is billed
-            </li>
-            <li>Single day searches one day, using the From date alone</li>
-          </ul>
-        </DateHelp>
-      </div>
+      {/if}
     </div>
     {#if error}
       <p class="text-danger">{error}</p>
@@ -510,15 +526,22 @@
           />
         {/each}
         <th>Tags</th>
-        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {#each rows as row (row.id)}
         <tr>
           <td>{row.category_name}</td>
-          <td>{row.description}</td>
-          <td class="font-semibold text-fg">{formatCurrency(row.amount)}</td>
+          <td>
+            <a href={`${BASE_PATH}/expenses/${row.id}`}>{row.description}</a>
+          </td>
+          <!-- The only monospaced text in the app: amounts are read as a
+            column of figures, and a proportional font leaves their digits
+            unaligned row to row. `tabular-nums` fixes the width of the digits
+            themselves, which a mono stack does not guarantee on its own. -->
+          <td class="font-mono font-semibold text-fg tabular-nums">
+            {formatCurrency(row.amount)}
+          </td>
           <td><LocalDate value={row.date} month /></td>
           <td><LocalDate value={row.created_at} datetime /></td>
           <td>
@@ -532,15 +555,14 @@
               <span class="chip">No tags</span>
             {/if}
           </td>
-          <td><a href={`${BASE_PATH}/expenses/${row.id}`}>Visit</a></td>
         </tr>
       {/each}
     </tbody>
     <tfoot>
       <tr>
-        <th colspan="7">
+        <th colspan="6">
           Total expenses
-          <span class="font-semibold text-fg"
+          <span class="font-mono font-semibold text-fg tabular-nums"
             >{formatCurrency(totalAmount)}</span
           >
         </th>
