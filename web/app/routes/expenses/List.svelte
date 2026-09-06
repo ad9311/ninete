@@ -300,8 +300,15 @@
   // there would be no free space for justify-end to push the cluster right. On
   // a narrow screen they share the row instead. `shrink` is spelled out
   // because `flex-none` sets the whole shorthand, flex-shrink: 0 included.
+  //
+  // The basis is wider than a bare text field would need because these are
+  // native date inputs: the picker icon and the browser's own YYYY-MM-DD
+  // rendering have a larger intrinsic minimum, and at 10rem they sat cramped.
+  // The extra width comes out of the cluster's leading whitespace, which is
+  // what narrows the gap to the tag field. Desktop only — `max-md:basis-0`
+  // already hands the fields the full row once it stacks.
   const dateFieldClass =
-    "flex-none shrink basis-40 max-md:flex-1 max-md:basis-0 max-md:gap-1";
+    "flex-none shrink basis-48 max-md:flex-1 max-md:basis-0 max-md:gap-1";
 
   const sortableColumns: [string, string][] = [
     ["category_id", "Category"],
@@ -361,34 +368,19 @@
       <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">Created from date</span>
         <span class="text-sm" aria-hidden="true">From</span>
-        <!-- The regex has to be an expression, not a quoted attribute: Svelte
-          reads {4} inside a plain attribute value as an interpolation and the
-          template's `\d{4}-\d{2}-\d{2}` would ship as `\d4-\d2-\d2`, which no
-          real date matches, so the field could never pass validation. -->
-        <input
-          type="text"
-          class="min-w-0"
-          bind:value={dateFromInput}
-          placeholder="YYYY-MM-DD"
-          inputmode="numeric"
-          pattern={"\\d{4}-\\d{2}-\\d{2}"}
-          title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
-          maxlength="10"
-        />
+        <!-- A date input's value is already YYYY-MM-DD, which is exactly what
+          the URL carries and what localDayStart/localDayEnd parse, so the
+          browser's own picker and validation replace the pattern and length
+          checks this field used to spell out by hand. -->
+        <input type="date" class="min-w-0" bind:value={dateFromInput} />
       </label>
       <label class="{searchFieldClass} {dateFieldClass}">
         <span class="sr-only">Created to date</span>
         <span class="text-sm" aria-hidden="true">To</span>
-        <!-- Expression form, same reason as the From field above. -->
         <input
-          type="text"
+          type="date"
           class="min-w-0"
           bind:value={dateToInput}
-          placeholder="YYYY-MM-DD"
-          inputmode="numeric"
-          pattern={"\\d{4}-\\d{2}-\\d{2}"}
-          title="Use the YYYY-MM-DD format, e.g. 2026-07-12"
-          maxlength="10"
           disabled={singleDay}
         />
       </label>
@@ -419,12 +411,11 @@
           narrow screens pushed 16rem of popover off the viewport and put a
           horizontal scrollbar on the page. -->
         <DateHelp
-          label="Show accepted date format"
-          title="Dates must be:"
+          label="Show what the date bounds do"
+          title="Date bounds:"
           panelClass="left-auto right-0"
         >
           <ul>
-            <li><code>YYYY-MM-DD</code> (e.g. <code>2026-07-12</code>)</li>
             <li>Both bounds are inclusive</li>
             <li>Leave empty to use the date range filter</li>
             <li>
