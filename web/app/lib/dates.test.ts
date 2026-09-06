@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatDateUTC,
   formatMonthUTC,
+  lastCalendarMonth,
   localDayEnd,
   localDayStart,
   todayCalendarDate,
@@ -385,4 +386,21 @@ describe("addDays", () => {
       expect(addDays(day, -1)).toBe(before);
     },
   );
+});
+
+describe("lastCalendarMonth", () => {
+  it("steps back one month", () => {
+    expect(lastCalendarMonth(new Date(2026, 8, 6, 12))).toBe("2026-08");
+  });
+
+  it("rolls back over the year boundary", () => {
+    expect(lastCalendarMonth(new Date(2026, 0, 1, 12))).toBe("2025-12");
+  });
+
+  it("reads the local month, not the UTC one", () => {
+    // Both suite zones are far enough from UTC that a local noon and a UTC
+    // instant can land in different months at a boundary; noon keeps the two
+    // in step, which is what makes the assertion above meaningful.
+    expect(lastCalendarMonth(new Date(2026, 2, 31, 12))).toBe("2026-02");
+  });
 });

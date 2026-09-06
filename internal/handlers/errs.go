@@ -37,4 +37,10 @@ var (
 	// docs/spa-migration.md), so the API only ever sees start/end and rejects
 	// anything that is not a well-formed half-open range.
 	ErrAPIInvalidDateRange = errors.New("start and end must both be set, with start before end")
+
+	// ErrReportMonth guards the monthly report's month parameter. The report
+	// period is one calendar month of the billed date, which is stored at
+	// month precision with no zone, so the month travels as "YYYY-MM" rather
+	// than as the resolved epoch bounds every /api/expenses* range uses.
+	ErrReportMonth = errors.New("month must be in YYYY-MM format")
 )

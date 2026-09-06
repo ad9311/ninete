@@ -34,6 +34,12 @@ const (
 	// bundle cannot import a Go constant: routes/exports/Index.svelte holds
 	// this literal a second time, and the two have to change together.
 	ExportExpensesPath = "/exports/expenses.json"
+
+	// ReportExpensesPath is on the page chain for the same reason
+	// ExportExpensesPath is: it is reached by a plain anchor, so an expired
+	// session must answer with a redirect the browser can follow. It is held
+	// a second time as a literal in routes/report_settings/Index.svelte.
+	ReportExpensesPath = "/reports/expenses.pdf"
 )
 
 // -------------------------------------------------------------- //

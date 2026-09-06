@@ -126,6 +126,7 @@ with no error from SQLite or the driver.
 - `internal/repo`: SQL persistence.
 - `internal/db`: DB open/migrations/seeds.
 - `internal/prog`: config/logging/shared utilities.
+- `internal/report`: renders the monthly report PDF. Pure — an assembled `logic.MonthlyReport` in, bytes out, no HTTP and no database — so the layout is testable without a server.
 - `internal/task`: app-level task hooks executed by `cmd/task`.
 - `internal/spec`: test setup/factories for integration-style package tests.
 - Preferred dependency direction: handlers -> logic -> repo -> db.
@@ -141,6 +142,7 @@ The SPA is served from `/` and there are no rendered pages. These are the routes
 | SPA shell | `/`, `/*` — a catch-all serving the shell for any non-API, non-static path. `/login` and `/register` are the guest-reachable exception in `AuthMiddleware`'s `guestRoutes` | `handle_app.go` |
 | Auth (non-API) | `POST /logout` | `handle_auth.go` |
 | Expense export | `GET /exports/expenses.json` — a file, but on the page chain: it is reached by a plain anchor, so an expired session must answer with a redirect the browser can follow, not the API chain's `401` | `handle_exports.go` |
+| Monthly report | `GET /reports/expenses.pdf?month=YYYY-MM` — the same kind of route for the same reason. The month is a plain `YYYY-MM`, not resolved bounds, because the billed date is month-precision and needs no client zone; omitted means last month. See `docs/monthly-report.md` | `handle_reports.go` |
 | Infrastructure | `POST /csp-report` | `handle_csp_report.go` |
 | Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
