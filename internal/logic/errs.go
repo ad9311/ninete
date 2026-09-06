@@ -25,6 +25,9 @@ var (
 
 	ErrTagResolutionFailed = errors.New("failed to resolve tags")
 
+	ErrReportTimezone    = errors.New("unknown time zone")
+	ErrReportTooManyTags = errors.New("too many grouping tags, 20 maximum")
+
 	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, date[, tags]")
 	ErrQuickExpenseDescription = errors.New("description must be between 3 and 50 characters")
 	ErrQuickExpenseAmount      = errors.New("invalid amount")

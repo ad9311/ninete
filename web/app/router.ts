@@ -13,6 +13,7 @@ import ExpensesIndex from "./routes/expenses/Index.svelte";
 import ExpensesNew from "./routes/expenses/New.svelte";
 import ExpensesShow from "./routes/expenses/Show.svelte";
 import Stats from "./routes/expenses/Stats.svelte";
+import ReportSettingsIndex from "./routes/report_settings/Index.svelte";
 import RecurrentExpensesArchived from "./routes/recurrent_expenses/Archived.svelte";
 import RecurrentExpensesEdit from "./routes/recurrent_expenses/Edit.svelte";
 import RecurrentExpensesIndex from "./routes/recurrent_expenses/Index.svelte";
@@ -67,6 +68,7 @@ export const routes: RouteDef[] = [
   { path: "/account", component: AccountIndex },
   { path: "/account/delete-data", component: DeleteDataIndex },
   { path: "/account/exports", component: ExportsIndex },
+  { path: "/account/reports", component: ReportSettingsIndex },
   { path: "/login", component: LoginIndex },
   { path: "/register", component: RegisterIndex },
 ];

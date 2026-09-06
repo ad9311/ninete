@@ -156,6 +156,17 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   the browser save whatever comes back, so an expired session would save the
   login page as a file. `Content-Disposition: attachment` starts the save
   instead, only when the response really is the export.
+  `routes/report_settings/` is the monthly report's configuration page
+  (`/account/reports`), a plain load-edit-`put()` form against
+  `GET`/`PUT /api/report-settings`. Its tag checkboxes come from the same
+  response as the selection — there is no `/api/tags` endpoint to list them
+  from — and `timezones.ts` builds the zone select from
+  `Intl.supportedValuesOf("timeZone")`, guarded because not every runtime the
+  suite touches has it, and always including the saved zone so the select
+  cannot quietly rewrite a setting it does not recognise. The response's
+  `configured` flag is what distinguishes "saved as UTC" from "never saved":
+  before a first save the field seeds from the browser instead.
+  `docs/monthly-report.md` holds the report's rules.
   `routes/login/` and `routes/register/` are the two the rest of the SPA
   assumes: `AuthMiddleware`'s guest exemption covers `/login`
   and `/register`, so a guest can reach them without being bounced elsewhere.

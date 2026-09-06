@@ -80,6 +80,8 @@ func TestColumnConstantsMatchSchema(t *testing.T) {
 		{"expenses", expenseColumns},
 		{"invitation_codes", invitationCodeColumns},
 		{"recurrent_expenses", recurrentExpenseColumns},
+		{"report_setting_tags", reportSettingTagColumns},
+		{"report_settings", reportSettingColumns},
 		{"tags", tagColumns},
 		{"users", userColumns},
 	}
