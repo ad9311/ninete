@@ -51,8 +51,8 @@ func sampleReport() logic.MonthlyReport {
 			{Name: "Food", Total: 6000},
 		},
 		Budgets: []logic.ReportBudget{
-			{CategoryName: "Travel", Total: 30000, Budget: 10000, Left: -20000, Pct: 300, BarPct: 100, Over: true},
-			{CategoryName: "Food", Total: 6000, Budget: 100000, Left: 94000, Pct: 6, BarPct: 6},
+			{CategoryName: "Travel", Total: 30000, Budget: 10000, Left: -20000, Pct: 300, Over: true},
+			{CategoryName: "Food", Total: 6000, Budget: 100000, Left: 94000, Pct: 6},
 		},
 	}
 }

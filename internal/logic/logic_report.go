@@ -42,13 +42,16 @@ type ReportCategoryTotal struct {
 // ReportBudget is one category's budget line for the reported month. It is the
 // single-month shape of the budgets page: a monthly budget compared against
 // one month of spending needs no averaging.
+//
+// There is no clamped bar percent here, unlike the budgets endpoint's row: the
+// clamp exists to keep a <progress> element from overflowing, and the PDF's
+// budget table prints figures rather than drawing bars.
 type ReportBudget struct {
 	CategoryName string
 	Total        uint64
 	Budget       uint64
 	Left         int64
 	Pct          int
-	BarPct       int
 	Over         bool
 }
 
@@ -265,14 +268,13 @@ func (s *Store) reportBudgets(
 		name := reportCategoryName(nameByID, budget.CategoryID)
 		total := totalByName[name]
 
-		pct, barPct := BudgetPercent(total, budget.Amount)
+		pct, _ := BudgetPercent(total, budget.Amount)
 		out = append(out, ReportBudget{
 			CategoryName: name,
 			Total:        total,
 			Budget:       budget.Amount,
 			Left:         BudgetLeft(budget.Amount, total),
 			Pct:          pct,
-			BarPct:       barPct,
 			Over:         total > budget.Amount,
 		})
 	}

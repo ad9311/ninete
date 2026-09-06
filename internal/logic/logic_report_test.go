@@ -199,8 +199,8 @@ func TestBuildMonthlyReport(t *testing.T) {
 				require.True(t, travelBudget.Over)
 				require.Equal(t, uint64(30000), travelBudget.Total)
 				require.Equal(t, int64(-20000), travelBudget.Left)
-				require.Equal(t, 300, travelBudget.Pct)
-				require.Equal(t, 100, travelBudget.BarPct, "the bar percent is clamped")
+				require.Equal(t, 300, travelBudget.Pct,
+					"the printed percent is the true one, not clamped")
 
 				foodBudget := byName[food.Name]
 				require.False(t, foodBudget.Over)
