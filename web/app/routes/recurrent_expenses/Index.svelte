@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Archive, Plus } from "lucide";
+  import { Archive, Plus, Wallet } from "lucide";
   import Card from "../../components/Card.svelte";
   import CardAction from "../../components/CardAction.svelte";
   import { BASE_PATH } from "../../router";
@@ -15,6 +15,7 @@
       label="New recurrent expense"
       href={`${BASE_PATH}/recurrent-expenses/new`}
     />
+    <CardAction icon={Wallet} label="Expenses" href={`${BASE_PATH}/expenses`} />
     <CardAction
       icon={Archive}
       label="Archived recurrent expenses"

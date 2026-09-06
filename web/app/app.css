@@ -420,6 +420,18 @@ html.theme-dark {
     color: var(--color-tag-text);
   }
 
+  /* Money. Every rendered amount carries this and nothing else does: amounts
+     are read as columns of figures, and a proportional font leaves their
+     digits unaligned row to row. `tabular-nums` fixes the digit width, which a
+     mono stack does not guarantee on its own. It is a class rather than the
+     four utilities repeated per cell because that repetition is exactly how
+     the tables drifted apart before. Weight and colour stay utilities — they
+     vary by context, the font never does. */
+  .amount {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
   /* Tables. Five routes render one and they must not drift, so the chrome —
      surface, header row, row separators, hover — is one class and its
      descendants rather than utilities repeated per cell. */
@@ -458,10 +470,6 @@ html.theme-dark {
 
   .data-table tbody tr:hover {
     background: var(--color-surface-hover);
-  }
-
-  .data-table td:last-child {
-    white-space: nowrap;
   }
 
   /* Pagination controls. Rendered by both list routes, as an <a> when the page

@@ -12,7 +12,11 @@ export interface DateRangeOption {
   label: string;
 }
 
-/** Matches handlers.dateRangeLabels — the expenses/stats filter options. */
+/**
+ * The expenses and stats filter options. Client-owned: the API is never sent
+ * a range key, only the bounds computeDateRange resolves one to, so there is
+ * no server-side table to keep this in step with.
+ */
 export const DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: "this_month", label: "This month" },
   { value: "next_month", label: "Next month" },
@@ -28,9 +32,15 @@ export interface BudgetDateRangeOption extends DateRangeOption {
   mode: BudgetMode;
 }
 
-/** Matches handlers.budgetDateRanges — the budgets page's range/mode pairs. */
+/**
+ * The budgets page's range/mode pairs, client-owned for the same reason as
+ * DATE_RANGE_OPTIONS above. The mode travels to the API as its own parameter
+ * because the API cannot derive it from a key it never receives — see
+ * GetAPIExpenseBudgets.
+ */
 export const BUDGET_DATE_RANGE_OPTIONS: BudgetDateRangeOption[] = [
   { value: "this_month", label: "This month", mode: "month" },
+  { value: "next_month", label: "Next month", mode: "month" },
   { value: "last_month", label: "Last month", mode: "month" },
   { value: "six_months", label: "Last 6 months", mode: "months" },
   { value: "this_year", label: "This year", mode: "months" },

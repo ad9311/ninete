@@ -109,6 +109,6 @@
     class="btn btn-primary mt-3 justify-self-end"
     disabled={pending}
   >
-    {pending ? "Saving..." : "Submit"}
+    {pending ? "Saving..." : "Create expense"}
   </button>
 </form>

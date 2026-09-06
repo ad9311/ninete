@@ -105,7 +105,13 @@
   </label>
   <label>
     Amount
-    <input type="number" min="0" step="0.01" bind:value={amountInput} />
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      bind:value={amountInput}
+      placeholder="0.00"
+    />
   </label>
   <label>
     Tags

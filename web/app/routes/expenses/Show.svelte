@@ -77,14 +77,11 @@
           </tr>
           <tr>
             <th>Description</th>
-            <!-- `.data-table td:last-child` is nowrap for the list tables'
-              action column; every cell here is a last child, and a 50-character
-              description has to be allowed to wrap on a phone. -->
-            <td class="whitespace-normal">{expense.description}</td>
+            <td>{expense.description}</td>
           </tr>
           <tr>
             <th>Amount</th>
-            <td class="font-semibold text-fg">
+            <td class="amount font-semibold text-fg">
               {formatCurrency(expense.amount)}
             </td>
           </tr>

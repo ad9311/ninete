@@ -71,6 +71,11 @@
   {#if quick}
     <QuickAddForm />
   {:else}
-    <Form submitLabel="Submit" {error} {pending} onSubmit={handleSubmit} />
+    <Form
+      submitLabel="Create expense"
+      {error}
+      {pending}
+      onSubmit={handleSubmit}
+    />
   {/if}
 </Card>

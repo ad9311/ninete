@@ -480,9 +480,6 @@
         </label>
       {/if}
     </div>
-    {#if error}
-      <p class="text-danger">{error}</p>
-    {/if}
     <!-- Its own line on desktop: `md:w-full` makes the wrapping row break
       before it, so the Clear button appearing beside Search can never push the
       fields above out of their single line. The stacked layout already gives
@@ -529,6 +526,15 @@
   </label>
 </div>
 
+<!-- Outside the search panel, which is collapsible: a load failure rendered
+  inside it would be invisible whenever the panel is closed, leaving an empty
+  table and no explanation. This carries the bounds-validation messages too —
+  they are about the fields above, but they also mean the listing did not
+  load. -->
+{#if error}
+  <p class="text-danger">{error}</p>
+{/if}
+
 <div class="overflow-x-auto">
   <table class="data-table">
     <thead>
@@ -551,11 +557,7 @@
           <td>
             <a href={`${BASE_PATH}/expenses/${row.id}`}>{row.description}</a>
           </td>
-          <!-- The only monospaced text in the app: amounts are read as a
-            column of figures, and a proportional font leaves their digits
-            unaligned row to row. `tabular-nums` fixes the width of the digits
-            themselves, which a mono stack does not guarantee on its own. -->
-          <td class="font-mono font-semibold text-fg tabular-nums">
+          <td class="amount font-semibold text-fg">
             {formatCurrency(row.amount)}
           </td>
           <td><LocalDate value={row.date} month /></td>
@@ -578,7 +580,7 @@
       <tr>
         <th colspan="6">
           Total expenses
-          <span class="font-mono font-semibold text-fg tabular-nums"
+          <span class="amount font-semibold text-fg"
             >{formatCurrency(totalAmount)}</span
           >
         </th>

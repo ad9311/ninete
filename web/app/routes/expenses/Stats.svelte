@@ -212,7 +212,9 @@
         {#each rows as row (row.name)}
           <tr>
             <td>{row.name}</td>
-            <td class="font-semibold text-fg">{formatCurrency(row.total)}</td>
+            <td class="amount font-semibold text-fg">
+              {formatCurrency(row.total)}
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -220,7 +222,7 @@
         <tr>
           <th colspan="2">
             Total expenses
-            <span class="font-semibold text-fg">
+            <span class="amount font-semibold text-fg">
               {formatCurrency(totalAmount)}
             </span>
           </th>

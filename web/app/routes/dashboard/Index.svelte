@@ -64,13 +64,15 @@
         />
       {/snippet}
       {#if summary}
-        <span class="text-2xl font-semibold text-fg">
+        <span class="amount text-2xl font-semibold text-fg">
           {formatCurrency(summary.this_month_total)}
         </span>
         <span class="text-sm text-muted">
           {#if summary.month_change_sign}
             {summary.month_change_sign}{summary.month_change_pct}% vs last month
-            ({formatCurrency(summary.last_month_total)})
+            (<span class="amount"
+              >{formatCurrency(summary.last_month_total)}</span
+            >)
           {:else}
             No data for last month
           {/if}
@@ -84,7 +86,7 @@
             {#each summary.top_categories as category (category.name)}
               <li class="flex justify-between text-sm">
                 <span>{category.name}</span>
-                <span class="font-semibold text-fg">
+                <span class="amount font-semibold text-fg">
                   {formatCurrency(category.total)}
                 </span>
               </li>
