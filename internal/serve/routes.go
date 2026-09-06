@@ -61,6 +61,9 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/categories", s.handlers.GetAPICategories)
 		api.Get("/dashboard", s.handlers.GetAPIDashboard)
 
+		api.Get("/report-settings", s.handlers.GetAPIReportSettings)
+		api.Put("/report-settings", s.handlers.PutAPIReportSettings)
+
 		api.Route("/delete-data", func(deleteData chi.Router) {
 			deleteData.Get("/", s.handlers.GetAPIDeleteData)
 			deleteData.Delete("/", s.handlers.DeleteAPIDeleteDataAll)

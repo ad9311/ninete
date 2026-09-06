@@ -14,6 +14,7 @@ if a document is added, add it here too, or nobody will find it.
 | `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
 | `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind (since adopted — §4.1 carries the outcome note) and component libraries were deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
+| `docs/monthly-report.md` | The monthly expense report: why its period is one calendar month of `date` and not a ragged credit-card cycle, the tag grouping rules, and the three-phase plan (settings, PDF, email) | Touching the report, its settings, or anything that groups expenses by tag |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
 | `docs/deployment.local.md` | Host specifics: paths, service account, hostname, scheduled jobs, known gaps. Git-ignored here — it is a symlink into the private `ninete-secrets` repo (see below) | Touching the deploy account or the host config. Assume it exists even if you cannot read it |
 | `web/README.md` | How the directories under `web/` work and how code reaches the browser: the shell template's data contract, CSP nonce rule, the Svelte build chain | **Before editing anything under `web/`** |
@@ -144,11 +145,11 @@ The SPA is served from `/` and there are no rendered pages. These are the routes
 | Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
-`/api/categories`, `/api/dashboard`, `/api/delete-data` (+
+`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/delete-data` (+
 `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
 `/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
 `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
-`handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_report_settings.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
 `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
 `handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
 resource, shared by the API handlers above.
@@ -176,6 +177,11 @@ redirects rather than answering `401`). Three consequences worth knowing before 
   validation to `422` with `{"error", "fields"}` and unexpected failures to a generic `500` that
   never quotes `err.Error()`. There is no CSP on this chain by design; a JSON response has no
   document to constrain.
+
+`GET`/`PUT /api/report-settings` is the monthly report's configuration — the tags it groups by
+and the timezone the scheduled run resolves "last month" in. It carries the user's whole tag list
+in its `GET` response because there is no `/api/tags` to fetch it from: tags are created as free
+text on the expense forms and have never had a listing endpoint. See `docs/monthly-report.md`.
 
 Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 

@@ -13,6 +13,11 @@
       hint: "Download your data as JSON files.",
     },
     {
+      href: "/account/reports",
+      title: "Monthly report",
+      hint: "Choose the tags the report groups by and its time zone.",
+    },
+    {
       href: "/account/delete-data",
       title: "Delete data",
       hint: "Permanently remove records from your account.",
