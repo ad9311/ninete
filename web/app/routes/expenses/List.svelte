@@ -87,13 +87,16 @@
     };
   const hasTextSearch = $derived(query !== "" || tag !== "");
   const searchActive = $derived(hasDateBounds || hasTextSearch);
-  const explicitRange = $derived(params.has("date_range"));
-  // A text search with no explicit date_range widens to all time so matches
-  // older than the default range are not silently hidden — mirrors
-  // expenseSearch.clearsPresetRange() (expense_search.go).
-  const clearsPresetRange = $derived(
-    hasDateBounds || (hasTextSearch && !explicitRange),
-  );
+  // Only the explicit bounds clear the preset range. They filter created_at
+  // while the preset filters the billed date, so the two cannot combine into a
+  // meaningful window and the API drops the preset whenever they are present
+  // (expenseSearch.apply, expense_search.go) — the select has to say so.
+  //
+  // A text search does not: it keeps whatever range is selected, this_month by
+  // default. The API's matching implicit widening never fires from here,
+  // because this chain always resolves the named range to bounds itself and
+  // that is what sets explicitRange server-side (GetAPIExpenses).
+  const clearsPresetRange = $derived(hasDateBounds);
   const dateRangeValue = $derived(
     clearsPresetRange ? "all_time" : params.get("date_range") || "this_month",
   );
@@ -291,12 +294,12 @@
       date_to: undefined,
       page: 1,
     };
-    // An active search forces the range select to all_time; dropping it here
-    // too keeps Clear from leaving an unbounded, unfiltered listing behind.
-    // The URL's own value, not dateRangeValue: that derived reads "all_time"
-    // for *any* active search, so it would also throw away a range the user
+    // Explicit bounds force the range select to all_time; dropping it here too
+    // keeps Clear from leaving an unbounded, unfiltered listing behind. The
+    // URL's own value, not dateRangeValue: that derived reads "all_time"
+    // whenever bounds are set, so it would also throw away a range the user
     // picked by hand (six_months + explicit bounds would snap to this_month).
-    if (searchActive && params.get("date_range") === "all_time") {
+    if (hasDateBounds && params.get("date_range") === "all_time") {
       overrides.date_range = undefined;
     }
 
@@ -448,7 +451,13 @@
     {#if error}
       <p class="text-danger">{error}</p>
     {/if}
-    <div class="ml-auto flex gap-2 max-md:mt-3 max-md:ml-0">
+    <!-- Its own line on desktop: `md:w-full` makes the wrapping row break
+      before it, so the Clear button appearing beside Search can never push the
+      fields above out of their single line. The stacked layout already gives
+      every child the full width, so the pair is left as it was there. -->
+    <div
+      class="ml-auto flex gap-2 max-md:mt-3 max-md:ml-0 md:w-full md:justify-end"
+    >
       <button type="submit" class="btn btn-primary min-w-20 max-md:flex-1">
         Search
       </button>
