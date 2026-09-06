@@ -14,12 +14,21 @@
   let tags = $state<ReportTag[]>([]);
   let selectedTagIDs = $state<number[]>([]);
   let timezone = $state("");
+  let tagLimit = $state(0);
+  // Nothing may be submitted before the GET lands. PUT replaces the tag list
+  // wholesale, so a failed load would otherwise leave an empty, enabled form
+  // whose Save wipes every grouping tag the user had — the page cannot tell
+  // "no tags selected" from "we never found out".
+  let loaded = $state(false);
   let loadError = $state("");
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
 
   const zones = $derived(timezoneOptions(timezone));
+  const atTagLimit = $derived(
+    tagLimit > 0 && selectedTagIDs.length >= tagLimit,
+  );
 
   $effect(() => {
     let cancelled = false;
@@ -33,7 +42,9 @@
         // the server's own fallback is UTC, which would otherwise look like
         // a choice the user had made.
         timezone = result.configured ? result.timezone : browserTimezone();
+        tagLimit = result.tag_limit;
         loadError = "";
+        loaded = true;
       })
       .catch((err) => {
         if (cancelled) return;
@@ -99,17 +110,25 @@
         month is left out. Pick none and the report is one flat list.
       </p>
 
-      {#if tags.length === 0}
+      {#if !loaded}
+        <!-- Deliberately silent until the load settles: "You have no tags yet"
+             would otherwise be shown for a request that simply failed. -->
+      {:else if tags.length === 0}
         <p class="text-sm text-muted">
           You have no tags yet. Add some to your expenses first.
         </p>
       {:else}
+        <p class="text-sm text-muted">
+          {selectedTagIDs.length} of {tagLimit} selected
+        </p>
         <div class="grid gap-2 sm:grid-cols-2">
           {#each tags as tag (tag.id)}
+            {@const checked = selectedTagIDs.includes(tag.id)}
             <label class="inline-flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedTagIDs.includes(tag.id)}
+                {checked}
+                disabled={!checked && atTagLimit}
                 onchange={(event) => {
                   toggleTag(tag.id, event.currentTarget.checked);
                 }}
@@ -129,6 +148,7 @@
       </span>
       <select
         bind:value={timezone}
+        disabled={!loaded}
         onchange={() => {
           saved = false;
         }}
@@ -150,7 +170,7 @@
       type="submit"
       name="save_report_settings"
       class="btn btn-primary justify-self-end"
-      disabled={saving}
+      disabled={saving || !loaded}
     >
       {saving ? "Saving..." : "Save settings"}
     </button>

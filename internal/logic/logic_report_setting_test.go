@@ -153,10 +153,68 @@ func TestReportSettings(t *testing.T) {
 			},
 		},
 		{
+			name: "should_reject_the_local_timezone",
+			fn: func(t *testing.T) {
+				// "Local" loads without error and means the server's own zone,
+				// which is the answer the setting exists to avoid.
+				err := s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					Timezone: "Local",
+				})
+				require.ErrorIs(t, err, logic.ErrReportTimezone)
+			},
+		},
+		{
+			name: "should_resolve_a_zone_without_the_hosts_tzdata",
+			fn: func(t *testing.T) {
+				// Guards the blank time/tzdata import: without it this passes
+				// or fails depending on whether the machine has a zoneinfo
+				// database installed.
+				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					Timezone: "Pacific/Auckland",
+				}))
+			},
+		},
+		{
+			name: "should_count_a_repeated_tag_once_against_the_limit",
+			fn: func(t *testing.T) {
+				tagIDs := make([]int, 0, logic.ReportTagLimit+1)
+				for range logic.ReportTagLimit + 1 {
+					tagIDs = append(tagIDs, tagOne.ID)
+				}
+
+				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					Timezone: "UTC",
+					TagIDs:   tagIDs,
+				}))
+			},
+		},
+		{
+			name: "should_be_cleared_by_deleting_all_user_data",
+			fn: func(t *testing.T) {
+				wiped := s.CreateAuthUser(
+					t, "report_wipe_user", "report_wipe_user@example.com", "report_password_3",
+				)
+				wipedTag := s.CreateTag(t, wiped.ID, "rep_lg_wipe_tag")
+
+				require.NoError(t, s.Store.SaveReportSetting(ctx, wiped.ID, logic.ReportSettingParams{
+					Timezone: "America/Bogota",
+					TagIDs:   []int{wipedTag.ID},
+				}))
+
+				require.NoError(t, s.Store.DeleteAllUserData(ctx, wiped.ID))
+
+				setting, err := s.Store.FindReportSetting(ctx, wiped.ID)
+				require.NoError(t, err)
+				require.False(t, setting.Configured, "report settings survived the wipe")
+				require.Equal(t, logic.DefaultReportTimezone, setting.Timezone)
+				require.Empty(t, setting.TagIDs)
+			},
+		},
+		{
 			name: "should_reject_more_tags_than_the_limit",
 			fn: func(t *testing.T) {
-				tagIDs := make([]int, 0, 21)
-				for i := range 21 {
+				tagIDs := make([]int, 0, logic.ReportTagLimit+1)
+				for i := range logic.ReportTagLimit + 1 {
 					tagIDs = append(tagIDs, tagOne.ID+i)
 				}
 

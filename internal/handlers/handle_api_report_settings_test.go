@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -14,6 +15,7 @@ type apiReportSettingsBody struct {
 	Timezone       string `json:"timezone"`
 	Configured     bool   `json:"configured"`
 	SelectedTagIDs []int  `json:"selected_tag_ids"`
+	TagLimit       int    `json:"tag_limit"`
 	Tags           []struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
@@ -81,6 +83,9 @@ func TestAPIReportSettings(t *testing.T) {
 				require.Equal(t, "UTC", body.Timezone)
 				require.False(t, body.Configured)
 				require.Empty(t, body.SelectedTagIDs)
+				// The form caps its checkboxes at this number, so a drift here
+				// would let it build a submission the server refuses.
+				require.Equal(t, logic.ReportTagLimit, body.TagLimit)
 
 				names := make([]string, 0, len(body.Tags))
 				for _, tag := range body.Tags {
@@ -106,6 +111,16 @@ func TestAPIReportSettings(t *testing.T) {
 				require.Equal(t, "America/Bogota", body.Timezone)
 				require.True(t, body.Configured)
 				require.Equal(t, []int{tagTwo.ID}, body.SelectedTagIDs)
+			},
+		},
+		{
+			name: "should_reject_the_local_timezone",
+			fn: func(t *testing.T) {
+				rec := put(t, map[string]any{
+					"timezone": "Local",
+					"tag_ids":  []int{},
+				})
+				require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
 			},
 		},
 		{

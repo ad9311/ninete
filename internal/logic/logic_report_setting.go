@@ -4,6 +4,15 @@ import (
 	"context"
 	"time"
 
+	// The zone database, compiled into the binary. time.LoadLocation otherwise
+	// reads the host's /usr/share/zoneinfo, falling back to a zoneinfo.zip
+	// under GOROOT that a deployed binary does not ship beside it — so on a
+	// host without a tzdata package every real zone name would fail
+	// validation and the settings page would answer "unknown time zone" for
+	// every save but UTC. Embedding it also makes the scheduled report in
+	// phase 3 resolve the stored zone identically wherever it runs.
+	_ "time/tzdata"
+
 	"github.com/ad9311/ninete/internal/repo"
 )
 
@@ -14,10 +23,16 @@ import (
 // (docs/monthly-report.md, "Timezone").
 const DefaultReportTimezone = "UTC"
 
-// reportTagLimit bounds how many tags may group one report. Well past what a
+// localTimezoneName is time.LoadLocation's alias for the process's own zone.
+// It is a valid argument and so passes the load, which is why it is rejected
+// by name.
+const localTimezoneName = "Local"
+
+// ReportTagLimit bounds how many tags may group one report. Well past what a
 // readable report can carry, and there only so a request cannot make the
-// insert build an unbounded placeholder list.
-const reportTagLimit = 20
+// insert build an unbounded placeholder list. Exported because the settings
+// form caps its checkboxes at the same number.
+const ReportTagLimit = 20
 
 // ReportSettingParams is the settings form's submission. Timezone is validated
 // by loading it rather than by pattern, since only the zone database can say
@@ -80,15 +95,23 @@ func (s *Store) SaveReportSetting(ctx context.Context, userID int, params Report
 		return err
 	}
 
+	// "Local" loads successfully and resolves to whatever zone the *server*
+	// runs in, which is the one answer this setting exists to avoid — the
+	// select never offers it, but a hand-made request could still store it.
+	if params.Timezone == localTimezoneName {
+		return ErrReportTimezone
+	}
+
 	if _, err := time.LoadLocation(params.Timezone); err != nil {
 		return ErrReportTimezone
 	}
 
-	if len(params.TagIDs) > reportTagLimit {
+	// Deduped before the limit is applied, so the error means what it says:
+	// twenty-one copies of one tag is one grouping tag, not twenty-one.
+	tagIDs := dedupeIDs(params.TagIDs)
+	if len(tagIDs) > ReportTagLimit {
 		return ErrReportTooManyTags
 	}
-
-	tagIDs := dedupeIDs(params.TagIDs)
 
 	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
 		setting, err := tq.UpsertReportSetting(ctx, repo.UpsertReportSettingParams{

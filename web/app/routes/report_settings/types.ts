@@ -13,4 +13,6 @@ export interface ReportSettingsResponse {
   configured: boolean;
   selected_tag_ids: number[];
   tags: ReportTag[];
+  /** How many grouping tags the server accepts (logic.ReportTagLimit). */
+  tag_limit: number;
 }

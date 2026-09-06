@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS "report_setting_tags" (
 CREATE UNIQUE INDEX IF NOT EXISTS "uq_report_setting_tags_setting_tag"
 ON "report_setting_tags" ("report_setting_id", "tag_id");
 
-PRAGMA user_version = 31;
+PRAGMA user_version = 32;
 
 -- +goose Down
 DROP INDEX IF EXISTS "uq_report_setting_tags_setting_tag";
@@ -35,4 +35,4 @@ DROP TABLE IF EXISTS "report_setting_tags";
 DROP INDEX IF EXISTS "uq_report_settings_user";
 DROP TABLE IF EXISTS "report_settings";
 
-PRAGMA user_version = 30;
+PRAGMA user_version = 31;

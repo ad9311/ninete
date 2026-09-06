@@ -182,3 +182,15 @@ func (q *TxQueries) InsertReportSettingTags(
 		return err
 	})
 }
+
+const deleteAllReportSettingsByUser = `DELETE FROM "report_settings" WHERE "user_id" = ?`
+
+// DeleteAllReportSettingsByUser drops the user's report configuration. The
+// join rows in "report_setting_tags" cascade away with it.
+func (q *TxQueries) DeleteAllReportSettingsByUser(ctx context.Context, userID int) error {
+	return q.wrapQuery(deleteAllReportSettingsByUser, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteAllReportSettingsByUser, userID)
+
+		return err
+	})
+}

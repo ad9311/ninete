@@ -24,6 +24,10 @@ type apiReportSettingsResponse struct {
 	Configured     bool           `json:"configured"`
 	SelectedTagIDs []int          `json:"selected_tag_ids"`
 	Tags           []apiReportTag `json:"tags"`
+	// TagLimit is what SaveReportSetting enforces, sent so the form can cap
+	// its checkboxes at the same number rather than letting the user build a
+	// submission the server will refuse.
+	TagLimit int `json:"tag_limit"`
 }
 
 // GetAPIReportSettings answers the monthly report's settings page. A user who
@@ -70,6 +74,7 @@ func (h *Handler) GetAPIReportSettings(w http.ResponseWriter, r *http.Request) {
 		Configured:     setting.Configured,
 		SelectedTagIDs: selected,
 		Tags:           apiTags,
+		TagLimit:       logic.ReportTagLimit,
 	})
 }
 

@@ -50,6 +50,9 @@ func (s *Store) DeleteAllUserData(ctx context.Context, userID int) error {
 		if err := tq.DeleteAllExpenseBudgetsByUser(ctx, userID); err != nil {
 			return err
 		}
+		if err := tq.DeleteAllReportSettingsByUser(ctx, userID); err != nil {
+			return err
+		}
 
 		return tq.DeleteAllTagsByUser(ctx, userID)
 	})

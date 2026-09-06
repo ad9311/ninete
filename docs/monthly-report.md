@@ -92,7 +92,7 @@ settings form pre-fills from the browser's
 Ships standing alone: the page saves and reloads, and nothing consumes the
 settings yet.
 
-- Migration (`user_version` 31):
+- Migration (`user_version` 32):
   - `report_settings` — `user_id` (unique, FK cascade), `timezone` TEXT,
     timestamps.
   - `report_setting_tags` — `report_setting_id` (FK cascade), `tag_id` (FK
@@ -102,11 +102,27 @@ settings yet.
     display is by total, so no configured order is ever read.
 - `internal/repo/report_setting.go` with its columns constant, per the
   `SELECT *` invariant.
-- `internal/logic/logic_report_setting.go`.
+- `internal/logic/logic_report_setting.go`. It rejects `"Local"` by name
+  before loading the zone: `time.LoadLocation` accepts it and resolves it to
+  whatever zone the *server* runs in, which is the one answer this setting
+  exists to avoid. The package blank-imports `time/tzdata` so the zone
+  database travels in the binary — a deployed binary has no `zoneinfo.zip`
+  beside it, so validation would otherwise depend on the host having a tzdata
+  package installed, and every real zone name would be rejected as unknown
+  where it does not.
+- `report_settings` joins the tables `Store.DeleteAllUserData` clears. It is
+  a per-user row, so "delete all my data" must take it: the join rows would
+  cascade away with the tags regardless, leaving a settings row claiming to
+  be configured with a timezone from before the wipe.
 - `internal/handlers/handle_api_report_settings.go` — `GET`/`PUT`
   `/api/report-settings`.
 - SPA route `/account/reports`: tag multi-select, timezone select, and the
-  first-tag-wins note.
+  first-tag-wins note. The form stays disabled until the `GET` lands, because
+  `PUT` replaces the tag list wholesale — a failed load would otherwise leave
+  an empty, enabled form whose Save wipes every grouping tag, the page having
+  no way to tell "none selected" from "never found out". The tag limit rides
+  along in the response rather than being repeated in the client, so the
+  checkboxes cap where the server does.
 
 ### Phase 2 — the PDF, on demand
 
