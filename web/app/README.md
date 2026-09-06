@@ -114,11 +114,13 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   from the matched path, since a page/sort/filter change must not remount the
   routed component the way a real path change does.
   `routes/expenses/` is the largest: `List.svelte` carries a search panel
-  (description, tag, explicit `date_from`/`date_to`, a billed/created toggle)
-  on top of the category and date-range filters, and the named date range
-  resolves client-side via `lib/dateRanges.ts` rather than riding along as
-  `date_range`+`tz_offset`; `Form.svelte` adds a calendar-date field
-  (`lib/dates.ts`'s `calendarDateToUnix`/`todayCalendarDate`); `New.svelte`
+  (description, tag, explicit `date_from`/`date_to` bounds on the created date,
+  and a single-day box) on top of the category and date-range filters; both the
+  named date range and those bounds resolve to epoch bounds client-side
+  (`lib/dateRanges.ts`, `lib/dates.ts`'s `localDayStart`/`localDayEnd`) rather
+  than riding along as `date_range`+`tz_offset`; `Form.svelte` adds a
+  calendar-month field (`lib/dates.ts`'s
+  `calendarMonthToUnix`/`todayCalendarMonth`); `New.svelte`
   toggles between it and `QuickAddForm.svelte`, which posts to
   `/expenses/quick` with an explicit `tz_offset` (§3.6's "Consumer 2" — quick
   add keeps a client zone even though the named ranges retire theirs) and

@@ -111,14 +111,13 @@ Three things about it decide how a component should be written:
   `theme-dark` class on `<html>`, written by the shell's inline nonce'd script before first paint
   and persisted to `localStorage` by `components/Header.svelte`.
 - **The base layer styles form controls and document defaults, and utilities beat it.** An
-  `<input>` gets the app's control styling with no class; the header's compact selects and the
-  search panel's hidden checkbox override it with plain utilities, because Tailwind's utility
-  layer sits after the base layer. There is nothing to opt out of.
+  `<input>` gets the app's control styling with no class; the header's compact selects override
+  it with plain utilities, because Tailwind's utility layer sits after the base layer. There is
+  nothing to opt out of.
 - **The component layer is short on purpose.** `.btn*`, `.chip*`, `.data-table`, `.page-link*`,
-  `.toggle-switch`, `.budget-bar` and `.route-progress-bar` are there because more than one route
-  uses them *and* utilities cannot express them in markup without drifting — a vendor
-  pseudo-element, a `::before` ring, a `:checked ~` sibling. Everything else is utilities in the
-  component that needs it. `web/app/README.md` carries the rule for adding to either layer.
+  `.budget-bar` and `.route-progress-bar` are there because more than one route uses them *and*
+  utilities cannot express them in markup without drifting — a vendor pseudo-element, a
+  `::before` ring. Everything else is utilities in the component that needs it. `web/app/README.md` carries the rule for adding to either layer.
 
 `stylelint` reads `web/app/**/*.css` (that is, this one file) via `make lint-fix`, with
 Tailwind's at-rules allowlisted in `stylelint.config.mjs`. `prettier-plugin-tailwindcss` sorts
