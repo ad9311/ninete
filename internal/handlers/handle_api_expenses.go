@@ -70,7 +70,7 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 // It reports whether the request carried bounds, which the caller has to feed
 // back into the search — see GetAPIExpenses.
 func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, bool, error) {
-	opts := userScopedQueryOpts(r, userID, repo.Sorting{Field: "date", Order: "DESC"})
+	opts := userScopedQueryOpts(r, userID, repo.Sorting{Field: "created_at", Order: "DESC"})
 
 	start, end, hasBounds, err := parseAPIDateBounds(r.URL.Query())
 	if err != nil {

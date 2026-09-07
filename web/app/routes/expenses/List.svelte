@@ -39,7 +39,7 @@
 
   const params = $derived(new URLSearchParams(search));
   const categoryId = $derived(Number(params.get("category_id") ?? "0"));
-  const sortField = $derived(params.get("sort_field") ?? "date");
+  const sortField = $derived(params.get("sort_field") ?? "created_at");
   const sortOrder = $derived(params.get("sort_order") ?? "DESC");
   const page = $derived(parsePage(params));
   const perPage = $derived(parsePerPage(params));
