@@ -145,7 +145,8 @@ func TestParseQuickExpense(t *testing.T) {
 			fn: func(t *testing.T) {
 				for _, input := range []string{
 					"today", "yesterday", "tomorrow", "next month",
-					"12 July 2026", "12 Jul 2026", "2026-07-12", "12/07/2026", "12-07-2026",
+					"12 July 2026", "12 Jul 2026", "July 12 2026", "Jul 12 2026",
+					"2026-07-12", "12/07/2026", "12-07-2026",
 				} {
 					_, err := logic.ParseQuickExpense("Uber, 10, "+input, 0)
 					require.ErrorIsf(t, err, logic.ErrQuickExpenseDate, "input %q", input)
