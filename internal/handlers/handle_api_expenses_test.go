@@ -375,7 +375,7 @@ func TestAPIExpensesQuick(t *testing.T) {
 				category := s.CreateCategory(t, "api_quick_cat_1")
 
 				res, body := doJSON(t, handler, http.MethodPost, "/api/expenses/quick", map[string]any{
-					"quick_input": "Uber, 12.50, today",
+					"quick_input": "Uber, 12.50, current",
 					"tz_offset":   0,
 				}, cookies, csrfToken)
 				require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode)
@@ -385,7 +385,7 @@ func TestAPIExpensesQuick(t *testing.T) {
 				require.Equal(t, "required", apiErr.Fields["category_id"])
 
 				res, body = doJSON(t, handler, http.MethodPost, "/api/expenses/quick", map[string]any{
-					"quick_input": "Uber, 12.50, today",
+					"quick_input": "Uber, 12.50, current",
 					"category_id": category.ID,
 					"tz_offset":   0,
 				}, cookies, csrfToken)
@@ -399,7 +399,7 @@ func TestAPIExpensesQuick(t *testing.T) {
 				// Same description again: the remembered mapping resolves the
 				// category without the client sending one.
 				res, body = doJSON(t, handler, http.MethodPost, "/api/expenses/quick", map[string]any{
-					"quick_input": "Uber, 8.00, today",
+					"quick_input": "Uber, 8.00, current",
 					"tz_offset":   0,
 				}, cookies, csrfToken)
 				require.Equal(t, http.StatusOK, res.StatusCode)

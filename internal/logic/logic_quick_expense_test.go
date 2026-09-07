@@ -13,10 +13,12 @@ import (
 )
 
 func TestParseQuickExpense(t *testing.T) {
-	utcMidnightToday := func() int64 {
-		y, m, d := time.Now().UTC().Date()
+	// The relative keywords resolve against the client's calendar month; these
+	// cases pass tzOffsetMinutes=0, so the expectation is UTC's.
+	utcFirstOfMonth := func(offset int) int64 {
+		now := time.Now().UTC()
 
-		return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Unix()
+		return time.Date(now.Year(), now.Month()+time.Month(offset), 1, 0, 0, 0, 0, time.UTC).Unix()
 	}
 
 	cases := []struct {
@@ -24,19 +26,19 @@ func TestParseQuickExpense(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			name: "should_parse_decimal_amount_and_today",
+			name: "should_parse_decimal_amount_and_current_month",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 3344.22, today", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 3344.22, current", 0)
 				require.NoError(t, err)
 				require.Equal(t, "Uber", parsed.Description)
 				require.Equal(t, uint64(334422), parsed.Amount)
-				require.Equal(t, utcMidnightToday(), parsed.Date)
+				require.Equal(t, utcFirstOfMonth(0), parsed.Date)
 			},
 		},
 		{
 			name: "should_parse_integer_amount_as_whole_dollars",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Rent, 23044, today", 0)
+				parsed, err := logic.ParseQuickExpense("Rent, 23044, current", 0)
 				require.NoError(t, err)
 				require.Equal(t, uint64(2304400), parsed.Amount)
 			},
@@ -44,35 +46,65 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_parse_small_decimal_amount",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Coffee, 33.33, today", 0)
+				parsed, err := logic.ParseQuickExpense("Coffee, 33.33, current", 0)
 				require.NoError(t, err)
 				require.Equal(t, uint64(3333), parsed.Amount)
 			},
 		},
 		{
-			name: "should_parse_yesterday",
+			name: "should_parse_last",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, yesterday", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, last", 0)
 				require.NoError(t, err)
-				require.Equal(t, utcMidnightToday()-int64((time.Hour*24).Seconds()), parsed.Date)
+				require.Equal(t, utcFirstOfMonth(-1), parsed.Date)
 			},
 		},
 		{
-			name: "should_parse_explicit_lowercase_month_date",
+			name: "should_parse_explicit_lowercase_long_month",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, 12 june 2026", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, june 2026", 0)
 				require.NoError(t, err)
-				expected := time.Date(2026, time.June, 12, 0, 0, 0, 0, time.UTC).Unix()
+				expected := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC).Unix()
 				require.Equal(t, expected, parsed.Date)
 			},
 		},
 		{
-			name: "should_parse_iso_date",
+			name: "should_parse_explicit_short_month",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, 2026-06-12", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, Jun 2026", 0)
 				require.NoError(t, err)
-				expected := time.Date(2026, time.June, 12, 0, 0, 0, 0, time.UTC).Unix()
+				expected := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC).Unix()
 				require.Equal(t, expected, parsed.Date)
+			},
+		},
+		{
+			name: "should_parse_iso_month",
+			fn: func(t *testing.T) {
+				parsed, err := logic.ParseQuickExpense("Uber, 10, 2026-06", 0)
+				require.NoError(t, err)
+				expected := time.Date(2026, time.June, 1, 0, 0, 0, 0, time.UTC).Unix()
+				require.Equal(t, expected, parsed.Date)
+			},
+		},
+		{
+			name: "should_resolve_relative_months_against_the_client_zone",
+			fn: func(t *testing.T) {
+				// Only meaningful around a month turnover, so this asserts the
+				// offset is applied at all rather than a specific month: an
+				// offset a full day wide moves "current" for most of the month.
+				utc, err := logic.ParseQuickExpense("Uber, 10, current", 0)
+				require.NoError(t, err)
+
+				now := time.Now().UTC()
+				// Shifting the client back by today's day-of-month lands it in
+				// the previous month whatever today is: day N minus N days is
+				// day 0, which normalizes to the last day of the month before.
+				minutes := now.Day() * 24 * 60
+				shifted, err := logic.ParseQuickExpense("Uber, 10, current", minutes)
+				require.NoError(t, err)
+
+				require.Equal(t, utcFirstOfMonth(0), utc.Date)
+				require.Equal(t, utcFirstOfMonth(-1), shifted.Date)
 			},
 		},
 		{
@@ -85,7 +117,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_fail_on_invalid_amount",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("Uber, abc, today", 0)
+				_, err := logic.ParseQuickExpense("Uber, abc, current", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseAmount)
 			},
 		},
@@ -97,29 +129,34 @@ func TestParseQuickExpense(t *testing.T) {
 			},
 		},
 		{
-			name: "should_parse_tomorrow",
+			name: "should_parse_next",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, tomorrow", 0)
+				parsed, err := logic.ParseQuickExpense("Rent, 500, next", 0)
 				require.NoError(t, err)
-				now := time.Now().UTC()
-				want := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, 1)
-				require.Equal(t, want.Unix(), parsed.Date)
+				require.Equal(t, utcFirstOfMonth(1), parsed.Date)
 			},
 		},
 		{
-			name: "should_parse_next_month_as_first_day",
+			// The day-level grammar quick-add used to accept. These all parsed
+			// before the month-only change and must not creep back in:
+			// expenses.date is a billed month, so a day the user typed here
+			// would be silently discarded by everything downstream.
+			name: "should_reject_the_retired_day_level_forms",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Rent, 500, next month", 0)
-				require.NoError(t, err)
-				now := time.Now().UTC()
-				want := time.Date(now.Year(), now.Month()+1, 1, 0, 0, 0, 0, time.UTC)
-				require.Equal(t, want.Unix(), parsed.Date)
+				for _, input := range []string{
+					"today", "yesterday", "tomorrow", "next month",
+					"12 July 2026", "12 Jul 2026", "July 12 2026", "Jul 12 2026",
+					"2026-07-12", "12/07/2026", "12-07-2026",
+				} {
+					_, err := logic.ParseQuickExpense("Uber, 10, "+input, 0)
+					require.ErrorIsf(t, err, logic.ErrQuickExpenseDate, "input %q", input)
+				}
 			},
 		},
 		{
 			name: "should_fail_on_short_description_before_amount_or_date",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("ab, 10, today", 0)
+				_, err := logic.ParseQuickExpense("ab, 10, current", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseDescription)
 			},
 		},
@@ -127,28 +164,28 @@ func TestParseQuickExpense(t *testing.T) {
 			name: "should_fail_on_long_description",
 			fn: func(t *testing.T) {
 				long := strings.Repeat("a", 51)
-				_, err := logic.ParseQuickExpense(long+", 10, today", 0)
+				_, err := logic.ParseQuickExpense(long+", 10, current", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseDescription)
 			},
 		},
 		{
 			name: "should_fail_on_zero_amount",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("Uber, 0, today", 0)
+				_, err := logic.ParseQuickExpense("Uber, 0, current", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseAmount)
 			},
 		},
 		{
 			name: "should_fail_on_amount_overflowing_cents",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("Uber, 1e18, today", 0)
+				_, err := logic.ParseQuickExpense("Uber, 1e18, current", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseAmount)
 			},
 		},
 		{
 			name: "should_parse_no_tags_when_field_absent",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, today", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, current", 0)
 				require.NoError(t, err)
 				require.Empty(t, parsed.Tags)
 			},
@@ -156,7 +193,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_parse_semicolon_separated_tags",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, today, MyTag1; mytag2 ", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, current, MyTag1; mytag2 ", 0)
 				require.NoError(t, err)
 				require.Equal(t, []string{"mytag1", "mytag2"}, parsed.Tags)
 			},
@@ -164,7 +201,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_parse_single_tag",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, today, travel", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, current, travel", 0)
 				require.NoError(t, err)
 				require.Equal(t, []string{"travel"}, parsed.Tags)
 			},
@@ -172,7 +209,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_drop_empty_and_duplicate_tags",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, today, travel;;TRAVEL; work", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, current, travel;;TRAVEL; work", 0)
 				require.NoError(t, err)
 				require.Equal(t, []string{"travel", "work"}, parsed.Tags)
 			},
@@ -180,7 +217,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_parse_empty_tag_field_as_no_tags",
 			fn: func(t *testing.T) {
-				parsed, err := logic.ParseQuickExpense("Uber, 10, today,   ", 0)
+				parsed, err := logic.ParseQuickExpense("Uber, 10, current,   ", 0)
 				require.NoError(t, err)
 				require.Empty(t, parsed.Tags)
 			},
@@ -188,7 +225,7 @@ func TestParseQuickExpense(t *testing.T) {
 		{
 			name: "should_fail_on_too_many_fields",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("Uber, 10, today, tag, extra", 0)
+				_, err := logic.ParseQuickExpense("Uber, 10, current, tag, extra", 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseFormat)
 			},
 		},
@@ -199,14 +236,14 @@ func TestParseQuickExpense(t *testing.T) {
 				for i := range tags {
 					tags[i] = "tag" + strconv.Itoa(i)
 				}
-				_, err := logic.ParseQuickExpense("Uber, 10, today, "+strings.Join(tags, ";"), 0)
+				_, err := logic.ParseQuickExpense("Uber, 10, current, "+strings.Join(tags, ";"), 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseTags)
 			},
 		},
 		{
 			name: "should_fail_on_long_tag_name",
 			fn: func(t *testing.T) {
-				_, err := logic.ParseQuickExpense("Uber, 10, today, "+strings.Repeat("a", 21), 0)
+				_, err := logic.ParseQuickExpense("Uber, 10, current, "+strings.Repeat("a", 21), 0)
 				require.ErrorIs(t, err, logic.ErrQuickExpenseTagName)
 			},
 		},

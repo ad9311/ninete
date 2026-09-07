@@ -28,10 +28,10 @@ var (
 	ErrReportTimezone    = errors.New("unknown time zone")
 	ErrReportTooManyTags = errors.New("too many grouping tags, 20 maximum")
 
-	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, date[, tags]")
+	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, month[, tags]")
 	ErrQuickExpenseDescription = errors.New("description must be between 3 and 50 characters")
 	ErrQuickExpenseAmount      = errors.New("invalid amount")
-	ErrQuickExpenseDate        = errors.New("invalid date")
+	ErrQuickExpenseDate        = errors.New("invalid month, use last, current, next or Jul 2026")
 	ErrQuickExpenseTags        = errors.New("too many tags, 10 maximum")
 	ErrQuickExpenseTagName     = errors.New("each tag must be at most 20 characters")
 )

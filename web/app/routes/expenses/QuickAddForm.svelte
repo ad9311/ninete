@@ -1,8 +1,9 @@
 <script lang="ts">
   // tz_offset rides on the request explicitly — §3.6 of
-  // docs/spa-migration.md, "Consumer 2": quick-add's relative dates ("today",
-  // "yesterday") need the client's own zone, and that has nothing to do with
-  // the named date ranges §3.6 retires from the API.
+  // docs/spa-migration.md, "Consumer 2": quick-add's relative months ("last",
+  // "current", "next") need the client's own zone, since UTC's calendar month
+  // and the browser's disagree for hours around every turnover. That has
+  // nothing to do with the named date ranges §3.6 retires from the API.
   import { APIRequestError, post } from "../../lib/api";
   import { fetchCategories, type Category } from "../../lib/categories";
   import { navigate } from "../../router";
@@ -71,26 +72,24 @@
   <label>
     <span class="inline-flex items-center gap-2">
       Quick add
-      <DateHelp label="Show accepted date formats" title="Date can be:">
+      <DateHelp label="Show accepted month formats" title="Month can be:">
         <ul>
           <li>
-            <code>today</code>, <code>yesterday</code>, <code>tomorrow</code>
+            <code>last</code>, <code>current</code>, <code>next</code>
           </li>
-          <li><code>next month</code> (1st of next month)</li>
-          <li><code>12 July 2026</code> or <code>12 Jul 2026</code></li>
-          <li><code>2026-07-12</code> (ISO)</li>
-          <li><code>12/07/2026</code> (day/month/year)</li>
+          <li><code>July 2026</code> or <code>Jul 2026</code></li>
+          <li><code>2026-07</code> (ISO)</li>
         </ul>
       </DateHelp>
     </span>
     <input
       type="text"
       bind:value={quickInput}
-      placeholder="Description, amount, date, tags"
+      placeholder="Description, amount, month, tags"
     />
   </label>
   <p class="-mt-2 mb-2 text-sm text-muted">
-    Example: Uber, 3344.22, today, travel; work — tags are optional,
+    Example: Uber, 3344.22, current, travel; work — tags are optional,
     semicolon-separated.
   </p>
   {#if needsCategory}
