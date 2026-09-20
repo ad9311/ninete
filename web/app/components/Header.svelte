@@ -129,6 +129,13 @@
     navOpen = !navOpen;
   }
 
+  // The outside-click action below never sees a menu link: the anchor is
+  // inside the nav, and the client router navigates without remounting
+  // Header, so nothing else would ever reset navOpen.
+  function closeNav(): void {
+    navOpen = false;
+  }
+
   function closeOnOutsideClick(node: HTMLElement) {
     function handler(event: MouseEvent): void {
       if (!node.contains(event.target as Node)) {
@@ -192,7 +199,11 @@
             <li class="my-2 h-px bg-line"></li>
           {/if}
           <li>
-            <a href={`${BASE_PATH}${link.href}`} class={navLinkClass}>
+            <a
+              href={`${BASE_PATH}${link.href}`}
+              class={navLinkClass}
+              onclick={closeNav}
+            >
               {link.label}
             </a>
           </li>
