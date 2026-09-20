@@ -26,20 +26,14 @@ type ReportSetting struct {
 	TagIDs []int
 }
 
-// FindReportSetting returns the user's report settings, falling back to the
-// defaults when nothing has been saved.
+// FindReportSetting returns the user's grouping tags. Nothing saved means an
+// empty list, not an error.
 func (s *Store) FindReportSetting(ctx context.Context, userID int) (ReportSetting, error) {
 	var setting ReportSetting
 
-	_, found, err := s.queries.SelectReportSettingByUser(ctx, userID)
-	if err != nil {
-		return setting, err
-	}
-
-	if !found {
-		return setting, nil
-	}
-
+	// No existence probe: selectReportSettingTagIDs joins through
+	// "report_settings" on "user_id", so a user with no row selects no tags and
+	// the empty list falls out of the same query.
 	tagIDs, err := s.queries.SelectReportSettingTagIDs(ctx, userID)
 	if err != nil {
 		return setting, err

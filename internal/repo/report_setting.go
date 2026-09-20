@@ -37,8 +37,9 @@ FROM "report_settings" WHERE "user_id" = ?`
 
 // SelectReportSettingByUser returns the user's report settings. A user who has
 // never opened the settings page has no row, which is not an error: the second
-// return value reports whether one was found, so the caller can apply its own
-// defaults instead of distinguishing sql.ErrNoRows itself.
+// return value reports whether one was found, so the caller can treat an
+// unconfigured report as a valid one instead of distinguishing sql.ErrNoRows
+// itself.
 func (q *Queries) SelectReportSettingByUser(ctx context.Context, userID int) (ReportSetting, bool, error) {
 	var s ReportSetting
 
