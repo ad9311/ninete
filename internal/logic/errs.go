@@ -14,6 +14,21 @@ var (
 	// ErrAccountExists names neither the field that collided nor the value, so
 	// a holder of a valid invitation code cannot probe which addresses are
 	// already registered.
+	//
+	// It is also the shape to copy for any future create endpoint that does a
+	// plain insert on a unique column: catch repo.IsUniqueViolation, return a
+	// sentinel from this file, and name that sentinel in the endpoint's
+	// userErrors list so WriteAPIError answers 422. Left uncaught, SQLite's
+	// "UNIQUE constraint failed: ..." reaches WriteAPIError, which does not
+	// recognize the string and falls through to a generic 500 — right about not
+	// leaking the driver's message, wrong about whose fault the request was.
+	//
+	// SignUp is the only live path that needs it, and deliberately the only one:
+	// tags are created with INSERT OR IGNORE (ensureTagsForUserTx), expense
+	// budgets upsert (repo/expense_budget.go), and categories have no create
+	// route at all. Do not lift this into a shared helper — reject-and-report,
+	// silently-reuse and upsert are three different conflict semantics, not one
+	// rule written three times.
 	ErrAccountExists = errors.New("an account with that username or email already exists")
 
 	// ErrSignUpFailed marks a sign-up that failed for a reason the applicant

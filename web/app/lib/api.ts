@@ -5,10 +5,9 @@
 import { begin, end } from "./pending";
 
 const API_PREFIX = "/api";
-// Points into the SPA (Phase 6 of docs/spa-migration.md, settling the
-// TODO.md note on where session expiry redirects). Go redirects to the same
-// place through handlers.AppLoginPath, which a bundle cannot import — the two
-// literals have to be changed together.
+// Where an expired session lands (§3.1 and Phase 6 of docs/spa-migration.md).
+// Go redirects to the same place through handlers.AppLoginPath, which a bundle
+// cannot import — the two literals have to be changed together.
 const LOGIN_PATH = "/login";
 
 /** The error envelope every /api/* failure carries (handlers.APIError). */
