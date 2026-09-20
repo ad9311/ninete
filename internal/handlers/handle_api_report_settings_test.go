@@ -12,10 +12,8 @@ import (
 )
 
 type apiReportSettingsBody struct {
-	Timezone       string `json:"timezone"`
-	Configured     bool   `json:"configured"`
-	SelectedTagIDs []int  `json:"selected_tag_ids"`
-	TagLimit       int    `json:"tag_limit"`
+	SelectedTagIDs []int `json:"selected_tag_ids"`
+	TagLimit       int   `json:"tag_limit"`
 	Tags           []struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
@@ -76,12 +74,10 @@ func TestAPIReportSettings(t *testing.T) {
 			},
 		},
 		{
-			name: "should_answer_defaults_and_the_users_own_tags",
+			name: "should_answer_an_empty_selection_and_the_users_own_tags",
 			fn: func(t *testing.T) {
 				body := getSettings(t)
 
-				require.Equal(t, "UTC", body.Timezone)
-				require.False(t, body.Configured)
 				require.Empty(t, body.SelectedTagIDs)
 				// The form caps its checkboxes at this number, so a drift here
 				// would let it build a submission the server refuses.
@@ -99,61 +95,19 @@ func TestAPIReportSettings(t *testing.T) {
 			},
 		},
 		{
-			name: "should_save_and_read_back_the_settings",
+			name: "should_save_and_read_back_the_grouping_tags",
 			fn: func(t *testing.T) {
-				rec := put(t, map[string]any{
-					"timezone": "America/Bogota",
-					"tag_ids":  []int{tagTwo.ID},
-				})
+				rec := put(t, map[string]any{"tag_ids": []int{tagTwo.ID}})
 				require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
 
 				body := getSettings(t)
-				require.Equal(t, "America/Bogota", body.Timezone)
-				require.True(t, body.Configured)
 				require.Equal(t, []int{tagTwo.ID}, body.SelectedTagIDs)
-			},
-		},
-		{
-			name: "should_reject_the_local_timezone",
-			fn: func(t *testing.T) {
-				rec := put(t, map[string]any{
-					"timezone": "Local",
-					"tag_ids":  []int{},
-				})
-				require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
-			},
-		},
-		{
-			name: "should_reject_an_unknown_timezone",
-			fn: func(t *testing.T) {
-				rec := put(t, map[string]any{
-					"timezone": "Mars/Olympus_Mons",
-					"tag_ids":  []int{},
-				})
-				require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
-				require.Contains(t, rec.Body.String(), "unknown time zone")
-			},
-		},
-		{
-			name: "should_reject_a_missing_timezone_with_field_errors",
-			fn: func(t *testing.T) {
-				rec := put(t, map[string]any{"tag_ids": []int{}})
-				require.Equal(t, http.StatusUnprocessableEntity, rec.Code)
-
-				var body struct {
-					Fields map[string]string `json:"fields"`
-				}
-				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
-				require.Contains(t, body.Fields, "timezone")
 			},
 		},
 		{
 			name: "should_silently_drop_another_users_tag",
 			fn: func(t *testing.T) {
-				rec := put(t, map[string]any{
-					"timezone": "UTC",
-					"tag_ids":  []int{tagOne.ID, foreignTag.ID},
-				})
+				rec := put(t, map[string]any{"tag_ids": []int{tagOne.ID, foreignTag.ID}})
 				require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
 
 				body := getSettings(t)

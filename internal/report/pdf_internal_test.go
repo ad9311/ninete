@@ -14,10 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newMeasuringPDF builds the minimum fpdf needs to answer GetStringWidth: a
-// document with a font selected. truncate measures against the *current* font,
-// so the test has to pick the same one the expense rows use.
-func newMeasuringPDF(t *testing.T) *fpdf.Fpdf {
+// newMeasuringDrawer builds the minimum fpdf needs to answer GetStringWidth: a
+// document with a font selected, wrapped in the drawer that carries the cp1252
+// translator. truncate measures against the *current* font, so the test has to
+// pick the same one the expense rows use.
+func newMeasuringDrawer(t *testing.T) *drawer {
 	t.Helper()
 
 	pdf := fpdf.New("P", "mm", "A4", "")
@@ -26,11 +27,12 @@ func newMeasuringPDF(t *testing.T) *fpdf.Fpdf {
 
 	require.NoError(t, pdf.Error())
 
-	return pdf
+	return &drawer{pdf: pdf, tr: pdf.UnicodeTranslatorFromDescriptor("cp1252")}
 }
 
 func TestTruncate(t *testing.T) {
-	pdf := newMeasuringPDF(t)
+	d := newMeasuringDrawer(t)
+	pdf := d.pdf
 
 	cases := []struct {
 		name string
@@ -39,13 +41,13 @@ func TestTruncate(t *testing.T) {
 		{
 			name: "should_leave_a_string_that_already_fits",
 			fn: func(t *testing.T) {
-				require.Equal(t, "Groceries", truncate(pdf, "Groceries", 60))
+				require.Equal(t, "Groceries", d.truncate("Groceries", 60))
 			},
 		},
 		{
 			name: "should_leave_an_empty_string",
 			fn: func(t *testing.T) {
-				require.Empty(t, truncate(pdf, "", 60))
+				require.Empty(t, d.truncate("", 60))
 			},
 		},
 		{
@@ -53,7 +55,7 @@ func TestTruncate(t *testing.T) {
 			fn: func(t *testing.T) {
 				const long = "Annual software licence renewal for the whole toolchain"
 
-				out := truncate(pdf, long, 40)
+				out := d.truncate(long, 40)
 
 				require.NotEqual(t, long, out)
 				require.True(t, strings.HasSuffix(out, "..."))
@@ -68,8 +70,8 @@ func TestTruncate(t *testing.T) {
 				// result still wider than its column would read as a missing
 				// word rather than as a cut.
 				for _, width := range []float64{10, 20, 40, 80} {
-					out := truncate(pdf, "Annual software licence renewal for the whole toolchain", width)
-					require.LessOrEqual(t, pdf.GetStringWidth(out), width,
+					out := d.truncate("Annual software licence renewal for the whole toolchain", width)
+					require.LessOrEqual(t, pdf.GetStringWidth(d.tr(out)), width,
 						"result overflows a %.0fmm column", width)
 				}
 			},
@@ -84,8 +86,8 @@ func TestTruncate(t *testing.T) {
 				// swept in small increments across the whole string.
 				const accented = "Cafetería á é í ó ú ñ üé àè ìò ùç âê îô ûã õ"
 
-				for width := 1.0; width < pdf.GetStringWidth(accented); width += 0.5 {
-					out := truncate(pdf, accented, width)
+				for width := 1.0; width < pdf.GetStringWidth(d.tr(accented)); width += 0.5 {
+					out := d.truncate(accented, width)
 
 					require.True(t, utf8.ValidString(out),
 						"invalid UTF-8 at width %.1f: %q", width, out)
@@ -100,16 +102,33 @@ func TestTruncate(t *testing.T) {
 				// A width this small cannot hold a character plus "...", so the
 				// loop runs out and returns a bare leading rune. One character
 				// is a better answer than an ellipsis wider than the column.
-				out := truncate(pdf, "Groceries", 0.5)
+				out := d.truncate("Groceries", 0.5)
 
 				require.Equal(t, "G", out)
+			},
+		},
+		{
+			name: "should_measure_an_accented_string_as_it_will_be_printed",
+			fn: func(t *testing.T) {
+				// A real reproduction. GetStringWidth walks bytes for a core
+				// font, so measuring the raw UTF-8 bills each "ñ" as two
+				// glyphs ("Ã" + "±") while one cp1252 byte is what reaches the
+				// page. Measuring the raw string cut a Spanish description
+				// short of a column it fits in with room to spare.
+				const accented = "ñññññññ"
+
+				width := pdf.GetStringWidth(d.tr(accented))
+				require.Less(t, width, pdf.GetStringWidth(accented),
+					"the two spellings measure alike; the test proves nothing")
+
+				require.Equal(t, accented, d.truncate(accented, width))
 			},
 		},
 		{
 			name: "should_return_a_single_rune_unchanged_when_it_cannot_fit",
 			fn: func(t *testing.T) {
 				// Nothing to shrink: the loop never runs.
-				require.Equal(t, "W", truncate(pdf, "W", 0.1))
+				require.Equal(t, "W", d.truncate("W", 0.1))
 			},
 		},
 	}

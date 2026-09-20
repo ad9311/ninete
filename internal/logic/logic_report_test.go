@@ -54,8 +54,7 @@ func TestBuildMonthlyReport(t *testing.T) {
 		t.Helper()
 
 		require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-			Timezone: "UTC",
-			TagIDs:   tagIDs,
+			TagIDs: tagIDs,
 		}))
 	}
 

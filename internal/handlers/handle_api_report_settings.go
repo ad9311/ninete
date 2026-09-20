@@ -17,11 +17,6 @@ type apiReportTag struct {
 // no GET /api/tags to fetch them from — tags are created as free text on the
 // expense forms and have never had a listing endpoint of their own.
 type apiReportSettingsResponse struct {
-	Timezone string `json:"timezone"`
-	// Configured is false until the user saves for the first time, which is
-	// what lets the form seed its timezone field from the browser rather than
-	// presenting the UTC fallback as a deliberate choice.
-	Configured     bool           `json:"configured"`
 	SelectedTagIDs []int          `json:"selected_tag_ids"`
 	Tags           []apiReportTag `json:"tags"`
 	// TagLimit is what SaveReportSetting enforces, sent so the form can cap
@@ -31,9 +26,9 @@ type apiReportSettingsResponse struct {
 }
 
 // GetAPIReportSettings answers the monthly report's settings page. A user who
-// has never saved settings gets the defaults rather than a 404, since
-// FindReportSetting treats "no row" as "implicit settings"
-// (docs/monthly-report.md, "Timezone").
+// has never saved settings gets an empty selection rather than a 404, since
+// FindReportSetting treats "no row" as "no grouping tags" — a valid
+// configuration printing one flat list.
 func (h *Handler) GetAPIReportSettings(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
@@ -70,8 +65,6 @@ func (h *Handler) GetAPIReportSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.WriteJSON(w, http.StatusOK, apiReportSettingsResponse{
-		Timezone:       setting.Timezone,
-		Configured:     setting.Configured,
 		SelectedTagIDs: selected,
 		Tags:           apiTags,
 		TagLimit:       logic.ReportTagLimit,
@@ -79,8 +72,7 @@ func (h *Handler) GetAPIReportSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 type reportSettingsRequestBody struct {
-	Timezone string `json:"timezone"`
-	TagIDs   []int  `json:"tag_ids"`
+	TagIDs []int `json:"tag_ids"`
 }
 
 // PutAPIReportSettings saves the settings. The submitted tag list replaces the
@@ -96,11 +88,10 @@ func (h *Handler) PutAPIReportSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := h.store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-		Timezone: body.Timezone,
-		TagIDs:   body.TagIDs,
+		TagIDs: body.TagIDs,
 	})
 	if err != nil {
-		h.WriteAPIError(w, err, logic.ErrReportTimezone, logic.ErrReportTooManyTags)
+		h.WriteAPIError(w, err, logic.ErrReportTooManyTags)
 
 		return
 	}

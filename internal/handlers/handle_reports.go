@@ -66,12 +66,11 @@ func (h *Handler) GetReportsExpenses(w http.ResponseWriter, r *http.Request) {
 //
 // The default resolves in UTC, while the picker that normally supplies the
 // parameter resolves it in the browser's zone (lib/dates.ts's
-// lastCalendarMonth) — so on the 1st the two can name different months for a
-// few hours. The saved ReportSetting.Timezone exists to settle exactly that
-// question and is deliberately not consulted here yet: phase 3 has to resolve
-// the same period for the scheduled send, and the two should be made to agree
-// through one helper rather than by this function guessing first. Reachable
-// only by hitting the URL with no query, since the picker always sends one.
+// lastCalendarMonth), so on the 1st the two can name different months for a
+// few hours. That is left alone rather than settled by a stored zone: the
+// default is reachable only by typing the URL with no query, since the picker
+// always sends one, and a report with the wrong month is a month the reader
+// can see named in the header and re-download.
 func parseReportMonth(raw string) (time.Time, error) {
 	if raw == "" {
 		now := time.Now().UTC()

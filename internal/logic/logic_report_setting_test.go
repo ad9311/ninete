@@ -27,27 +27,22 @@ func TestReportSettings(t *testing.T) {
 		{
 			name: "should_report_defaults_before_anything_is_saved",
 			fn: func(t *testing.T) {
+				// No stored row is not an error: an unconfigured report is a
+				// valid one, printing a single flat list.
 				setting, err := s.Store.FindReportSetting(ctx, other.ID)
 				require.NoError(t, err)
-				require.Equal(t, logic.DefaultReportTimezone, setting.Timezone)
 				require.Empty(t, setting.TagIDs)
-				// Configured is what lets the settings form tell "saved as UTC"
-				// apart from "never saved", so it must stay false here.
-				require.False(t, setting.Configured)
 			},
 		},
 		{
-			name: "should_save_and_read_back_the_timezone_and_tags",
+			name: "should_save_and_read_back_the_tags",
 			fn: func(t *testing.T) {
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "America/Bogota",
-					TagIDs:   []int{tagOne.ID, tagTwo.ID},
+					TagIDs: []int{tagOne.ID, tagTwo.ID},
 				}))
 
 				setting, err := s.Store.FindReportSetting(ctx, user.ID)
 				require.NoError(t, err)
-				require.Equal(t, "America/Bogota", setting.Timezone)
-				require.True(t, setting.Configured)
 				require.ElementsMatch(t, []int{tagOne.ID, tagTwo.ID}, setting.TagIDs)
 			},
 		},
@@ -55,12 +50,10 @@ func TestReportSettings(t *testing.T) {
 			name: "should_replace_the_tag_list_wholesale",
 			fn: func(t *testing.T) {
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagOne.ID, tagTwo.ID},
+					TagIDs: []int{tagOne.ID, tagTwo.ID},
 				}))
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagTwo.ID},
+					TagIDs: []int{tagTwo.ID},
 				}))
 
 				setting, err := s.Store.FindReportSetting(ctx, user.ID)
@@ -72,26 +65,28 @@ func TestReportSettings(t *testing.T) {
 			name: "should_accept_an_empty_tag_list",
 			fn: func(t *testing.T) {
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagOne.ID},
+					TagIDs: []int{tagOne.ID},
 				}))
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   nil,
+					TagIDs: nil,
 				}))
 
 				setting, err := s.Store.FindReportSetting(ctx, user.ID)
 				require.NoError(t, err)
 				require.Empty(t, setting.TagIDs)
-				require.True(t, setting.Configured)
+
+				// The row itself survives an empty save — "no grouping tags"
+				// is a configuration, not an absence of one.
+				_, found, err := s.Queries.SelectReportSettingByUser(ctx, user.ID)
+				require.NoError(t, err)
+				require.True(t, found)
 			},
 		},
 		{
 			name: "should_ignore_a_tag_belonging_to_another_user",
 			fn: func(t *testing.T) {
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagOne.ID, foreignTag.ID},
+					TagIDs: []int{tagOne.ID, foreignTag.ID},
 				}))
 
 				setting, err := s.Store.FindReportSetting(ctx, user.ID)
@@ -105,8 +100,7 @@ func TestReportSettings(t *testing.T) {
 				// A duplicate would collide with uq_report_setting_tags_setting_tag
 				// and fail the whole save, so dedupeIDs drops it first.
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagOne.ID, tagOne.ID},
+					TagIDs: []int{tagOne.ID, tagOne.ID},
 				}))
 
 				setting, err := s.Store.FindReportSetting(ctx, user.ID)
@@ -120,8 +114,7 @@ func TestReportSettings(t *testing.T) {
 				doomed := s.CreateTag(t, user.ID, "rep_lg_doomed")
 
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   []int{tagOne.ID, doomed.ID},
+					TagIDs: []int{tagOne.ID, doomed.ID},
 				}))
 
 				_, err := s.Store.DeleteTag(ctx, doomed.ID, user.ID)
@@ -134,47 +127,6 @@ func TestReportSettings(t *testing.T) {
 			},
 		},
 		{
-			name: "should_reject_an_unknown_timezone",
-			fn: func(t *testing.T) {
-				err := s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "Mars/Olympus_Mons",
-				})
-				require.ErrorIs(t, err, logic.ErrReportTimezone)
-			},
-		},
-		{
-			name: "should_reject_a_blank_timezone",
-			fn: func(t *testing.T) {
-				err := s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "",
-				})
-				require.Error(t, err)
-				require.NotErrorIs(t, err, logic.ErrReportTimezone)
-			},
-		},
-		{
-			name: "should_reject_the_local_timezone",
-			fn: func(t *testing.T) {
-				// "Local" loads without error and means the server's own zone,
-				// which is the answer the setting exists to avoid.
-				err := s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "Local",
-				})
-				require.ErrorIs(t, err, logic.ErrReportTimezone)
-			},
-		},
-		{
-			name: "should_resolve_a_zone_without_the_hosts_tzdata",
-			fn: func(t *testing.T) {
-				// Guards the blank time/tzdata import: without it this passes
-				// or fails depending on whether the machine has a zoneinfo
-				// database installed.
-				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "Pacific/Auckland",
-				}))
-			},
-		},
-		{
 			name: "should_count_a_repeated_tag_once_against_the_limit",
 			fn: func(t *testing.T) {
 				tagIDs := make([]int, 0, logic.ReportTagLimit+1)
@@ -183,8 +135,7 @@ func TestReportSettings(t *testing.T) {
 				}
 
 				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   tagIDs,
+					TagIDs: tagIDs,
 				}))
 			},
 		},
@@ -197,16 +148,21 @@ func TestReportSettings(t *testing.T) {
 				wipedTag := s.CreateTag(t, wiped.ID, "rep_lg_wipe_tag")
 
 				require.NoError(t, s.Store.SaveReportSetting(ctx, wiped.ID, logic.ReportSettingParams{
-					Timezone: "America/Bogota",
-					TagIDs:   []int{wipedTag.ID},
+					TagIDs: []int{wipedTag.ID},
 				}))
 
 				require.NoError(t, s.Store.DeleteAllUserData(ctx, wiped.ID))
 
+				// Checked through the repo rather than the store: the settings
+				// row carries no field of its own any more, so an orphan left
+				// behind is invisible from FindReportSetting, which would
+				// answer "no tags" either way.
+				_, found, err := s.Queries.SelectReportSettingByUser(ctx, wiped.ID)
+				require.NoError(t, err)
+				require.False(t, found, "report settings survived the wipe")
+
 				setting, err := s.Store.FindReportSetting(ctx, wiped.ID)
 				require.NoError(t, err)
-				require.False(t, setting.Configured, "report settings survived the wipe")
-				require.Equal(t, logic.DefaultReportTimezone, setting.Timezone)
 				require.Empty(t, setting.TagIDs)
 			},
 		},
@@ -219,8 +175,7 @@ func TestReportSettings(t *testing.T) {
 				}
 
 				err := s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
-					Timezone: "UTC",
-					TagIDs:   tagIDs,
+					TagIDs: tagIDs,
 				})
 				require.ErrorIs(t, err, logic.ErrReportTooManyTags)
 			},

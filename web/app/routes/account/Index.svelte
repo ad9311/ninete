@@ -15,7 +15,7 @@
     {
       href: "/account/reports",
       title: "Monthly report",
-      hint: "Choose the tags the report groups by and its time zone.",
+      hint: "Choose the tags the monthly report groups by.",
     },
     {
       href: "/account/delete-data",

@@ -2,31 +2,9 @@ package logic
 
 import (
 	"context"
-	"time"
-
-	// The zone database, compiled into the binary. time.LoadLocation otherwise
-	// reads the host's /usr/share/zoneinfo, falling back to a zoneinfo.zip
-	// under GOROOT that a deployed binary does not ship beside it — so on a
-	// host without a tzdata package every real zone name would fail
-	// validation and the settings page would answer "unknown time zone" for
-	// every save but UTC. Embedding it also makes the scheduled report in
-	// phase 3 resolve the stored zone identically wherever it runs.
-	_ "time/tzdata"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
-
-// DefaultReportTimezone is what the scheduled report falls back to when the
-// user has never saved settings. UTC rather than a guess at the owner's zone:
-// expenses.date is already a UTC-midnight month start, so UTC is the one
-// choice that cannot silently shift the reported month
-// (docs/monthly-report.md, "Timezone").
-const DefaultReportTimezone = "UTC"
-
-// localTimezoneName is time.LoadLocation's alias for the process's own zone.
-// It is a valid argument and so passes the load, which is why it is rejected
-// by name.
-const localTimezoneName = "Local"
 
 // ReportTagLimit bounds how many tags may group one report. Well past what a
 // readable report can carry, and there only so a request cannot make the
@@ -34,43 +12,28 @@ const localTimezoneName = "Local"
 // form caps its checkboxes at the same number.
 const ReportTagLimit = 20
 
-// ReportSettingParams is the settings form's submission. Timezone is validated
-// by loading it rather than by pattern, since only the zone database can say
-// whether a name resolves on this host.
+// ReportSettingParams is the settings form's submission. The grouping tags
+// are the whole of the configuration: the report period comes from the
+// download's month parameter, and the sections order themselves by total.
 type ReportSettingParams struct {
-	Timezone string `validate:"required,max=64"`
-	TagIDs   []int
+	TagIDs []int
 }
 
-// ReportSetting is the settings as the app uses them: the stored row plus the
-// grouping tag ids. A user with no stored row still gets a usable value, since
-// every user has settings and some of them are only implicit — Configured is
-// what tells the two apart, so the settings form can seed its timezone field
-// from the browser instead of showing the UTC fallback as though it had been
-// chosen.
+// ReportSetting is the settings as the app uses them. A user with no stored
+// row is not an error — an unconfigured report is a valid one, printing a
+// single flat list.
 type ReportSetting struct {
-	Timezone   string
-	TagIDs     []int
-	Configured bool
+	TagIDs []int
 }
 
-// FindReportSetting returns the user's report settings, falling back to the
-// defaults when nothing has been saved.
+// FindReportSetting returns the user's grouping tags. Nothing saved means an
+// empty list, not an error.
 func (s *Store) FindReportSetting(ctx context.Context, userID int) (ReportSetting, error) {
-	setting := ReportSetting{Timezone: DefaultReportTimezone}
+	var setting ReportSetting
 
-	stored, found, err := s.queries.SelectReportSettingByUser(ctx, userID)
-	if err != nil {
-		return setting, err
-	}
-
-	if !found {
-		return setting, nil
-	}
-
-	setting.Timezone = stored.Timezone
-	setting.Configured = true
-
+	// No existence probe: selectReportSettingTagIDs joins through
+	// "report_settings" on "user_id", so a user with no row selects no tags and
+	// the empty list falls out of the same query.
 	tagIDs, err := s.queries.SelectReportSettingTagIDs(ctx, userID)
 	if err != nil {
 		return setting, err
@@ -91,21 +54,10 @@ func (s *Store) FindReportSetting(ctx context.Context, userID int) (ReportSettin
 // nothing rather than being rejected with an error that would confirm it
 // exists.
 func (s *Store) SaveReportSetting(ctx context.Context, userID int, params ReportSettingParams) error {
-	if err := s.ValidateStruct(params); err != nil {
-		return err
-	}
-
-	// "Local" loads successfully and resolves to whatever zone the *server*
-	// runs in, which is the one answer this setting exists to avoid — the
-	// select never offers it, but a hand-made request could still store it.
-	if params.Timezone == localTimezoneName {
-		return ErrReportTimezone
-	}
-
-	if _, err := time.LoadLocation(params.Timezone); err != nil {
-		return ErrReportTimezone
-	}
-
+	// No ValidateStruct: the tag ids are the only input left, and they are not
+	// checked by tag rules but by dedupeIDs and the limit below — ownership is
+	// enforced in SQL by InsertReportSettingTags.
+	//
 	// Deduped before the limit is applied, so the error means what it says:
 	// twenty-one copies of one tag is one grouping tag, not twenty-one.
 	tagIDs := dedupeIDs(params.TagIDs)
@@ -115,8 +67,7 @@ func (s *Store) SaveReportSetting(ctx context.Context, userID int, params Report
 
 	return s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
 		setting, err := tq.UpsertReportSetting(ctx, repo.UpsertReportSettingParams{
-			UserID:   userID,
-			Timezone: params.Timezone,
+			UserID: userID,
 		})
 		if err != nil {
 			return err
