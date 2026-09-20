@@ -13,21 +13,19 @@ import (
 type ReportSetting struct {
 	ID        int
 	UserID    int
-	Timezone  string
 	CreatedAt int64
 	UpdatedAt int64
 }
 
 type UpsertReportSettingParams struct {
-	UserID   int
-	Timezone string
+	UserID int
 }
 
 // reportSettingColumns pins the projection order the Scan calls in this file
 // depend on. SELECT * would resolve to whatever order the table happens to
 // have, so an ALTER TABLE could shift values into the wrong struct fields with
 // no error.
-const reportSettingColumns = `"id", "user_id", "timezone", "created_at", "updated_at"`
+const reportSettingColumns = `"id", "user_id", "created_at", "updated_at"`
 
 // reportSettingTagColumns exists for the same reason, even though nothing
 // selects the whole row today: the constant is what TestColumnConstantsMatchSchema
@@ -49,7 +47,7 @@ func (q *Queries) SelectReportSettingByUser(ctx context.Context, userID int) (Re
 	err := q.wrapQuery(selectReportSettingByUser, func() error {
 		row := q.db.QueryRowContext(ctx, selectReportSettingByUser, userID)
 
-		err := row.Scan(&s.ID, &s.UserID, &s.Timezone, &s.CreatedAt, &s.UpdatedAt)
+		err := row.Scan(&s.ID, &s.UserID, &s.CreatedAt, &s.UpdatedAt)
 		if errors.Is(err, sql.ErrNoRows) {
 			found = false
 
@@ -102,11 +100,15 @@ func (q *Queries) SelectReportSettingTagIDs(ctx context.Context, userID int) ([]
 	return ids, err
 }
 
+// The row carries no settings of its own any more — the configuration is the
+// grouping tags in "report_setting_tags", which hang off its id. It is still
+// upserted rather than inserted-if-missing: the DO UPDATE is what makes the
+// statement return the existing row's id on a second save, which the tag
+// replacement below needs.
 const upsertReportSetting = `
-INSERT INTO "report_settings" ("user_id","timezone")
-VALUES (?,?)
+INSERT INTO "report_settings" ("user_id")
+VALUES (?)
 ON CONFLICT ("user_id") DO UPDATE SET
-  "timezone"   = excluded."timezone",
   "updated_at" = strftime('%s','now')
 RETURNING ` + reportSettingColumns
 
@@ -117,9 +119,9 @@ func (q *TxQueries) UpsertReportSetting(
 	var s ReportSetting
 
 	err := q.wrapQuery(upsertReportSetting, func() error {
-		row := q.tx.QueryRowContext(ctx, upsertReportSetting, params.UserID, params.Timezone)
+		row := q.tx.QueryRowContext(ctx, upsertReportSetting, params.UserID)
 
-		return row.Scan(&s.ID, &s.UserID, &s.Timezone, &s.CreatedAt, &s.UpdatedAt)
+		return row.Scan(&s.ID, &s.UserID, &s.CreatedAt, &s.UpdatedAt)
 	})
 
 	return s, err

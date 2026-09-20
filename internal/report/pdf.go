@@ -219,7 +219,7 @@ func (d *drawer) categoryChart(totals []logic.ReportCategoryTotal) {
 		y := d.pdf.GetY()
 
 		d.setColor(inkColor)
-		d.text(truncate(d.pdf, total.Name, categoryLabelWidth-2), categoryLabelWidth, rowHeight, "L")
+		d.text(d.truncate(total.Name, categoryLabelWidth-2), categoryLabelWidth, rowHeight, "L")
 
 		barTop := y + (rowHeight-categoryBarHeight)/2
 		d.setFill(barBedColor)
@@ -263,7 +263,7 @@ func (d *drawer) sections(report logic.MonthlyReport) {
 			d.pdf.SetFont("Helvetica", "B", 10)
 			d.setColor(inkColor)
 			nameWidth := descriptionWidth + categoryWidth
-			d.text(truncate(d.pdf, section.Name, nameWidth-2), nameWidth, rowHeight, "L")
+			d.text(d.truncate(section.Name, nameWidth-2), nameWidth, rowHeight, "L")
 			d.pdf.CellFormat(amountWidth, rowHeight, d.tr(FormatCents(section.Total)), "", 1, "R", false, 0, "")
 		}
 
@@ -271,9 +271,9 @@ func (d *drawer) sections(report logic.MonthlyReport) {
 			d.keepTogether(rowHeight)
 			d.pdf.SetFont("Helvetica", "", 9)
 			d.setColor(inkColor)
-			d.text(truncate(d.pdf, expense.Description, descriptionWidth-2), descriptionWidth, rowHeight, "L")
+			d.text(d.truncate(expense.Description, descriptionWidth-2), descriptionWidth, rowHeight, "L")
 			d.setColor(mutedColor)
-			d.text(truncate(d.pdf, expense.CategoryName, categoryWidth-2), categoryWidth, rowHeight, "L")
+			d.text(d.truncate(expense.CategoryName, categoryWidth-2), categoryWidth, rowHeight, "L")
 			d.setColor(inkColor)
 			d.pdf.CellFormat(amountWidth, rowHeight, d.tr(FormatCents(expense.Amount)), "", 1, "R", false, 0, "")
 		}
@@ -318,7 +318,7 @@ func (d *drawer) budgets(budgets []logic.ReportBudget) {
 
 		d.pdf.SetFont("Helvetica", "", 9)
 		d.setColor(inkColor)
-		d.text(truncate(d.pdf, budget.CategoryName, budgetNameWidth-2), budgetNameWidth, rowHeight, "L")
+		d.text(d.truncate(budget.CategoryName, budgetNameWidth-2), budgetNameWidth, rowHeight, "L")
 		d.text(FormatCents(budget.Total), budgetCellWidth, rowHeight, "R")
 		d.setColor(mutedColor)
 		d.text(FormatCents(budget.Budget), budgetCellWidth, rowHeight, "R")
@@ -345,8 +345,16 @@ func (d *drawer) budgets(budgets []logic.ReportBudget) {
 // character on the page. When width is too small to hold even one character
 // plus the ellipsis, the loop runs out and returns a bare leading rune — one
 // character says more than an ellipsis wider than its own column.
-func truncate(pdf *fpdf.Fpdf, s string, width float64) string {
-	if pdf.GetStringWidth(s) <= width {
+//
+// Every measurement goes through the translator, and the untranslated string
+// is what comes back. GetStringWidth walks *bytes* for a core font, so the two
+// spellings of an accented description do not measure alike: "é" is two bytes
+// in Go's UTF-8 and bills as "Â"+"©", roughly two and a half times the one
+// cp1252 byte that actually reaches the page. Measuring the raw string is safe
+// — it only ever overestimates — but it cuts a Spanish description short of
+// its column for accents that cost nothing.
+func (d *drawer) truncate(s string, width float64) string {
+	if d.pdf.GetStringWidth(d.tr(s)) <= width {
 		return s
 	}
 
@@ -355,7 +363,7 @@ func truncate(pdf *fpdf.Fpdf, s string, width float64) string {
 		runes = runes[:len(runes)-1]
 		candidate := string(runes) + "..."
 
-		if pdf.GetStringWidth(candidate) <= width {
+		if d.pdf.GetStringWidth(d.tr(candidate)) <= width {
 			return candidate
 		}
 	}

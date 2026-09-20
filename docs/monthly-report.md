@@ -2,11 +2,14 @@
 
 ## Purpose
 A PDF summarising one billed month's expenses — grouped by tag, with category
-totals and budget comparison — downloadable on demand and, later, emailed on
-the 1st of each month.
+totals and budget comparison — downloaded on demand from
+`/account/reports`.
 
-This document is the plan and the rationale. `CLAUDE.md`'s Documentation map
-points here.
+This document is the rationale. `CLAUDE.md`'s Documentation map points here.
+
+**The report is finished.** Both phases below are built, and the scheduled
+email that was once Phase 3 has been dropped — see "The email, and why there
+is none".
 
 ## Why the period is one calendar month of `date`
 
@@ -72,32 +75,61 @@ tags with no order.
 
 ## Timezone
 
+**There is no timezone anywhere in this feature, and none is needed.**
 `expenses.date` is a UTC-midnight month start, so every stored value is already
-month-precision and timezone-free. The configured timezone decides exactly one
-thing: which calendar month the *scheduled* job calls "last month" when it
-fires. A job firing at 00:30 on 1 October in a UTC-5 zone still reads 05:30 UTC
-on 1 October — but one firing at 20:00 on 30 September local would read 01:00
-UTC on 1 October and report the wrong month, which is what the setting exists
-to prevent.
+month-precision and zone-free. The download's month arrives from the client as
+a plain `YYYY-MM`; turning it into `[start, end)` is calendar arithmetic on
+values that carry no instant, so unlike the `/api/expenses*` ranges (§3.6 of
+`docs/spa-migration.md`) there is no client zone to resolve.
 
-The on-demand download takes its month from the client, so it does not consult
-the setting. When no settings row exists the task falls back to UTC; the
-settings form pre-fills from the browser's
-`Intl.DateTimeFormat().resolvedOptions().timeZone`.
+`report_settings` did carry a `timezone` column, and the settings page a zone
+select, for the scheduled send: a job firing at 20:00 on 30 September local
+reads 01:00 UTC on 1 October and would have reported the wrong month. With the
+send dropped nothing read the column, so migration 33 removed it along with the
+select, `time/tzdata`, and the zone validation in
+`internal/logic/logic_report_setting.go`. Do not reintroduce a zone setting
+without a reader for it.
+
+One rough edge is left deliberately. `parseReportMonth`
+(`internal/handlers/handle_reports.go`) defaults an omitted `?month=` in UTC,
+while the picker that normally supplies it resolves last month in the browser's
+zone (`lib/dates.ts`'s `lastCalendarMonth`), so on the 1st the two can name
+different months for a few hours. The default is reachable only by typing the
+URL with no query — the picker always sends one — and the month it chose is
+printed in the report's own header, so a reader sees it and re-downloads.
+
+## The email, and why there is none
+
+The plan's third phase was a monthly send: a `report_deliveries` table so a
+cron job firing twice did not send twice, Resend over `net/smtp` so no vendor
+SDK entered the repo, SPF/DKIM/DMARC on `ninete.xyz`, and a
+`task.SendMonthlyReport` hook run by `cmd/task` beside
+`CopyDueRecurrentExpenses`. It was never started, and the owner dropped it: the
+report is one click from `/account/reports` for the one person who reads it,
+and a delivery pipeline is a standing source of failures — bounces, reputation,
+a cron job silently not firing — in exchange for saving that click.
+
+What the phase would have cost is the useful part of the record. It was the
+only reason the app stored a timezone, and the only thing that would have made
+the app send mail at all. Reviving it means bringing back both, plus the
+`report_deliveries` idempotency table; reviving the timezone alone buys
+nothing.
 
 ## Phases
 
-Each heading carries its state. Update it in the same change that moves it —
-a plan that does not say what is already built is worse than no plan.
+Both are built. They are kept as a record of what was decided and why, not as
+a plan with work left in it.
 
 ### Phase 1 — settings table and UI — **done** (PR #151)
 
-Shipped standing alone: the page saves and reloads, and nothing consumes the
-settings yet.
+Shipped standing alone, before anything consumed the settings: at the time the
+page only saved and reloaded. Phase 2 is what reads them.
 
 - Migration (`user_version` 32):
   - `report_settings` — `user_id` (unique, FK cascade), `timezone` TEXT,
-    timestamps.
+    timestamps. The `timezone` column was dropped again by migration 33 with
+    the email; the row now holds nothing but its `user_id` and timestamps, and
+    exists to give the tag join rows a parent.
   - `report_setting_tags` — `report_setting_id` (FK cascade), `tag_id` (FK
     cascade), timestamps, unique index on the pair. Storing `tag_id` rather
     than a name means deleting a tag removes it from the report config for
@@ -105,22 +137,20 @@ settings yet.
     display is by total, so no configured order is ever read.
 - `internal/repo/report_setting.go` with its columns constant, per the
   `SELECT *` invariant.
-- `internal/logic/logic_report_setting.go`. It rejects `"Local"` by name
-  before loading the zone: `time.LoadLocation` accepts it and resolves it to
-  whatever zone the *server* runs in, which is the one answer this setting
-  exists to avoid. The package blank-imports `time/tzdata` so the zone
-  database travels in the binary — a deployed binary has no `zoneinfo.zip`
-  beside it, so validation would otherwise depend on the host having a tzdata
-  package installed, and every real zone name would be rejected as unknown
-  where it does not.
-- `report_settings` joins the tables `Store.DeleteAllUserData` clears. It is
-  a per-user row, so "delete all my data" must take it: the join rows would
-  cascade away with the tags regardless, leaving a settings row claiming to
-  be configured with a timezone from before the wipe.
+- `internal/logic/logic_report_setting.go`. Its zone validation — rejecting
+  `"Local"` by name, and the blank `time/tzdata` import that let a deployed
+  binary resolve a zone without the host's tzdata — went with the column in
+  migration 33.
+- `report_settings` joins the tables `Store.DeleteAllUserData` clears. The
+  join rows would cascade away with the tags regardless, but the parent row
+  must go too: an orphan config row surviving "delete all my data" is wrong on
+  its face, and nothing above the repo can see it, which is why the test
+  asserts on `SelectReportSettingByUser` directly.
 - `internal/handlers/handle_api_report_settings.go` — `GET`/`PUT`
   `/api/report-settings`.
-- SPA route `/account/reports`: tag multi-select, timezone select, and the
-  first-tag-wins note. The form stays disabled until the `GET` lands, because
+- SPA route `/account/reports`: tag multi-select and the first-tag-wins note
+  (the timezone select is gone with migration 33). The form stays disabled
+  until the `GET` lands, because
   `PUT` replaces the tag list wholesale — a failed load would otherwise leave
   an empty, enabled form whose Save wipes every grouping tag, the page having
   no way to tell "none selected" from "never found out". The tag limit rides
@@ -167,33 +197,11 @@ As built, with the parts that were not obvious from the plan:
   heading rather than under every tag section — repeated, it turned the list
   into stripes.
 - **Long text is truncated with an ellipsis** rather than left to fpdf, which
-  clips silently: a cut word reads as a missing word.
+  clips silently: a cut word reads as a missing word. The fit is measured on
+  the *translated* string, not the raw one — `GetStringWidth` walks bytes for a
+  core font, so a UTF-8 `ñ` bills as two glyphs against the one cp1252 byte
+  that reaches the page, and measuring the raw string cut Spanish descriptions
+  short of columns they fit in.
 
-### Phase 3 — email — **not started**
-
-Settle first, before any of the below: **the on-demand default and the
-scheduled send must resolve "last month" the same way.** `parseReportMonth`
-defaults in UTC today, `lib/dates.ts`'s `lastCalendarMonth` resolves in the
-browser's zone, and the saved `ReportSetting.Timezone` — which exists for this
-exact question — is consulted by neither. One helper resolving the period from
-the saved zone, used by the handler default and by the task, is the shape that
-cannot drift.
-
-- `report_deliveries` table recording the period sent, so a cron job that fires
-  twice does not send twice.
-- Resend, reached over SMTP with the standard library's `net/smtp`, so
-  swapping providers is a config change and no vendor SDK enters the repo.
-  Self-hosting a mail server on the VPS is rejected: a fresh IP with no
-  reputation gets binned by the recipient's provider.
-- Sender `reports@ninete.xyz`; recipient is the user's own `users.email`.
-- Config from `/etc/ninete/env` — `prog.Load()` skips `.env` under
-  `ENV=production`, so a `.env` on the host would be ignored.
-- DNS records (SPF, DKIM, DMARC) go wherever `ninete.xyz`'s nameservers point.
-- A `task.SendMonthlyReport` hook run by `cmd/task` from cron, alongside
-  `CopyDueRecurrentExpenses`.
-- Anything the task writes must live beside the database: the web unit runs
-  under `ProtectSystem=strict`. See `docs/deployment.md`.
-
-Accuracy of the report outranks delivery. A month where the email fails but
-the download works is an acceptable outcome; a month where the numbers are
-wrong is not.
+Accuracy of the report outranks delivery. A month where the numbers are wrong
+is the one outcome this feature cannot have.

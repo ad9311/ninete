@@ -180,10 +180,12 @@ redirects rather than answering `401`). Three consequences worth knowing before 
   never quotes `err.Error()`. There is no CSP on this chain by design; a JSON response has no
   document to constrain.
 
-`GET`/`PUT /api/report-settings` is the monthly report's configuration — the tags it groups by
-and the timezone the scheduled run resolves "last month" in. It carries the user's whole tag list
-in its `GET` response because there is no `/api/tags` to fetch it from: tags are created as free
-text on the expense forms and have never had a listing endpoint. See `docs/monthly-report.md`.
+`GET`/`PUT /api/report-settings` is the monthly report's configuration — the tags it groups by,
+and nothing else. It carries the user's whole tag list in its `GET` response because there is no
+`/api/tags` to fetch it from: tags are created as free text on the expense forms and have never
+had a listing endpoint. The report has **no timezone anywhere**: the billed date is
+month-precision and carries no zone, the stored `timezone` was only ever there for a scheduled
+email, and both were dropped. See `docs/monthly-report.md`.
 
 Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 

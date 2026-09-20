@@ -1,7 +1,6 @@
 <script lang="ts">
-  // The monthly report's settings (docs/monthly-report.md, Phase 1). Nothing
-  // consumes these yet: the PDF lands in Phase 2 and the scheduled email in
-  // Phase 3.
+  // The monthly report: its grouping tags, and the download link for a month.
+  // The tags are the whole of the configuration (docs/monthly-report.md).
   //
   // The tag list rides along on GET /api/report-settings rather than coming
   // from a listing endpoint of its own — tags are created as free text on the
@@ -11,12 +10,10 @@
   import CardAction from "../../components/CardAction.svelte";
   import { APIRequestError, get, put } from "../../lib/api";
   import { lastCalendarMonth } from "../../lib/dates";
-  import { browserTimezone, timezoneOptions } from "./timezones";
   import type { ReportSettingsResponse, ReportTag } from "./types";
 
   let tags = $state<ReportTag[]>([]);
   let selectedTagIDs = $state<number[]>([]);
-  let timezone = $state("");
   let tagLimit = $state(0);
   // Nothing may be submitted before the GET lands. PUT replaces the tag list
   // wholesale, so a failed load would otherwise leave an empty, enabled form
@@ -27,11 +24,10 @@
   let saveError = $state("");
   let saved = $state(false);
   let saving = $state(false);
-  // The month the download asks for, defaulting to the month that just ended
-  // — the period the scheduled report will send.
+  // The month the download asks for, defaulting to the month that just ended,
+  // resolved in the browser's zone.
   let month = $state(lastCalendarMonth());
 
-  const zones = $derived(timezoneOptions(timezone));
   const atTagLimit = $derived(
     tagLimit > 0 && selectedTagIDs.length >= tagLimit,
   );
@@ -44,10 +40,6 @@
         if (cancelled) return;
         tags = result.tags;
         selectedTagIDs = result.selected_tag_ids;
-        // An unsaved account gets the browser's zone as a starting point;
-        // the server's own fallback is UTC, which would otherwise look like
-        // a choice the user had made.
-        timezone = result.configured ? result.timezone : browserTimezone();
         tagLimit = result.tag_limit;
         loadError = "";
         loaded = true;
@@ -80,7 +72,6 @@
 
     try {
       await put("/report-settings", {
-        timezone,
         tag_ids: selectedTagIDs,
       });
       saved = true;
@@ -180,25 +171,6 @@
         </div>
       {/if}
     </fieldset>
-
-    <label class="grid gap-1">
-      <span class="font-bold">Time zone</span>
-      <span class="text-sm text-muted">
-        Decides which month the scheduled report calls "last month" when it
-        runs. A report you download yourself uses the month you pick instead.
-      </span>
-      <select
-        bind:value={timezone}
-        disabled={!loaded}
-        onchange={() => {
-          saved = false;
-        }}
-      >
-        {#each zones as zone (zone)}
-          <option value={zone}>{zone}</option>
-        {/each}
-      </select>
-    </label>
 
     {#if saveError}
       <p class="text-danger">{saveError}</p>

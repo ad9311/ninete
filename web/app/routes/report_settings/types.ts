@@ -7,10 +7,6 @@ export interface ReportTag {
 }
 
 export interface ReportSettingsResponse {
-  timezone: string;
-  /** False until the settings have been saved once, so the form seeds its
-   * timezone from the browser instead of showing the server's UTC fallback. */
-  configured: boolean;
   selected_tag_ids: number[];
   tags: ReportTag[];
   /** How many grouping tags the server accepts (logic.ReportTagLimit). */
