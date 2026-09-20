@@ -185,10 +185,10 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   it navigates with `window.location.assign` rather than the client router,
   since `RenewToken`/session state is a boundary every piece of client-held
   state needs reset against (§5). That reachability is also what
-  answers `TODO.md`'s note on session-expiry redirects: `lib/api.ts`'s
-  `LOGIN_PATH` points at `/login`, and the one call that must not bounce a
-  guest off its own page — `Header.svelte`'s `/api/session` probe — opts out
-  with `skipAuthRedirect` there.
+  makes §3.1's expired-session redirect safe: `lib/api.ts`'s `LOGIN_PATH`
+  points at `/login`, and the one call that must not bounce a guest off its own
+  page — `Header.svelte`'s `/api/session` probe — opts out with
+  `skipAuthRedirect` there.
 - `toolchain/` — not part of the app. `Probe.svelte` and its test are a canary
   for the test setup itself: they fail when vitest can no longer
   compile a component, when it resolves Svelte's server build instead of the
