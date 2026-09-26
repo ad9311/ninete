@@ -6,17 +6,17 @@
   import { APIRequestError, del, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
   import { BASE_PATH, navigate } from "../../router";
-  import type { Expense } from "./types";
+  import type { ExpenseDetail } from "./types";
 
   let { id }: { id: string } = $props();
 
-  let expense = $state<Expense | null>(null);
+  let expense = $state<ExpenseDetail | null>(null);
   let loadError = $state("");
 
   $effect(() => {
     let cancelled = false;
 
-    get<Expense>(`/expenses/${id}`)
+    get<ExpenseDetail>(`/expenses/${id}`)
       .then((result) => {
         if (cancelled) return;
         expense = result;
@@ -107,6 +107,15 @@
               {/if}
             </td>
           </tr>
+          {#if expense.note}
+            <tr>
+              <th>Note</th>
+              <!-- pre-line keeps the line breaks typed into the textarea;
+                wrap-anywhere lets one long unbroken word wrap instead of
+                widening the table past the card. -->
+              <td class="wrap-anywhere whitespace-pre-line">{expense.note}</td>
+            </tr>
+          {/if}
         </tbody>
       </table>
     </div>

@@ -15,6 +15,21 @@ export interface Expense {
   tags: string[];
 }
 
+// The single-expense shape (GET /api/expenses/{id}, and the POST/PUT
+// responses). The note is deliberately absent from Expense: the list endpoint
+// does not send it, since it is shown only on the expense's own page.
+export interface ExpenseDetail extends Expense {
+  note: string;
+}
+
+// Mirrors ExpenseParams.Note's max=255 in logic_expense.go. The server counts
+// characters (runes) after trimming, which is what noteLength counts too.
+export const NOTE_MAX_LENGTH = 255;
+
+export function noteLength(note: string): number {
+  return [...note.trim()].length;
+}
+
 export interface Pagination {
   current_page: number;
   total_pages: number;
@@ -37,6 +52,7 @@ export interface ExpenseRequestBody {
   description: string;
   amount: number;
   date: number;
+  note: string;
   tags: string[];
 }
 

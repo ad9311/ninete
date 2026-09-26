@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ type apiExpenseBody struct {
 	Date         int64    `json:"date"`
 	CreatedAt    int64    `json:"created_at"`
 	Tags         []string `json:"tags"`
+	Note         string   `json:"note"`
 }
 
 type apiExpenseListBody struct {
@@ -128,6 +130,63 @@ func TestAPIExpenses(t *testing.T) {
 
 				res, _ = doJSON(t, handler, http.MethodGet, showURL, nil, cookies, "")
 				require.Equal(t, http.StatusNotFound, res.StatusCode)
+			},
+		},
+		{
+			name: "should_return_the_note_on_show_but_leave_it_out_of_the_list",
+			fn: func(t *testing.T) {
+				_, cookies, csrfToken := apiUser(t, s, "api_exp_note_user", "api_exp_note_user@example.com", "api_exp_note_pw")
+				category := s.CreateCategory(t, "api_exp_note_cat")
+
+				res, body := doJSON(t, handler, http.MethodPost, "/api/expenses", map[string]any{
+					"category_id": category.ID,
+					"description": "Noted expense",
+					"amount":      100,
+					"date":        1755993600,
+					"note":        "  paid in cash  ",
+				}, cookies, csrfToken)
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				var created apiExpenseBody
+				require.NoError(t, json.Unmarshal(body, &created))
+				require.Equal(t, "paid in cash", created.Note)
+
+				res, body = doJSON(t, handler, http.MethodGet, "/api/expenses/"+itoa(created.ID), nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				var shown apiExpenseBody
+				require.NoError(t, json.Unmarshal(body, &shown))
+				require.Equal(t, "paid in cash", shown.Note)
+
+				res, body = doJSON(t, handler, http.MethodGet, "/api/expenses", nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				var list struct {
+					Data []map[string]any `json:"data"`
+				}
+				require.NoError(t, json.Unmarshal(body, &list))
+				require.Len(t, list.Data, 1)
+				require.NotContains(t, list.Data[0], "note")
+			},
+		},
+		{
+			name: "should_reject_an_over_long_note_with_422",
+			fn: func(t *testing.T) {
+				_, cookies, csrfToken := apiUser(t, s, "api_exp_long_note", "api_exp_long_note@example.com", "api_exp_long_pw")
+				category := s.CreateCategory(t, "api_exp_long_note_cat")
+
+				res, body := doJSON(t, handler, http.MethodPost, "/api/expenses", map[string]any{
+					"category_id": category.ID,
+					"description": "Long note",
+					"amount":      100,
+					"date":        1755993600,
+					"note":        strings.Repeat("n", 256),
+				}, cookies, csrfToken)
+				require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode)
+
+				var apiErr handlers.APIError
+				require.NoError(t, json.Unmarshal(body, &apiErr))
+				require.Equal(t, "max", apiErr.Fields["note"])
 			},
 		},
 		{

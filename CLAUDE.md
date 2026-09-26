@@ -189,6 +189,8 @@ email, and both were dropped. See `docs/monthly-report.md`.
 
 Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 
+An expense carries an optional `note` (trimmed, at most 255 characters counted as runes, `''` when absent). It belongs to the expense's own page only: `GET /api/expenses/{id}` and the POST/PUT responses return it through `apiExpenseDetail`, while the list's `apiExpense` leaves it out entirely. The JSON export includes it; the monthly report PDF, search and quick-add do not, and recurrent expenses have no note to copy.
+
 ## Engineering Workflow
 - **Always write in English.** Code, comments, identifiers, commit messages, PR titles and
   descriptions, documentation, migration names, log messages, and user-facing strings are all

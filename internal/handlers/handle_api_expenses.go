@@ -38,6 +38,15 @@ func newAPIExpense(expense repo.Expense, categoryName string, tags []string) api
 	}
 }
 
+// apiExpenseDetail is the single-expense view: the list shape plus the note.
+// The note is kept out of apiExpense on purpose — it is shown only on the
+// expense's own page, so the list response does not carry it at all.
+type apiExpenseDetail struct {
+	apiExpense
+
+	Note string `json:"note"`
+}
+
 type apiExpenseListResponse struct {
 	Data       []apiExpense  `json:"data"`
 	Pagination apiPagination `json:"pagination"`
@@ -48,6 +57,7 @@ type expenseRequestBody struct {
 	Description string   `json:"description"`
 	Amount      uint64   `json:"amount"`
 	Date        int64    `json:"date"`
+	Note        string   `json:"note"`
 	Tags        []string `json:"tags"`
 }
 
@@ -57,6 +67,7 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 		Description: b.Description,
 		Amount:      b.Amount,
 		Date:        b.Date,
+		Note:        b.Note,
 		Tags:        logic.NormalizeTagNames(b.Tags),
 	}
 }
@@ -260,11 +271,14 @@ func (h *Handler) respondWithExpense(w http.ResponseWriter, r *http.Request, exp
 		return
 	}
 
-	h.WriteJSON(w, http.StatusOK, newAPIExpense(
-		expense,
-		categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
-		logic.ExtractTagNames(tags),
-	))
+	h.WriteJSON(w, http.StatusOK, apiExpenseDetail{
+		apiExpense: newAPIExpense(
+			expense,
+			categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
+			logic.ExtractTagNames(tags),
+		),
+		Note: expense.Note,
+	})
 }
 
 func (h *Handler) DeleteAPIExpense(w http.ResponseWriter, r *http.Request) {

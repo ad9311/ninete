@@ -15,6 +15,7 @@ type Expense struct {
 	Date        int64
 	CreatedAt   int64
 	UpdatedAt   int64
+	Note        string
 }
 
 type InsertExpenseParams struct {
@@ -23,6 +24,7 @@ type InsertExpenseParams struct {
 	Description string
 	Amount      uint64
 	Date        int64
+	Note        string
 }
 
 type UpdateExpenseParams struct {
@@ -31,12 +33,14 @@ type UpdateExpenseParams struct {
 	Description string
 	Amount      uint64
 	Date        int64
+	Note        string
 }
 
 // expenseColumns pins the projection order the Scan calls in this file depend on.
 // SELECT * would resolve to whatever order the table happens to have, so an
 // ALTER TABLE could shift values into the wrong struct fields with no error.
-const expenseColumns = `"id", "user_id", "category_id", "description", "amount", "date", "created_at", "updated_at"`
+const expenseColumns = `"id", "user_id", "category_id", "description", "amount", "date",
+"created_at", "updated_at", "note"`
 
 const selectExpenses = `SELECT ` + expenseColumns + ` FROM "expenses"`
 
@@ -125,6 +129,7 @@ func (q *Queries) SelectExpenses(ctx context.Context, opts QueryOptions) ([]Expe
 				&e.Date,
 				&e.CreatedAt,
 				&e.UpdatedAt,
+				&e.Note,
 			); err != nil {
 				return err
 			}
@@ -178,6 +183,7 @@ func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, e
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.Note,
 		)
 	})
 
@@ -185,8 +191,8 @@ func (q *Queries) SelectExpense(ctx context.Context, id, userID int) (Expense, e
 }
 
 const insertExpense = `
-INSERT INTO "expenses" ("user_id", "category_id", "description", "amount", "date")
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO "expenses" ("user_id", "category_id", "description", "amount", "date", "note")
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING ` + expenseColumns
 
 func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams) (Expense, error) {
@@ -201,6 +207,7 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 			params.Description,
 			params.Amount,
 			params.Date,
+			params.Note,
 		)
 
 		return row.Scan(
@@ -212,6 +219,7 @@ func (q *Queries) InsertExpense(ctx context.Context, params InsertExpenseParams)
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.Note,
 		)
 	})
 
@@ -230,6 +238,7 @@ func (q *TxQueries) InsertExpense(ctx context.Context, params InsertExpenseParam
 			params.Description,
 			params.Amount,
 			params.Date,
+			params.Note,
 		)
 
 		return row.Scan(
@@ -241,6 +250,7 @@ func (q *TxQueries) InsertExpense(ctx context.Context, params InsertExpenseParam
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.Note,
 		)
 	})
 
@@ -253,6 +263,7 @@ SET "category_id" = ?,
     "description" = ?,
     "amount"      = ?,
     "date"        = ?,
+    "note"        = ?,
     "updated_at"  = ?
 WHERE "id" = ?
   AND "user_id" = ?
@@ -274,6 +285,7 @@ func (q *Queries) UpdateExpense(
 			params.Description,
 			params.Amount,
 			params.Date,
+			params.Note,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -288,6 +300,7 @@ func (q *Queries) UpdateExpense(
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.Note,
 		)
 	})
 
@@ -309,6 +322,7 @@ func (q *TxQueries) UpdateExpense(
 			params.Description,
 			params.Amount,
 			params.Date,
+			params.Note,
 			newUpdatedAt(),
 			params.ID,
 			userID,
@@ -323,6 +337,7 @@ func (q *TxQueries) UpdateExpense(
 			&e.Date,
 			&e.CreatedAt,
 			&e.UpdatedAt,
+			&e.Note,
 		)
 	})
 
