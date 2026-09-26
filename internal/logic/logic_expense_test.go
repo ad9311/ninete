@@ -86,6 +86,73 @@ func TestCreateExpense(t *testing.T) {
 				require.NotContains(t, valErr.Fields, "name")
 			},
 		},
+		{
+			name: "should_store_a_trimmed_note",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(category.ID, "expense description with note", 550, 1735689600, nil)
+				params.Note = "  line one\nline two  "
+
+				expense, err := s.Store.CreateExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, "line one\nline two", expense.Note)
+
+				found, err := s.Store.FindExpense(ctx, expense.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, "line one\nline two", found.Note)
+			},
+		},
+		{
+			name: "should_default_the_note_to_empty",
+			fn: func(t *testing.T) {
+				expense, err := s.Store.CreateExpense(
+					ctx,
+					user.ID,
+					newExpenseParams(category.ID, "expense description without note", 550, 1735689600, nil),
+				)
+				require.NoError(t, err)
+				require.Empty(t, expense.Note)
+			},
+		},
+		{
+			// 255 two-byte characters are 510 bytes: the limit counts
+			// characters, so this passes where a byte count would reject it.
+			name: "should_accept_a_note_of_255_characters",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(category.ID, "expense description max note", 550, 1735689600, nil)
+				params.Note = strings.Repeat("é", 255)
+
+				expense, err := s.Store.CreateExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, params.Note, expense.Note)
+			},
+		},
+		{
+			name: "should_reject_a_note_over_255_characters_under_the_note_field",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(category.ID, "expense description long note", 550, 1735689600, nil)
+				params.Note = strings.Repeat("n", 256)
+
+				_, err := s.Store.CreateExpense(ctx, user.ID, params)
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+
+				var valErr *logic.ValidationError
+				require.ErrorAs(t, err, &valErr)
+				require.Equal(t, map[string]string{"note": "max"}, valErr.Fields)
+			},
+		},
+		{
+			// Trimming runs before validation, so padding does not count
+			// toward the limit.
+			name: "should_not_count_surrounding_whitespace_toward_the_note_limit",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(category.ID, "expense description padded note", 550, 1735689600, nil)
+				params.Note = "   " + strings.Repeat("n", 255) + "   "
+
+				expense, err := s.Store.CreateExpense(ctx, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, strings.Repeat("n", 255), expense.Note)
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -381,6 +448,25 @@ func TestUpdateExpense(t *testing.T) {
 				require.NoError(t, err)
 				require.Len(t, tags, 1)
 				require.Equal(t, "new_tag_1", tags[0].Name)
+			},
+		},
+		{
+			name: "should_replace_and_clear_the_note",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(categoryOne.ID, "expense description note 16", 1200, 1736726400, nil)
+				params.Note = "first note"
+				expense := s.CreateExpense(t, user.ID, params)
+				require.Equal(t, "first note", expense.Note)
+
+				params.Note = "second note"
+				updated, err := s.Store.UpdateExpense(ctx, expense.ID, user.ID, params)
+				require.NoError(t, err)
+				require.Equal(t, "second note", updated.Note)
+
+				params.Note = "   "
+				cleared, err := s.Store.UpdateExpense(ctx, expense.ID, user.ID, params)
+				require.NoError(t, err)
+				require.Empty(t, cleared.Note)
 			},
 		},
 		{

@@ -2,14 +2,27 @@ package logic
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
 
 type ExpenseParams struct {
 	ExpenseBaseParams
-	Date int64    `validate:"required,gt=0"`
+	Date int64 `validate:"required,gt=0"`
+	// Note is optional free text, shown only on the expense's own page. max
+	// counts characters (runes), not bytes. Trimmed before validation, see
+	// normalizeExpenseParams.
+	Note string   `validate:"max=255"`
 	Tags []string `validate:"-"`
+}
+
+// normalizeExpenseParams trims the note so surrounding whitespace neither
+// counts toward the limit nor survives as a note that looks empty.
+func normalizeExpenseParams(params ExpenseParams) ExpenseParams {
+	params.Note = strings.TrimSpace(params.Note)
+
+	return params
 }
 
 func (s *Store) FindExpenses(ctx context.Context, opts repo.QueryOptions) ([]repo.Expense, error) {
@@ -51,6 +64,8 @@ func (s *Store) FindExpenseTags(ctx context.Context, expenseID, userID int) ([]r
 func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
 
+	params = normalizeExpenseParams(params)
+
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
@@ -64,6 +79,7 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 			Description: params.Description,
 			Amount:      params.Amount,
 			Date:        params.Date,
+			Note:        params.Note,
 		})
 		if txErr != nil {
 			return txErr
@@ -81,6 +97,8 @@ func (s *Store) CreateExpense(ctx context.Context, userID int, params ExpensePar
 func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params ExpenseParams) (repo.Expense, error) {
 	var expense repo.Expense
 
+	params = normalizeExpenseParams(params)
+
 	if err := s.ValidateStruct(params); err != nil {
 		return expense, err
 	}
@@ -94,6 +112,7 @@ func (s *Store) UpdateExpense(ctx context.Context, id, userID int, params Expens
 			Description: params.Description,
 			Amount:      params.Amount,
 			Date:        params.Date,
+			Note:        params.Note,
 		})
 		if txErr != nil {
 			return txErr

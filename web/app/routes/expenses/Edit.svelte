@@ -5,11 +5,11 @@
   import { APIRequestError, get, put } from "../../lib/api";
   import { BASE_PATH, navigate } from "../../router";
   import Form from "./Form.svelte";
-  import type { Expense, ExpenseRequestBody } from "./types";
+  import type { ExpenseDetail, ExpenseRequestBody } from "./types";
 
   let { id }: { id: string } = $props();
 
-  let expense = $state<Expense | null>(null);
+  let expense = $state<ExpenseDetail | null>(null);
   let loadError = $state("");
   let submitError = $state("");
   let pending = $state(false);
@@ -17,7 +17,7 @@
   $effect(() => {
     let cancelled = false;
 
-    get<Expense>(`/expenses/${id}`)
+    get<ExpenseDetail>(`/expenses/${id}`)
       .then((result) => {
         if (cancelled) return;
         expense = result;
@@ -41,7 +41,7 @@
     submitError = "";
 
     try {
-      await put<Expense>(`/expenses/${id}`, body);
+      await put<ExpenseDetail>(`/expenses/${id}`, body);
       navigate(`/expenses/${id}`);
     } catch (err) {
       submitError =

@@ -11,10 +11,15 @@
     unixToCalendarMonth,
   } from "../../lib/dates";
   import { joinTagNames, parseTagsInput } from "../../lib/tags";
-  import type { Expense, ExpenseRequestBody } from "./types";
+  import {
+    NOTE_MAX_LENGTH,
+    noteLength,
+    type ExpenseDetail,
+    type ExpenseRequestBody,
+  } from "./types";
 
   interface Props {
-    initial?: Expense;
+    initial?: ExpenseDetail;
     error?: string;
     pending?: boolean;
     submitLabel: string;
@@ -43,6 +48,10 @@
     seed ? Number(centsToInputValue(seed.amount)) : "",
   );
   let tagsInput = $state(seed ? joinTagNames(seed.tags) : "");
+  let note = $state(seed?.note ?? "");
+  // No maxlength on the textarea: it counts UTF-16 units and includes the
+  // whitespace the server trims, so it would disagree with the server's limit.
+  let noteCount = $derived(noteLength(note));
   // The billed date is picked and shown as a month; the API still stores a
   // calendar date, so this submits UTC midnight of the 1st. A row written
   // before the month picker carries a real day, which unixToCalendarMonth
@@ -91,6 +100,10 @@
       formError = "Billed month must be a valid YYYY-MM month.";
       return;
     }
+    if (noteCount > NOTE_MAX_LENGTH) {
+      formError = `Note must be at most ${NOTE_MAX_LENGTH} characters.`;
+      return;
+    }
     formError = "";
 
     onSubmit({
@@ -98,6 +111,7 @@
       description,
       amount,
       date,
+      note: note.trim(),
       tags: parseTagsInput(tagsInput),
     });
   }
@@ -151,6 +165,21 @@
       placeholder="YYYY-MM"
       pattern={"\\d{4}-\\d{2}"}
     />
+  </label>
+  <label>
+    Note
+    <textarea
+      rows="3"
+      placeholder="Optional"
+      bind:value={note}
+      aria-describedby="expense-note-count"></textarea>
+    <span
+      id="expense-note-count"
+      class="justify-self-end"
+      class:text-danger={noteCount > NOTE_MAX_LENGTH}
+    >
+      {noteCount}/{NOTE_MAX_LENGTH}
+    </span>
   </label>
   <button
     type="submit"

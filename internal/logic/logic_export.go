@@ -14,6 +14,7 @@ type ExportCategory struct {
 type ExportExpense struct {
 	ID          int             `json:"id"`
 	Description string          `json:"description"`
+	Note        string          `json:"note"`
 	Amount      uint64          `json:"amount"`
 	BilledAt    int64           `json:"billed_at"`
 	CreatedAt   int64           `json:"created_at"`
@@ -74,6 +75,7 @@ func (s *Store) ExportExpenses(ctx context.Context, userID int) ([]ExportExpense
 		out = append(out, ExportExpense{
 			ID:          e.ID,
 			Description: e.Description,
+			Note:        e.Note,
 			Amount:      e.Amount,
 			BilledAt:    e.Date,
 			CreatedAt:   e.CreatedAt,

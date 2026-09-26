@@ -89,6 +89,26 @@ func TestExportExpenses(t *testing.T) {
 			},
 		},
 		{
+			name: "should_include_the_note",
+			fn: func(t *testing.T) {
+				params := newExpenseParams(category.ID, "with_note", 100, 1735689600, nil)
+				params.Note = "export note"
+				s.CreateExpense(t, user.ID, params)
+
+				out, err := s.Store.ExportExpenses(ctx, user.ID)
+				require.NoError(t, err)
+
+				for _, e := range out {
+					if e.Description == "with_note" {
+						require.Equal(t, "export note", e.Note)
+
+						return
+					}
+				}
+				t.Fatalf("expense 'with_note' not found in export")
+			},
+		},
+		{
 			name: "should_return_empty_slice_when_user_has_no_expenses",
 			fn: func(t *testing.T) {
 				lonelyUser := s.CreateUser(t, repo.InsertUserParams{
