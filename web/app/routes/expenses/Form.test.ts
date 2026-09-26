@@ -27,7 +27,7 @@ const initial: ExpenseDetail = {
 };
 
 function noteField(): HTMLTextAreaElement {
-  return screen.getByLabelText(/^Note/) as HTMLTextAreaElement;
+  return screen.getByLabelText("Note") as HTMLTextAreaElement;
 }
 
 describe("noteLength", () => {

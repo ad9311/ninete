@@ -166,21 +166,27 @@
       pattern={"\\d{4}-\\d{2}"}
     />
   </label>
-  <label>
-    Note
-    <textarea
-      rows="3"
-      placeholder="Optional"
-      bind:value={note}
-      aria-describedby="expense-note-count"></textarea>
+  <!-- The counter sits outside the label so it is not part of the textarea's
+       accessible name; `aria-describedby` alone announces it. -->
+  <div class="grid gap-1">
+    <label>
+      Note
+      <textarea
+        rows="3"
+        placeholder="Optional"
+        bind:value={note}
+        aria-describedby="expense-note-count"></textarea>
+    </label>
     <span
       id="expense-note-count"
-      class="justify-self-end"
-      class:text-danger={noteCount > NOTE_MAX_LENGTH}
+      class={[
+        "justify-self-end text-sm font-medium",
+        noteCount > NOTE_MAX_LENGTH ? "text-danger" : "text-muted",
+      ]}
     >
       {noteCount}/{NOTE_MAX_LENGTH}
     </span>
-  </label>
+  </div>
   <button
     type="submit"
     class="btn btn-primary mt-3 justify-self-end"
