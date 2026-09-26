@@ -11,7 +11,7 @@ if a document is added, add it here too, or nobody will find it.
 | Document | What it holds | Read it when |
 | --- | --- | --- |
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
-| `docs/architecture.md` | Runtime flow, request flow, per-package reference | Orienting in unfamiliar packages |
+| `docs/architecture.md` | Runtime flow, request flow, the expense export's JSON format, per-package reference | Orienting in unfamiliar packages, or reading or changing `/exports/expenses.json` |
 | `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind (since adopted — §4.1 carries the outcome note) and component libraries were deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/monthly-report.md` | The monthly expense report: why its period is one calendar month of `date` and not a ragged credit-card cycle, the tag grouping rules, the two built phases (settings, PDF), and why the scheduled email was dropped | Touching the report, its settings, or anything that groups expenses by tag |

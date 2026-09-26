@@ -73,6 +73,50 @@ The session cookie is configured in `setUpSession` (`internal/serve/routes.go`):
 seven-day lifetime, `HttpOnly`, `SameSite=Lax`, persistent, named
 `ninete_session`, and `Secure` only in production.
 
+## Expense export format (`GET /exports/expenses.json`)
+
+Built by `logic.ExportExpenses` (`internal/logic/logic_export.go`) and written by
+`GetExportsExpenses` (`internal/handlers/handle_exports.go`). It sits on the page
+chain rather than under `/api` — `CLAUDE.md`'s route map says why. The response
+is an attachment named `expenses-<exported_at>.json`, indented two spaces and
+streamed rather than buffered, since the export is unpaginated.
+
+```json
+{
+  "exported_at": 1790438400,
+  "expenses": [
+    {
+      "id": 42,
+      "description": "Groceries",
+      "note": "paid in cash",
+      "amount": 2599,
+      "billed_at": 1788220800,
+      "created_at": 1788300000,
+      "updated_at": 1788300000,
+      "category": { "name": "Food", "uid": "food" },
+      "tags": ["food", "weekly"]
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `exported_at` | Unix seconds (UTC) when the file was generated; also the filename suffix |
+| `expenses` | Every expense the signed-in user owns, and only theirs. `[]`, never `null`, when there are none. Ordered by `billed_at` descending, ties broken by `id` descending |
+| `id` | The expense's database id |
+| `description` | Free text, 3–50 characters |
+| `note` | Optional free text, at most 255 characters; `""` when absent |
+| `amount` | Integer **cents**, never a decimal |
+| `billed_at` | The `date` column under a clearer name: a calendar date stored as Unix seconds at UTC midnight. Rows written since the month picker are the 1st of their month; older rows may carry a real day. Read it in UTC — see `docs/spa-migration.md` §3.6 |
+| `created_at`, `updated_at` | Instants, in Unix seconds |
+| `category` | `{ "name", "uid" }` of the global category (`uid` is the name in lowerCamelCase), or `null` if the id no longer resolves |
+| `tags` | Tag names, lowercase and sorted alphabetically; `[]` when untagged. Tag rows are fetched in chunks of 500 ids (`tagRowChunkSize`) to stay under SQLite's parameter limit |
+
+Recurrent expenses, budgets and report settings are not exported — only the
+expenses themselves, including the ones a recurrent expense generated. There is
+no import path reading this format back.
+
 ## Package Reference
 
 ### `cmd/ninete`
