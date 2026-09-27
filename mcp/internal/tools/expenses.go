@@ -107,7 +107,7 @@ func registerExpenseTools(server *mcp.Server, d Deps) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "update_expense",
 		Description: "Change an expense. Only the fields you pass change. For tags, pass add_tags/remove_tags " +
-			"to adjust the list, or tags to replace it.",
+			"to adjust the list, or tags to replace it." + userDataNote,
 		Annotations: overwrites("Update expense"),
 	}, d.updateExpense)
 }

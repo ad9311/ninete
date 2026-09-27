@@ -108,14 +108,16 @@ func registerRecurrentExpenseTools(server *mcp.Server, d Deps) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "update_recurrent_expense",
 		Description: "Change a recurrent expense. Only the fields you pass change. Expenses it already " +
-			"generated are not touched. Editing does not unarchive it; use unarchive_recurrent_expense.",
+			"generated are not touched. Editing does not unarchive it; use unarchive_recurrent_expense." +
+			userDataNote,
 		Annotations: overwrites("Update recurrent expense"),
 	}, d.updateRecurrentExpense)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "unarchive_recurrent_expense",
 		Description: "Put an archived recurrent expense back in rotation. One archives itself after " +
-			"generating occurrence_limit copies; raise the limit first or it will archive again.",
+			"generating occurrence_limit copies; raise the limit first or it will archive again." +
+			userDataNote,
 		Annotations: &mcp.ToolAnnotations{
 			Title: "Unarchive recurrent expense", DestructiveHint: new(false),
 			IdempotentHint: true, OpenWorldHint: new(false),

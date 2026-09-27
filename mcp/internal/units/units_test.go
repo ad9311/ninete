@@ -38,7 +38,11 @@ func TestUnits(t *testing.T) {
 					require.Equal(t, want, got, raw)
 				}
 
-				for _, raw := range []string{"", "-1", "1.234", "1.", ".5", "1,000", "abc", "1e3", "+2"} {
+				for _, raw := range []string{
+					"", "-1", "1.234", "1.", ".5", "1,000", "abc", "1e3", "+2",
+					// Past uint64 cents: the multiplication would wrap to a small amount.
+					"184467440737095517", "18446744073709551615",
+				} {
 					_, err := units.ParseAmount(raw)
 					require.ErrorIs(t, err, units.ErrAmount, raw)
 				}

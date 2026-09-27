@@ -11,18 +11,11 @@
 package units
 
 import (
-	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
-)
-
-var (
-	ErrAmount = errors.New(`amount must be a positive decimal with at most two decimals, like "12.50"`)
-	ErrMonth  = errors.New(`month must be in YYYY-MM format, like "2026-09"`)
-	ErrDay    = errors.New(`date must be in YYYY-MM-DD format, like "2026-09-26"`)
-	ErrRange  = errors.New("the range ends before it starts")
 )
 
 const (
@@ -51,7 +44,10 @@ func ParseAmount(raw string) (uint64, error) {
 	}
 
 	units, err := strconv.ParseUint(whole, 10, 64)
-	if err != nil {
+	// The bound keeps units*centsPerOne+cents inside uint64: past it the
+	// multiplication wraps, and the API has no upper limit that would catch
+	// the small, wrong amount that results.
+	if err != nil || units > (math.MaxUint64-(centsPerOne-1))/centsPerOne {
 		return 0, ErrAmount
 	}
 

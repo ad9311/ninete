@@ -157,14 +157,14 @@ func registerReferenceTools(server *mcp.Server, d Deps) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_report_settings",
-		Description: "Read which tags the monthly expense report groups by.",
+		Description: "Read which tags the monthly expense report groups by." + userDataNote,
 		Annotations: readOnly("Get report settings"),
 	}, d.getReportSettings)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "set_report_settings",
 		Description: "Choose the tags the monthly expense report groups by, replacing the current choice. " +
-			"Only existing tags can be chosen.",
+			"Only existing tags can be chosen." + userDataNote,
 		Annotations: overwrites("Set report settings"),
 	}, d.setReportSettings)
 }
