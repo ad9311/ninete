@@ -79,6 +79,10 @@ inlined, `int`/`uint` both `integer`). The two walkers are copies —
 `internal/handlers/api_contract_internal_test.go` and `mcp/internal/contracttest` — and the file
 keeps them honest: if they disagreed, one side's test would fail on the next run.
 
+**Query parameters are not covered.** The file holds JSON bodies only, so a handler renaming a
+query key (`start`, `archived`, `sort_field`, …) would leave the MCP sending a name the server
+ignores, with no test failing. `TODO.md` has the planned fix.
+
 ## Configuration
 
 The MCP client launches the binary and passes three environment variables:

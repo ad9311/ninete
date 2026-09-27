@@ -12,7 +12,6 @@ package contracttest
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -23,10 +22,6 @@ import (
 
 	"github.com/ad9311/ninete-mcp/internal/api"
 )
-
-// ErrNoSource means the runtime could not report this file's path, which Load
-// needs to find the repository root.
-var ErrNoSource = errors.New("contracttest: cannot locate source file")
 
 // Endpoint names this module's type for each side of a route. A nil side
 // means this module sends no body there, or reads none.

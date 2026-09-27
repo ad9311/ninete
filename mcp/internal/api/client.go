@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -27,15 +26,6 @@ const (
 	// maxResponseBytes bounds what one response may make this process hold.
 	// The largest real answer is a 100-row expense page.
 	maxResponseBytes = 4 << 20
-)
-
-var (
-	ErrUnauthorized = errors.New(
-		"the token was rejected: it is invalid, expired or revoked; create a new one at /account/tokens",
-	)
-	ErrNotFound        = errors.New("not found")
-	ErrTooManyRequests = errors.New("too many failed attempts from this address; wait a minute and retry")
-	ErrUnexpected      = errors.New("unexpected response from Ninete")
 )
 
 // Error is a failure the API answered with its JSON envelope
