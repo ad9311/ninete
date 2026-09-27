@@ -35,10 +35,12 @@ const (
 	// reach, which is why a single SHA-256 is enough to store it: a slow hash
 	// exists to protect low-entropy secrets, and this one is not.
 	apiTokenBytes = 32
-	// apiTokenPrefixLen is how much of the token the settings page shows:
-	// the marker plus eight characters, enough to tell tokens apart and far too
-	// little to authenticate with.
-	apiTokenPrefixLen = len(apiTokenMarker) + 8
+	// apiTokenVisibleChars is how much of the secret the settings page shows,
+	// taken from the end and displayed masked: enough to tell tokens apart, and
+	// 24 of 256 bits, far too little to authenticate with.
+	apiTokenVisibleChars = 4
+	// apiTokenMask stands in for the hidden part of a displayed token.
+	apiTokenMask = "••••" //nolint:gosec // G101: display mask, not a credential
 
 	// apiTokenTouchInterval throttles the last-used write. Without it every
 	// token-authenticated request would cost a database write just to record
@@ -112,7 +114,7 @@ func (s *Store) CreateAPIToken(
 			UserID:    userID,
 			Name:      params.Name,
 			TokenHash: hashAPIToken(plaintext),
-			Prefix:    plaintext[:apiTokenPrefixLen],
+			LastFour:  plaintext[len(plaintext)-apiTokenVisibleChars:],
 			Scope:     params.Scope,
 			ExpiresAt: expiresAt,
 		})
@@ -176,6 +178,13 @@ func (s *Store) AuthenticateAPIToken(ctx context.Context, plaintext string) (rep
 	}
 
 	return token, nil
+}
+
+// MaskedAPIToken is how a stored token is displayed once its plaintext is
+// gone — "nin_••••wTEF", the marker, a mask and the last four characters.
+// Built here so the marker is spelled in one place.
+func MaskedAPIToken(t repo.APIToken) string {
+	return apiTokenMarker + apiTokenMask + t.LastFour
 }
 
 func generateAPIToken() (string, error) {

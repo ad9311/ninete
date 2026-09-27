@@ -16,7 +16,7 @@ type apiTokensBody struct {
 	Data []struct {
 		ID         int    `json:"id"`
 		Name       string `json:"name"`
-		Prefix     string `json:"prefix"`
+		Masked     string `json:"masked"`
 		Scope      string `json:"scope"`
 		ExpiresAt  *int64 `json:"expires_at"`
 		LastUsedAt *int64 `json:"last_used_at"`
@@ -29,7 +29,7 @@ type apiTokensBody struct {
 type apiTokenCreatedBody struct {
 	Token struct {
 		ID     int    `json:"id"`
-		Prefix string `json:"prefix"`
+		Masked string `json:"masked"`
 		Scope  string `json:"scope"`
 	} `json:"token"`
 	Secret string `json:"secret"`
@@ -105,6 +105,8 @@ func TestAPITokensManagement(t *testing.T) {
 					if token.ID == created.Token.ID {
 						found = true
 						require.NotNil(t, token.ExpiresAt)
+						require.Equal(t, "nin_••••"+created.Secret[len(created.Secret)-4:], token.Masked)
+						require.Equal(t, token.Masked, created.Token.Masked)
 						require.False(t, token.Expired)
 					}
 				}

@@ -27,7 +27,7 @@ func TestAPITokens(t *testing.T) {
 		fn   func(*testing.T)
 	}{
 		{
-			name: "should_store_only_the_hash_and_a_display_prefix",
+			name: "should_store_only_the_hash_and_the_last_four_characters",
 			fn: func(t *testing.T) {
 				token, secret := s.CreateAPIToken(t, user.ID, "hash only", logic.APITokenScopeRead)
 
@@ -36,9 +36,9 @@ func TestAPITokens(t *testing.T) {
 
 				sum := sha256.Sum256([]byte(secret))
 				require.Equal(t, hex.EncodeToString(sum[:]), token.TokenHash)
-				require.True(t, strings.HasPrefix(secret, token.Prefix))
-				require.Less(t, len(token.Prefix), len(secret)/2,
-					"the stored prefix must be far too short to authenticate with")
+				require.Len(t, token.LastFour, 4)
+				require.True(t, strings.HasSuffix(secret, token.LastFour))
+				require.Equal(t, "nin_••••"+token.LastFour, logic.MaskedAPIToken(token))
 			},
 		},
 		{
@@ -151,7 +151,7 @@ func TestAPITokens(t *testing.T) {
 						UserID:    other.ID,
 						Name:      "expired",
 						TokenHash: hex.EncodeToString(sum[:]),
-						Prefix:    secret[:12],
+						LastFour:  secret[len(secret)-4:],
 						Scope:     logic.APITokenScopeRead,
 						ExpiresAt: sql.NullInt64{Int64: time.Now().Add(-time.Hour).Unix(), Valid: true},
 					})

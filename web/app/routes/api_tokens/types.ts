@@ -6,8 +6,8 @@ export type APITokenScope = "read" | "write";
 export interface APIToken {
   id: number;
   name: string;
-  /** The token's first characters, for telling tokens apart. */
-  prefix: string;
+  /** The token masked to its last four characters: `nin_••••wTEF`. */
+  masked: string;
   scope: APITokenScope;
   /** Unix seconds, or null for a token that never expires. */
   expires_at: number | null;

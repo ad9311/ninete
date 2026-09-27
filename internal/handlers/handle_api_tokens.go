@@ -11,11 +11,12 @@ import (
 )
 
 // apiTokenView is a token as the settings page sees it. The hash never leaves
-// the server; the prefix is all the page needs to tell tokens apart.
+// the server; the masked form ("nin_••••wTEF") is all the page needs to tell
+// tokens apart.
 type apiTokenView struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
-	Prefix     string `json:"prefix"`
+	Masked     string `json:"masked"`
 	Scope      string `json:"scope"`
 	ExpiresAt  *int64 `json:"expires_at"`
 	LastUsedAt *int64 `json:"last_used_at"`
@@ -52,7 +53,7 @@ func toAPITokenView(t repo.APIToken, now int64) apiTokenView {
 	view := apiTokenView{
 		ID:        t.ID,
 		Name:      t.Name,
-		Prefix:    t.Prefix,
+		Masked:    logic.MaskedAPIToken(t),
 		Scope:     t.Scope,
 		CreatedAt: t.CreatedAt,
 	}

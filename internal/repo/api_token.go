@@ -6,14 +6,14 @@ import (
 )
 
 // APIToken is a personal access token as stored. The plaintext never reaches
-// this struct: TokenHash is its SHA-256, and Prefix its first characters for
-// display.
+// this struct: TokenHash is its SHA-256, and LastFour its last four characters,
+// which the settings page shows masked.
 type APIToken struct {
 	ID         int
 	UserID     int
 	Name       string
 	TokenHash  string
-	Prefix     string
+	LastFour   string
 	Scope      string
 	ExpiresAt  sql.NullInt64
 	LastUsedAt sql.NullInt64
@@ -26,7 +26,7 @@ type InsertAPITokenParams struct {
 	UserID    int
 	Name      string
 	TokenHash string
-	Prefix    string
+	LastFour  string
 	Scope     string
 	ExpiresAt sql.NullInt64
 }
@@ -34,7 +34,7 @@ type InsertAPITokenParams struct {
 // apiTokenColumns pins the projection order the Scan calls in this file depend
 // on. SELECT * would resolve to whatever order the table happens to have, so an
 // ALTER TABLE could shift values into the wrong struct fields with no error.
-const apiTokenColumns = `"id", "user_id", "name", "token_hash", "prefix", "scope", ` +
+const apiTokenColumns = `"id", "user_id", "name", "token_hash", "last_four", "scope", ` +
 	`"expires_at", "last_used_at", "revoked_at", "created_at", "updated_at"`
 
 func scanAPIToken(row interface{ Scan(dest ...any) error }, t *APIToken) error {
@@ -43,7 +43,7 @@ func scanAPIToken(row interface{ Scan(dest ...any) error }, t *APIToken) error {
 		&t.UserID,
 		&t.Name,
 		&t.TokenHash,
-		&t.Prefix,
+		&t.LastFour,
 		&t.Scope,
 		&t.ExpiresAt,
 		&t.LastUsedAt,
@@ -130,7 +130,7 @@ func (q *TxQueries) CountActiveAPITokens(ctx context.Context, userID int, now in
 }
 
 const insertAPIToken = `
-INSERT INTO "api_tokens" ("user_id", "name", "token_hash", "prefix", "scope", "expires_at")
+INSERT INTO "api_tokens" ("user_id", "name", "token_hash", "last_four", "scope", "expires_at")
 VALUES (?, ?, ?, ?, ?, ?)
 RETURNING ` + apiTokenColumns
 
@@ -144,7 +144,7 @@ func (q *TxQueries) InsertAPIToken(ctx context.Context, params InsertAPITokenPar
 			params.UserID,
 			params.Name,
 			params.TokenHash,
-			params.Prefix,
+			params.LastFour,
 			params.Scope,
 			params.ExpiresAt,
 		)

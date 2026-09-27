@@ -3,8 +3,8 @@
 -- local MCP server; docs/architecture.md, "Bearer tokens") sends as
 -- "Authorization: Bearer". Only the SHA-256 of the token is stored — the
 -- plaintext is shown once, at creation.
--- "prefix" is the token's first characters, kept so the settings page can tell
--- tokens apart without holding anything that authenticates.
+-- "last_four" is the token's last four characters, kept so the settings page
+-- can show a masked token ("nin_••••wTEF") to tell tokens apart.
 --
 -- "expires_at" is NULL for a token that never expires. "revoked_at" is set
 -- rather than the row deleted, so a revoked token keeps answering 401 through
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS "api_tokens" (
   "user_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
   "name" TEXT NOT NULL,
   "token_hash" TEXT NOT NULL,
-  "prefix" TEXT NOT NULL,
+  "last_four" TEXT NOT NULL,
   "scope" TEXT NOT NULL CHECK ("scope" IN ('read', 'write')),
   "expires_at" INTEGER,
   "last_used_at" INTEGER,

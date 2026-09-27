@@ -100,7 +100,8 @@ client does not cost a write per call.
 
 Tokens are created, listed and revoked through `/api/tokens` from the browser only
 (`/account/tokens` in the SPA). The plaintext is returned once, by the `POST`; the server keeps
-only the hash and a display prefix. At most five tokens may be active per user (revoked and
+only the hash and the last four characters, which the page shows masked
+(`nin_••••wTEF`). At most five tokens may be active per user (revoked and
 expired ones do not count). "Delete all data" does not touch tokens — they are credentials, not
 data.
 

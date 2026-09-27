@@ -244,7 +244,7 @@
                   · {token.scope === "write" ? "read and write" : "read only"}
                 </span>
               </span>
-              <code class="text-sm text-muted">{token.prefix}…</code>
+              <code class="text-sm text-muted">{token.masked}</code>
               <span class="text-sm text-muted">
                 Created <LocalDate value={token.created_at} datetime />
                 ·
