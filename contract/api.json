@@ -1,0 +1,274 @@
+{
+  "GET /api/categories": {
+    "response": {
+      "data": "array<object>",
+      "data[].id": "integer",
+      "data[].name": "string"
+    }
+  },
+  "GET /api/dashboard": {
+    "response": {
+      "data": "object",
+      "data.last_month_total": "integer",
+      "data.month_change_pct": "integer",
+      "data.month_change_sign": "string",
+      "data.this_month_total": "integer",
+      "data.top_categories": "array<object>",
+      "data.top_categories[].name": "string",
+      "data.top_categories[].total": "integer"
+    }
+  },
+  "GET /api/expenses": {
+    "response": {
+      "data": "array<object>",
+      "data[].amount": "integer",
+      "data[].category_id": "integer",
+      "data[].category_name": "string",
+      "data[].created_at": "integer",
+      "data[].date": "integer",
+      "data[].description": "string",
+      "data[].id": "integer",
+      "data[].tags": "array<string>",
+      "pagination": "object",
+      "pagination.category_id": "integer",
+      "pagination.current_page": "integer",
+      "pagination.has_next": "boolean",
+      "pagination.has_prev": "boolean",
+      "pagination.per_page": "integer",
+      "pagination.sort_field": "string",
+      "pagination.sort_order": "string",
+      "pagination.total_count": "integer",
+      "pagination.total_pages": "integer"
+    }
+  },
+  "GET /api/expenses/budgets": {
+    "response": {
+      "edit_rows": "array<object>",
+      "edit_rows[].amount": "integer",
+      "edit_rows[].category_id": "integer",
+      "edit_rows[].name": "string",
+      "mode": "string",
+      "rows": "array<object>",
+      "rows[].avg_per_month": "integer",
+      "rows[].bar_pct": "integer",
+      "rows[].budget": "integer",
+      "rows[].category_name": "string",
+      "rows[].has_budget": "boolean",
+      "rows[].left": "integer",
+      "rows[].month_count": "integer",
+      "rows[].months": "array<object>",
+      "rows[].months[].bar_pct": "integer",
+      "rows[].months[].month": "string",
+      "rows[].months[].over": "boolean",
+      "rows[].months[].pct": "integer",
+      "rows[].months[].total": "integer",
+      "rows[].months_over": "integer",
+      "rows[].over": "boolean",
+      "rows[].pct": "integer",
+      "rows[].total": "integer"
+    }
+  },
+  "GET /api/expenses/stats": {
+    "response": {
+      "data": "array<object>",
+      "data[].name": "string",
+      "data[].total": "integer"
+    }
+  },
+  "GET /api/expenses/{id}": {
+    "response": {
+      "amount": "integer",
+      "category_id": "integer",
+      "category_name": "string",
+      "created_at": "integer",
+      "date": "integer",
+      "description": "string",
+      "id": "integer",
+      "note": "string",
+      "tags": "array<string>"
+    }
+  },
+  "GET /api/recurrent-expenses": {
+    "response": {
+      "data": "array<object>",
+      "data[].amount": "integer",
+      "data[].archived": "boolean",
+      "data[].category_id": "integer",
+      "data[].category_name": "string",
+      "data[].description": "string",
+      "data[].id": "integer",
+      "data[].occurrence_count": "integer",
+      "data[].occurrence_limit": "integer",
+      "data[].period": "integer",
+      "data[].tags": "array<string>",
+      "pagination": "object",
+      "pagination.category_id": "integer",
+      "pagination.current_page": "integer",
+      "pagination.has_next": "boolean",
+      "pagination.has_prev": "boolean",
+      "pagination.per_page": "integer",
+      "pagination.sort_field": "string",
+      "pagination.sort_order": "string",
+      "pagination.total_count": "integer",
+      "pagination.total_pages": "integer"
+    }
+  },
+  "GET /api/recurrent-expenses/{id}": {
+    "response": {
+      "amount": "integer",
+      "archived": "boolean",
+      "category_id": "integer",
+      "category_name": "string",
+      "description": "string",
+      "id": "integer",
+      "occurrence_count": "integer",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    }
+  },
+  "GET /api/report-settings": {
+    "response": {
+      "selected_tag_ids": "array<integer>",
+      "tag_limit": "integer",
+      "tags": "array<object>",
+      "tags[].id": "integer",
+      "tags[].name": "string"
+    }
+  },
+  "GET /api/session": {
+    "response": {
+      "email": "string",
+      "id": "integer",
+      "username": "string"
+    }
+  },
+  "POST /api/expenses": {
+    "request": {
+      "amount": "integer",
+      "category_id": "integer",
+      "date": "integer",
+      "description": "string",
+      "note": "string",
+      "tags": "array<string>"
+    },
+    "response": {
+      "amount": "integer",
+      "category_id": "integer",
+      "category_name": "string",
+      "created_at": "integer",
+      "date": "integer",
+      "description": "string",
+      "id": "integer",
+      "note": "string",
+      "tags": "array<string>"
+    }
+  },
+  "POST /api/expenses/quick": {
+    "request": {
+      "category_id": "integer",
+      "quick_input": "string",
+      "tz_offset": "integer"
+    },
+    "response": {
+      "amount": "integer",
+      "category_id": "integer",
+      "category_name": "string",
+      "created_at": "integer",
+      "date": "integer",
+      "description": "string",
+      "id": "integer",
+      "note": "string",
+      "tags": "array<string>"
+    }
+  },
+  "POST /api/recurrent-expenses": {
+    "request": {
+      "amount": "integer",
+      "category_id": "integer",
+      "description": "string",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    },
+    "response": {
+      "amount": "integer",
+      "archived": "boolean",
+      "category_id": "integer",
+      "category_name": "string",
+      "description": "string",
+      "id": "integer",
+      "occurrence_count": "integer",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    }
+  },
+  "POST /api/recurrent-expenses/{id}/unarchive": {
+    "response": {
+      "amount": "integer",
+      "archived": "boolean",
+      "category_id": "integer",
+      "category_name": "string",
+      "description": "string",
+      "id": "integer",
+      "occurrence_count": "integer",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    }
+  },
+  "PUT /api/expenses/budgets": {
+    "request": {
+      "amounts": "map<integer>"
+    }
+  },
+  "PUT /api/expenses/{id}": {
+    "request": {
+      "amount": "integer",
+      "category_id": "integer",
+      "date": "integer",
+      "description": "string",
+      "note": "string",
+      "tags": "array<string>"
+    },
+    "response": {
+      "amount": "integer",
+      "category_id": "integer",
+      "category_name": "string",
+      "created_at": "integer",
+      "date": "integer",
+      "description": "string",
+      "id": "integer",
+      "note": "string",
+      "tags": "array<string>"
+    }
+  },
+  "PUT /api/recurrent-expenses/{id}": {
+    "request": {
+      "amount": "integer",
+      "category_id": "integer",
+      "description": "string",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    },
+    "response": {
+      "amount": "integer",
+      "archived": "boolean",
+      "category_id": "integer",
+      "category_name": "string",
+      "description": "string",
+      "id": "integer",
+      "occurrence_count": "integer",
+      "occurrence_limit": "integer",
+      "period": "integer",
+      "tags": "array<string>"
+    }
+  },
+  "PUT /api/report-settings": {
+    "request": {
+      "tag_ids": "array<integer>"
+    }
+  }
+}

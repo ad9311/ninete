@@ -72,7 +72,7 @@ design — a JSON response has no document to constrain.
 ### Bearer tokens (`tokenAuth`)
 
 The group also accepts a personal access token, sent as `Authorization: Bearer nin_…`, for
-clients that are not a browser — the local MCP server is the one they exist for. `tokenAuth`
+clients that are not a browser — the local MCP server (`docs/mcp.md`) is the one they exist for. `tokenAuth`
 (`internal/serve/middleware.go`) runs after the timeout and before `apiCSRF`, so the chain is:
 session → body cap → timeout → `tokenAuth` → `apiCSRF` → `apiAuth`.
 

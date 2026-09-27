@@ -32,6 +32,16 @@ jobs:
         with:
           version: v2.13.1
 
+      # mcp/ is a separate Go module, which the root run above never enters.
+      # Without this step the MCP server would go unlinted while the job stays
+      # green.
+      - name: golangci-lint (mcp)
+        if: ${{ !cancelled() }}
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.13.1
+          working-directory: mcp
+
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest
