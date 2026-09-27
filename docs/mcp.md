@@ -132,11 +132,11 @@ If the token leaks, revoke it at `/account/tokens`; it stops working on the next
 
 Amounts are decimal strings in the account's currency (`"12.50"`), converted to and from the API's
 integer cents without floats. An expense's `billed_month` is `YYYY-MM` — the month it counts toward,
-stored by the API as UTC midnight of the 1st, so it needs no zone.
+sent to the API as UTC midnight of the 1st (the API stores the epoch as given), so it needs no zone.
 
 | Tool | Scope | Notes |
 | --- | --- | --- |
-| `search_expenses` | read | Text, tag, category; billed-month range **or** created-day range, not both (the server would silently drop the first); pages of 15/25/50/100 |
+| `search_expenses` | read | Text, tag, category; billed-month range **or** created-day range, not both (the server would silently drop the first); pages of 15/25/50/100. `sort_field=date` sorts by billed month with ties in id order — an old row carrying a mid-month day sorts after its month's other rows ascending and before them descending (see `CLAUDE.md` on the billed date). A created-day range may span months, e.g. a card cycle Aug 22 – Sep 21 |
 | `get_expense` | read | Includes the note, which list results never carry |
 | `create_expense` | write | `billed_month` defaults to the current month in `NINETE_TZ` |
 | `quick_add_expense` | write | The app's one-line quick-add. Sends `tz_offset` from `NINETE_TZ`. When the description has no remembered category, fails asking for `category_id` |

@@ -197,13 +197,17 @@ func seedExpenses(s *logic.Store, userID int) error {
 
 	tagPool := []string{"essential", "discretionary", "monthly", "one-time", "recurring"}
 
+	now := time.Now()
+
 	for i := range 50 {
 		var tags []string
 		if i%3 == 0 {
 			tags = []string{tagPool[i%5], tagPool[(i+1)%5]}
 		}
 
-		date := time.Now().AddDate(0, -(i / 4), -(i*7)%28).Unix()
+		// The billed month, stored as UTC midnight on the 1st like every other
+		// writer; time.Date normalizes a month below 1 into the previous year.
+		date := time.Date(now.Year(), now.Month()-time.Month(i/4), 1, 0, 0, 0, 0, time.UTC).Unix()
 
 		if _, err := s.CreateExpense(ctx, userID, logic.ExpenseParams{
 			CategoryID:  (i % len(CategoryNames())) + 1,

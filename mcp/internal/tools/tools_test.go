@@ -236,6 +236,23 @@ func TestExpenseTools(t *testing.T) {
 			},
 		},
 		{
+			name: "should_default_the_sort_order_when_only_a_field_is_given",
+			fn: func(t *testing.T) {
+				session, fake := connect(t, map[string]func([]byte) (int, string){
+					"GET /api/expenses": ok(`{"data":[],"pagination":{}}`),
+				})
+
+				var out tools.ExpenseListOutput
+				call(t, session, "search_expenses", map[string]any{"sort_field": "date"}, &out)
+
+				// The server rejects a field without an order, so the tool
+				// must send the documented default itself.
+				req := fake.last(http.MethodGet, "/api/expenses")
+				require.Equal(t, "date", req.query.Get("sort_field"))
+				require.Equal(t, "DESC", req.query.Get("sort_order"))
+			},
+		},
+		{
 			name: "should_search_by_creation_day_in_the_configured_zone",
 			fn: func(t *testing.T) {
 				session, fake := connect(t, map[string]func([]byte) (int, string){

@@ -31,8 +31,9 @@ type SearchExpensesInput struct {
 	CreatedTo   string `json:"created_to,omitempty" jsonschema:"last creation day, YYYY-MM-DD (default created_from)"`
 	Page        int    `json:"page,omitempty" jsonschema:"page number, from 1"`
 	PerPage     int    `json:"per_page,omitempty" jsonschema:"results per page: 15, 25, 50 or 100 (default 25)"`
-	SortField   string `json:"sort_field,omitempty" jsonschema:"created_at (default), date, amount or description"`
-	SortOrder   string `json:"sort_order,omitempty" jsonschema:"asc or desc (default desc)"`
+	//nolint:lll // struct tags cannot wrap
+	SortField string `json:"sort_field,omitempty" jsonschema:"created_at (default), date (billed month; ties in id order), amount or description"`
+	SortOrder string `json:"sort_order,omitempty" jsonschema:"asc or desc (default desc)"`
 }
 
 type ExpenseListOutput struct {
@@ -79,7 +80,10 @@ func registerExpenseTools(server *mcp.Server, d Deps) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "search_expenses",
 		Description: "Search and list expenses, newest first by default. With no filters it lists every " +
-			"expense, a page at a time. Filter by billed month or by the day it was recorded, not both." +
+			"expense, a page at a time. Filter by billed month or by the day it was recorded, not both; a " +
+			"recorded-day range may span months (e.g. a card cycle). Sorting by date orders by billed month, " +
+			"but some older expenses store a day inside their month, so they sort after that month's others " +
+			"when ascending and before them when descending." +
 			userDataNote,
 		Annotations: readOnly("Search expenses"),
 	}, d.searchExpenses)
@@ -239,6 +243,10 @@ func setSort(query url.Values, field, order string, allowed []string) error {
 		}
 
 		query.Set("sort_order", upper)
+	} else if field != "" {
+		// The reverse holds too: a field with no order is rejected by the
+		// server's sort builder, so send the documented default.
+		query.Set("sort_order", "DESC")
 	}
 
 	return nil
