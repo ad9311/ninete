@@ -72,3 +72,6 @@ tmp/
 
 # Private runbooks (host-specific notes, never committed)
 /docs/*.local.md
+
+# Bank statements and reconciliation work against production data (personal, never committed)
+/reconciliation/
