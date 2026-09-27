@@ -1,7 +1,8 @@
 -- +goose Up
 -- Personal access tokens: the credential a client other than the browser (the
--- local MCP server, docs/mcp.md) sends as "Authorization: Bearer". Only the
--- SHA-256 of the token is stored — the plaintext is shown once, at creation.
+-- local MCP server; docs/architecture.md, "Bearer tokens") sends as
+-- "Authorization: Bearer". Only the SHA-256 of the token is stored — the
+-- plaintext is shown once, at creation.
 -- "prefix" is the token's first characters, kept so the settings page can tell
 -- tokens apart without holding anything that authenticates.
 --

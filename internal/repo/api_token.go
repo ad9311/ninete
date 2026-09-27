@@ -190,11 +190,11 @@ func (q *Queries) RevokeAPIToken(ctx context.Context, id, userID int) (int64, er
 //
 //nolint:gosec // G101: SQL naming a token table, not a credential
 const updateAPITokenLastUsed = `
-UPDATE "api_tokens" SET "last_used_at" = ? WHERE "id" = ?`
+UPDATE "api_tokens" SET "last_used_at" = ? WHERE "id" = ? AND "user_id" = ?`
 
-func (q *Queries) UpdateAPITokenLastUsed(ctx context.Context, id int, usedAt int64) error {
+func (q *Queries) UpdateAPITokenLastUsed(ctx context.Context, id, userID int, usedAt int64) error {
 	return q.wrapQuery(updateAPITokenLastUsed, func() error {
-		_, err := q.db.ExecContext(ctx, updateAPITokenLastUsed, usedAt, id)
+		_, err := q.db.ExecContext(ctx, updateAPITokenLastUsed, usedAt, id, userID)
 
 		return err
 	})

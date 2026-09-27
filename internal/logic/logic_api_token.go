@@ -168,7 +168,7 @@ func (s *Store) AuthenticateAPIToken(ctx context.Context, plaintext string) (rep
 	if !token.LastUsedAt.Valid || now-token.LastUsedAt.Int64 >= apiTokenTouchInterval {
 		// Recording use is bookkeeping: failing it must not fail a request the
 		// token was valid for.
-		if err := s.queries.UpdateAPITokenLastUsed(ctx, token.ID, now); err != nil {
+		if err := s.queries.UpdateAPITokenLastUsed(ctx, token.ID, token.UserID, now); err != nil {
 			s.app.Logger.Errorf("failed to record api token use: %v", err)
 		} else {
 			token.LastUsedAt = sql.NullInt64{Int64: now, Valid: true}

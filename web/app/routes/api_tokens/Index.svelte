@@ -1,8 +1,9 @@
 <script lang="ts">
   // Personal access tokens: the credential the local MCP server sends as
-  // "Authorization: Bearer" (docs/mcp.md). /api/tokens is reachable from a
-  // browser session only — the server refuses it to a token — so this page is
-  // the one place tokens are created and revoked.
+  // "Authorization: Bearer" (docs/architecture.md, "Bearer tokens").
+  // /api/tokens is reachable from a browser session only — the server refuses
+  // it to a token — so this page is the one place tokens are created and
+  // revoked.
   //
   // The plaintext arrives once, in the POST response, and is kept only in
   // component state until the page is left. Nothing the server stores can
@@ -85,7 +86,6 @@
       });
       secret = result.secret;
       name = "";
-      await load();
     } catch (err) {
       if (err instanceof APIRequestError) {
         createError = err.message;
@@ -95,6 +95,17 @@
       }
     } finally {
       creating = false;
+    }
+
+    // Refreshed outside the create's try: the token already exists, so a
+    // failed reload must not read as a failed create and invite a second one.
+    if (secret) {
+      await load().catch((err) => {
+        loadError =
+          err instanceof APIRequestError
+            ? err.message
+            : "Something went wrong.";
+      });
     }
   }
 
