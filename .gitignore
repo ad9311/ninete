@@ -7,6 +7,9 @@
 
 # Agents
 /.claude/
+# Claude Code's project-scoped MCP config would hold a plain-text token
+# (docs/mcp.md), and this repository is public.
+/.mcp.json
 
 # Keep example and test env files in repo
 !.env.example

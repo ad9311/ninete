@@ -13,6 +13,7 @@ if a document is added, add it here too, or nobody will find it.
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, the expense export's JSON format, per-package reference | Orienting in unfamiliar packages, or reading or changing `/exports/expenses.json` |
 | `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind (since adopted — §4.1 carries the outcome note) and component libraries were deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
+| `docs/mcp.md` | The local MCP server in `mcp/`: why it is a separate module named outside the app's import path, the `contract/api.json` check that keeps its JSON types in step with the handlers, how to build, test and configure it, and its tools | Touching `mcp/`, or adding an `/api` route the MCP server should reach |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/monthly-report.md` | The monthly expense report: why its period is one calendar month of `date` and not a ragged credit-card cycle, the tag grouping rules, the two built phases (settings, PDF), and why the scheduled email was dropped | Touching the report, its settings, or anything that groups expenses by tag |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
@@ -140,6 +141,10 @@ with no error from SQLite or the driver.
 - `internal/task`: app-level task hooks executed by `cmd/task`.
 - `internal/spec`: test setup/factories for integration-style package tests.
 - Preferred dependency direction: handlers -> logic -> repo -> db.
+- `mcp/`: the local MCP server, a **separate Go module** (`github.com/ad9311/ninete-mcp`) that talks to
+  the app only over `/api/*` with a bearer token. Its module path sits outside `github.com/ad9311/ninete/`
+  on purpose, so the compiler refuses any `internal/*` import — do not rename it under the app's path.
+  The root `./...` never enters it; use `make test-mcp`/`make lint-mcp`. See `docs/mcp.md`.
 
 ## Feature and Route Map
 `internal/serve/routes.go` is the source of truth; this is the orientation map.
@@ -222,6 +227,14 @@ An expense carries an optional `note` (trimmed, at most 255 characters counted a
   `typecheck` CI job. Dropping either half leaves that language unchecked while
   the run still goes green.
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
+- `make test` does not cover `mcp/`, a separate module. Anything touching `mcp/` — or the JSON shape of
+  an `/api` route it reads — also needs `make test-mcp`. `make lint`/`make lint-fix` do lint it.
+- **`contract/api.json` is generated, never hand-edited.** It records the JSON of every
+  token-reachable `/api` route. Changing such a handler's request or response struct fails
+  `TestAPIContract` until you run `make contract`; `make test-mcp` then fails until `mcp/` follows.
+  Adding a token-reachable route fails `TestAPIContractCoversTokenRoutes` until it is in
+  `apiContract` (`internal/handlers/api_contract_internal_test.go`). `docs/mcp.md`, "Keeping the API
+  contract", has why.
 - `make test` is the Go suite only. Anything touching `web/app/` also needs `make test-js`,
   which runs the frontend suite in both configured time zones — see `web/app/README.md`.
 - Do not create ad-hoc/dynamic errors inline. Define reusable errors in the nearest `errs.go` file to where they are used.

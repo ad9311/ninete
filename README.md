@@ -133,6 +133,8 @@ The development build:
 - `make lint` — Run golangci-lint and shellcheck without fixing
 - `make lint-fix` — Run all formatters and linters with automatic fixes
 - `make lint-sh` — Run shellcheck over `scripts/*.sh` alone
+- `make build-mcp` / `make test-mcp` / `make lint-mcp` — Build, test or lint the local MCP server (`mcp/`, see `docs/mcp.md`)
+- `make contract` — Regenerate `contract/api.json` after changing the JSON of a token-reachable `/api` route
 - `make task name=<task>` — Run a task (see below)
 - `make clean` — Remove compiled binaries
 - `make clean-db` — Reset the development database

@@ -48,6 +48,29 @@ jobs:
           CGO_ENABLED=1 go build -o ./build/dev ./cmd/ninete/main.go
           ENV=test go test ./...
 
+  # mcp/ is a separate Go module: the root `go test ./...` above stops at its
+  # go.mod, so this job is the only thing running its tests. It needs no
+  # database, bundle or .env — the tests use a fake API server.
+  mcp-tests:
+    name: mcp-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: "mcp/go.mod"
+          cache: true
+          cache-dependency-path: "mcp/go.sum"
+
+      - name: Run tests
+        run: go test ./...
+
   # Both signs of UTC offset, as two steps in one job rather than a matrix. The
   # suite takes under a second, so parallelism buys nothing and a second job
   # would repeat the ~10s of checkout and install for it. See the comment in

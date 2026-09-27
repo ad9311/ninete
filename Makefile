@@ -24,7 +24,7 @@ VERSION_LDFLAGS   := -X $(INTERNAL_PATH)/prog.Version=$(VERSION) \
                      -X $(INTERNAL_PATH)/prog.BuildTime=$(BUILD_TIME)
 
 # ========= Phony =========
-.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static version snapshot
+.PHONY: help dev build build-final deps lint lint-fix lint-sh build-static version snapshot build-mcp test-mcp lint-mcp contract
 
 # ========= App / Dev =========
 build: ## Build the application binary
@@ -128,10 +128,37 @@ test-js: ## Runs the JS/Svelte tests in both configured zones
 	@echo "Running JS tests (America/Los_Angeles)..."
 	TEST_TZ=America/Los_Angeles bun run test:js
 
+# ========= API contract =========
+# contract/api.json records the JSON shape of every token-reachable /api route,
+# generated from the handler structs. The Go suite fails when it is stale, and
+# mcp/'s suite fails when the MCP server's copies disagree with it. Regenerate
+# after changing a handler's JSON, then fix mcp/ until `make test-mcp` passes.
+contract: clean-test-db ## Regenerate contract/api.json from the handler structs
+	@mkdir -p ./data/db/test
+	ENV=test go test ./internal/handlers -run '^TestAPIContract$$' -update
+
+# ========= MCP server =========
+# mcp/ is its own Go module (github.com/ad9311/ninete-mcp), so the root
+# module's ./... never reaches it: go test, go build and golangci-lint all stop
+# at the nested go.mod. These targets, and the lint/lint-fix steps below, are
+# the only things that check it. See docs/mcp.md.
+build-mcp: ## Build the local MCP server binary into ./build/ninete-mcp
+	@echo "Building MCP server..."
+	cd mcp && CGO_ENABLED=0 go build -ldflags "-X main.version=$(VERSION)" -o ../build/ninete-mcp .
+
+test-mcp: ## Run the MCP server's tests
+	@echo "Running MCP server tests..."
+	cd mcp && go test ./...
+
+lint-mcp: ## Run golangci-lint over the MCP server module
+	@echo "Running golangci-lint (mcp)..."
+	cd mcp && golangci-lint run
+
 # ========= Linting =========
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."
 	golangci-lint run
+	@$(MAKE) --no-print-directory lint-mcp
 	@$(MAKE) --no-print-directory lint-sh
 
 # The bun steps run before golangci on purpose: make stops at the first failing
@@ -147,6 +174,8 @@ lint-fix: ## Run golangci-lint with automatic fixes
 	bun run typecheck:svelte
 	@echo "Running golangci-lint (with --fix)..."
 	golangci-lint run --fix
+	@echo "Running golangci-lint (mcp, with --fix)..."
+	cd mcp && golangci-lint run --fix
 	@$(MAKE) --no-print-directory lint-sh
 
 # Runs last in lint/lint-fix, and skips itself when shellcheck is absent, so a
