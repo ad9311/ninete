@@ -29,6 +29,12 @@ var (
 	ErrAPIUnavailable   = errors.New("the request could not be completed, please try again")
 	ErrAPIInvalidJSON   = errors.New("request body must be valid JSON")
 
+	// Bearer-token refusals. ErrTokenNotAllowed covers what no token may do at
+	// all (DELETE, delete-data, token management); ErrTokenScope a read token
+	// attempting a write.
+	ErrTokenNotAllowed = errors.New("this request is not available to API tokens")
+	ErrTokenScope      = errors.New("this token's scope does not allow this request")
+
 	ErrBudgetCategoryField = errors.New("invalid budget field name")
 	ErrSearchTermTooLong   = errors.New("search terms must be at most 50 characters")
 

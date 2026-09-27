@@ -176,6 +176,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   billed date is month-precision and carries no zone — the §3.6 argument for
   client-resolved bounds does not apply to it.
   `docs/monthly-report.md` holds the report's rules.
+  `routes/api_tokens/` is `/account/tokens`, a load-create-revoke page against
+  `/api/tokens`. The token's plaintext arrives once, in the `POST` response,
+  and lives only in component state until the page is left — nothing the
+  server keeps can reproduce it. Expired tokens stay listed (the server sends
+  `expired`, so the page never compares against its own clock) but do not count
+  against the limit.
   `routes/login/` and `routes/register/` are the two the rest of the SPA
   assumes: `AuthMiddleware`'s guest exemption covers `/login`
   and `/register`, so a guest can reach them without being bounced elsewhere.

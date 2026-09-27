@@ -110,3 +110,17 @@ func (s *Spec) SaveExpenseBudgets(t *testing.T, userID int, amountByCategoryID m
 
 	require.NoError(t, s.Store.SaveExpenseBudgets(t.Context(), userID, amountByCategoryID))
 }
+
+// CreateAPIToken mints a never-expiring token and returns it with its
+// plaintext, which is what a test sends as the bearer credential.
+func (s *Spec) CreateAPIToken(t *testing.T, userID int, name, scope string) (repo.APIToken, string) {
+	t.Helper()
+
+	token, secret, err := s.Store.CreateAPIToken(t.Context(), userID, logic.APITokenParams{
+		Name:  name,
+		Scope: scope,
+	})
+	require.NoError(t, err)
+
+	return token, secret
+}

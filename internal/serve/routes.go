@@ -68,6 +68,14 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/report-settings", s.handlers.GetAPIReportSettings)
 		api.Put("/report-settings", s.handlers.PutAPIReportSettings)
 
+		// Session-only: tokenAuth keeps bearer tokens out of this group, so
+		// tokens are created and revoked from the browser alone.
+		api.Route("/tokens", func(tokens chi.Router) {
+			tokens.Get("/", s.handlers.GetAPITokens)
+			tokens.Post("/", s.handlers.PostAPITokens)
+			tokens.Delete("/{id}", s.handlers.DeleteAPIToken)
+		})
+
 		api.Route("/delete-data", func(deleteData chi.Router) {
 			deleteData.Get("/", s.handlers.GetAPIDeleteData)
 			deleteData.Delete("/", s.handlers.DeleteAPIDeleteDataAll)

@@ -142,3 +142,23 @@ func mergeCookies(existing, newer []*http.Cookie) []*http.Cookie {
 
 	return out
 }
+
+// NewBearerRequest builds an /api/* request authenticated by an API token
+// alone: no cookies, no CSRF token and no fetch metadata, the way a
+// non-browser client such as the MCP server sends it.
+func NewBearerRequest(method, url string, body any, token string) *http.Request {
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			panic(err)
+		}
+		reader = bytes.NewReader(data)
+	}
+
+	req := httptest.NewRequest(method, url, reader)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	return req
+}
