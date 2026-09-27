@@ -216,8 +216,8 @@ or updates an expense must do the same — the API accepts any epoch and does **
 this rule lives in the writers. Never store a purchase day there; `created_at` is the only
 day-precision date an expense has. Rows written before the billed-month change may still carry
 another day (it was never migrated, deliberately): month filters are unaffected, since every bound is
-a whole month, but a sort on `date` puts such a row after the same month's 1st-dated rows. Read
-`date` as a month, never as a day.
+a whole month, but a sort on `date` puts such a row after the same month's 1st-dated rows when ascending
+and before them when descending. Read `date` as a month, never as a day.
 
 An expense carries an optional `note` (trimmed, at most 255 characters counted as runes, `''` when absent). It belongs to the expense's own page only: `GET /api/expenses/{id}` and the POST/PUT responses return it through `apiExpenseDetail`, while the list's `apiExpense` leaves it out entirely. The JSON export includes it; the monthly report PDF, search and quick-add do not, and recurrent expenses have no note to copy.
 

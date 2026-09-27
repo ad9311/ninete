@@ -76,9 +76,10 @@ tags with no order.
 ## Timezone
 
 **There is no timezone anywhere in this feature, and none is needed.**
-`expenses.date` is a UTC-midnight month start, so every stored value is already
-month-precision and zone-free. The download's month arrives from the client as
-a plain `YYYY-MM`; turning it into `[start, end)` is calendar arithmetic on
+`expenses.date` is written as a UTC-midnight month start and read at month
+precision, so every stored value is zone-free (older rows may carry a day inside
+their month, which the whole-month bounds absorb). The download's month arrives
+from the client as a plain `YYYY-MM`; turning it into `[start, end)` is calendar arithmetic on
 values that carry no instant, so unlike the `/api/expenses*` ranges (§3.6 of
 `docs/spa-migration.md`) there is no client zone to resolve.
 
