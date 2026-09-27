@@ -42,6 +42,10 @@ var (
 
 	ErrReportTooManyTags = errors.New("too many grouping tags, 20 maximum")
 
+	ErrAPITokenLimit      = errors.New("token limit reached, 5 maximum; revoke one first")
+	ErrAPITokenInvalid    = errors.New("invalid, expired or revoked token")
+	ErrAPITokenGeneration = errors.New("failed to generate token")
+
 	ErrQuickExpenseFormat      = errors.New("quick expense must be: description, amount, month[, tags]")
 	ErrQuickExpenseDescription = errors.New("description must be between 3 and 50 characters")
 	ErrQuickExpenseAmount      = errors.New("invalid amount")

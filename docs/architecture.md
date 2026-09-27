@@ -69,6 +69,41 @@ response goes through `internal/handlers/api.go`'s JSON writers (`WriteJSON`, `W
 failures to a generic `500` that never quotes `err.Error()`. There is no CSP on this chain by
 design — a JSON response has no document to constrain.
 
+### Bearer tokens (`tokenAuth`)
+
+The group also accepts a personal access token, sent as `Authorization: Bearer nin_…`, for
+clients that are not a browser — the local MCP server is the one they exist for. `tokenAuth`
+(`internal/serve/middleware.go`) runs after the timeout and before `apiCSRF`, so the chain is:
+session → body cap → timeout → `tokenAuth` → `apiCSRF` → `apiAuth`.
+
+- **No header:** `tokenAuth` does nothing and the request takes the session path unchanged.
+- **Header present:** the session is never consulted again for that request. The token is
+  hashed (SHA-256) and looked up in `api_tokens`; unknown, revoked, expired or malformed answers
+  `401` with `WWW-Authenticate: Bearer`. It does **not** fall back to the session cookie — with a
+  fallback, a junk header plus an ambient cookie would ride the CSRF exemption below.
+- **Valid token:** the path must be on `tokenAPIPrefixes` (an allowlist: `/session`,
+  `/categories`, `/dashboard`, `/report-settings`, `/expenses`, `/recurrent-expenses`) and the
+  method must fit the scope — `read` allows `GET`, `write` adds `POST` and `PUT`, and **no scope
+  allows `DELETE`**. Anything else answers `403`. `/api/tokens`, `/api/delete-data`,
+  `/api/login` and `/api/register` are off the allowlist, so a token cannot mint tokens, wipe
+  data or open a session. A route added later stays browser-only until it is put on the list.
+- The token and its user go into the context (`KeyAPIToken`, `KeyCurrentUser`). `apiCSRF`
+  exempts a request carrying `KeyAPIToken` — an Authorization header is never attached by a
+  browser on its own, which is the attack CSRF defends against — and `apiAuth` passes it
+  through without touching the session.
+
+Failed bearer attempts are throttled per client (10 a minute) by `tokenFailureLimit`, which is
+separate from `authRateLimit` and counts only failures. Like `authRateLimit` it is off under
+`ENV=test` and covered directly in `internal/serve/token_auth_internal_test.go`. A successful
+request updates `last_used_at` at most once a minute (`logic.AuthenticateAPIToken`), so a busy
+client does not cost a write per call.
+
+Tokens are created, listed and revoked through `/api/tokens` from the browser only
+(`/account/tokens` in the SPA). The plaintext is returned once, by the `POST`; the server keeps
+only the hash and a display prefix. At most five tokens may be active per user (revoked and
+expired ones do not count). "Delete all data" does not touch tokens — they are credentials, not
+data.
+
 The session cookie is configured in `setUpSession` (`internal/serve/routes.go`):
 seven-day lifetime, `HttpOnly`, `SameSite=Lax`, persistent, named
 `ninete_session`, and `Secure` only in production.

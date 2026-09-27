@@ -74,6 +74,7 @@ func TestColumnConstantsMatchSchema(t *testing.T) {
 		table   string
 		columns string
 	}{
+		{"api_tokens", apiTokenColumns},
 		{"categories", categoryColumns},
 		{"expense_budgets", expenseBudgetColumns},
 		{"expense_category_mappings", expenseCategoryMappingColumns},

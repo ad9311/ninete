@@ -18,6 +18,11 @@
       hint: "Choose the tags the monthly report groups by.",
     },
     {
+      href: "/account/tokens",
+      title: "API tokens",
+      hint: "Let programs such as the MCP server use your account.",
+    },
+    {
       href: "/account/delete-data",
       title: "Delete data",
       hint: "Permanently remove records from your account.",

@@ -15,6 +15,7 @@ import (
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
@@ -111,11 +112,216 @@ func (s *Server) csrf(next http.Handler) http.Handler {
 
 // apiCSRF is the same protection with a JSON rejection, so a client parsing the
 // body sees the standard error envelope instead of nosurf's plain text.
+//
+// A bearer-authenticated request is exempt. CSRF exists because a browser
+// attaches the session cookie to a request another site triggers; nothing
+// attaches an Authorization header on its own, so a request carrying a valid
+// token cannot have been forged that way. The exemption keys off the token
+// tokenAuth put in the context — never off the header's mere presence — so a
+// request with a bad token was already answered 401 and never gets here.
 func (s *Server) apiCSRF(next http.Handler) http.Handler {
 	csrfHandler := s.newCSRFHandler(next)
 	csrfHandler.SetFailureHandler(http.HandlerFunc(s.handlers.APIForbidden))
+	csrfHandler.ExemptFunc(isTokenAuthenticated)
 
 	return csrfHandler
+}
+
+func isTokenAuthenticated(r *http.Request) bool {
+	token, ok := r.Context().Value(handlers.KeyAPIToken).(*repo.APIToken)
+
+	return ok && token != nil
+}
+
+// tokenAPIPrefixes are the only /api paths a bearer token may reach, matched
+// as whole path segments. An allowlist rather than a denylist on purpose: a
+// route added later stays browser-only until someone decides a token should
+// have it, instead of being open to tokens by default. /api/tokens,
+// /api/delete-data, /api/login and /api/register are left out deliberately —
+// a token cannot manage tokens, wipe data or open a session.
+var tokenAPIPrefixes = []string{ //nolint:gochecknoglobals // static allowlist
+	apiPathPrefix + "/session",
+	apiPathPrefix + "/categories",
+	apiPathPrefix + "/dashboard",
+	apiPathPrefix + "/report-settings",
+	apiPathPrefix + "/expenses",
+	apiPathPrefix + "/recurrent-expenses",
+}
+
+func tokenMayReach(path string) bool {
+	for _, prefix := range tokenAPIPrefixes {
+		if path == prefix || strings.HasPrefix(path, prefix+"/") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// tokenMethodAllowed maps a scope to the methods it grants. DELETE is in
+// neither: no token can remove anything, whatever its scope.
+func tokenMethodAllowed(scope, method string) bool {
+	switch method {
+	case http.MethodGet:
+		return scope == logic.APITokenScopeRead || scope == logic.APITokenScopeWrite
+	case http.MethodPost, http.MethodPut:
+		return scope == logic.APITokenScopeWrite
+	default:
+		return false
+	}
+}
+
+const bearerScheme = "bearer "
+
+// tokenAuth authenticates "Authorization: Bearer <token>" on the API chain. It
+// runs before apiCSRF and apiAuth, and a request without the header passes
+// through untouched to the session path.
+//
+// Once the header is present the session is out of the picture for good: a
+// malformed, unknown, expired or revoked token answers 401 and never falls
+// back to the cookie. Falling back would let a request with a junk header and
+// an ambient session cookie skip CSRF — the exemption would be keyed off the
+// wrong credential.
+//
+// failures throttles bad tokens per client; nil disables it, which is what
+// ENV=test uses. Only failures count, so a working client is never limited.
+func (s *Server) tokenAuth(failures *tokenFailureLimit) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			header := r.Header.Get("Authorization")
+			if header == "" {
+				next.ServeHTTP(w, r)
+
+				return
+			}
+
+			key, _ := keyByClientIP(r)
+			if failures.blocked(key) {
+				s.handlers.APITooManyRequests(w, r)
+
+				return
+			}
+
+			unauthorized := func() {
+				failures.record(w, r, key)
+				w.Header().Set("WWW-Authenticate", `Bearer realm="ninete"`)
+				s.handlers.APIUnauthorized(w, r)
+			}
+
+			if len(header) <= len(bearerScheme) || !strings.EqualFold(header[:len(bearerScheme)], bearerScheme) {
+				unauthorized()
+
+				return
+			}
+
+			ctx := r.Context()
+
+			token, err := s.store.AuthenticateAPIToken(ctx, strings.TrimSpace(header[len(bearerScheme):]))
+			if err != nil {
+				if errors.Is(err, logic.ErrAPITokenInvalid) {
+					unauthorized()
+
+					return
+				}
+
+				s.app.Logger.Errorf("failed to authenticate api token %v", err)
+				s.handlers.APIInternalError(w, r)
+
+				return
+			}
+
+			if !tokenMayReach(r.URL.Path) {
+				s.handlers.WriteJSONError(w, http.StatusForbidden, handlers.ErrTokenNotAllowed)
+
+				return
+			}
+
+			if !tokenMethodAllowed(token.Scope, r.Method) {
+				if r.Method == http.MethodPost || r.Method == http.MethodPut {
+					s.handlers.WriteJSONError(w, http.StatusForbidden, handlers.ErrTokenScope)
+
+					return
+				}
+
+				s.handlers.WriteJSONError(w, http.StatusForbidden, handlers.ErrTokenNotAllowed)
+
+				return
+			}
+
+			user, err := s.store.FindUser(ctx, token.UserID)
+			if err != nil {
+				// The foreign key cascades, so a token whose user is gone
+				// cannot normally exist; treat one as a dead credential.
+				if errors.Is(err, sql.ErrNoRows) {
+					unauthorized()
+
+					return
+				}
+
+				s.app.Logger.Errorf("failed to find api token user %v", err)
+				s.handlers.APIInternalError(w, r)
+
+				return
+			}
+
+			ctx = context.WithValue(ctx, handlers.KeyAPIToken, &token)
+			ctx = context.WithValue(ctx, handlers.KeyCurrentUser, &user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// Failed bearer attempts allowed per client per window. A configured client
+// never fails; something cycling through tokens hits this on the first burst.
+const (
+	tokenFailureLimitCount  = 10
+	tokenFailureLimitWindow = time.Minute
+)
+
+// tokenFailureLimit counts failed bearer attempts per client. It is separate
+// from authRateLimit on purpose: that value is shared by the two credential
+// routes and must not gain a third caller (the CLAUDE.md invariant), and it
+// counts every attempt, where this counts only failures.
+type tokenFailureLimit struct {
+	limiter *httprate.RateLimiter
+}
+
+func newTokenFailureLimit() *tokenFailureLimit {
+	return &tokenFailureLimit{
+		limiter: httprate.NewRateLimiter(tokenFailureLimitCount, tokenFailureLimitWindow),
+	}
+}
+
+// tokenFailures is the server's limiter, or nil under ENV=test, where the
+// failure paths are exercised far more often than a real client would.
+// TestTokenFailureLimit covers the limiter directly.
+func (s *Server) tokenFailures() *tokenFailureLimit {
+	if s.app.IsTest() {
+		return nil
+	}
+
+	return newTokenFailureLimit()
+}
+
+func (l *tokenFailureLimit) blocked(key string) bool {
+	if l == nil {
+		return false
+	}
+
+	_, rate, err := l.limiter.Status(key)
+	if err != nil {
+		return true
+	}
+
+	return rate >= tokenFailureLimitCount
+}
+
+func (l *tokenFailureLimit) record(w http.ResponseWriter, r *http.Request, key string) {
+	if l == nil {
+		return
+	}
+
+	l.limiter.OnLimit(w, r, key)
 }
 
 // apiAuth is the API's answer to AuthMiddleware: 401 with a JSON body instead
@@ -132,7 +338,9 @@ func (s *Server) apiAuth(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if guestAPIRoutes[r.URL.Path] {
+		// tokenAuth already authenticated this request and set the user; the
+		// session must not be consulted for it at all.
+		if guestAPIRoutes[r.URL.Path] || isTokenAuthenticated(r) {
 			next.ServeHTTP(w, r)
 
 			return
@@ -431,6 +639,9 @@ func (s *Server) setUpAPIMiddlewares(api chi.Router) {
 	api.Use(s.Session.LoadAndSave)
 	api.Use(s.limitRequestBody)
 	api.Use(s.WithTimeout(requestTimeout))
+	// tokenAuth must run before apiCSRF: the CSRF exemption reads the token it
+	// puts in the context.
+	api.Use(s.tokenAuth(s.tokenFailures()))
 	api.Use(s.apiCSRF)
 	api.Use(s.apiAuth)
 }

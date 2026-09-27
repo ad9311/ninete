@@ -9,6 +9,10 @@ const (
 	KeyCSPNonce         = ContextKey("cspNonce")
 	KeyExpense          = ContextKey("expenseID")
 	KeyRecurrentExpense = ContextKey("recurrentExpenseID")
+	// KeyAPIToken holds the *repo.APIToken a request authenticated with. Its
+	// presence is what marks a request as bearer-authenticated: apiCSRF
+	// exempts it and apiAuth skips the session for it.
+	KeyAPIToken = ContextKey("apiToken")
 
 	// Session keys used in the session store for auth state.
 	SessionIsUserSignedIn = "isUserSignedIn"

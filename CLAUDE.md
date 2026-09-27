@@ -85,6 +85,16 @@ in ~100 times from one address — and is covered directly in
 `internal/serve/middleware_internal_test.go` and
 `internal/serve/routes_internal_test.go` instead.
 
+**Bearer tokens never fall back to the session** — `tokenAuth`
+(`internal/serve/middleware.go`) runs before `apiCSRF`, and once an
+`Authorization` header is present the request is decided by the token alone: a
+bad one answers `401`, never the session path. `apiCSRF` exempts only requests
+carrying the `KeyAPIToken` that `tokenAuth` set, so a fallback would let a junk
+header plus an ambient cookie skip CSRF. Tokens reach only the paths on
+`tokenAPIPrefixes` — an allowlist, so **a new `/api` route is browser-only until
+you add it there** — and no scope may `DELETE`. `docs/architecture.md` ("Bearer
+tokens") has the details.
+
 **Render helpers need `setTmplData`** — anything calling a render helper must sit
 inside the app middleware group, which is why `GetApp` (the only render call
 left in the codebase) is registered on the group rather than the root router.
@@ -147,11 +157,11 @@ The SPA is served from `/` and there are no rendered pages. These are the routes
 | Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
-`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/delete-data` (+
+`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/tokens` (+ `/{id}`), `/api/delete-data` (+
 `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
 `/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
 `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
-`handle_api_report_settings.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_report_settings.go`, `handle_api_tokens.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
 `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
 `handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
 resource, shared by the API handlers above.
@@ -186,6 +196,11 @@ and nothing else. It carries the user's whole tag list in its `GET` response bec
 had a listing endpoint. The report has **no timezone anywhere**: the billed date is
 month-precision and carries no zone, the stored `timezone` was only ever there for a scheduled
 email, and both were dropped. See `docs/monthly-report.md`.
+
+`GET`/`POST /api/tokens` and `DELETE /api/tokens/{id}` manage personal access tokens — the
+bearer credential the local MCP server uses. They are session-only: `tokenAuth` keeps tokens off
+this group, so tokens are made and revoked in the browser (`/account/tokens`). The `DELETE`
+revokes (sets `revoked_at`) rather than removing the row.
 
 Cross-cutting: tags attach to expenses and recurrent expenses (`logic_tag.go`, `repo/tagging.go`); a recurrent expense copies its tags onto every expense it generates, and archives itself once it has generated `occurrence_limit` copies (0 means unlimited), staying out of the cron job until unarchived by hand; categories are global, not user-scoped (`logic_category.go`).
 
