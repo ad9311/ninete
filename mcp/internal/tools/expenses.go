@@ -82,7 +82,8 @@ func registerExpenseTools(server *mcp.Server, d Deps) {
 		Description: "Search and list expenses, newest first by default. With no filters it lists every " +
 			"expense, a page at a time. Filter by billed month or by the day it was recorded, not both; a " +
 			"recorded-day range may span months (e.g. a card cycle). Sorting by date orders by billed month, " +
-			"and some older expenses store a day inside their month, so they sort after that month's others." +
+			"but some older expenses store a day inside their month, so they sort after that month's others " +
+			"when ascending and before them when descending." +
 			userDataNote,
 		Annotations: readOnly("Search expenses"),
 	}, d.searchExpenses)
@@ -242,6 +243,10 @@ func setSort(query url.Values, field, order string, allowed []string) error {
 		}
 
 		query.Set("sort_order", upper)
+	} else if field != "" {
+		// The reverse holds too: a field with no order is rejected by the
+		// server's sort builder, so send the documented default.
+		query.Set("sort_order", "DESC")
 	}
 
 	return nil
