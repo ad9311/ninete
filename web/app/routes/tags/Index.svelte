@@ -91,6 +91,16 @@
     };
   });
 
+  // Every action starts from a clean slate: an error or notice left by an
+  // earlier action, of either kind, must not read as this one's outcome.
+  function clearFeedback(): void {
+    retagError = "";
+    retagFieldErrors = {};
+    retagMessage = "";
+    deleteError = "";
+    deleteMessage = "";
+  }
+
   function toggle(id: number, checked: boolean): void {
     retagMessage = "";
     selectedIDs = checked
@@ -109,10 +119,7 @@
   async function retag(event: SubmitEvent): Promise<void> {
     event.preventDefault();
     retagging = true;
-    retagError = "";
-    retagFieldErrors = {};
-    retagMessage = "";
-    deleteMessage = "";
+    clearFeedback();
 
     let done = false;
     try {
@@ -145,9 +152,7 @@
     if (!confirm(question)) return;
 
     deleting = true;
-    deleteError = "";
-    deleteMessage = "";
-    retagMessage = "";
+    clearFeedback();
 
     let done = false;
     try {
@@ -167,9 +172,7 @@
     if (!confirm(`Delete ${plural(unusedCount, "unused tag")}?`)) return;
 
     deleting = true;
-    deleteError = "";
-    deleteMessage = "";
-    retagMessage = "";
+    clearFeedback();
 
     let done = false;
     try {

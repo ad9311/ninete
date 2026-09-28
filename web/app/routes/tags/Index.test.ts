@@ -134,6 +134,29 @@ describe("tags page", () => {
     });
   });
 
+  it("clears a failed delete's error when a retag then succeeds", async () => {
+    vi.mocked(del).mockRejectedValue(new Error("offline"));
+    vi.mocked(post).mockResolvedValue({
+      tag: { id: 9, name: "cab" },
+      retagged: 2,
+    });
+    render(Index);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Delete uber" }),
+    );
+    expect(await screen.findByText("Something went wrong.")).toBeTruthy();
+
+    await fireEvent.click(await checkbox("taxi"));
+    await fireEvent.input(screen.getByLabelText("Retag as"), {
+      target: { value: "cab" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Retag" }));
+
+    expect(await screen.findByText(/Moved 2 records onto "cab"/)).toBeTruthy();
+    expect(screen.queryByText("Something went wrong.")).toBeNull();
+  });
+
   it("deletes nothing when the confirm is dismissed", async () => {
     vi.mocked(confirm).mockReturnValue(false);
     render(Index);
