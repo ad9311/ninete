@@ -51,7 +51,7 @@ Three tests hold it in place:
 
 | Test | Side | Fails when |
 | --- | --- | --- |
-| `TestAPIContract` (`internal/handlers/api_contract_internal_test.go`) | app | A handler's JSON changed and the file was not regenerated |
+| `TestAPIContract` (`internal/handlers/api_contract_internal_test.go`) | app | A handler's query keys or JSON changed and the file was not regenerated, or a `query`-tagged field is not a string or repeats a key |
 | `TestAPIContractCoversTokenRoutes` (`internal/serve/contract_internal_test.go`) | app | A token-reachable, non-`DELETE` route is missing from the file, or the file lists one the router no longer serves |
 | `TestContract` (`mcp/internal/api/contract_test.go`) | mcp | This module's types disagree with the file |
 
@@ -68,7 +68,7 @@ The tools test adds two more guards, both run over every request a tool sends to
 the route must be in `contracttest.Endpoints`, so a new call cannot bypass `TestContract`, and
 every query key must be one the file lists for that route (`contracttest.UnknownQueryKeys`).
 
-The workflow after changing a token-reachable handler's JSON:
+The workflow after changing a token-reachable handler's query keys or JSON:
 
 ```sh
 make contract     # regenerate contract/api.json; review its diff
