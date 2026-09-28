@@ -424,6 +424,43 @@ func TestRetag(t *testing.T) {
 			},
 		},
 		{
+			// An invariant guard, not a reproduction: the UPDATE OR IGNORE this
+			// replaced also passes, because SQLite applied it in rowid order,
+			// which matches tagging order. Nothing promised that order — the
+			// plan reads uq_taggings_tag_target, keyed by tag id, and
+			// rt_two_second's tag is created first to have the lower id — so
+			// this pins the survivor to the earliest tagging, as the report
+			// needs, rather than to whatever order SQLite picks.
+			name: "should_keep_the_report_section_when_the_record_carries_two_sources",
+			fn: func(t *testing.T) {
+				second := s.CreateTag(t, user.ID, "rt_two_second")
+				first := s.CreateTag(t, user.ID, "rt_two_first")
+				middle := s.CreateTag(t, user.ID, "rt_two_middle")
+				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					TagIDs: []int{first.ID, middle.ID, second.ID},
+				}))
+
+				// May 2024, a month no other case bills to.
+				month := time.Date(2024, time.May, 1, 0, 0, 0, 0, time.UTC)
+				expense := s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "retag two sources", 100, month.Unix(),
+					[]string{"rt_two_first", "rt_two_middle", "rt_two_second"}))
+
+				_, err := s.Store.Retag(ctx, user.ID, logic.RetagParams{
+					From: []string{"rt_two_first", "rt_two_second"},
+					To:   "rt_two_to",
+				})
+				require.NoError(t, err)
+
+				require.ElementsMatch(t, []string{"rt_two_middle", "rt_two_to"}, expenseTags(t, user.ID, expense.ID))
+
+				report, err := s.Store.BuildMonthlyReport(ctx, user.ID, month)
+				require.NoError(t, err)
+				require.Len(t, report.Sections, 1)
+				require.Equal(t, "rt_two_to", report.Sections[0].Name)
+			},
+		},
+		{
 			name: "should_leave_another_users_tag_of_the_same_name_alone",
 			fn: func(t *testing.T) {
 				s.CreateExpense(t, user.ID, newExpenseParams(
@@ -479,6 +516,113 @@ func TestRetag(t *testing.T) {
 					To:   "this_tag_name_is_way_too_long",
 				})
 				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}
+
+func TestTagUsages(t *testing.T) {
+	s := spec.New(t)
+	ctx := t.Context()
+	user := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "tag_usage_user_1",
+		Email:        "tag_usage_user_1@example.com",
+		PasswordHash: []byte("tag_usage_hash_1"),
+	})
+	otherUser := s.CreateUser(t, repo.InsertUserParams{
+		Username:     "tag_usage_user_2",
+		Email:        "tag_usage_user_2@example.com",
+		PasswordHash: []byte("tag_usage_hash_2"),
+	})
+	category := s.CreateCategory(t, "tag_usage_category")
+
+	usageByName := func(t *testing.T, userID int) map[string]repo.TagUsage {
+		t.Helper()
+
+		usages, err := s.Store.FindTagUsages(ctx, userID)
+		require.NoError(t, err)
+
+		m := make(map[string]repo.TagUsage, len(usages))
+		for _, u := range usages {
+			m[u.Name] = u
+		}
+
+		return m
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_count_each_taggable_kind_and_list_unused_tags",
+			fn: func(t *testing.T) {
+				s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "usage one", 100, 1735689600, []string{"tu_both", "tu_expense"}))
+				s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "usage two", 100, 1735689600, []string{"tu_both"}))
+				params := newRecurrentExpenseParams(category.ID, "usage recurrent", 100, 1)
+				params.Tags = []string{"tu_both"}
+				s.CreateRecurrentExpense(t, user.ID, params)
+				s.CreateTag(t, user.ID, "tu_unused")
+				s.CreateTag(t, otherUser.ID, "tu_foreign")
+
+				usages := usageByName(t, user.ID)
+				require.Equal(t, 2, usages["tu_both"].ExpenseCount)
+				require.Equal(t, 1, usages["tu_both"].RecurrentExpenseCount)
+				require.Equal(t, 1, usages["tu_expense"].ExpenseCount)
+				require.Zero(t, usages["tu_expense"].RecurrentExpenseCount)
+				require.Contains(t, usages, "tu_unused")
+				require.Zero(t, usages["tu_unused"].ExpenseCount)
+				require.NotContains(t, usages, "tu_foreign")
+			},
+		},
+		{
+			name: "should_delete_only_the_users_unused_tags",
+			fn: func(t *testing.T) {
+				s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "usage kept", 100, 1735689600, []string{"tu_in_use"}))
+				s.CreateTag(t, user.ID, "tu_orphan")
+				s.CreateTag(t, otherUser.ID, "tu_foreign_orphan")
+
+				deleted, err := s.Store.DeleteUnusedTags(ctx, user.ID)
+				require.NoError(t, err)
+				require.Positive(t, deleted)
+
+				usages := usageByName(t, user.ID)
+				require.Contains(t, usages, "tu_in_use")
+				require.NotContains(t, usages, "tu_orphan")
+				for _, u := range usages {
+					require.Positive(t, u.ExpenseCount+u.RecurrentExpenseCount, u.Name)
+				}
+
+				require.Contains(t, usageByName(t, otherUser.ID), "tu_foreign_orphan")
+			},
+		},
+		{
+			name: "should_detach_a_used_tag_from_its_records_and_the_report_when_deleted",
+			fn: func(t *testing.T) {
+				expense := s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "usage detach", 100, 1735689600, []string{"tu_delete_me", "tu_stays"}))
+				tag := usageByName(t, user.ID)["tu_delete_me"]
+				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					TagIDs: []int{tag.ID},
+				}))
+
+				_, err := s.Store.DeleteTag(ctx, tag.ID, user.ID)
+				require.NoError(t, err)
+
+				tags, err := s.Store.FindExpenseTags(ctx, expense.ID, user.ID)
+				require.NoError(t, err)
+				require.Equal(t, []string{"tu_stays"}, logic.ExtractTagNames(tags))
+
+				setting, err := s.Store.FindReportSetting(ctx, user.ID)
+				require.NoError(t, err)
+				require.Empty(t, setting.TagIDs)
 			},
 		},
 	}

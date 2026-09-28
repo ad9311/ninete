@@ -13,6 +13,11 @@
       hint: "Download your data as JSON files.",
     },
     {
+      href: "/account/tags",
+      title: "Tags",
+      hint: "Rename, merge and delete tags.",
+    },
+    {
       href: "/account/reports",
       title: "Monthly report",
       hint: "Choose the tags the monthly report groups by.",

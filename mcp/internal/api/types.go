@@ -153,6 +153,17 @@ type Tag struct {
 	Name string `json:"name"`
 }
 
+type TagUsage struct {
+	ID                    int    `json:"id"`
+	Name                  string `json:"name"`
+	ExpenseCount          int    `json:"expense_count"`
+	RecurrentExpenseCount int    `json:"recurrent_expense_count"`
+}
+
+type TagList struct {
+	Data []TagUsage `json:"data"`
+}
+
 type ReportSettings struct {
 	SelectedTagIDs []int `json:"selected_tag_ids"`
 	Tags           []Tag `json:"tags"`

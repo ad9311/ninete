@@ -3,8 +3,7 @@
   // The tags are the whole of the configuration (docs/monthly-report.md).
   //
   // The tag list rides along on GET /api/report-settings rather than coming
-  // from a listing endpoint of its own — tags are created as free text on the
-  // expense forms and have never had one.
+  // from GET /api/tags, so the page needs one request rather than two.
   import { Download } from "lucide";
   import Card from "../../components/Card.svelte";
   import CardAction from "../../components/CardAction.svelte";

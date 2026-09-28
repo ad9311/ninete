@@ -19,7 +19,15 @@ type CategoryListOutput struct {
 }
 
 type TagListOutput struct {
-	Tags []string `json:"tags"`
+	Tags []TagUsage `json:"tags"`
+}
+
+// TagUsage is a tag and how many records carry it; both counts at zero means
+// it is unused, typically left behind by retag.
+type TagUsage struct {
+	Name                  string `json:"name"`
+	ExpenseCount          int    `json:"expense_count"`
+	RecurrentExpenseCount int    `json:"recurrent_expense_count"`
 }
 
 type CategoryTotal struct {
@@ -136,7 +144,8 @@ func registerReferenceTools(server *mcp.Server, d Deps) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "list_tags",
-		Description: "List every tag the account has. Tags are created by adding them to an expense." +
+		Description: "List every tag the account has, with how many expenses and recurrent expenses " +
+			"carry each; a tag with neither is unused. Tags are created by adding them to an expense." +
 			userDataNote,
 		Annotations: readOnly("List tags"),
 	}, d.listTags)
@@ -208,25 +217,27 @@ func (d Deps) listCategories(
 	return nil, CategoryListOutput{Categories: categories}, nil
 }
 
-// listTags reads the tag list off /api/report-settings: there is no /api/tags
-// endpoint, and the settings response is the one place the whole list is sent.
 func (d Deps) listTags(
 	ctx context.Context, _ *mcp.CallToolRequest, _ NoInput,
 ) (*mcp.CallToolResult, TagListOutput, error) {
 	ctx, cancel := callContext(ctx)
 	defer cancel()
 
-	settings, err := d.fetchReportSettings(ctx)
-	if err != nil {
+	var list api.TagList
+	if err := d.API.Get(ctx, "/tags", nil, &list); err != nil {
 		return nil, TagListOutput{}, err
 	}
 
-	names := make([]string, 0, len(settings.Tags))
-	for _, tag := range settings.Tags {
-		names = append(names, tag.Name)
+	tags := make([]TagUsage, 0, len(list.Data))
+	for _, tag := range list.Data {
+		tags = append(tags, TagUsage{
+			Name:                  tag.Name,
+			ExpenseCount:          tag.ExpenseCount,
+			RecurrentExpenseCount: tag.RecurrentExpenseCount,
+		})
 	}
 
-	return nil, TagListOutput{Tags: names}, nil
+	return nil, TagListOutput{Tags: tags}, nil
 }
 
 func (d Deps) getDashboard(

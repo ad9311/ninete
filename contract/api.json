@@ -143,6 +143,15 @@
       "username": "string"
     }
   },
+  "GET /api/tags": {
+    "response": {
+      "data": "array<object>",
+      "data[].expense_count": "integer",
+      "data[].id": "integer",
+      "data[].name": "string",
+      "data[].recurrent_expense_count": "integer"
+    }
+  },
   "POST /api/expenses": {
     "request": {
       "amount": "integer",

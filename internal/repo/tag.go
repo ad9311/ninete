@@ -258,3 +258,86 @@ func selectTagsByUserAndNamesQuery(userID int, names []string) (string, []any) {
 
 	return query, values
 }
+
+// TagUsage is a tag with how many records of each taggable kind carry it.
+type TagUsage struct {
+	ID                    int
+	Name                  string
+	ExpenseCount          int
+	RecurrentExpenseCount int
+}
+
+const selectTagUsagesByUser = `
+SELECT t."id", t."name",
+  COUNT(CASE WHEN tg."taggable_type" = ? THEN 1 END),
+  COUNT(CASE WHEN tg."taggable_type" = ? THEN 1 END)
+FROM "tags" t
+LEFT JOIN "taggings" tg ON tg."tag_id" = t."id"
+WHERE t."user_id" = ?
+GROUP BY t."id"
+ORDER BY t."name" ASC`
+
+// SelectTagUsagesByUser lists every tag the user owns, unused ones included,
+// with its usage per taggable kind. The kinds are bound from Taggable rather
+// than written into the query, so they cannot drift from what the writers
+// store.
+func (q *Queries) SelectTagUsagesByUser(ctx context.Context, userID int) ([]TagUsage, error) {
+	var usages []TagUsage
+
+	err := q.wrapQuery(selectTagUsagesByUser, func() error {
+		rows, err := q.db.QueryContext(
+			ctx,
+			selectTagUsagesByUser,
+			TaggableExpense().Type(),
+			TaggableRecurrentExpense().Type(),
+			userID,
+		)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if closeErr := rows.Close(); closeErr != nil {
+				q.app.Logger.Error(closeErr)
+			}
+		}()
+
+		for rows.Next() {
+			var u TagUsage
+
+			if err := rows.Scan(&u.ID, &u.Name, &u.ExpenseCount, &u.RecurrentExpenseCount); err != nil {
+				return err
+			}
+
+			usages = append(usages, u)
+		}
+
+		return rows.Err()
+	})
+
+	return usages, err
+}
+
+const deleteUnusedTagsByUser = `
+DELETE FROM "tags"
+WHERE "user_id" = ?
+  AND NOT EXISTS (SELECT 1 FROM "taggings" tg WHERE tg."tag_id" = "tags"."id")`
+
+// DeleteUnusedTagsByUser removes every tag of the user's that no record
+// carries, and returns how many went. A grouping tag in the report settings
+// with no records goes too; its report_setting_tags row cascades with it.
+func (q *Queries) DeleteUnusedTagsByUser(ctx context.Context, userID int) (int, error) {
+	var n int64
+
+	err := q.wrapQuery(deleteUnusedTagsByUser, func() error {
+		res, err := q.db.ExecContext(ctx, deleteUnusedTagsByUser, userID)
+		if err != nil {
+			return err
+		}
+
+		n, err = res.RowsAffected()
+
+		return err
+	})
+
+	return int(n), err
+}

@@ -496,15 +496,20 @@ func TestRecurrentAndReferenceTools(t *testing.T) {
 			},
 		},
 		{
-			name: "should_list_tags_from_the_report_settings",
+			name: "should_list_tags_with_their_usage",
 			fn: func(t *testing.T) {
 				session, _ := connect(t, map[string]func([]byte) (int, string){
-					"GET /api/report-settings": ok(settingsJSON),
+					"GET /api/tags": ok(`{"data":[` +
+						`{"id":1,"name":"food","expense_count":3,"recurrent_expense_count":1},` +
+						`{"id":2,"name":"home","expense_count":0,"recurrent_expense_count":0}]}`),
 				})
 
 				var out tools.TagListOutput
 				call(t, session, "list_tags", map[string]any{}, &out)
-				require.Equal(t, []string{"food", "home"}, out.Tags)
+				require.Equal(t, []tools.TagUsage{
+					{Name: "food", ExpenseCount: 3, RecurrentExpenseCount: 1},
+					{Name: "home"},
+				}, out.Tags)
 			},
 		},
 	}

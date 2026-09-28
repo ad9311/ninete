@@ -13,9 +13,7 @@ type apiReportTag struct {
 }
 
 // apiReportSettingsResponse carries the user's whole tag list alongside the
-// selection, so the settings page needs one request rather than two. There is
-// no GET /api/tags to fetch them from — tags are created as free text on the
-// expense forms and have never had a listing endpoint of their own.
+// selection, so the settings page needs one request rather than two.
 type apiReportSettingsResponse struct {
 	SelectedTagIDs []int          `json:"selected_tag_ids"`
 	Tags           []apiReportTag `json:"tags"`

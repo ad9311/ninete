@@ -162,7 +162,7 @@ The SPA is served from `/` and there are no rendered pages. These are the routes
 | Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
-`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/tags/retag`, `/api/tokens` (+ `/{id}`), `/api/delete-data` (+
+`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/tags` (+ `/retag`, `/unused`, `/{id}`), `/api/tokens` (+ `/{id}`), `/api/delete-data` (+
 `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
 `/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
 `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
@@ -196,18 +196,24 @@ redirects rather than answering `401`). Three consequences worth knowing before 
   document to constrain.
 
 `GET`/`PUT /api/report-settings` is the monthly report's configuration — the tags it groups by,
-and nothing else. It carries the user's whole tag list in its `GET` response because there is no
-tag listing endpoint to fetch it from: tags are created as free text on the expense forms and
-have never had one. The report has **no timezone anywhere**: the billed date is
+and nothing else. It carries the user's whole tag list in its `GET` response, so the settings page needs one
+request rather than two. The report has **no timezone anywhere**: the billed date is
 month-precision and carries no zone, the stored `timezone` was only ever there for a scheduled
 email, and both were dropped. See `docs/monthly-report.md`.
 
 `POST /api/tags/retag` (`{"from": [...], "to": "..."}`) moves every expense and recurrent expense
 tagged with any `from` tag onto `to` in one transaction, creating `to` if needed; a rename is a
 retag to a new name. It **never deletes a tag**: the `from` tags stay, unused, for the owner to
-remove by hand. The report's grouping moves with them, and taggings are updated in place rather
+remove by hand on `/account/tags`. The report's grouping moves with them, and taggings are updated in place rather
 than copied, because the report files an expense by its earliest tagging. An unknown `from` name
 is a `422`, not a silent no-op.
+
+`GET /api/tags` lists every tag with its expense and recurrent-expense counts, unused tags
+included; `/account/tags` and the MCP server's `list_tags` read it. `DELETE
+/api/tags/{id}` removes a tag even when it is in use (its taggings and report-settings row
+cascade; the records stay) and `DELETE /api/tags/unused` removes every tag no record carries.
+`/tags` is on `tokenAPIPrefixes`, but no token may `DELETE`, so both deletes are browser-only and
+the MCP server keeps its no-delete guarantee.
 
 `GET`/`POST /api/tokens` and `DELETE /api/tokens/{id}` manage personal access tokens — the
 bearer credential the local MCP server uses. They are session-only: `tokenAuth` keeps tokens off
