@@ -154,6 +154,7 @@ sent to the API as UTC midnight of the 1st (the API stores the epoch as given), 
 | `set_budgets` | write | Only the categories listed change; `0` removes a budget |
 | `get_report_settings` | read | The monthly report's grouping tags, by name |
 | `set_report_settings` | write | Takes tag names and resolves them to ids; an unknown name is an error rather than silently dropped |
+| `retag` | write | One `POST /api/tags/retag`: moves every expense and recurrent expense from the `from` tags onto `to`, for renames and merges. The `from` tags are kept, unused — the owner deletes them in the app |
 
 Text the owner typed (descriptions, notes, tag names) comes back as data. The tool descriptions say
 so, so a model reading a note that looks like an instruction treats it as content.

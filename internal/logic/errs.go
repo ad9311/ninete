@@ -42,6 +42,9 @@ var (
 
 	ErrReportTooManyTags = errors.New("too many grouping tags, 20 maximum")
 
+	ErrRetagUnknownTag = errors.New("every tag to retag from must already exist")
+	ErrRetagSameTag    = errors.New("the tag to retag to cannot also be one to retag from")
+
 	ErrAPITokenLimit      = errors.New("token limit reached, 5 maximum; revoke one first")
 	ErrAPITokenInvalid    = errors.New("invalid, expired or revoked token")
 	ErrAPITokenGeneration = errors.New("failed to generate token")

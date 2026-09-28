@@ -41,6 +41,8 @@ func Endpoints() map[string]Endpoint {
 		"GET /api/report-settings": {nil, api.ReportSettings{}},
 		"PUT /api/report-settings": {api.ReportSettingsBody{}, nil},
 
+		"POST /api/tags/retag": {api.RetagBody{}, api.Retag{}},
+
 		"GET /api/expenses":         {nil, api.ExpenseList{}},
 		"POST /api/expenses":        {api.ExpenseBody{}, api.Expense{}},
 		"POST /api/expenses/quick":  {api.QuickExpenseBody{}, api.Expense{}},

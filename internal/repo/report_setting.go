@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -193,6 +194,49 @@ const deleteAllReportSettingsByUser = `DELETE FROM "report_settings" WHERE "user
 func (q *TxQueries) DeleteAllReportSettingsByUser(ctx context.Context, userID int) error {
 	return q.wrapQuery(deleteAllReportSettingsByUser, func() error {
 		_, err := q.tx.ExecContext(ctx, deleteAllReportSettingsByUser, userID)
+
+		return err
+	})
+}
+
+const copyReportSettingTagsToTagBase = `
+INSERT OR IGNORE INTO "report_setting_tags" ("report_setting_id", "tag_id")
+SELECT DISTINCT "report_setting_id", ?
+FROM "report_setting_tags"
+WHERE "tag_id" IN (%s)`
+
+const deleteReportSettingTagsByTagsBase = `
+DELETE FROM "report_setting_tags" WHERE "tag_id" IN (%s)`
+
+// MoveReportSettingTags makes the monthly report group by toID wherever it
+// grouped by any of fromIDs, so a retag does not leave the report pointing at
+// a tag with no expenses. It can only shrink the selection — several sources
+// collapse into one row through the unique index — so it never exceeds the
+// report's tag limit.
+//
+// The ids must already be scoped to one user, as for MoveTaggings.
+func (q *TxQueries) MoveReportSettingTags(ctx context.Context, fromIDs []int, toID int) error {
+	if len(fromIDs) == 0 {
+		return nil
+	}
+
+	placeholders, values := tagIDPlaceholders(fromIDs)
+
+	copyQuery := fmt.Sprintf(copyReportSettingTagsToTagBase, placeholders)
+
+	err := q.wrapQuery(copyQuery, func() error {
+		_, err := q.tx.ExecContext(ctx, copyQuery, append([]any{toID}, values...)...)
+
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	deleteQuery := fmt.Sprintf(deleteReportSettingTagsByTagsBase, placeholders)
+
+	return q.wrapQuery(deleteQuery, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteQuery, values...)
 
 		return err
 	})

@@ -162,3 +162,13 @@ type ReportSettings struct {
 type ReportSettingsBody struct {
 	TagIDs []int `json:"tag_ids"`
 }
+
+type RetagBody struct {
+	From []string `json:"from"`
+	To   string   `json:"to"`
+}
+
+type Retag struct {
+	Tag      Tag `json:"tag"`
+	Retagged int `json:"retagged"`
+}

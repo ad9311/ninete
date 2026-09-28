@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/ad9311/ninete/internal/prog"
@@ -200,4 +201,87 @@ func (s *Store) ensureTagsForUserTx(
 	}
 
 	return orderedTags, nil
+}
+
+// RetagParams moves every record tagged with any of From onto To. From is capped
+// at 20 names — well past what a person folds together at once, and there so
+// a request cannot make the move build an unbounded placeholder list.
+type RetagParams struct {
+	From []string `validate:"required,min=1,max=20"`
+	To   string   `validate:"required,max=20"`
+}
+
+// RetagResult is the tag the records now carry and how many distinct records
+// (expenses and recurrent expenses together) were moved onto it.
+type RetagResult struct {
+	Tag      repo.Tag
+	Retagged int
+}
+
+// Retag moves every expense and recurrent expense tagged with any of the From
+// tags onto To, in one transaction, creating To when it does not exist yet. A
+// rename is a retag to a new name.
+//
+// The From tags are deliberately left in place, unused: nothing is deleted, so
+// a mistaken retag loses no tag, and the owner removes orphans by hand. The
+// monthly report's grouping moves with the records — a report grouped by a
+// From tag groups by To afterwards — or it would keep a section that can no
+// longer match anything.
+//
+// An unknown From name is an error rather than being skipped: a typo would
+// otherwise create To, move nothing, and report success.
+func (s *Store) Retag(ctx context.Context, userID int, params RetagParams) (RetagResult, error) {
+	var result RetagResult
+
+	params.From = normalizeTagNames(params.From)
+	params.To = prog.NormalizeLowerTrim(params.To)
+	if err := s.ValidateStruct(params); err != nil {
+		return result, err
+	}
+
+	if slices.Contains(params.From, params.To) {
+		return result, ErrRetagSameTag
+	}
+
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		sources, err := tq.SelectTagsByUserAndNames(ctx, userID, params.From)
+		if err != nil {
+			return err
+		}
+
+		if len(sources) != len(params.From) {
+			return ErrRetagUnknownTag
+		}
+
+		targets, err := s.ensureTagsForUserTx(ctx, tq, userID, []string{params.To})
+		if err != nil {
+			return underField(err, "to")
+		}
+
+		sourceIDs := make([]int, 0, len(sources))
+		for _, tag := range sources {
+			sourceIDs = append(sourceIDs, tag.ID)
+		}
+
+		target := targets[0]
+
+		retagged, err := tq.CountTaggedTargets(ctx, sourceIDs)
+		if err != nil {
+			return err
+		}
+
+		if err := tq.MoveTaggings(ctx, sourceIDs, target.ID); err != nil {
+			return err
+		}
+
+		if err := tq.MoveReportSettingTags(ctx, sourceIDs, target.ID); err != nil {
+			return err
+		}
+
+		result = RetagResult{Tag: target, Retagged: retagged}
+
+		return nil
+	})
+
+	return result, err
 }

@@ -116,6 +116,17 @@ type SetReportSettingsInput struct {
 	Tags []string `json:"tags" jsonschema:"tag names to group the monthly report by; an empty list means one flat list"`
 }
 
+//nolint:lll // struct tags cannot wrap
+type RetagInput struct {
+	From []string `json:"from" jsonschema:"existing tag names to move off every expense and recurrent expense; at most 20"`
+	To   string   `json:"to" jsonschema:"tag name to move them onto; created when it does not exist yet"`
+}
+
+type RetagOutput struct {
+	Tag      string `json:"tag" jsonschema:"the tag the records now carry"`
+	Retagged int    `json:"retagged" jsonschema:"distinct expenses and recurrent expenses moved onto it"`
+}
+
 func registerReferenceTools(server *mcp.Server, d Deps) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_categories",
@@ -167,6 +178,15 @@ func registerReferenceTools(server *mcp.Server, d Deps) {
 			"Only existing tags can be chosen." + userDataNote,
 		Annotations: overwrites("Set report settings"),
 	}, d.setReportSettings)
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "retag",
+		Description: "Move every expense and recurrent expense tagged with any of the from tags onto the to " +
+			"tag, in one step. Renames a tag (to a new name) or merges several (into an existing one). " +
+			"The from tags are kept, now unused; the owner deletes them in the app. The monthly report " +
+			"groups by the to tag wherever it grouped by a from tag." + userDataNote,
+		Annotations: overwrites("Retag"),
+	}, d.retag)
 }
 
 func (d Deps) listCategories(
@@ -496,4 +516,22 @@ func (d Deps) setReportSettings(
 	}
 
 	return nil, toReportSettingsOutput(updated), nil
+}
+
+// retag is one request: the server resolves the names itself and refuses an
+// unknown from tag, so nothing is looked up here first.
+func (d Deps) retag(
+	ctx context.Context, _ *mcp.CallToolRequest, in RetagInput,
+) (*mcp.CallToolResult, RetagOutput, error) {
+	ctx, cancel := callContext(ctx)
+	defer cancel()
+
+	var result api.Retag
+
+	body := api.RetagBody{From: nonNil(in.From), To: in.To}
+	if err := d.API.Post(ctx, "/tags/retag", body, &result); err != nil {
+		return nil, RetagOutput{}, err
+	}
+
+	return nil, RetagOutput{Tag: result.Tag.Name, Retagged: result.Retagged}, nil
 }

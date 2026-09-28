@@ -185,7 +185,7 @@ func TestToolList(t *testing.T) {
 		"list_recurrent_expenses", "get_recurrent_expense", "create_recurrent_expense",
 		"update_recurrent_expense", "unarchive_recurrent_expense",
 		"list_categories", "list_tags", "get_dashboard", "get_expense_stats",
-		"get_budgets", "set_budgets", "get_report_settings", "set_report_settings",
+		"get_budgets", "set_budgets", "get_report_settings", "set_report_settings", "retag",
 	}, names)
 }
 
@@ -438,6 +438,22 @@ func TestRecurrentAndReferenceTools(t *testing.T) {
 				msg := call(t, session, "set_report_settings", map[string]any{"tags": []string{"travel"}}, nil)
 				require.Contains(t, msg, "travel")
 				require.Empty(t, fake.last(http.MethodPut, "/api/report-settings").method, "nothing may be saved")
+			},
+		},
+		{
+			name: "should_retag_in_one_request",
+			fn: func(t *testing.T) {
+				session, fake := connect(t, map[string]func([]byte) (int, string){
+					"POST /api/tags/retag": ok(`{"tag":{"id":9,"name":"transport"},"retagged":4}`),
+				})
+
+				var out tools.RetagOutput
+				call(t, session, "retag", map[string]any{"from": []string{"uber", "taxi"}, "to": "transport"}, &out)
+
+				body := fake.last(http.MethodPost, "/api/tags/retag").body
+				require.Equal(t, []any{"uber", "taxi"}, body["from"])
+				require.Equal(t, "transport", body["to"])
+				require.Equal(t, tools.RetagOutput{Tag: "transport", Retagged: 4}, out)
 			},
 		},
 		{
