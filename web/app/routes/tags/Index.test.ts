@@ -25,7 +25,7 @@ vi.mock("../../lib/api", async () => {
 
 vi.mock("../../router", () => ({ BASE_PATH: "" }));
 
-import { del, get, post } from "../../lib/api";
+import { APIRequestError, del, get, post } from "../../lib/api";
 import Index from "./Index.svelte";
 
 const TAGS = {
@@ -51,6 +51,13 @@ async function checkbox(name: string): Promise<HTMLInputElement> {
   return (await screen.findByRole("checkbox", {
     name: new RegExp(`^${name}\\b`),
   })) as HTMLInputElement;
+}
+
+// Lets a submit handler run to its end. The error shows mid-handler, so a
+// check made as soon as it appears would run before the handler decides what
+// to reset, and would pass whatever it decided.
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe("tags page", () => {
@@ -206,7 +213,9 @@ describe("tags page", () => {
     });
   });
 
-  it("clears a failed delete's error when a rename then succeeds", async () => {
+  // Goes through the merge bar on purpose: Rename clears messages when its
+  // editor opens, so only run() stands between a stale error and a merge.
+  it("clears a failed delete's error when a merge then succeeds", async () => {
     vi.mocked(del).mockRejectedValue(new Error("offline"));
     vi.mocked(post).mockResolvedValue({
       tag: { id: 9, name: "cab" },
@@ -215,18 +224,58 @@ describe("tags page", () => {
     render(Index);
 
     await fireEvent.click(
-      await screen.findByRole("button", { name: "Delete uber" }),
+      await screen.findByRole("button", { name: "Delete old" }),
     );
     expect(await screen.findByText("Something went wrong.")).toBeTruthy();
 
-    await fireEvent.click(screen.getByRole("button", { name: "Rename taxi" }));
+    await fireEvent.click(await checkbox("taxi"));
+    await fireEvent.click(await checkbox("uber"));
+    await fireEvent.input(screen.getByLabelText(/Merge 2 tags into/), {
+      target: { value: "cab" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+
+    expect(await screen.findByText(/Moved 2 records onto "cab"/)).toBeTruthy();
+    expect(screen.queryByText("Something went wrong.")).toBeNull();
+  });
+
+  it("keeps the rename editor and its name when the rename fails", async () => {
+    vi.mocked(post).mockRejectedValue(new APIRequestError(422, "bad name", {}));
+    render(Index);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Rename taxi" }),
+    );
     await fireEvent.input(screen.getByLabelText("New name for taxi"), {
       target: { value: "cab" },
     });
     await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText(/Moved 2 records onto "cab"/)).toBeTruthy();
-    expect(screen.queryByText("Something went wrong.")).toBeNull();
+    expect(await screen.findByText("bad name")).toBeTruthy();
+    await settle();
+    expect(
+      (screen.getByLabelText("New name for taxi") as HTMLInputElement).value,
+    ).toBe("cab");
+  });
+
+  it("keeps the ticks and the merge bar when the merge fails", async () => {
+    vi.mocked(post).mockRejectedValue(new APIRequestError(422, "bad name", {}));
+    render(Index);
+
+    await fireEvent.click(await checkbox("taxi"));
+    await fireEvent.click(await checkbox("uber"));
+    await fireEvent.input(screen.getByLabelText(/Merge 2 tags into/), {
+      target: { value: "cab" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+
+    expect(await screen.findByText("bad name")).toBeTruthy();
+    await settle();
+    expect((await checkbox("taxi")).checked).toBe(true);
+    expect((await checkbox("uber")).checked).toBe(true);
+    expect(
+      (screen.getByLabelText(/Merge 2 tags into/) as HTMLInputElement).value,
+    ).toBe("cab");
   });
 
   it("deletes nothing when the confirm is dismissed", async () => {

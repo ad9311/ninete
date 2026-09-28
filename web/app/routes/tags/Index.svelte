@@ -6,7 +6,7 @@
   // - Rename, on a row, retags that one tag onto a new name. Typing a name that
   //   already exists merges into it, and the row says so before saving.
   // - Merge appears once two or more rows are ticked, and retags all of them
-  //   onto one name — new, or one of their own.
+  //   onto one name: a new one, one of their own, or any other existing tag.
   // - Delete, on a row, removes one tag; "Delete unused" clears the tags a
   //   retag leaves behind.
   //
