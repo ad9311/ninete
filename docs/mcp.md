@@ -98,11 +98,11 @@ key, then its rules.
 In the app, `decodeQuery` (`internal/handlers/query.go`) fills the handler's struct and checks each
 value. An empty value counts as absent, and an absent optional key takes the handler's default. A
 value that breaks its rule is a **422** naming the key and the rule
-(`{"fields": {"per_page": "oneof"}}`), never a silent fallback. That holds for every client, the
-SPA included: a hand-edited `?per_page=37` gets the 422, because the SPA passes the URL's `page`,
-`per_page` and `category_id` through untouched (`rawParam`, `web/app/lib/pagination.ts`). A
-fallback is exactly how a client drifting from the server used to go unnoticed: a renamed `mode`
-came back as `month`, a page size the server dropped came back as 15.
+(`{"fields": {"per_page": "oneof"}}`), never a silent fallback. A fallback is exactly how a client
+drifting from the server used to go unnoticed: a renamed `mode` came back as `month`, a page size
+the server dropped came back as 15. The SPA clamps a hand-edited `page`, `per_page` or
+`category_id` in its URL to a valid value before it asks (`web/app/lib/pagination.ts`); only a
+hand-edited sort pair reaches the API as typed, and gets the 422.
 
 `apiContract` names the struct for each route, and `TestAPIContract` writes each key's rule into the
 file (`"per_page": "oneof<15|25|50|100>"`, `"this_start": "required integer"`). The tags are the

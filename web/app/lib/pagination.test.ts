@@ -5,22 +5,7 @@ import {
   pageRange,
   parsePage,
   parsePerPage,
-  rawParam,
 } from "./pagination";
-
-describe("rawParam", () => {
-  it("passes a value through untouched, however malformed", () => {
-    const params = new URLSearchParams("per_page=37&page=abc");
-    expect(rawParam(params, "per_page")).toBe("37");
-    expect(rawParam(params, "page")).toBe("abc");
-  });
-
-  it("drops an absent or empty value", () => {
-    const params = new URLSearchParams("page=");
-    expect(rawParam(params, "page")).toBeUndefined();
-    expect(rawParam(params, "per_page")).toBeUndefined();
-  });
-});
 
 describe("pageRange", () => {
   it("returns nothing when there are no pages", () => {

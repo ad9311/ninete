@@ -9,7 +9,7 @@
   import { APIRequestError, get } from "../../lib/api";
   import { type Category, fetchCategories } from "../../lib/categories";
   import { formatCurrency } from "../../lib/currency";
-  import { parsePage, parsePerPage, rawParam } from "../../lib/pagination";
+  import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type {
     Pagination,
@@ -62,11 +62,9 @@
         archived,
         sort_field: sortField,
         sort_order: sortOrder,
-        page: rawParam(params, "page"),
-        per_page: rawParam(params, "per_page"),
-        // Raw, not the parsed values above: the API validates them and a
-        // malformed one must come back as its 422, not as the default.
-        category_id: rawParam(params, "category_id"),
+        page,
+        per_page: perPage,
+        category_id: categoryId > 0 ? categoryId : undefined,
       },
     })
       .then((result) => {
