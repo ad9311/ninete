@@ -8,8 +8,9 @@ import {
 } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// The page's whole job is turning checkbox picks and a typed name into the
-// right request bodies, so those bodies are what these tests assert on.
+// The page's whole job is turning a row's rename, the ticked rows' merge and
+// the deletes into the right requests, so those requests are what these tests
+// assert on.
 vi.mock("../../lib/api", async () => {
   const actual =
     await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
@@ -64,7 +65,73 @@ describe("tags page", () => {
     ).toBeTruthy();
   });
 
-  it("retags the picked tags onto the typed name", async () => {
+  it("renames one tag from its row", async () => {
+    vi.mocked(post).mockResolvedValue({
+      tag: { id: 9, name: "cab" },
+      retagged: 2,
+    });
+    render(Index);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Rename taxi" }),
+    );
+    await fireEvent.input(screen.getByLabelText("New name for taxi"), {
+      target: { value: "cab" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(post).toHaveBeenCalledWith("/tags/retag", {
+      from: ["taxi"],
+      to: "cab",
+    });
+    expect(await screen.findByText(/Moved 2 records onto "cab"/)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByLabelText("New name for taxi")).toBeNull();
+    });
+  });
+
+  it("warns before a rename that merges into an existing tag", async () => {
+    render(Index);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Rename taxi" }),
+    );
+    await fireEvent.input(screen.getByLabelText("New name for taxi"), {
+      target: { value: " Uber " },
+    });
+
+    expect(screen.getByText(/"uber" already exists/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Merge" })).toBeTruthy();
+  });
+
+  it("keeps Save disabled for an empty or unchanged name", async () => {
+    render(Index);
+
+    await fireEvent.click(
+      await screen.findByRole("button", { name: "Rename taxi" }),
+    );
+    const save = screen.getByRole("button", {
+      name: "Save",
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+
+    await fireEvent.input(screen.getByLabelText("New name for taxi"), {
+      target: { value: "  " },
+    });
+    expect(save.disabled).toBe(true);
+  });
+
+  it("shows the merge bar only once two tags are ticked", async () => {
+    render(Index);
+
+    await fireEvent.click(await checkbox("taxi"));
+    expect(screen.queryByText(/Merge 1 tags into/)).toBeNull();
+
+    await fireEvent.click(await checkbox("uber"));
+    expect(screen.getByText("Merge 2 tags into")).toBeTruthy();
+  });
+
+  it("merges the ticked tags onto the typed name", async () => {
     vi.mocked(post).mockResolvedValue({
       tag: { id: 9, name: "transport" },
       retagged: 3,
@@ -73,10 +140,10 @@ describe("tags page", () => {
 
     await fireEvent.click(await checkbox("taxi"));
     await fireEvent.click(await checkbox("uber"));
-    await fireEvent.input(screen.getByLabelText("Retag as"), {
+    await fireEvent.input(screen.getByLabelText(/Merge 2 tags into/), {
       target: { value: "transport" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: "Retag" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
 
     expect(post).toHaveBeenCalledWith("/tags/retag", {
       from: ["taxi", "uber"],
@@ -87,19 +154,24 @@ describe("tags page", () => {
     ).toBeTruthy();
   });
 
-  it("keeps Retag disabled until a tag is picked and a name typed", async () => {
-    render(Index);
-    const button = (await screen.findByRole("button", {
-      name: "Retag",
-    })) as HTMLButtonElement;
-
-    await waitFor(() => expect(button.disabled).toBe(true));
-    await fireEvent.click(await checkbox("taxi"));
-    expect(button.disabled).toBe(true);
-    await fireEvent.input(screen.getByLabelText("Retag as"), {
-      target: { value: "cab" },
+  it("keeps a ticked tag that is also the merge target", async () => {
+    vi.mocked(post).mockResolvedValue({
+      tag: { id: 1, name: "taxi" },
+      retagged: 2,
     });
-    expect(button.disabled).toBe(false);
+    render(Index);
+
+    await fireEvent.click(await checkbox("taxi"));
+    await fireEvent.click(await checkbox("uber"));
+    await fireEvent.input(screen.getByLabelText(/Merge 2 tags into/), {
+      target: { value: "Taxi" },
+    });
+    await fireEvent.click(screen.getByRole("button", { name: "Merge" }));
+
+    expect(post).toHaveBeenCalledWith("/tags/retag", {
+      from: ["uber"],
+      to: "Taxi",
+    });
   });
 
   it("deletes one tag, telling the owner what it comes off", async () => {
@@ -134,7 +206,7 @@ describe("tags page", () => {
     });
   });
 
-  it("clears a failed delete's error when a retag then succeeds", async () => {
+  it("clears a failed delete's error when a rename then succeeds", async () => {
     vi.mocked(del).mockRejectedValue(new Error("offline"));
     vi.mocked(post).mockResolvedValue({
       tag: { id: 9, name: "cab" },
@@ -147,11 +219,11 @@ describe("tags page", () => {
     );
     expect(await screen.findByText("Something went wrong.")).toBeTruthy();
 
-    await fireEvent.click(await checkbox("taxi"));
-    await fireEvent.input(screen.getByLabelText("Retag as"), {
+    await fireEvent.click(screen.getByRole("button", { name: "Rename taxi" }));
+    await fireEvent.input(screen.getByLabelText("New name for taxi"), {
       target: { value: "cab" },
     });
-    await fireEvent.click(screen.getByRole("button", { name: "Retag" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText(/Moved 2 records onto "cab"/)).toBeTruthy();
     expect(screen.queryByText("Something went wrong.")).toBeNull();

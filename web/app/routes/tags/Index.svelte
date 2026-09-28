@@ -1,11 +1,17 @@
 <script lang="ts">
   // Every tag the account has, with how many records carry it. Tags are
   // created as free text on the expense forms, so this is the one place they
-  // are managed: retagged (renamed or merged) through POST /api/tags/retag,
-  // and deleted through DELETE /api/tags/{id} or /api/tags/unused.
+  // are managed, and every action sits on the tags it affects:
   //
-  // A retag keeps its source tags, unused, on purpose (CLAUDE.md), which is
-  // why unused tags are listed here and can be cleared in one go.
+  // - Rename, on a row, retags that one tag onto a new name. Typing a name that
+  //   already exists merges into it, and the row says so before saving.
+  // - Merge appears once two or more rows are ticked, and retags all of them
+  //   onto one name — new, or one of their own.
+  // - Delete, on a row, removes one tag; "Delete unused" clears the tags a
+  //   retag leaves behind.
+  //
+  // Rename and merge are both POST /api/tags/retag, which keeps its source
+  // tags, unused, on purpose (CLAUDE.md) — hence the unused count up top.
   import { ArrowLeft } from "lucide";
   import Card from "../../components/Card.svelte";
   import CardAction from "../../components/CardAction.svelte";
@@ -20,28 +26,29 @@
 
   // logic.RetagParams caps "from" at 20 names. The server does not send the
   // number, so it is held here a second time; a mismatch surfaces as a 422.
-  const RETAG_SOURCE_LIMIT = 20;
+  const MERGE_SOURCE_LIMIT = 20;
 
   let tags = $state<TagUsage[]>([]);
   let loaded = $state(false);
   let loadError = $state("");
 
-  let selectedIDs = $state<number[]>([]);
-  let target = $state("");
-  let retagging = $state(false);
-  let retagError = $state("");
-  let retagFieldErrors = $state<Record<string, string>>({});
-  let retagMessage = $state("");
+  // One message area for every action, so an outcome always shows in the
+  // same place whichever control produced it.
+  let actionError = $state("");
+  let notice = $state("");
+  let busy = $state(false);
 
-  let deleting = $state(false);
-  let deleteError = $state("");
-  let deleteMessage = $state("");
+  let editingID = $state<number | null>(null);
+  let newName = $state("");
+
+  let selectedIDs = $state<number[]>([]);
+  let mergeTarget = $state("");
 
   const unusedCount = $derived(tags.filter((t) => usage(t) === 0).length);
-  const atSourceLimit = $derived(selectedIDs.length >= RETAG_SOURCE_LIMIT);
   const selectedNames = $derived(
     tags.filter((t) => selectedIDs.includes(t.id)).map((t) => t.name),
   );
+  const atMergeLimit = $derived(selectedIDs.length >= MERGE_SOURCE_LIMIT);
 
   function usage(tag: TagUsage): number {
     return tag.expense_count + tag.recurrent_expense_count;
@@ -61,6 +68,18 @@
     }
 
     return parts.join(" · ");
+  }
+
+  // The server stores names trimmed and lowercased, so that is how two names
+  // compare here.
+  function normalize(name: string): string {
+    return name.trim().toLowerCase();
+  }
+
+  function existingTag(name: string, exceptID: number): TagUsage | undefined {
+    const key = normalize(name);
+
+    return tags.find((t) => t.id !== exceptID && t.name === key);
   }
 
   function errorMessage(err: unknown): string {
@@ -91,56 +110,94 @@
     };
   });
 
-  // Every action starts from a clean slate: an error or notice left by an
-  // earlier action, of either kind, must not read as this one's outcome.
+  // Every action starts from a clean slate: a message left by an earlier
+  // action must not read as this one's outcome.
   function clearFeedback(): void {
-    retagError = "";
-    retagFieldErrors = {};
-    retagMessage = "";
-    deleteError = "";
-    deleteMessage = "";
+    actionError = "";
+    notice = "";
+  }
+
+  // Runs one change and reloads after it. The reload sits outside the
+  // change's try: the change already happened, so a failed reload is a load
+  // problem, not a failed change to be retried.
+  async function run(change: () => Promise<string>): Promise<boolean> {
+    clearFeedback();
+    busy = true;
+
+    let done = false;
+    try {
+      notice = await change();
+      done = true;
+    } catch (err) {
+      actionError = errorMessage(err);
+    } finally {
+      busy = false;
+    }
+
+    if (done) {
+      await load().catch((err) => {
+        loadError = errorMessage(err);
+      });
+    }
+
+    return done;
+  }
+
+  function retagNotice(result: RetagResponse): string {
+    return (
+      `Moved ${plural(result.retagged, "record")} onto "${result.tag.name}". ` +
+      "The old tags are kept, now unused."
+    );
+  }
+
+  function startRename(tag: TagUsage): void {
+    clearFeedback();
+    editingID = tag.id;
+    newName = tag.name;
+  }
+
+  function cancelRename(): void {
+    editingID = null;
+    newName = "";
+  }
+
+  async function saveRename(event: SubmitEvent, tag: TagUsage): Promise<void> {
+    event.preventDefault();
+
+    const renamed = await run(async () =>
+      retagNotice(
+        await post<RetagResponse>("/tags/retag", {
+          from: [tag.name],
+          to: newName,
+        }),
+      ),
+    );
+    if (renamed) cancelRename();
   }
 
   function toggle(id: number, checked: boolean): void {
-    retagMessage = "";
     selectedIDs = checked
       ? [...selectedIDs, id]
       : selectedIDs.filter((selected) => selected !== id);
   }
 
-  // Reloads after a change that already happened, so a failed reload is
-  // reported as a load problem rather than as the change having failed.
-  async function reload(): Promise<void> {
-    await load().catch((err) => {
-      loadError = errorMessage(err);
-    });
-  }
-
-  async function retag(event: SubmitEvent): Promise<void> {
+  async function merge(event: SubmitEvent): Promise<void> {
     event.preventDefault();
-    retagging = true;
-    clearFeedback();
 
-    let done = false;
-    try {
-      const result = await post<RetagResponse>("/tags/retag", {
-        from: selectedNames,
-        to: target,
-      });
-      retagMessage =
-        `Moved ${plural(result.retagged, "record")} onto "${result.tag.name}". ` +
-        "The old tags are kept, now unused.";
+    // Merging into one of the ticked tags keeps that tag: it is the target,
+    // not a source, and the server refuses a target that is also a source.
+    const target = normalize(mergeTarget);
+    const from = selectedNames.filter((name) => name !== target);
+
+    const merged = await run(async () =>
+      retagNotice(
+        await post<RetagResponse>("/tags/retag", { from, to: mergeTarget }),
+      ),
+    );
+    if (merged) {
       selectedIDs = [];
-      target = "";
-      done = true;
-    } catch (err) {
-      retagError = errorMessage(err);
-      if (err instanceof APIRequestError) retagFieldErrors = err.fields;
-    } finally {
-      retagging = false;
+      mergeTarget = "";
     }
-
-    if (done) await reload();
   }
 
   async function deleteTag(tag: TagUsage): Promise<void> {
@@ -151,41 +208,21 @@
           "and out of the monthly report if it groups by it. The records themselves stay.";
     if (!confirm(question)) return;
 
-    deleting = true;
-    clearFeedback();
-
-    let done = false;
-    try {
+    await run(async () => {
       await del(`/tags/${tag.id}`);
-      deleteMessage = `Deleted "${tag.name}".`;
-      done = true;
-    } catch (err) {
-      deleteError = errorMessage(err);
-    } finally {
-      deleting = false;
-    }
 
-    if (done) await reload();
+      return `Deleted "${tag.name}".`;
+    });
   }
 
   async function deleteUnused(): Promise<void> {
     if (!confirm(`Delete ${plural(unusedCount, "unused tag")}?`)) return;
 
-    deleting = true;
-    clearFeedback();
-
-    let done = false;
-    try {
+    await run(async () => {
       const result = await del<DeleteUnusedTagsResponse>("/tags/unused");
-      deleteMessage = `Deleted ${plural(result.deleted, "unused tag")}.`;
-      done = true;
-    } catch (err) {
-      deleteError = errorMessage(err);
-    } finally {
-      deleting = false;
-    }
 
-    if (done) await reload();
+      return `Deleted ${plural(result.deleted, "unused tag")}.`;
+    });
   }
 </script>
 
@@ -198,114 +235,158 @@
     />
   {/snippet}
   <p class="text-sm text-muted">
-    Tags are created by adding them to an expense. Pick tags below and give a
-    name to move every expense and recurrent expense carrying them onto that
-    tag: a new name renames, an existing one merges. The picked tags are kept,
-    unused, until you delete them.
+    Tags are created by adding them to an expense. Rename a tag to change it
+    everywhere, or tick two or more to merge them into one. Renamed and merged
+    tags are kept, unused, until you delete them.
   </p>
 
   {#if loadError}
     <p class="text-danger">{loadError}</p>
   {/if}
+  {#if actionError}
+    <p class="text-danger">{actionError}</p>
+  {/if}
+  {#if notice}
+    <p class="text-sm text-muted">{notice}</p>
+  {/if}
 
-  <form onsubmit={retag} class="grid max-w-form gap-3">
-    <p class="text-sm text-muted">
-      {#if selectedNames.length === 0}
-        No tags picked.
-      {:else}
-        Retagging {selectedNames.join(", ")}.
-      {/if}
-    </p>
-    <label>
-      Retag as
-      <input
-        type="text"
-        maxlength="20"
-        list="tag-names"
-        placeholder="transport"
-        bind:value={target}
-        aria-invalid={retagFieldErrors.to ? "true" : undefined}
-      />
-    </label>
-    <datalist id="tag-names">
-      {#each tags as tag (tag.id)}
-        <option value={tag.name}></option>
-      {/each}
-    </datalist>
-
-    {#if retagError}
-      <p class="text-danger">{retagError}</p>
-    {/if}
-    {#if retagMessage}
-      <p class="text-sm text-muted">{retagMessage}</p>
-    {/if}
-
-    <button
-      type="submit"
-      class="btn btn-primary justify-self-end"
-      disabled={retagging ||
-        !loaded ||
-        selectedIDs.length === 0 ||
-        target.trim() === ""}
-    >
-      {retagging ? "Retagging..." : "Retag"}
-    </button>
-  </form>
-</Card>
-
-{#if loaded}
-  <Card title="Your tags" level={2}>
-    {#if deleteError}
-      <p class="text-danger">{deleteError}</p>
-    {/if}
-    {#if deleteMessage}
-      <p class="text-sm text-muted">{deleteMessage}</p>
-    {/if}
+  {#if loaded}
     {#if tags.length === 0}
       <p class="text-sm text-muted">
         You have no tags yet. Add some to your expenses first.
       </p>
     {:else}
-      <ul class="grid gap-2">
-        {#each tags as tag (tag.id)}
-          {@const checked = selectedIDs.includes(tag.id)}
-          <li
-            class="flex flex-wrap items-center justify-between gap-3 rounded-xs border border-line px-4 py-3"
-          >
-            <label class="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                {checked}
-                disabled={!checked && atSourceLimit}
-                onchange={(event) => {
-                  toggle(tag.id, event.currentTarget.checked);
-                }}
-              />
-              <span class="grid gap-1">
-                <span class="font-bold">{tag.name}</span>
-                <span class="text-sm text-muted">{usageLabel(tag)}</span>
-              </span>
-            </label>
-            <button
-              type="button"
-              class="btn btn-danger"
-              disabled={deleting}
-              aria-label={`Delete ${tag.name}`}
-              onclick={() => void deleteTag(tag)}
-            >
-              Delete
-            </button>
-          </li>
-        {/each}
-      </ul>
       <button
         type="button"
         class="btn btn-danger justify-self-end"
-        disabled={deleting || unusedCount === 0}
+        disabled={busy || unusedCount === 0}
         onclick={() => void deleteUnused()}
       >
         Delete unused ({unusedCount})
       </button>
+
+      <ul class="grid gap-2">
+        {#each tags as tag (tag.id)}
+          {@const checked = selectedIDs.includes(tag.id)}
+          {@const clash =
+            editingID === tag.id ? existingTag(newName, tag.id) : undefined}
+          <li class="grid gap-2 rounded-xs border border-line px-4 py-3">
+            {#if editingID === tag.id}
+              <form
+                class="flex flex-wrap items-center gap-3"
+                onsubmit={(event) => void saveRename(event, tag)}
+              >
+                <input
+                  type="text"
+                  class="min-w-0 flex-1"
+                  maxlength="20"
+                  aria-label={`New name for ${tag.name}`}
+                  bind:value={newName}
+                  onkeydown={(event) => {
+                    if (event.key === "Escape") cancelRename();
+                  }}
+                />
+                <span class="text-sm text-muted">{usageLabel(tag)}</span>
+                <span class="flex gap-2">
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    disabled={busy ||
+                      normalize(newName) === "" ||
+                      normalize(newName) === tag.name}
+                  >
+                    {clash ? "Merge" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-neutral"
+                    onclick={cancelRename}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              </form>
+              {#if clash}
+                <p class="text-sm text-muted">
+                  "{clash.name}" already exists — saving merges "{tag.name}"
+                  into it.
+                </p>
+              {/if}
+            {:else}
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <label class="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    {checked}
+                    disabled={!checked && atMergeLimit}
+                    onchange={(event) => {
+                      toggle(tag.id, event.currentTarget.checked);
+                    }}
+                  />
+                  <span class="grid gap-1">
+                    <span class="font-bold">{tag.name}</span>
+                    <span class="text-sm text-muted">{usageLabel(tag)}</span>
+                  </span>
+                </label>
+                <span class="flex gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-neutral"
+                    disabled={busy}
+                    aria-label={`Rename ${tag.name}`}
+                    onclick={() => startRename(tag)}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger"
+                    disabled={busy}
+                    aria-label={`Delete ${tag.name}`}
+                    onclick={() => void deleteTag(tag)}
+                  >
+                    Delete
+                  </button>
+                </span>
+              </div>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+
+      {#if selectedIDs.length >= 2}
+        <!-- Sticky so the bar stays in reach while ticking down a long list. -->
+        <form
+          class="sticky bottom-4 flex flex-wrap items-center gap-3 rounded-xs border border-line-strong bg-surface p-3 shadow-card"
+          onsubmit={(event) => void merge(event)}
+        >
+          <label class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <span class="font-bold">
+              Merge {selectedIDs.length} tags into
+            </span>
+            <input
+              type="text"
+              class="min-w-0 flex-1"
+              maxlength="20"
+              list="tag-names"
+              placeholder={selectedNames[0]}
+              bind:value={mergeTarget}
+            />
+          </label>
+          <datalist id="tag-names">
+            {#each tags as tag (tag.id)}
+              <option value={tag.name}></option>
+            {/each}
+          </datalist>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            disabled={busy || normalize(mergeTarget) === ""}
+          >
+            Merge
+          </button>
+        </form>
+      {/if}
     {/if}
-  </Card>
-{/if}
+  {/if}
+</Card>
