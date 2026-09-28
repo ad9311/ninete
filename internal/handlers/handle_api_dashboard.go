@@ -29,16 +29,17 @@ type apiDashboardResponse struct {
 func (h *Handler) GetAPIDashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
-	q := r.URL.Query()
+	var query apiDashboardQuery
+	decodeQuery(r, &query)
 
-	thisStart, thisEnd, err := parseAPIRequiredDateBounds(q, "this_start", "this_end")
+	thisStart, thisEnd, err := parseAPIRequiredDateBounds(query.ThisStart, query.ThisEnd)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 
 		return
 	}
 
-	lastStart, lastEnd, err := parseAPIRequiredDateBounds(q, "last_start", "last_end")
+	lastStart, lastEnd, err := parseAPIRequiredDateBounds(query.LastStart, query.LastEnd)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 

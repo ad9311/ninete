@@ -29,8 +29,7 @@ func TestExpenseSearchBounds(t *testing.T) {
 
 	parse := func(t *testing.T, query string) expenseSearch {
 		t.Helper()
-		r := httptest.NewRequest("GET", "/api/expenses?"+query, nil)
-		search, err := parseExpenseSearch(r)
+		search, err := parseExpenseSearch(expenseListQuery(query))
 		require.NoError(t, err)
 
 		return search
@@ -118,8 +117,7 @@ func TestExpenseSearchBounds(t *testing.T) {
 					"created_start=2000&created_end=1000",
 					"created_start=nope&created_end=2000",
 				} {
-					r := httptest.NewRequest("GET", "/api/expenses?"+query, nil)
-					_, err := parseExpenseSearch(r)
+					_, err := parseExpenseSearch(expenseListQuery(query))
 					require.ErrorIs(t, err, ErrAPIInvalidDateRange, query)
 				}
 			},
@@ -129,4 +127,13 @@ func TestExpenseSearchBounds(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, c.fn)
 	}
+}
+
+// expenseListQuery decodes a raw query string the way GetAPIExpenses does, so
+// these tests exercise the struct tags as well as the parsing.
+func expenseListQuery(raw string) apiExpenseListQuery {
+	var query apiExpenseListQuery
+	decodeQuery(httptest.NewRequest("GET", "/api/expenses?"+raw, nil), &query)
+
+	return query
 }

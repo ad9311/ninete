@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -20,52 +21,62 @@ var updateContract = flag.Bool("update", false, "rewrite contract/api.json from 
 // contractPath is relative to the repository root, where TestMain runs.
 const contractPath = "contract/api.json"
 
-// contractEndpoint is one route's entry in contract/api.json: the JSON fields
-// of its request body and of its response, flattened to "path": "type".
+// contractEndpoint is one route's entry in contract/api.json: the query keys
+// it reads, and the JSON fields of its request body and of its response,
+// flattened to "path": "type".
 type contractEndpoint struct {
+	Query    []string          `json:"query,omitempty"`
 	Request  map[string]string `json:"request,omitempty"`
 	Response map[string]string `json:"response,omitempty"`
 }
 
-// apiContract names the struct behind every /api route a bearer token can
+// contractTypes names a route's types: the query struct decodeQuery fills, the
+// request body, and the response. A nil side means the route has none there
+// (no query string, a GET's request, a 204's response).
+type contractTypes struct {
+	query, request, response any
+}
+
+// apiContract names the structs behind every /api route a bearer token can
 // reach (tokenAPIPrefixes in internal/serve) — the routes the MCP server in
-// mcp/ may call. A nil side means the route has no JSON body there (a GET's
-// request, a 204's response).
+// mcp/ may call.
 //
 // TestAPIContractCoversTokenRoutes in internal/serve fails when a
 // token-reachable route is missing from the file, so this list cannot quietly
 // fall behind the router.
-func apiContract() map[string]struct{ request, response any } {
-	return map[string]struct{ request, response any }{
-		"GET /api/session":    {nil, apiSession{}},
-		"GET /api/categories": {nil, apiCategoryListResponse{}},
-		"GET /api/dashboard":  {nil, apiDashboardResponse{}},
+func apiContract() map[string]contractTypes {
+	return map[string]contractTypes{
+		"GET /api/session":    {nil, nil, apiSession{}},
+		"GET /api/categories": {nil, nil, apiCategoryListResponse{}},
+		"GET /api/dashboard":  {apiDashboardQuery{}, nil, apiDashboardResponse{}},
 
-		"GET /api/report-settings": {nil, apiReportSettingsResponse{}},
-		"PUT /api/report-settings": {reportSettingsRequestBody{}, nil},
+		"GET /api/report-settings": {nil, nil, apiReportSettingsResponse{}},
+		"PUT /api/report-settings": {nil, reportSettingsRequestBody{}, nil},
 
-		"GET /api/tags":        {nil, apiTagListResponse{}},
-		"POST /api/tags/retag": {retagRequestBody{}, apiRetagResponse{}},
+		"GET /api/tags":        {nil, nil, apiTagListResponse{}},
+		"POST /api/tags/retag": {nil, retagRequestBody{}, apiRetagResponse{}},
 
-		"GET /api/expenses":           {nil, apiExpenseListResponse{}},
-		"POST /api/expenses":          {expenseRequestBody{}, apiExpenseDetail{}},
-		"POST /api/expenses/quick":    {quickExpenseRequestBody{}, apiExpenseDetail{}},
-		"GET /api/expenses/stats":     {nil, apiExpenseStatsResponse{}},
-		"GET /api/expenses/budgets":   {nil, apiExpenseBudgetsResponse{}},
-		"PUT /api/expenses/budgets":   {expenseBudgetsRequestBody{}, nil},
-		"GET /api/expenses/{id}":      {nil, apiExpenseDetail{}},
-		"PUT /api/expenses/{id}":      {expenseRequestBody{}, apiExpenseDetail{}},
-		"GET /api/recurrent-expenses": {nil, apiRecurrentExpenseListResponse{}},
+		"GET /api/expenses":         {apiExpenseListQuery{}, nil, apiExpenseListResponse{}},
+		"POST /api/expenses":        {nil, expenseRequestBody{}, apiExpenseDetail{}},
+		"POST /api/expenses/quick":  {nil, quickExpenseRequestBody{}, apiExpenseDetail{}},
+		"GET /api/expenses/stats":   {apiExpenseStatsQuery{}, nil, apiExpenseStatsResponse{}},
+		"GET /api/expenses/budgets": {apiExpenseBudgetsQuery{}, nil, apiExpenseBudgetsResponse{}},
+		"PUT /api/expenses/budgets": {nil, expenseBudgetsRequestBody{}, nil},
+		"GET /api/expenses/{id}":    {nil, nil, apiExpenseDetail{}},
+		"PUT /api/expenses/{id}":    {nil, expenseRequestBody{}, apiExpenseDetail{}},
 
-		"POST /api/recurrent-expenses":                {recurrentExpenseRequestBody{}, apiRecurrentExpense{}},
-		"GET /api/recurrent-expenses/{id}":            {nil, apiRecurrentExpense{}},
-		"PUT /api/recurrent-expenses/{id}":            {recurrentExpenseRequestBody{}, apiRecurrentExpense{}},
-		"POST /api/recurrent-expenses/{id}/unarchive": {nil, apiRecurrentExpense{}},
+		"GET /api/recurrent-expenses": {
+			apiRecurrentExpenseListQuery{}, nil, apiRecurrentExpenseListResponse{},
+		},
+		"POST /api/recurrent-expenses":                {nil, recurrentExpenseRequestBody{}, apiRecurrentExpense{}},
+		"GET /api/recurrent-expenses/{id}":            {nil, nil, apiRecurrentExpense{}},
+		"PUT /api/recurrent-expenses/{id}":            {nil, recurrentExpenseRequestBody{}, apiRecurrentExpense{}},
+		"POST /api/recurrent-expenses/{id}/unarchive": {nil, nil, apiRecurrentExpense{}},
 	}
 }
 
 // TestAPIContract keeps contract/api.json equal to what the handlers actually
-// encode and decode. The MCP server's own test (mcp/internal/api) checks its
+// read and encode. The MCP server's own test (mcp/internal/api) checks its
 // copies of these shapes against the same file, so a JSON change here fails
 // that side until mcp/ is updated too. See docs/mcp.md, "Keeping the API
 // contract".
@@ -74,6 +85,10 @@ func TestAPIContract(t *testing.T) {
 
 	for route, types := range apiContract() {
 		var endpoint contractEndpoint
+
+		if types.query != nil {
+			endpoint.Query = contractQueryKeys(t, reflect.TypeOf(types.query))
+		}
 
 		if types.request != nil {
 			endpoint.Request = contractFields(reflect.TypeOf(types.request))
@@ -110,6 +125,44 @@ func TestAPIContract(t *testing.T) {
 	require.Equal(t, string(encoded), string(current),
 		"%s is out of date with the handler structs: run `make contract`, then update mcp/ to match",
 		contractPath)
+}
+
+// contractQueryKeys lists the `query:"…"` keys decodeQuery fills on t, sorted.
+// It walks the struct the way decodeQuery does, and fails on the two mistakes
+// decodeQuery would silently skip: a tagged field that is not a string, and a
+// key declared twice (an embedded struct and the outer one both claiming it).
+func contractQueryKeys(t *testing.T, typ reflect.Type) []string {
+	t.Helper()
+
+	var keys []string
+
+	var walk func(reflect.Type)
+	walk = func(typ reflect.Type) {
+		for field := range typ.Fields() {
+			if field.Anonymous && field.Type.Kind() == reflect.Struct {
+				walk(field.Type)
+
+				continue
+			}
+
+			key := field.Tag.Get("query")
+			if key == "" {
+				continue
+			}
+
+			require.True(t, field.IsExported(), "%s.%s: a query field must be exported", typ, field.Name)
+			require.Equal(t, reflect.String, field.Type.Kind(),
+				"%s.%s: a query field must be a string, decodeQuery fills nothing else", typ, field.Name)
+			require.NotContains(t, keys, key, "%s: query key %q is declared twice", typ, key)
+
+			keys = append(keys, key)
+		}
+	}
+	walk(typ)
+
+	slices.Sort(keys)
+
+	return keys
 }
 
 // contractFields flattens a type's JSON encoding to "path": "type" pairs, the

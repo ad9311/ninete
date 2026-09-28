@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"net/http"
 	"slices"
 	"strconv"
 
@@ -40,25 +39,21 @@ type PaginationData struct {
 	DateTo      string
 }
 
-func userScopedQueryOpts(
-	r *http.Request, userID int, defaultSort repo.Sorting,
-) repo.QueryOptions {
-	q := r.URL.Query()
-
+func userScopedQueryOpts(q apiListQuery, userID int, defaultSort repo.Sorting) repo.QueryOptions {
 	sorting := repo.Sorting{
-		Order: q.Get("sort_order"),
-		Field: q.Get("sort_field"),
+		Order: q.SortOrder,
+		Field: q.SortField,
 	}
 	if sorting.Field == "" && sorting.Order == "" {
 		sorting = defaultSort
 	}
 
-	page, _ := strconv.Atoi(q.Get("page"))
+	page, _ := strconv.Atoi(q.Page)
 	if page < 1 {
 		page = 1
 	}
 
-	perPage := normalizePerPage(q.Get("per_page"))
+	perPage := normalizePerPage(q.PerPage)
 
 	opts := repo.QueryOptions{
 		Sorting: sorting,
@@ -74,7 +69,7 @@ func userScopedQueryOpts(
 	})
 	opts.Filters.Connector = "AND"
 
-	if categoryID, _ := strconv.Atoi(q.Get("category_id")); categoryID > 0 {
+	if categoryID, _ := strconv.Atoi(q.CategoryID); categoryID > 0 {
 		opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.FilterField{
 			Name:     "category_id",
 			Value:    categoryID,
@@ -85,14 +80,13 @@ func userScopedQueryOpts(
 	return opts
 }
 
-func newPaginationData(r *http.Request, opts repo.QueryOptions, totalCount int) PaginationData {
+func newPaginationData(q apiListQuery, opts repo.QueryOptions, totalCount int) PaginationData {
 	totalPages := 0
 	if opts.Pagination.PerPage > 0 {
 		totalPages = (totalCount + opts.Pagination.PerPage - 1) / opts.Pagination.PerPage
 	}
 
-	q := r.URL.Query()
-	categoryID, _ := strconv.Atoi(q.Get("category_id"))
+	categoryID, _ := strconv.Atoi(q.CategoryID)
 
 	return PaginationData{
 		CurrentPage: opts.Pagination.Page,

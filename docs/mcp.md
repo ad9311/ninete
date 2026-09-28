@@ -43,9 +43,9 @@ about the MCP SDK.
 ## Keeping the API contract
 
 The app and this module cannot import each other's types, so they meet in a file:
-`contract/api.json` lists, for every route a token can reach, the JSON fields of its request body
-and response, flattened to `"path": "type"` (`"data[].amount": "integer"`). It is generated from the
-handler structs and committed.
+`contract/api.json` lists, for every route a token can reach, the query keys it reads and the JSON
+fields of its request body and response, flattened to `"path": "type"`
+(`"data[].amount": "integer"`). It is generated from the handler structs and committed.
 
 Three tests hold it in place:
 
@@ -64,8 +64,9 @@ Three tests hold it in place:
   with the same type. This is why the list and detail expense are two types (`ListedExpense`,
   `Expense`): the list never sends `note`.
 
-The tools test adds a fourth guard: every route a tool calls against the fake API must be in
-`contracttest.Endpoints`, so a new call cannot bypass `TestContract`.
+The tools test adds two more guards, both run over every request a tool sends to the fake API:
+the route must be in `contracttest.Endpoints`, so a new call cannot bypass `TestContract`, and
+every query key must be one the file lists for that route (`contracttest.UnknownQueryKeys`).
 
 The workflow after changing a token-reachable handler's JSON:
 
@@ -79,9 +80,31 @@ inlined, `int`/`uint` both `integer`). The two walkers are copies —
 `internal/handlers/api_contract_internal_test.go` and `mcp/internal/contracttest` — and the file
 keeps them honest: if they disagreed, one side's test would fail on the next run.
 
-**Query parameters are not covered.** The file holds JSON bodies only, so a handler renaming a
-query key (`start`, `archived`, `sort_field`, …) would leave the MCP sending a name the server
-ignores, with no test failing. `TODO.md` has the planned fix.
+### Query keys
+
+A handler reads its query string only through `decodeQuery` (`internal/handlers/query.go`), which
+fills a struct of raw strings tagged `query:"…"`: `apiExpenseListQuery`, `apiDashboardQuery` and
+so on. `apiContract` names that struct for each route, and `TestAPIContract` writes its keys into
+the file as a sorted `"query"` list. The tags are therefore the only declaration of a route's keys,
+and renaming one changes the file by itself. Two things keep it that way:
+
+- **`forbidigo` rejects any other read.** `r.URL.Query()`, `RawQuery`, `FormValue`, `ParseForm` and
+  `Form` are forbidden in `internal/handlers` outside `query.go` and tests (`.golangci.yml`). A
+  `q.Get("…")` literal would never reach the contract.
+- **`TestAPIContract` rejects a tagged field decodeQuery would skip.** One that is not a string, or a
+  key declared twice across embedded structs, fails the test rather than silently not decoding.
+
+On the MCP side keys are a subset, like responses. Every key is optional to the server, but one it
+does not read is ignored, and the tool gets an unfiltered answer instead of an error. That is the
+drift this catches.
+
+The check sees only keys a tools test actually sends. When a tool gains a query parameter, add it
+to that tool's "sends every key" test (`should_send_the_tag_category_and_page_filters`,
+`should_send_every_recurrent_expense_list_filter`, …), or a rename of it goes unnoticed.
+
+**Values are not covered.** The file records `mode`, not that it accepts `month` or `months`. The
+same goes for `sort_field` and `sort_order` values and the `archived` format. A server that renamed
+an accepted value would fall back to its default without the MCP knowing. `TODO.md` tracks it.
 
 ## Configuration
 

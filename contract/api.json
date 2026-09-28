@@ -7,6 +7,12 @@
     }
   },
   "GET /api/dashboard": {
+    "query": [
+      "last_end",
+      "last_start",
+      "this_end",
+      "this_start"
+    ],
     "response": {
       "data": "object",
       "data.last_month_total": "integer",
@@ -19,6 +25,19 @@
     }
   },
   "GET /api/expenses": {
+    "query": [
+      "category_id",
+      "created_end",
+      "created_start",
+      "end",
+      "page",
+      "per_page",
+      "q",
+      "sort_field",
+      "sort_order",
+      "start",
+      "tag"
+    ],
     "response": {
       "data": "array<object>",
       "data[].amount": "integer",
@@ -42,6 +61,11 @@
     }
   },
   "GET /api/expenses/budgets": {
+    "query": [
+      "end",
+      "mode",
+      "start"
+    ],
     "response": {
       "edit_rows": "array<object>",
       "edit_rows[].amount": "integer",
@@ -69,6 +93,12 @@
     }
   },
   "GET /api/expenses/stats": {
+    "query": [
+      "end",
+      "sort_field",
+      "sort_order",
+      "start"
+    ],
     "response": {
       "data": "array<object>",
       "data[].name": "string",
@@ -89,6 +119,14 @@
     }
   },
   "GET /api/recurrent-expenses": {
+    "query": [
+      "archived",
+      "category_id",
+      "page",
+      "per_page",
+      "sort_field",
+      "sort_order"
+    ],
     "response": {
       "data": "array<object>",
       "data[].amount": "integer",

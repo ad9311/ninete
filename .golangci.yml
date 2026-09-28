@@ -35,8 +35,18 @@ linters:
     - gochecknoglobals
     - gosec
     - lll
+    - forbidigo
 
   settings:
+    forbidigo:
+      # Query keys are declared once, as `query:"…"` tags that decodeQuery fills
+      # (internal/handlers/query.go), because TestAPIContract reads the keys
+      # from those tags into contract/api.json. A key read any other way never
+      # reaches the contract, so a rename would go unnoticed by the MCP server.
+      # Scoped to internal/handlers by the exclusions below.
+      forbid:
+        - pattern: '\.(URL\.Query|URL\.RawQuery|FormValue|ParseForm|Form)$'
+          msg: "declare query keys as `query` tags and read them with decodeQuery (internal/handlers/query.go)"
     lll:
       line-length: 120
       tab-width: 2
@@ -60,3 +70,7 @@ linters:
       - linters: [gosec]
         path: 'internal/repo/'
         text: 'G20[12]'
+      - linters: [forbidigo]
+        path-except: '^internal/handlers/'
+      - linters: [forbidigo]
+        path: '^internal/handlers/(query\.go$|.*_test\.go$)'

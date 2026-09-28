@@ -74,16 +74,18 @@ type apiExpenseBudgetsResponse struct {
 func (h *Handler) GetAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
-	q := r.URL.Query()
 
-	start, end, hasBounds, err := parseAPIDateBounds(q)
+	var query apiExpenseBudgetsQuery
+	decodeQuery(r, &query)
+
+	start, end, hasBounds, err := parseAPIDateBounds(query.apiBoundsQuery)
 	if err != nil || !hasBounds {
 		h.WriteAPIError(w, ErrAPIInvalidDateRange, ErrAPIInvalidDateRange)
 
 		return
 	}
 
-	mode := budgetMode(q.Get("mode"))
+	mode := budgetMode(query.Mode)
 	if mode != budgetModeMonth && mode != budgetModeMonths {
 		mode = budgetModeMonth
 	}

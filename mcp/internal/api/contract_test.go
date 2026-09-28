@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"net/url"
 	"testing"
 
 	"github.com/ad9311/ninete-mcp/internal/contracttest"
@@ -70,4 +71,10 @@ func TestContractCatchesDrift(t *testing.T) {
 	_, sent := contract["GET /api/expenses"].Response["data[].note"]
 	require.False(t, sent, "the list must not send a note")
 	require.Contains(t, contracttest.Fields(listReadingNote{}), "data[].note")
+
+	// A query key the server does not read — here a plural the handler never
+	// declared — is reported, while the real key passes.
+	list := contract["GET /api/expenses"]
+	require.Empty(t, contracttest.UnknownQueryKeys(list, url.Values{"tag": {"food"}}))
+	require.Equal(t, []string{"tags"}, contracttest.UnknownQueryKeys(list, url.Values{"tags": {"food"}}))
 }

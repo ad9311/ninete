@@ -24,7 +24,10 @@ const reportMonthLayout = "2006-01"
 func (h *Handler) GetReportsExpenses(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 
-	month, err := parseReportMonth(r.URL.Query().Get("month"))
+	var query reportQuery
+	decodeQuery(r, &query)
+
+	month, err := parseReportMonth(query.Month)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrReportMonth)
 
