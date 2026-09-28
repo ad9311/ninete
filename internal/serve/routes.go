@@ -68,7 +68,14 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/report-settings", s.handlers.GetAPIReportSettings)
 		api.Put("/report-settings", s.handlers.PutAPIReportSettings)
 
-		api.Post("/tags/retag", s.handlers.PostAPITagsRetag)
+		// DELETE is refused to every token scope, so the two deletes are
+		// browser-only even though /tags is on tokenAPIPrefixes.
+		api.Route("/tags", func(tags chi.Router) {
+			tags.Get("/", s.handlers.GetAPITags)
+			tags.Post("/retag", s.handlers.PostAPITagsRetag)
+			tags.Delete("/unused", s.handlers.DeleteAPIUnusedTags)
+			tags.Delete("/{id}", s.handlers.DeleteAPITag)
+		})
 
 		// Session-only: tokenAuth keeps bearer tokens out of this group, so
 		// tokens are created and revoked from the browser alone.

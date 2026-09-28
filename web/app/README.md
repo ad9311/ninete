@@ -165,8 +165,8 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   `routes/report_settings/` is the monthly report's configuration page
   (`/account/reports`), a plain load-edit-`put()` form against
   `GET`/`PUT /api/report-settings`. Its tag checkboxes are the whole of the
-  form and come from the same response as the selection — there is no
-  `/api/tags` endpoint to list them from. There is no zone select: the report
+  form and come from the same response as the selection, so the page needs
+  one request. There is no zone select: the report
   has no timezone at all, the billed date being month-precision
   (`docs/monthly-report.md`, "Timezone").
   It also carries the report download: a month picker plus a plain anchor to
@@ -176,6 +176,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   billed date is month-precision and carries no zone — the §3.6 argument for
   client-resolved bounds does not apply to it.
   `docs/monthly-report.md` holds the report's rules.
+  `routes/tags/` is `/account/tags`, the one place tags are managed: a list
+  from `GET /api/tags` with each tag's usage, checkboxes that pick the
+  sources for `POST /api/tags/retag` (a new name renames, an existing one
+  merges), a delete per tag behind `confirm()` naming what it comes off, and
+  "Delete unused" for what retags leave behind. Its source cap of 20 is
+  `logic.RetagParams`', held a second time because the server does not send it.
   `routes/api_tokens/` is `/account/tokens`, a load-create-revoke page against
   `/api/tokens`. The token's plaintext arrives once, in the `POST` response,
   and lives only in component state until the page is left — nothing the

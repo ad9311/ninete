@@ -377,6 +377,12 @@ WHERE "tag_id" IN (%s)`
 // Keeping the earliest, rather than whichever row SQLite reaches first, is
 // what keeps the record in the report section it had.
 //
+// The merged tag therefore takes the earliest position of everything merged
+// into it. That can still move a record between sections, on purpose: if a
+// non-grouping source is older than a grouping tag X and the target groups,
+// the record goes from X to the target, because it was tagged with the source
+// before X.
+//
 // Every id must already be scoped to one user: taggings has no user_id, so
 // the ids are what keeps the move inside one account.
 func (q *TxQueries) MoveTaggings(ctx context.Context, fromIDs []int, toID int) error {

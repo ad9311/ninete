@@ -41,6 +41,23 @@ func (s *Store) CreateTag(ctx context.Context, userID int, params TagParams) (re
 	return tag, nil
 }
 
+// FindTagUsages lists every tag the user owns, unused ones included, with how
+// many expenses and recurrent expenses carry each. It is the tag page's
+// list, and the way an orphan left by Retag becomes visible.
+func (s *Store) FindTagUsages(ctx context.Context, userID int) ([]repo.TagUsage, error) {
+	return s.queries.SelectTagUsagesByUser(ctx, userID)
+}
+
+// DeleteUnusedTags removes every tag of the user's that no record carries —
+// what Retag leaves behind — and returns how many went.
+func (s *Store) DeleteUnusedTags(ctx context.Context, userID int) (int, error) {
+	return s.queries.DeleteUnusedTagsByUser(ctx, userID)
+}
+
+// DeleteTag removes one of the user's tags whether or not it is in use. Its
+// taggings and any report_setting_tags row cascade with it, so the records
+// that carried it keep everything but the tag. sql.ErrNoRows means the tag is
+// not the user's, or does not exist.
 func (s *Store) DeleteTag(ctx context.Context, id, userID int) (int, error) {
 	i, err := s.queries.DeleteTag(ctx, id, userID)
 	if err != nil {
