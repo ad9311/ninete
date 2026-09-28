@@ -116,6 +116,24 @@ describe("tags page", () => {
     expect(del).toHaveBeenCalledWith("/tags/2");
   });
 
+  it("clears a failed reload's error once a later reload succeeds", async () => {
+    vi.mocked(del).mockResolvedValue(undefined);
+    vi.mocked(get)
+      .mockResolvedValueOnce(TAGS)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValue(TAGS);
+    render(Index);
+
+    const button = await screen.findByRole("button", { name: "Delete uber" });
+    await fireEvent.click(button);
+    expect(await screen.findByText("Something went wrong.")).toBeTruthy();
+
+    await fireEvent.click(button);
+    await waitFor(() => {
+      expect(screen.queryByText("Something went wrong.")).toBeNull();
+    });
+  });
+
   it("deletes nothing when the confirm is dismissed", async () => {
     vi.mocked(confirm).mockReturnValue(false);
     render(Index);

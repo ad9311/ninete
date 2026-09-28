@@ -72,6 +72,7 @@
   async function load(): Promise<void> {
     const result = await get<TagListResponse>("/tags");
     tags = result.data;
+    loadError = "";
     // A tag deleted or merged away must not stay selected by id.
     selectedIDs = selectedIDs.filter((id) => tags.some((t) => t.id === id));
     loaded = true;
