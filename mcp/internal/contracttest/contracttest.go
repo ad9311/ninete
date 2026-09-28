@@ -8,9 +8,12 @@
 //     this module does not send is silently reset — the data-loss case.
 //   - Responses may be a subset. This module may ignore a field the server
 //     sends, but every field it reads must exist with the same JSON type.
-//   - Query keys may be a subset, checked on what the tools actually send (see
-//     UnknownQueryKeys). Every key is optional to the server, but one it does
-//     not read is ignored, and the tool gets an unfiltered answer back.
+//   - Query keys may be a subset, but each one this module declares must exist
+//     on the server with the same rule — a oneof may list fewer values, never
+//     one the server lacks — and every key the server requires must be
+//     declared here as required (QueryProblems). The server answers any value
+//     it does not accept with a 422, so this catches before release what would
+//     otherwise surface as a failing tool call.
 package contracttest
 
 import (
@@ -28,9 +31,11 @@ import (
 	"github.com/ad9311/ninete-mcp/internal/api"
 )
 
-// Endpoint names this module's type for each side of a route. A nil side
-// means this module sends no body there, or reads none.
+// Endpoint names this module's types for a route: the query struct the tool
+// encodes (api/query.go), the request body and the response. A nil side means
+// this module sends no query or body there, or reads none.
 type Endpoint struct {
+	Query    any
 	Request  any
 	Response any
 }
@@ -40,35 +45,35 @@ type Endpoint struct {
 // new call cannot skip the check.
 func Endpoints() map[string]Endpoint {
 	return map[string]Endpoint{
-		"GET /api/categories": {nil, api.CategoryList{}},
-		"GET /api/dashboard":  {nil, api.Dashboard{}},
+		"GET /api/categories": {nil, nil, api.CategoryList{}},
+		"GET /api/dashboard":  {api.DashboardQuery{}, nil, api.Dashboard{}},
 
-		"GET /api/report-settings": {nil, api.ReportSettings{}},
-		"PUT /api/report-settings": {api.ReportSettingsBody{}, nil},
+		"GET /api/report-settings": {nil, nil, api.ReportSettings{}},
+		"PUT /api/report-settings": {nil, api.ReportSettingsBody{}, nil},
 
-		"GET /api/tags":        {nil, api.TagList{}},
-		"POST /api/tags/retag": {api.RetagBody{}, api.Retag{}},
+		"GET /api/tags":        {nil, nil, api.TagList{}},
+		"POST /api/tags/retag": {nil, api.RetagBody{}, api.Retag{}},
 
-		"GET /api/expenses":         {nil, api.ExpenseList{}},
-		"POST /api/expenses":        {api.ExpenseBody{}, api.Expense{}},
-		"POST /api/expenses/quick":  {api.QuickExpenseBody{}, api.Expense{}},
-		"GET /api/expenses/stats":   {nil, api.ExpenseStats{}},
-		"GET /api/expenses/budgets": {nil, api.Budgets{}},
-		"PUT /api/expenses/budgets": {api.BudgetsBody{}, nil},
-		"GET /api/expenses/{id}":    {nil, api.Expense{}},
-		"PUT /api/expenses/{id}":    {api.ExpenseBody{}, api.Expense{}},
+		"GET /api/expenses":         {api.ExpenseListQuery{}, nil, api.ExpenseList{}},
+		"POST /api/expenses":        {nil, api.ExpenseBody{}, api.Expense{}},
+		"POST /api/expenses/quick":  {nil, api.QuickExpenseBody{}, api.Expense{}},
+		"GET /api/expenses/stats":   {api.ExpenseStatsQuery{}, nil, api.ExpenseStats{}},
+		"GET /api/expenses/budgets": {api.BudgetsQuery{}, nil, api.Budgets{}},
+		"PUT /api/expenses/budgets": {nil, api.BudgetsBody{}, nil},
+		"GET /api/expenses/{id}":    {nil, nil, api.Expense{}},
+		"PUT /api/expenses/{id}":    {nil, api.ExpenseBody{}, api.Expense{}},
 
-		"GET /api/recurrent-expenses":                 {nil, api.RecurrentExpenseList{}},
-		"POST /api/recurrent-expenses":                {api.RecurrentExpenseBody{}, api.RecurrentExpense{}},
-		"GET /api/recurrent-expenses/{id}":            {nil, api.RecurrentExpense{}},
-		"PUT /api/recurrent-expenses/{id}":            {api.RecurrentExpenseBody{}, api.RecurrentExpense{}},
-		"POST /api/recurrent-expenses/{id}/unarchive": {nil, api.RecurrentExpense{}},
+		"GET /api/recurrent-expenses":                 {api.RecurrentExpenseListQuery{}, nil, api.RecurrentExpenseList{}},
+		"POST /api/recurrent-expenses":                {nil, api.RecurrentExpenseBody{}, api.RecurrentExpense{}},
+		"GET /api/recurrent-expenses/{id}":            {nil, nil, api.RecurrentExpense{}},
+		"PUT /api/recurrent-expenses/{id}":            {nil, api.RecurrentExpenseBody{}, api.RecurrentExpense{}},
+		"POST /api/recurrent-expenses/{id}/unarchive": {nil, nil, api.RecurrentExpense{}},
 	}
 }
 
 // Contract is one route's entry in contract/api.json.
 type Contract struct {
-	Query    []string          `json:"query"`
+	Query    map[string]string `json:"query"`
 	Request  map[string]string `json:"request"`
 	Response map[string]string `json:"response"`
 }
@@ -106,13 +111,13 @@ func Route(method, path string) string {
 }
 
 // UnknownQueryKeys returns the keys of query that the server does not read on
-// route, sorted. The tools test runs it over every request a tool sends, so a
-// key renamed on either side fails there.
+// route, sorted. The tools test runs it over every request a tool sends — a
+// runtime backstop to QueryProblems, which checks the declarations.
 func UnknownQueryKeys(contract Contract, query url.Values) []string {
 	var unknown []string
 
 	for key := range query {
-		if !slices.Contains(contract.Query, key) {
+		if _, ok := contract.Query[key]; !ok {
 			unknown = append(unknown, key)
 		}
 	}
@@ -120,6 +125,71 @@ func UnknownQueryKeys(contract Contract, query url.Values) []string {
 	slices.Sort(unknown)
 
 	return unknown
+}
+
+// QueryProblems compares this module's query rules for a route (api.QueryRules)
+// with the server's, and describes every disagreement, sorted:
+//   - a key the server does not read;
+//   - a rule that differs, except a oneof listing a subset of the server's;
+//   - a key the server requires that is not declared required here.
+func QueryProblems(server, mine map[string]string) []string {
+	var problems []string
+
+	for key, rule := range mine {
+		serverRule, ok := server[key]
+
+		switch {
+		case !ok:
+			problems = append(problems, fmt.Sprintf("%s: the server does not read it", key))
+		case !ruleFits(rule, serverRule):
+			problems = append(problems, fmt.Sprintf("%s: declared %q, the server expects %q", key, rule, serverRule))
+		}
+	}
+
+	for key, serverRule := range server {
+		if !strings.HasPrefix(serverRule, "required ") {
+			continue
+		}
+
+		if rule, ok := mine[key]; !ok || !strings.HasPrefix(rule, "required ") {
+			problems = append(problems, fmt.Sprintf("%s: the server requires it", key))
+		}
+	}
+
+	slices.Sort(problems)
+
+	return problems
+}
+
+// ruleFits reports whether a value meeting mine always meets server. Being
+// required here when the server is not is fine: it only means always sending.
+func ruleFits(mine, server string) bool {
+	mine = strings.TrimPrefix(mine, "required ")
+	server = strings.TrimPrefix(server, "required ")
+
+	mineValues, mineIsOneOf := oneOfValues(mine)
+	serverValues, serverIsOneOf := oneOfValues(server)
+
+	if mineIsOneOf && serverIsOneOf {
+		for _, value := range mineValues {
+			if !slices.Contains(serverValues, value) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return mine == server
+}
+
+func oneOfValues(rule string) ([]string, bool) {
+	inner, ok := strings.CutPrefix(rule, "oneof<")
+	if !ok {
+		return nil, false
+	}
+
+	return strings.Split(strings.TrimSuffix(inner, ">"), "|"), true
 }
 
 // Fields flattens a value's JSON encoding to "path": "type" pairs — the same

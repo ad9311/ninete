@@ -50,11 +50,13 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
     `formatCurrency` also covers `signedCurrency`'s job (a budget's negative
     "left" amount) — `Intl`'s currency formatting already prints a leading
     `-` for a negative value, so there is no second formatter.
-  - `pagination.ts` — `PER_PAGE_CHOICES`, `parsePage`/`parsePerPage` and
-    `pageRange`, shared by the two paginated lists and by
-    `components/PaginationFooter.svelte`. The per-page list doubles as the
-    allowlist a query string is validated against, so a `per_page` the UI
-    offers and one the URL may carry cannot drift apart.
+  - `pagination.ts` — `PER_PAGE_CHOICES`, `parsePage`/`parsePerPage`,
+    `rawParam` and `pageRange`, shared by the two paginated lists and by
+    `components/PaginationFooter.svelte`. The parse helpers clamp a value for
+    rendering only. Requests carry the URL's raw `page`, `per_page` and
+    `category_id` through `rawParam`, because the API validates every query
+    value and answers 422 for one it does not accept — sanitizing first would
+    hide the mismatch that check exists to surface.
   - `tags.ts` — `parseTagsInput`/`joinTagNames` for the semicolon-separated tag
     field. Normalization (lowercase, trim,
     dedupe) stays server-side in `logic.ParseTagNames`; this only has to get

@@ -3,7 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -265,11 +265,7 @@ func (d Deps) getDashboard(
 		return nil, out, err
 	}
 
-	query := url.Values{}
-	query.Set("this_start", strconv.FormatInt(thisStart, 10))
-	query.Set("this_end", strconv.FormatInt(thisEnd, 10))
-	query.Set("last_start", strconv.FormatInt(lastStart, 10))
-	query.Set("last_end", strconv.FormatInt(lastEnd, 10))
+	query := api.DashboardQuery{ThisStart: thisStart, ThisEnd: thisEnd, LastStart: lastStart, LastEnd: lastEnd}
 
 	ctx, cancel := callContext(ctx)
 	defer cancel()
@@ -297,7 +293,7 @@ func (d Deps) getExpenseStats(
 ) (*mcp.CallToolResult, StatsOutput, error) {
 	var out StatsOutput
 
-	query := url.Values{}
+	var query api.ExpenseStatsQuery
 
 	if in.ToMonth != "" && in.FromMonth == "" {
 		return nil, out, ErrToWithoutFrom
@@ -309,8 +305,7 @@ func (d Deps) getExpenseStats(
 			return nil, out, err
 		}
 
-		query.Set("start", strconv.FormatInt(start, 10))
-		query.Set("end", strconv.FormatInt(end, 10))
+		query.Start, query.End = start, end
 	}
 
 	ctx, cancel := callContext(ctx)
@@ -344,14 +339,11 @@ func (d Deps) getBudgets(
 		mode = "month"
 	}
 
-	if mode != "month" && mode != "months" {
-		return nil, out, fmt.Errorf("%w, not %q", ErrBudgetMode, mode)
-	}
+	query := api.BudgetsQuery{Start: start, End: end, Mode: mode}
 
-	query := url.Values{}
-	query.Set("start", strconv.FormatInt(start, 10))
-	query.Set("end", strconv.FormatInt(end, 10))
-	query.Set("mode", mode)
+	if modes := api.QueryOneOf(query, "mode"); !slices.Contains(modes, mode) {
+		return nil, out, fmt.Errorf("%w %q: use one of %s", ErrBudgetMode, mode, strings.Join(modes, ", "))
+	}
 
 	ctx, cancel := callContext(ctx)
 	defer cancel()

@@ -76,17 +76,23 @@ func (h *Handler) GetAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 
 	var query apiExpenseBudgetsQuery
-	decodeQuery(r, &query)
-
-	start, end, hasBounds, err := parseAPIDateBounds(query.apiBoundsQuery)
-	if err != nil || !hasBounds {
-		h.WriteAPIError(w, ErrAPIInvalidDateRange, ErrAPIInvalidDateRange)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
 
 		return
 	}
 
+	start, end, err := parseAPIRequiredDateBounds(query.Start, query.End)
+	if err != nil {
+		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
+
+		return
+	}
+
+	// decodeQuery has already refused any mode but these two; absent means
+	// the single-month view.
 	mode := budgetMode(query.Mode)
-	if mode != budgetModeMonth && mode != budgetModeMonths {
+	if mode == "" {
 		mode = budgetModeMonth
 	}
 

@@ -22,7 +22,7 @@
   import { formatCurrency } from "../../lib/currency";
   import { computeDateRange, DATE_RANGE_OPTIONS } from "../../lib/dateRanges";
   import { localDayEnd, localDayStart } from "../../lib/dates";
-  import { parsePage, parsePerPage } from "../../lib/pagination";
+  import { parsePage, parsePerPage, rawParam } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
   import type { Expense, ExpenseListResponse, Pagination } from "./types";
 
@@ -219,11 +219,13 @@
         tag: tag || undefined,
         created_start: createdBounds?.start,
         created_end: createdBounds?.end,
-        category_id: categoryId > 0 ? categoryId : undefined,
+        // Raw, not the parsed values above: the API validates them and a
+        // malformed one must come back as its 422, not as the default.
+        category_id: rawParam(params, "category_id"),
         sort_field: sortField,
         sort_order: sortOrder,
-        page,
-        per_page: perPage,
+        page: rawParam(params, "page"),
+        per_page: rawParam(params, "per_page"),
         start: rangeBounds?.start,
         end: rangeBounds?.end,
       },

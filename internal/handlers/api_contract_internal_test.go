@@ -6,7 +6,6 @@ import (
 	"flag"
 	"os"
 	"reflect"
-	"slices"
 	"strings"
 	"testing"
 
@@ -22,10 +21,10 @@ var updateContract = flag.Bool("update", false, "rewrite contract/api.json from 
 const contractPath = "contract/api.json"
 
 // contractEndpoint is one route's entry in contract/api.json: the query keys
-// it reads, and the JSON fields of its request body and of its response,
-// flattened to "path": "type".
+// it reads with the rule each value must meet, and the JSON fields of its
+// request body and of its response, flattened to "path": "type".
 type contractEndpoint struct {
-	Query    []string          `json:"query,omitempty"`
+	Query    map[string]string `json:"query,omitempty"`
 	Request  map[string]string `json:"request,omitempty"`
 	Response map[string]string `json:"response,omitempty"`
 }
@@ -87,7 +86,7 @@ func TestAPIContract(t *testing.T) {
 		var endpoint contractEndpoint
 
 		if types.query != nil {
-			endpoint.Query = contractQueryKeys(t, reflect.TypeOf(types.query))
+			endpoint.Query = contractQuery(t, reflect.TypeOf(types.query))
 		}
 
 		if types.request != nil {
@@ -127,14 +126,17 @@ func TestAPIContract(t *testing.T) {
 		contractPath)
 }
 
-// contractQueryKeys lists the `query:"…"` keys decodeQuery fills on t, sorted.
-// It walks the struct the way decodeQuery does, and fails on the two mistakes
-// decodeQuery would silently skip: a tagged field that is not a string, and a
-// key declared twice (an embedded struct and the outer one both claiming it).
-func contractQueryKeys(t *testing.T, typ reflect.Type) []string {
+// contractQuery maps each `query:"…"` key decodeQuery reads on t to its rule,
+// as queryRule.describe writes it ("positive", "oneof<ASC|DESC>",
+// "required integer"). It walks the struct the way decodeQuery does, and fails
+// on the mistakes decodeQuery would silently skip: a tagged field that is not
+// a string, and a key declared twice (an embedded struct and the outer one
+// both claiming it). An unknown rule panics in parseQueryRule, which fails the
+// test just as loudly.
+func contractQuery(t *testing.T, typ reflect.Type) map[string]string {
 	t.Helper()
 
-	var keys []string
+	query := make(map[string]string)
 
 	var walk func(reflect.Type)
 	walk = func(typ reflect.Type) {
@@ -145,24 +147,24 @@ func contractQueryKeys(t *testing.T, typ reflect.Type) []string {
 				continue
 			}
 
-			key := field.Tag.Get("query")
-			if key == "" {
+			tag := field.Tag.Get("query")
+			if tag == "" {
 				continue
 			}
 
 			require.True(t, field.IsExported(), "%s.%s: a query field must be exported", typ, field.Name)
 			require.Equal(t, reflect.String, field.Type.Kind(),
 				"%s.%s: a query field must be a string, decodeQuery fills nothing else", typ, field.Name)
-			require.NotContains(t, keys, key, "%s: query key %q is declared twice", typ, key)
 
-			keys = append(keys, key)
+			rule := parseQueryRule(tag)
+			require.NotContains(t, query, rule.key, "%s: query key %q is declared twice", typ, rule.key)
+
+			query[rule.key] = rule.describe()
 		}
 	}
 	walk(typ)
 
-	slices.Sort(keys)
-
-	return keys
+	return query
 }
 
 // contractFields flattens a type's JSON encoding to "path": "type" pairs, the

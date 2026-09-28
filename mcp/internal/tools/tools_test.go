@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -195,6 +196,59 @@ func TestToolList(t *testing.T) {
 		"list_categories", "list_tags", "get_dashboard", "get_expense_stats",
 		"get_budgets", "set_budgets", "get_report_settings", "set_report_settings", "retag",
 	}, names)
+}
+
+// TestToolDescriptionsNameQueryValues keeps the input descriptions a model
+// reads in step with the values the tools accept. The accepted values come
+// from the query structs' tags (api.QueryOneOf), which contracttest holds to the
+// server's; the descriptions are static jsonschema strings, free to go stale
+// unless something compares them. Every accepted value must appear in its
+// description as a whole word.
+func TestToolDescriptionsNameQueryValues(t *testing.T) {
+	session, _ := connect(t, nil)
+
+	res, err := session.ListTools(t.Context(), nil)
+	require.NoError(t, err)
+
+	descriptions := make(map[string]map[string]string)
+
+	for _, tool := range res.Tools {
+		data, err := json.Marshal(tool.InputSchema)
+		require.NoError(t, err)
+
+		var schema struct {
+			Properties map[string]struct {
+				Description string `json:"description"`
+			} `json:"properties"`
+		}
+		require.NoError(t, json.Unmarshal(data, &schema))
+
+		descriptions[tool.Name] = make(map[string]string)
+		for name, prop := range schema.Properties {
+			descriptions[tool.Name][name] = prop.Description
+		}
+	}
+
+	checks := []struct {
+		tool, input string
+		values      []string
+	}{
+		{"search_expenses", "per_page", api.QueryOneOf(api.ExpenseListQuery{}, "per_page")},
+		{"search_expenses", "sort_field", api.QueryOneOf(api.ExpenseListQuery{}, "sort_field")},
+		{"list_recurrent_expenses", "per_page", api.QueryOneOf(api.RecurrentExpenseListQuery{}, "per_page")},
+		{"list_recurrent_expenses", "sort_field", api.QueryOneOf(api.RecurrentExpenseListQuery{}, "sort_field")},
+		{"get_budgets", "mode", api.QueryOneOf(api.BudgetsQuery{}, "mode")},
+	}
+
+	for _, c := range checks {
+		description := descriptions[c.tool][c.input]
+		require.NotEmpty(t, description, "%s has no %s input", c.tool, c.input)
+
+		for _, value := range c.values {
+			require.Regexp(t, `(^|\W)`+regexp.QuoteMeta(value)+`(\W|$)`, description,
+				"%s.%s: the description does not name %q", c.tool, c.input, value)
+		}
+	}
 }
 
 func TestExpenseTools(t *testing.T) {

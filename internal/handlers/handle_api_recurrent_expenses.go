@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/ad9311/ninete/internal/logic"
 	"github.com/ad9311/ninete/internal/prog"
@@ -150,11 +149,17 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 	user := getCurrentUser(r)
 
 	var query apiRecurrentExpenseListQuery
-	decodeQuery(r, &query)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
 
-	archived, _ := strconv.ParseBool(query.Archived)
+		return
+	}
 
-	opts := userScopedQueryOpts(query.apiListQuery, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"})
+	archived := query.Archived == "true"
+
+	opts := userScopedQueryOpts(
+		query.apiListQuery, query.SortField, query.SortOrder, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"},
+	)
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.RecurrentExpenseArchivedFilter(archived))
 
 	totalCount, err := h.store.CountRecurrentExpenses(ctx, opts.Filters)

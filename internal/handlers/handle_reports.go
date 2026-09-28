@@ -25,7 +25,11 @@ func (h *Handler) GetReportsExpenses(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 
 	var query reportQuery
-	decodeQuery(r, &query)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
+
+		return
+	}
 
 	month, err := parseReportMonth(query.Month)
 	if err != nil {

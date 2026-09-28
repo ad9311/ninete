@@ -76,9 +76,21 @@ func New(baseURL, token, version string) *Client {
 }
 
 // Get, Post and Put send one request to apiPrefix+path. out may be nil for a
-// response with no body.
-func (c *Client) Get(ctx context.Context, path string, query url.Values, out any) error {
-	return c.do(ctx, http.MethodGet, path, query, nil, out)
+// response with no body. query is nil or one of the query structs in query.go,
+// encoded by EncodeQuery.
+func (c *Client) Get(ctx context.Context, path string, query, out any) error {
+	var values url.Values
+
+	if query != nil {
+		encoded, err := EncodeQuery(query)
+		if err != nil {
+			return err
+		}
+
+		values = encoded
+	}
+
+	return c.do(ctx, http.MethodGet, path, values, nil, out)
 }
 
 func (c *Client) Post(ctx context.Context, path string, body, out any) error {
@@ -93,6 +105,13 @@ func (c *Client) Put(ctx context.Context, path string, body, out any) error {
 // scope, and this client does not offer the method at all.
 
 func (c *Client) do(ctx context.Context, method, path string, query url.Values, body, out any) error {
+	// A query written into the path ("/expenses?tags=food") would bypass the
+	// query structs, so contracttest would never see its keys. Every query must
+	// come through Get's struct; a "#" would silently cut the path short.
+	if strings.ContainsAny(path, "?#") {
+		return fmt.Errorf("%w: %q", ErrPathQuery, path)
+	}
+
 	target := c.baseURL + apiPrefix + path
 	if len(query) > 0 {
 		target += "?" + query.Encode()

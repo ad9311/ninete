@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/ad9311/ninete-mcp/internal/api"
 	"github.com/ad9311/ninete-mcp/internal/contracttest"
 	"github.com/stretchr/testify/require"
 )
@@ -20,6 +21,18 @@ func TestContract(t *testing.T) {
 		t.Run(route, func(t *testing.T) {
 			server, ok := contract[route]
 			require.True(t, ok, "%s is not in contract/api.json: the app no longer serves it to tokens", route)
+
+			// Query rules are checked from the declarations, so a key no test
+			// happens to send is covered all the same.
+			mine := map[string]string{}
+			if endpoint.Query != nil {
+				var err error
+				mine, err = api.QueryRules(endpoint.Query)
+				require.NoError(t, err)
+			}
+
+			require.Empty(t, contracttest.QueryProblems(server.Query, mine),
+				"query rules differ from the server's")
 
 			if endpoint.Request == nil {
 				require.Empty(t, server.Request, "the server now expects a request body")
@@ -77,4 +90,36 @@ func TestContractCatchesDrift(t *testing.T) {
 	list := contract["GET /api/expenses"]
 	require.Empty(t, contracttest.UnknownQueryKeys(list, url.Values{"tag": {"food"}}))
 	require.Equal(t, []string{"tags"}, contracttest.UnknownQueryKeys(list, url.Values{"tags": {"food"}}))
+
+	// The declared rules catch the same drift, and more, without a request.
+	type drifted struct {
+		Tags      string `query:"tags"`                               // a key the server never reads
+		Page      string `query:"page"`                               // a rule looser than the server's
+		PerPage   int    `query:"per_page,oneof=15 20"`               // a value the server refuses
+		SortField string `query:"sort_field,oneof=created_at amount"` // a subset, which is fine
+		Q         string `query:"q,max=80"`                           // a longer cap than the server's
+	}
+
+	rules, err := api.QueryRules(drifted{})
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		`page: declared "string", the server expects "positive integer"`,
+		`per_page: declared "oneof<15|20>", the server expects "oneof<15|25|50|100>"`,
+		`q: declared "string<max 80>", the server expects "string<max 50>"`,
+		"tags: the server does not read it",
+	}, contracttest.QueryProblems(list.Query, rules))
+
+	// A key the server requires must be declared, and declared required.
+	type dashboardMissingOne struct {
+		ThisStart int64 `query:"this_start,integer,required"`
+		ThisEnd   int64 `query:"this_end,integer,required"`
+		LastStart int64 `query:"last_start,integer"`
+	}
+
+	rules, err = api.QueryRules(dashboardMissingOne{})
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		"last_end: the server requires it",
+		"last_start: the server requires it",
+	}, contracttest.QueryProblems(contract["GET /api/dashboard"].Query, rules))
 }

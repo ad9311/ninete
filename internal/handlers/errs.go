@@ -36,7 +36,6 @@ var (
 	ErrTokenScope      = errors.New("this token's scope does not allow this request")
 
 	ErrBudgetCategoryField = errors.New("invalid budget field name")
-	ErrSearchTermTooLong   = errors.New("search terms must be at most 50 characters")
 
 	// ErrAPIInvalidDateRange guards the /api/expenses* date bounds: the client
 	// resolves a named range to explicit bounds itself (§3.6 of

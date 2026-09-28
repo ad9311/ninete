@@ -29,7 +29,7 @@ func TestExpenseSearchBounds(t *testing.T) {
 
 	parse := func(t *testing.T, query string) expenseSearch {
 		t.Helper()
-		search, err := parseExpenseSearch(expenseListQuery(query))
+		search, err := parseExpenseSearch(expenseListQuery(t, query))
 		require.NoError(t, err)
 
 		return search
@@ -114,10 +114,11 @@ func TestExpenseSearchBounds(t *testing.T) {
 				for _, query := range []string{
 					"created_start=1000",
 					"created_end=2000",
+					// A non-numeric bound never gets this far: decodeQuery refuses
+					// it by the integer rule (TestAPIQueryValidation).
 					"created_start=2000&created_end=1000",
-					"created_start=nope&created_end=2000",
 				} {
-					_, err := parseExpenseSearch(expenseListQuery(query))
+					_, err := parseExpenseSearch(expenseListQuery(t, query))
 					require.ErrorIs(t, err, ErrAPIInvalidDateRange, query)
 				}
 			},
@@ -131,9 +132,11 @@ func TestExpenseSearchBounds(t *testing.T) {
 
 // expenseListQuery decodes a raw query string the way GetAPIExpenses does, so
 // these tests exercise the struct tags as well as the parsing.
-func expenseListQuery(raw string) apiExpenseListQuery {
+func expenseListQuery(t *testing.T, raw string) apiExpenseListQuery {
+	t.Helper()
+
 	var query apiExpenseListQuery
-	decodeQuery(httptest.NewRequest("GET", "/api/expenses?"+raw, nil), &query)
+	require.NoError(t, decodeQuery(httptest.NewRequest("GET", "/api/expenses?"+raw, nil), &query))
 
 	return query
 }

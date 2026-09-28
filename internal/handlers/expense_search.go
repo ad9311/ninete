@@ -3,15 +3,11 @@ package handlers
 import (
 	"slices"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
 
 const (
-	// searchTermMax bounds free-text search input.
-	searchTermMax = 50
-
 	// searchFieldBilled is the billed-date column. The explicit search bounds
 	// no longer target it — the billed date is picked and displayed as a month,
 	// so a day-precision bound on it meant nothing — but the preset date_range
@@ -45,15 +41,13 @@ type expenseSearch struct {
 	explicitRange bool
 }
 
+// parseExpenseSearch reads the search inputs from a query decodeQuery has
+// already checked, including the 50-character cap on q and tag (the max rule
+// on apiExpenseListQuery).
 func parseExpenseSearch(q apiExpenseListQuery) (expenseSearch, error) {
 	search := expenseSearch{
 		Query: strings.TrimSpace(q.Q),
 		Tag:   strings.TrimSpace(q.Tag),
-	}
-
-	if utf8.RuneCountInString(search.Query) > searchTermMax ||
-		utf8.RuneCountInString(search.Tag) > searchTermMax {
-		return search, ErrSearchTermTooLong
 	}
 
 	start, end, hasBounds, err := parseAPICreatedBounds(q)

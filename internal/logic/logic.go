@@ -54,6 +54,29 @@ func (e *ValidationError) Error() string { return e.message }
 // written before this type.
 func (*ValidationError) Unwrap() error { return ErrValidationFailed }
 
+// NewValidationError builds a ValidationError from a map of field name to the
+// rule it broke, for input checked outside the struct validator — the query
+// strings internal/handlers decodes. The message has the same shape as a
+// validator failure's, keys sorted so it does not depend on map order.
+func NewValidationError(fields map[string]string) *ValidationError {
+	names := make([]string, 0, len(fields))
+	for name := range fields {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
+	chained := make([]string, 0, len(names))
+	for _, name := range names {
+		chained = append(chained, "["+name+":"+fields[name]+"]")
+	}
+
+	return &ValidationError{
+		Fields:  fields,
+		message: fmt.Sprintf("%s: %s", ErrValidationFailed, strings.Join(chained, ",")),
+	}
+}
+
 // underField re-keys every entry of a ValidationError under a single parent
 // field name, for a use-case that validates a *secondary* params struct on its
 // way to satisfying the request.

@@ -26,7 +26,11 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 
 	var query apiExpenseStatsQuery
-	decodeQuery(r, &query)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
+
+		return
+	}
 
 	filters := repo.Filters{
 		FilterFields: []repo.FilterField{

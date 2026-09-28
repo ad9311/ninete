@@ -1,27 +1,12 @@
 package handlers
 
 import (
-	"slices"
 	"strconv"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
 
 const defaultPerPage = 15
-
-// perPageChoices are the only page sizes the listings accept. Anything else in
-// the query string falls back to defaultPerPage, so a hand-edited per_page
-// cannot ask the database for an unbounded page.
-var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
-
-func normalizePerPage(raw string) int {
-	perPage, err := strconv.Atoi(raw)
-	if err != nil || !slices.Contains(perPageChoices, perPage) {
-		return defaultPerPage
-	}
-
-	return perPage
-}
 
 type PaginationData struct {
 	CurrentPage int
@@ -39,21 +24,32 @@ type PaginationData struct {
 	DateTo      string
 }
 
-func userScopedQueryOpts(q apiListQuery, userID int, defaultSort repo.Sorting) repo.QueryOptions {
-	sorting := repo.Sorting{
-		Order: q.SortOrder,
-		Field: q.SortField,
+// userScopedQueryOpts builds a listing's options from a query decodeQuery has
+// already validated, so every value here is either absent or well formed: the
+// page sizes per_page accepts are the oneof on apiListQuery, which is what
+// keeps a hand-edited URL from asking the database for an unbounded page.
+// An absent half of the sort pair takes the default's half, so a field sent
+// alone sorts in the default direction rather than failing.
+func userScopedQueryOpts(
+	q apiListQuery, sortField, sortOrder string, userID int, defaultSort repo.Sorting,
+) repo.QueryOptions {
+	sorting := repo.Sorting{Field: sortField, Order: sortOrder}
+	if sorting.Field == "" {
+		sorting.Field = defaultSort.Field
 	}
-	if sorting.Field == "" && sorting.Order == "" {
-		sorting = defaultSort
+	if sorting.Order == "" {
+		sorting.Order = defaultSort.Order
 	}
 
-	page, _ := strconv.Atoi(q.Page)
-	if page < 1 {
-		page = 1
+	page := 1
+	if q.Page != "" {
+		page, _ = strconv.Atoi(q.Page)
 	}
 
-	perPage := normalizePerPage(q.PerPage)
+	perPage := defaultPerPage
+	if q.PerPage != "" {
+		perPage, _ = strconv.Atoi(q.PerPage)
+	}
 
 	opts := repo.QueryOptions{
 		Sorting: sorting,

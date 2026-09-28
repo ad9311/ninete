@@ -81,7 +81,9 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 // It reports whether the request carried bounds, which the caller has to feed
 // back into the search — see GetAPIExpenses.
 func apiExpenseListOpts(q apiExpenseListQuery, userID int) (repo.QueryOptions, bool, error) {
-	opts := userScopedQueryOpts(q.apiListQuery, userID, repo.Sorting{Field: "created_at", Order: "DESC"})
+	opts := userScopedQueryOpts(
+		q.apiListQuery, q.SortField, q.SortOrder, userID, repo.Sorting{Field: "created_at", Order: "DESC"},
+	)
 
 	start, end, hasBounds, err := parseAPIDateBounds(q.apiBoundsQuery)
 	if err != nil {
@@ -136,11 +138,15 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 	user := getCurrentUser(r)
 
 	var query apiExpenseListQuery
-	decodeQuery(r, &query)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
+
+		return
+	}
 
 	search, err := parseExpenseSearch(query)
 	if err != nil {
-		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrAPIInvalidDateRange)
+		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 
 		return
 	}

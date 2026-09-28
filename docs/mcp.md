@@ -43,19 +43,19 @@ about the MCP SDK.
 ## Keeping the API contract
 
 The app and this module cannot import each other's types, so they meet in a file:
-`contract/api.json` lists, for every route a token can reach, the query keys it reads and the JSON
-fields of its request body and response, flattened to `"path": "type"`
+`contract/api.json` lists, for every route a token can reach, the query keys it reads with the
+rule each value must meet, and the JSON fields of its request body and response, flattened to `"path": "type"`
 (`"data[].amount": "integer"`). It is generated from the handler structs and committed.
 
 Three tests hold it in place:
 
 | Test | Side | Fails when |
 | --- | --- | --- |
-| `TestAPIContract` (`internal/handlers/api_contract_internal_test.go`) | app | A handler's query keys or JSON changed and the file was not regenerated, or a `query`-tagged field is not a string or repeats a key |
+| `TestAPIContract` (`internal/handlers/api_contract_internal_test.go`) | app | A handler's query rules or JSON changed and the file was not regenerated, or a `query` tag is malformed, sits on a non-string field or repeats a key |
 | `TestAPIContractCoversTokenRoutes` (`internal/serve/contract_internal_test.go`) | app | A token-reachable, non-`DELETE` route is missing from the file, or the file lists one the router no longer serves |
-| `TestContract` (`mcp/internal/api/contract_test.go`) | mcp | This module's types disagree with the file |
+| `TestContract` (`mcp/internal/api/contract_test.go`) | mcp | This module's types or query rules disagree with the file |
 
-`TestContract` is strict in one direction only:
+`TestContract` is strict where drift loses data and lenient where it cannot:
 
 - **Request bodies must match exactly.** The server's decoder ignores unknown fields and a `PUT`
   replaces the whole record, so a field the server reads but the MCP does not send would be reset
@@ -63,12 +63,13 @@ Three tests hold it in place:
 - **Responses may be a subset.** The MCP may ignore a field, but every field it reads must exist
   with the same type. This is why the list and detail expense are two types (`ListedExpense`,
   `Expense`): the list never sends `note`.
+- **Query keys may be a subset, rules must fit.** See "Query strings" below.
 
 The tools test adds two more guards, both run over every request a tool sends to the fake API:
 the route must be in `contracttest.Endpoints`, so a new call cannot bypass `TestContract`, and
 every query key must be one the file lists for that route (`contracttest.UnknownQueryKeys`).
 
-The workflow after changing a token-reachable handler's query keys or JSON:
+The workflow after changing a token-reachable handler's query rules or JSON:
 
 ```sh
 make contract     # regenerate contract/api.json; review its diff
@@ -80,31 +81,58 @@ inlined, `int`/`uint` both `integer`). The two walkers are copies —
 `internal/handlers/api_contract_internal_test.go` and `mcp/internal/contracttest` — and the file
 keeps them honest: if they disagreed, one side's test would fail on the next run.
 
-### Query keys
+### Query strings
 
-A handler reads its query string only through `decodeQuery` (`internal/handlers/query.go`), which
-fills a struct of raw strings tagged `query:"…"`: `apiExpenseListQuery`, `apiDashboardQuery` and
-so on. `apiContract` names that struct for each route, and `TestAPIContract` writes its keys into
-the file as a sorted `"query"` list. The tags are therefore the only declaration of a route's keys,
-and renaming one changes the file by itself. Two things keep it that way:
+Both sides declare every query key once, as a `query:"…"` tag on a struct, in one grammar: the
+key, then its rules.
 
-- **`forbidigo` rejects any other read.** `r.URL.Query()`, `RawQuery`, `FormValue`, `ParseForm` and
-  `Form` are forbidden in `internal/handlers` outside `query.go` and tests (`.golangci.yml`). A
-  `q.Get("…")` literal would never reach the contract.
-- **`TestAPIContract` rejects a tagged field decodeQuery would skip.** One that is not a string, or a
-  key declared twice across embedded structs, fails the test rather than silently not decoding.
+| Tag | Accepts |
+| --- | --- |
+| `query:"q,max=50"` | Any string of at most 50 characters (a key with no type rule is a free string) |
+| `query:"start,integer"` | A whole number |
+| `query:"page,positive"` | A whole number of at least 1 |
+| `query:"archived,boolean"` | Exactly `true` or `false` |
+| `query:"mode,oneof=month months"` | One of the listed values, exactly |
+| `…,required` | The key must be sent |
 
-On the MCP side keys are a subset, like responses. Every key is optional to the server, but one it
-does not read is ignored, and the tool gets an unfiltered answer instead of an error. That is the
-drift this catches.
+In the app, `decodeQuery` (`internal/handlers/query.go`) fills the handler's struct and checks each
+value. An empty value counts as absent, and an absent optional key takes the handler's default. A
+value that breaks its rule is a **422** naming the key and the rule
+(`{"fields": {"per_page": "oneof"}}`), never a silent fallback. That holds for every client, the
+SPA included: a hand-edited `?per_page=37` gets the 422, because the SPA passes the URL's `page`,
+`per_page` and `category_id` through untouched (`rawParam`, `web/app/lib/pagination.ts`). A
+fallback is exactly how a client drifting from the server used to go unnoticed: a renamed `mode`
+came back as `month`, a page size the server dropped came back as 15.
 
-The check sees only keys a tools test actually sends. When a tool gains a query parameter, add it
-to that tool's "sends every key" test (`should_send_the_tag_category_and_page_filters`,
-`should_send_every_recurrent_expense_list_filter`, …), or a rename of it goes unnoticed.
+`apiContract` names the struct for each route, and `TestAPIContract` writes each key's rule into the
+file (`"per_page": "oneof<15|25|50|100>"`, `"this_start": "required integer"`). The tags are the
+only declaration, so changing a key or a rule changes the file by itself.
 
-**Values are not covered.** The file records `mode`, not that it accepts `month` or `months`. The
-same goes for `sort_field` and `sort_order` values and the `archived` format. A server that renamed
-an accepted value would fall back to its default without the MCP knowing. `TODO.md` tracks it.
+In this module, the tools build every query from a struct in `mcp/internal/api/query.go`, which
+`api.EncodeQuery` turns into the request — refusing, before anything is sent, a value its own rule
+does not allow. The tools read their allowlists back from the tags (`api.QueryOneOf`), so the page
+sizes, sort fields and modes a tool validates against are the ones checked here. `TestContract`
+compares each struct's rules with the file without running any tool (`contracttest.QueryProblems`):
+
+- every key this module declares must exist on the server with the same rule;
+- a `oneof` may list fewer values than the server's, never one the server lacks;
+- every key the server requires must be declared here as required.
+
+Three more guards keep the declarations the only source:
+
+- **`forbidigo`** rejects `r.URL.Query()`, `RawQuery`, `FormValue`, `ParseForm` and `Form` in
+  `internal/handlers` outside `query.go`, and `url.Values` in `mcp/internal/tools`
+  (`.golangci.yml`). A literal read or write would bypass the contract. A query typed into a path
+  string (`"/expenses?tags=food"`) is refused at runtime instead: `Client.do`
+  (`mcp/internal/api/client.go`) returns `ErrPathQuery` for any path containing `?` or `#`.
+- **A malformed tag fails a test.** An unknown rule, a rule on a field that cannot carry it, or a key
+  declared twice fails `TestAPIContract` on the app side and `TestContract` on this one.
+- **`TestToolDescriptionsNameQueryValues`** (`mcp/internal/tools`) requires each tool input's
+  description to name every value its tag accepts, since the descriptions a model reads are static
+  strings the tags cannot rewrite.
+
+What no schema can say — that bounds are epoch seconds and half-open, that amounts are cents — is
+outside these checks.
 
 ## Configuration
 

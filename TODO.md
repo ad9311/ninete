@@ -3,15 +3,6 @@
 Known issues and follow-up work that is deliberately out of scope for the change
 that surfaced it. Remove an entry once it is fixed.
 
-- **Put accepted query values under the API contract.** `contract/api.json` lists each route's
-  query keys (`docs/mcp.md`, "Query keys"), not the values a key accepts. Several handlers fall back
-  silently on a value they do not know: `mode` becomes `month`, an unparseable `archived` becomes
-  `false`, and the sort builder handles `sort_field`/`sort_order` its own way. So if the server
-  renamed `months`, the MCP would keep sending the old value, get the default back, and no test
-  would fail. The fix would record enum values in the contract (an `enum:"month,months"` tag on the
-  query struct field, or a constant list it references) and have `contracttest` check the values the
-  tools send as well as the keys. Left out of the query-key change to keep that one a pure
-  refactor.
 - **Read notes in bulk for statement reconciliation.** Reconciling a card statement through the
   MCP means explaining why an expense is lower than its statement line (a shared purchase where
   someone repaid their part in cash), but `search_expenses` omits `note` — the list's `apiExpense`

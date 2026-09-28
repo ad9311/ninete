@@ -7,12 +7,12 @@
     }
   },
   "GET /api/dashboard": {
-    "query": [
-      "last_end",
-      "last_start",
-      "this_end",
-      "this_start"
-    ],
+    "query": {
+      "last_end": "required integer",
+      "last_start": "required integer",
+      "this_end": "required integer",
+      "this_start": "required integer"
+    },
     "response": {
       "data": "object",
       "data.last_month_total": "integer",
@@ -25,19 +25,19 @@
     }
   },
   "GET /api/expenses": {
-    "query": [
-      "category_id",
-      "created_end",
-      "created_start",
-      "end",
-      "page",
-      "per_page",
-      "q",
-      "sort_field",
-      "sort_order",
-      "start",
-      "tag"
-    ],
+    "query": {
+      "category_id": "positive integer",
+      "created_end": "integer",
+      "created_start": "integer",
+      "end": "integer",
+      "page": "positive integer",
+      "per_page": "oneof<15|25|50|100>",
+      "q": "string<max 50>",
+      "sort_field": "oneof<created_at|date|amount|description|category_id>",
+      "sort_order": "oneof<ASC|DESC>",
+      "start": "integer",
+      "tag": "string<max 50>"
+    },
     "response": {
       "data": "array<object>",
       "data[].amount": "integer",
@@ -61,11 +61,11 @@
     }
   },
   "GET /api/expenses/budgets": {
-    "query": [
-      "end",
-      "mode",
-      "start"
-    ],
+    "query": {
+      "end": "required integer",
+      "mode": "oneof<month|months>",
+      "start": "required integer"
+    },
     "response": {
       "edit_rows": "array<object>",
       "edit_rows[].amount": "integer",
@@ -93,12 +93,12 @@
     }
   },
   "GET /api/expenses/stats": {
-    "query": [
-      "end",
-      "sort_field",
-      "sort_order",
-      "start"
-    ],
+    "query": {
+      "end": "integer",
+      "sort_field": "oneof<total|category>",
+      "sort_order": "oneof<ASC|DESC>",
+      "start": "integer"
+    },
     "response": {
       "data": "array<object>",
       "data[].name": "string",
@@ -119,14 +119,14 @@
     }
   },
   "GET /api/recurrent-expenses": {
-    "query": [
-      "archived",
-      "category_id",
-      "page",
-      "per_page",
-      "sort_field",
-      "sort_order"
-    ],
+    "query": {
+      "archived": "boolean",
+      "category_id": "positive integer",
+      "page": "positive integer",
+      "per_page": "oneof<15|25|50|100>",
+      "sort_field": "oneof<created_at|description|amount|period|category_id>",
+      "sort_order": "oneof<ASC|DESC>"
+    },
     "response": {
       "data": "array<object>",
       "data[].amount": "integer",

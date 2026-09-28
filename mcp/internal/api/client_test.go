@@ -119,6 +119,22 @@ func TestClient(t *testing.T) {
 			},
 		},
 		{
+			name: "should_refuse_a_query_written_into_the_path",
+			fn: func(t *testing.T) {
+				client := serve(t, func(http.ResponseWriter, *http.Request) {
+					t.Fatal("nothing may be sent")
+				})
+
+				for _, path := range []string{"/expenses?tags=food", "/expenses#top"} {
+					err := client.Get(t.Context(), path, nil, nil)
+					require.ErrorIs(t, err, api.ErrPathQuery, path)
+
+					err = client.Post(t.Context(), path, map[string]string{}, nil)
+					require.ErrorIs(t, err, api.ErrPathQuery, path)
+				}
+			},
+		},
+		{
 			name: "should_accept_204_with_no_body",
 			fn: func(t *testing.T) {
 				client := serve(t, func(w http.ResponseWriter, _ *http.Request) {

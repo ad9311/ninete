@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"strconv"
 
 	"github.com/ad9311/ninete-mcp/internal/api"
@@ -130,19 +129,17 @@ func (d Deps) listRecurrentExpenses(
 ) (*mcp.CallToolResult, RecurrentExpenseListOutput, error) {
 	var out RecurrentExpenseListOutput
 
-	query := url.Values{}
-	query.Set("archived", strconv.FormatBool(in.Archived))
+	query := api.RecurrentExpenseListQuery{Archived: in.Archived, CategoryID: in.CategoryID, Page: in.Page}
 
-	if in.CategoryID > 0 {
-		query.Set("category_id", strconv.Itoa(in.CategoryID))
-	}
-
-	if err := setPaging(query, in.Page, in.PerPage); err != nil {
+	perPage, err := perPageOrDefault(in.PerPage, api.QueryOneOf(query, "per_page"))
+	if err != nil {
 		return nil, out, err
 	}
 
-	if err := setSort(query, in.SortField, in.SortOrder,
-		[]string{"created_at", "description", "amount", "period"}); err != nil {
+	query.PerPage = perPage
+
+	query.SortField, query.SortOrder, err = sortPair(in.SortField, in.SortOrder, api.QueryOneOf(query, "sort_field"))
+	if err != nil {
 		return nil, out, err
 	}
 

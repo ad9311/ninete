@@ -30,7 +30,11 @@ func (h *Handler) GetAPIDashboard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
 	var query apiDashboardQuery
-	decodeQuery(r, &query)
+	if err := decodeQuery(r, &query); err != nil {
+		h.WriteAPIError(w, err)
+
+		return
+	}
 
 	thisStart, thisEnd, err := parseAPIRequiredDateBounds(query.ThisStart, query.ThisEnd)
 	if err != nil {

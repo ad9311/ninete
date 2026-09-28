@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,10 +12,6 @@ import (
 	"github.com/ad9311/ninete-mcp/internal/units"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
-
-// perPageChoices are the page sizes the server accepts; anything else it
-// silently replaces with 15, so the tool rejects it instead.
-var perPageChoices = []int{15, 25, 50, 100} //nolint:gochecknoglobals // static option list
 
 const defaultPerPage = 25
 
@@ -121,30 +116,21 @@ func (d Deps) searchExpenses(
 ) (*mcp.CallToolResult, ExpenseListOutput, error) {
 	var out ExpenseListOutput
 
-	query := url.Values{}
+	query := api.ExpenseListQuery{Q: in.Query, Tag: in.Tag, CategoryID: in.CategoryID}
 
-	if in.Query != "" {
-		query.Set("q", in.Query)
-	}
-
-	if in.Tag != "" {
-		query.Set("tag", in.Tag)
-	}
-
-	if in.CategoryID > 0 {
-		query.Set("category_id", strconv.Itoa(in.CategoryID))
-	}
-
-	if err := d.setSearchRange(query, in); err != nil {
+	if err := d.setSearchRange(&query, in); err != nil {
 		return nil, out, err
 	}
 
-	if err := setPaging(query, in.Page, in.PerPage); err != nil {
+	perPage, err := perPageOrDefault(in.PerPage, api.QueryOneOf(query, "per_page"))
+	if err != nil {
 		return nil, out, err
 	}
 
-	if err := setSort(query, in.SortField, in.SortOrder,
-		[]string{"created_at", "date", "amount", "description"}); err != nil {
+	query.Page, query.PerPage = in.Page, perPage
+
+	query.SortField, query.SortOrder, err = sortPair(in.SortField, in.SortOrder, api.QueryOneOf(query, "sort_field"))
+	if err != nil {
 		return nil, out, err
 	}
 
@@ -173,7 +159,7 @@ func (d Deps) searchExpenses(
 // pairs. They are exclusive because the server drops the billed-month bounds
 // whenever creation bounds are present — silently combining them would return
 // a result the caller did not ask for.
-func (d Deps) setSearchRange(query url.Values, in SearchExpensesInput) error {
+func (d Deps) setSearchRange(query *api.ExpenseListQuery, in SearchExpensesInput) error {
 	hasBilled := in.FromMonth != "" || in.ToMonth != ""
 	hasCreated := in.CreatedFrom != "" || in.CreatedTo != ""
 
@@ -188,68 +174,61 @@ func (d Deps) setSearchRange(query url.Values, in SearchExpensesInput) error {
 			return err
 		}
 
-		query.Set("start", strconv.FormatInt(start, 10))
-		query.Set("end", strconv.FormatInt(end, 10))
+		query.Start, query.End = start, end
 	case hasCreated:
 		start, end, err := units.DayRange(in.CreatedFrom, in.CreatedTo, d.Location)
 		if err != nil {
 			return err
 		}
 
-		query.Set("created_start", strconv.FormatInt(start, 10))
-		query.Set("created_end", strconv.FormatInt(end, 10))
+		query.CreatedStart, query.CreatedEnd = start, end
 	}
 
 	return nil
 }
 
-func setPaging(query url.Values, page, perPage int) error {
-	if page > 0 {
-		query.Set("page", strconv.Itoa(page))
-	}
-
+// perPageOrDefault checks a page size against the sizes the query struct
+// declares (the same list contracttest holds to the server's), defaulting an
+// unset one. A size the server would refuse is named here, before any request.
+func perPageOrDefault(perPage int, choices []string) (int, error) {
 	if perPage == 0 {
-		perPage = defaultPerPage
+		return defaultPerPage, nil
 	}
 
-	if !slices.Contains(perPageChoices, perPage) {
-		return ErrPerPage
+	if !slices.Contains(choices, strconv.Itoa(perPage)) {
+		return 0, fmt.Errorf("%w %d: use one of %s", ErrPerPage, perPage, strings.Join(choices, ", "))
 	}
 
-	query.Set("per_page", strconv.Itoa(perPage))
-
-	return nil
+	return perPage, nil
 }
 
-func setSort(query url.Values, field, order string, allowed []string) error {
-	if field != "" {
-		if !slices.Contains(allowed, field) {
-			return fmt.Errorf("%w %q: use one of %s", ErrSortField, field, strings.Join(allowed, ", "))
-		}
-
-		query.Set("sort_field", field)
+// sortPair checks a sort field against the fields the query struct declares
+// and upper-cases the order. It always sends both halves: an unset half gets
+// the documented default (created_at, DESC), so what a tool promises does not
+// depend on the server's own defaults.
+func sortPair(field, order string, allowed []string) (sortField, sortOrder string, err error) {
+	if field != "" && !slices.Contains(allowed, field) {
+		return "", "", fmt.Errorf("%w %q: use one of %s", ErrSortField, field, strings.Join(allowed, ", "))
 	}
 
-	if order != "" {
-		upper := strings.ToUpper(order)
-		if upper != "ASC" && upper != "DESC" {
-			return ErrSortOrder
-		}
-
-		// The server reads the field and the order as a pair: an order with
-		// no field would fall back to its default field and drop the order.
-		if field == "" {
-			query.Set("sort_field", "created_at")
-		}
-
-		query.Set("sort_order", upper)
-	} else if field != "" {
-		// The reverse holds too: a field with no order is rejected by the
-		// server's sort builder, so send the documented default.
-		query.Set("sort_order", "DESC")
+	upper := strings.ToUpper(order)
+	if order != "" && upper != "ASC" && upper != "DESC" {
+		return "", "", ErrSortOrder
 	}
 
-	return nil
+	if field == "" && order == "" {
+		return "", "", nil
+	}
+
+	if field == "" {
+		field = "created_at"
+	}
+
+	if upper == "" {
+		upper = "DESC"
+	}
+
+	return field, upper, nil
 }
 
 func (d Deps) getExpense(
