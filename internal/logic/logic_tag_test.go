@@ -392,6 +392,38 @@ func TestRetag(t *testing.T) {
 			},
 		},
 		{
+			// A genuine reproduction: when the record already carries the
+			// target, dropping the source tagging instead of the target's
+			// newer one leaves rt_dup_c as the earliest grouping tagging.
+			name: "should_keep_the_report_section_when_the_record_already_carries_the_target",
+			fn: func(t *testing.T) {
+				first := s.CreateTag(t, user.ID, "rt_dup_a")
+				second := s.CreateTag(t, user.ID, "rt_dup_c")
+				s.CreateTag(t, user.ID, "rt_dup_to")
+				require.NoError(t, s.Store.SaveReportSetting(ctx, user.ID, logic.ReportSettingParams{
+					TagIDs: []int{first.ID, second.ID},
+				}))
+
+				// April 2024, a month no other case bills to.
+				month := time.Date(2024, time.April, 1, 0, 0, 0, 0, time.UTC)
+				expense := s.CreateExpense(t, user.ID, newExpenseParams(
+					category.ID, "retag dup", 100, month.Unix(), []string{"rt_dup_a", "rt_dup_c", "rt_dup_to"}))
+
+				_, err := s.Store.Retag(ctx, user.ID, logic.RetagParams{
+					From: []string{"rt_dup_a"},
+					To:   "rt_dup_to",
+				})
+				require.NoError(t, err)
+
+				require.ElementsMatch(t, []string{"rt_dup_c", "rt_dup_to"}, expenseTags(t, user.ID, expense.ID))
+
+				report, err := s.Store.BuildMonthlyReport(ctx, user.ID, month)
+				require.NoError(t, err)
+				require.Len(t, report.Sections, 1)
+				require.Equal(t, "rt_dup_to", report.Sections[0].Name)
+			},
+		},
+		{
 			name: "should_leave_another_users_tag_of_the_same_name_alone",
 			fn: func(t *testing.T) {
 				s.CreateExpense(t, user.ID, newExpenseParams(
