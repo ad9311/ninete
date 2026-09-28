@@ -128,6 +128,21 @@ describe("tags page", () => {
     expect(save.disabled).toBe(true);
   });
 
+  it("unticks a tag when its rename opens", async () => {
+    render(Index);
+
+    await fireEvent.click(await checkbox("taxi"));
+    await fireEvent.click(await checkbox("uber"));
+    expect(screen.getByText("Merge 2 tags into")).toBeTruthy();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Rename taxi" }));
+    expect(screen.queryByText(/Merge \d+ tags into/)).toBeNull();
+
+    await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect((await checkbox("taxi")).checked).toBe(false);
+    expect((await checkbox("uber")).checked).toBe(true);
+  });
+
   it("shows the merge bar only once two tags are ticked", async () => {
     render(Index);
 

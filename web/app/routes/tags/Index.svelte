@@ -152,6 +152,10 @@
 
   function startRename(tag: TagUsage): void {
     clearFeedback();
+    // The edit form has no checkbox, so a ticked tag would stay in the merge
+    // bar's count with nothing on screen showing it. A rename is an action on
+    // one tag; it leaves any pending merge.
+    selectedIDs = selectedIDs.filter((id) => id !== tag.id);
     editingID = tag.id;
     newName = tag.name;
   }
