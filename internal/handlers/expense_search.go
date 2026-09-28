@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"net/http"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -46,11 +45,10 @@ type expenseSearch struct {
 	explicitRange bool
 }
 
-func parseExpenseSearch(r *http.Request) (expenseSearch, error) {
-	q := r.URL.Query()
+func parseExpenseSearch(q apiExpenseListQuery) (expenseSearch, error) {
 	search := expenseSearch{
-		Query: strings.TrimSpace(q.Get("q")),
-		Tag:   strings.TrimSpace(q.Get("tag")),
+		Query: strings.TrimSpace(q.Q),
+		Tag:   strings.TrimSpace(q.Tag),
 	}
 
 	if utf8.RuneCountInString(search.Query) > searchTermMax ||

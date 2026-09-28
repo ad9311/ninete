@@ -13,7 +13,7 @@ if a document is added, add it here too, or nobody will find it.
 | `CLAUDE.md` (this file) | Rules, invariants, conventions, route map | Always. It is loaded for you |
 | `docs/architecture.md` | Runtime flow, request flow, the expense export's JSON format, per-package reference | Orienting in unfamiliar packages, or reading or changing `/exports/expenses.json` |
 | `docs/spa-migration.md` | **Migration complete, including Phase 8's table drop.** Historical record of the staged plan that replaced the server-rendered frontend with a Svelte SPA: inventory, cross-cutting concerns (auth, CSRF, CSP, **dates**), why Tailwind (since adopted — §4.1 carries the outcome note) and component libraries were deferred, decisions already made, and the scope reduction dropping macros/foods/moods (§0). Code comments across `web/app/` and `internal/` still cite its sections as rationale — do not delete it | Tracing the *why* behind a design decision a comment attributes to it |
-| `docs/mcp.md` | The local MCP server in `mcp/`: why it is a separate module named outside the app's import path, the `contract/api.json` check that keeps its JSON types in step with the handlers, how to build, test and configure it, and its tools | Touching `mcp/`, or adding an `/api` route the MCP server should reach |
+| `docs/mcp.md` | The local MCP server in `mcp/`: why it is a separate module named outside the app's import path, the `contract/api.json` check that keeps its JSON types and query keys in step with the handlers, how to build, test and configure it, and its tools | Touching `mcp/`, or adding an `/api` route the MCP server should reach |
 | `docs/performance.md` | What optimization work pays off here and what does not | Before proposing any performance change |
 | `docs/monthly-report.md` | The monthly expense report: why its period is one calendar month of `date` and not a ragged credit-card cycle, the tag grouping rules, the two built phases (settings, PDF), and why the scheduled email was dropped | Touching the report, its settings, or anything that groups expenses by tag |
 | `docs/deployment.md` | How the app runs in production: deploy scripts, systemd unit, Caddy, migrations, versioning, backups, rollback | Answering anything about production, or editing `scripts/` |
@@ -252,9 +252,9 @@ An expense carries an optional `note` (trimmed, at most 255 characters counted a
 - After implementing changes, run tests via `make test` (or `make test-verbose` when needed).
 - `make test` does not cover `mcp/`, a separate module. Anything touching `mcp/` — or the JSON shape of
   an `/api` route it reads — also needs `make test-mcp`. `make lint`/`make lint-fix` do lint it.
-- **`contract/api.json` is generated, never hand-edited.** It records the JSON of every
-  token-reachable `/api` route. Changing such a handler's request or response struct fails
-  `TestAPIContract` until you run `make contract`; `make test-mcp` then fails until `mcp/` follows.
+- **`contract/api.json` is generated, never hand-edited.** It records the query keys and JSON of
+  every token-reachable `/api` route. Changing such a handler's query, request or response struct
+  fails `TestAPIContract` until you run `make contract`; `make test-mcp` then fails until `mcp/` follows.
   Adding a token-reachable route fails `TestAPIContractCoversTokenRoutes` until it is in
   `apiContract` (`internal/handlers/api_contract_internal_test.go`). `docs/mcp.md`, "Keeping the API
   contract", has why.
@@ -286,7 +286,7 @@ An expense carries an optional `note` (trimmed, at most 255 characters counted a
 - ALL handler endpoint files must use the `handle_` prefix (`internal/handlers/handle_*.go`).
 - Logic service/business-use-case files must use the `logic_` prefix (`internal/logic/logic_*.go`).
 - The `logic_` prefix is ONLY for service-like business logic files (for example: create/update/delete model workflows). Non-service files in `internal/logic` must not use it.
-- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `expense_search.go` (expense search/filter parsing), `errs.go` (sentinel errors), `api.go` (JSON writers and the `/api/*` error mapping).
+- Unprefixed files in these packages are shared infrastructure, and new code belongs in one of them rather than in a new prefixed file: `handler.go` (dependencies/struct), `render.go` (render helpers), `constants.go` (context keys, template names), `shared.go` and `*_shared.go` (form parsing, pagination, helpers used by several endpoints), `expense_search.go` (expense search/filter parsing), `query.go` (the tagged query structs and `decodeQuery`, the only reader of a request's query string — `forbidigo` enforces it), `errs.go` (sentinel errors), `api.go` (JSON writers and the `/api/*` error mapping).
 - Reads and deletes hang off `*Queries`; inserts and updates that participate in a transaction hang off `*TxQueries`. Multi-step writes go through `queries.WithTx`.
 - `scripts/*.sh` holds the production deploy scripts, run on the host through a symlink. `rollback.sh` is the exception: never part of a deploy, only run by hand, and the only script that can destroy data (`--with-database` replaces the live database with a snapshot). They carry two constraints that are easy to undo by accident — the `main()` wrap ending in `main "$@"; exit`, and `cd -P` for paths into the checkout — because a deploy rewrites these files while they are running. Read the "Individual scripts" section of `docs/deployment.md` before editing one. They have no test coverage; `make lint-sh` (shellcheck) is the only check.
 

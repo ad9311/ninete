@@ -101,9 +101,14 @@ func connect(t *testing.T, routes map[string]func([]byte) (int, string)) (*mcp.C
 	t.Cleanup(srv.Close)
 
 	// Every route a tool calls must be one whose JSON shapes TestContract
-	// checks (mcp/internal/api), or a new call could skip the contract.
+	// checks (mcp/internal/api), or a new call could skip the contract. Every
+	// query key it sends must be one the server reads, or the server ignores
+	// the filter and answers as if it had not been asked.
 	t.Cleanup(func() {
 		endpoints := contracttest.Endpoints()
+
+		contract, err := contracttest.Load()
+		require.NoError(t, err)
 
 		fake.mu.Lock()
 		defer fake.mu.Unlock()
@@ -112,6 +117,9 @@ func connect(t *testing.T, routes map[string]func([]byte) (int, string)) (*mcp.C
 			route := contracttest.Route(req.method, req.path)
 			_, checked := endpoints[route]
 			require.True(t, checked, "a tool called %s, which contracttest.Endpoints does not list", route)
+
+			require.Empty(t, contracttest.UnknownQueryKeys(contract[route], req.query),
+				"a tool sent query keys to %s that contract/api.json does not list", route)
 		}
 	})
 
@@ -233,6 +241,27 @@ func TestExpenseTools(t *testing.T) {
 				require.Equal(t, "25", req.query.Get("per_page"))
 				require.Len(t, out.Expenses, 1)
 				require.Nil(t, out.Expenses[0].Note, "list results carry no note")
+			},
+		},
+		{
+			// Sends every filter search_expenses can produce, so the query-key
+			// check in connect covers each one: a key no test sends is a key
+			// the contract never checks.
+			name: "should_send_the_tag_category_and_page_filters",
+			fn: func(t *testing.T) {
+				session, fake := connect(t, map[string]func([]byte) (int, string){
+					"GET /api/expenses": ok(`{"data":[],"pagination":{}}`),
+				})
+
+				var out tools.ExpenseListOutput
+				call(t, session, "search_expenses", map[string]any{
+					"tag": "food", "category_id": 2, "page": 3,
+				}, &out)
+
+				req := fake.last(http.MethodGet, "/api/expenses")
+				require.Equal(t, "food", req.query.Get("tag"))
+				require.Equal(t, "2", req.query.Get("category_id"))
+				require.Equal(t, "3", req.query.Get("page"))
 			},
 		},
 		{
@@ -473,6 +502,47 @@ func TestRecurrentAndReferenceTools(t *testing.T) {
 				body := fake.last(http.MethodPut, "/api/expenses/budgets").body
 				require.Equal(t, map[string]any{"2": float64(30000)}, body["amounts"])
 				require.Equal(t, "300.00", out.Budgets[0].Amount)
+			},
+		},
+		{
+			// Sends every key list_recurrent_expenses can produce; see
+			// should_send_the_tag_category_and_page_filters.
+			name: "should_send_every_recurrent_expense_list_filter",
+			fn: func(t *testing.T) {
+				session, fake := connect(t, map[string]func([]byte) (int, string){
+					"GET /api/recurrent-expenses": ok(`{"data":[` + recurrentJSON + `],"pagination":{}}`),
+				})
+
+				var out tools.RecurrentExpenseListOutput
+				call(t, session, "list_recurrent_expenses", map[string]any{
+					"archived": true, "category_id": 2, "page": 2, "per_page": 50,
+					"sort_field": "amount", "sort_order": "asc",
+				}, &out)
+
+				req := fake.last(http.MethodGet, "/api/recurrent-expenses")
+				require.Equal(t, "true", req.query.Get("archived"))
+				require.Equal(t, "2", req.query.Get("category_id"))
+				require.Equal(t, "2", req.query.Get("page"))
+				require.Equal(t, "50", req.query.Get("per_page"))
+				require.Equal(t, "amount", req.query.Get("sort_field"))
+				require.Equal(t, "ASC", req.query.Get("sort_order"))
+				require.Len(t, out.RecurrentExpenses, 1)
+			},
+		},
+		{
+			name: "should_bound_the_stats_by_billed_month",
+			fn: func(t *testing.T) {
+				session, fake := connect(t, map[string]func([]byte) (int, string){
+					"GET /api/expenses/stats": ok(`{"data":[{"name":"Food","total":4599}],"total":4599}`),
+				})
+
+				var out tools.StatsOutput
+				call(t, session, "get_expense_stats", map[string]any{"from_month": "2026-09"}, &out)
+
+				req := fake.last(http.MethodGet, "/api/expenses/stats")
+				require.Equal(t, "1788220800", req.query.Get("start")) // 2026-09-01 UTC
+				require.Equal(t, "1790812800", req.query.Get("end"))   // 2026-10-01 UTC
+				require.Equal(t, "45.99", out.Total)
 			},
 		},
 		{

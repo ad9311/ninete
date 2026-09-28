@@ -24,7 +24,9 @@ type apiExpenseStatsResponse struct {
 func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
-	q := r.URL.Query()
+
+	var query apiExpenseStatsQuery
+	decodeQuery(r, &query)
 
 	filters := repo.Filters{
 		FilterFields: []repo.FilterField{
@@ -33,7 +35,7 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 		Connector: "AND",
 	}
 
-	start, end, hasBounds, err := parseAPIDateBounds(q)
+	start, end, hasBounds, err := parseAPIDateBounds(query.apiBoundsQuery)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 
@@ -60,8 +62,8 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sortField := q.Get("sort_field")
-	sortOrder := q.Get("sort_order")
+	sortField := query.SortField
+	sortOrder := query.SortOrder
 	if sortField == "" {
 		sortField = "total"
 	}

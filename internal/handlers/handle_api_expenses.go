@@ -80,10 +80,10 @@ func (b expenseRequestBody) toParams() logic.ExpenseParams {
 //
 // It reports whether the request carried bounds, which the caller has to feed
 // back into the search — see GetAPIExpenses.
-func apiExpenseListOpts(r *http.Request, userID int) (repo.QueryOptions, bool, error) {
-	opts := userScopedQueryOpts(r, userID, repo.Sorting{Field: "created_at", Order: "DESC"})
+func apiExpenseListOpts(q apiExpenseListQuery, userID int) (repo.QueryOptions, bool, error) {
+	opts := userScopedQueryOpts(q.apiListQuery, userID, repo.Sorting{Field: "created_at", Order: "DESC"})
 
-	start, end, hasBounds, err := parseAPIDateBounds(r.URL.Query())
+	start, end, hasBounds, err := parseAPIDateBounds(q.apiBoundsQuery)
 	if err != nil {
 		return opts, false, err
 	}
@@ -135,14 +135,17 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user := getCurrentUser(r)
 
-	search, err := parseExpenseSearch(r)
+	var query apiExpenseListQuery
+	decodeQuery(r, &query)
+
+	search, err := parseExpenseSearch(query)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrSearchTermTooLong, ErrAPIInvalidDateRange)
 
 		return
 	}
 
-	opts, hasBounds, err := apiExpenseListOpts(r, user.ID)
+	opts, hasBounds, err := apiExpenseListOpts(query, user.ID)
 	if err != nil {
 		h.WriteAPIError(w, err, ErrAPIInvalidDateRange)
 
@@ -201,7 +204,7 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 
 	h.WriteJSON(w, http.StatusOK, apiExpenseListResponse{
 		Data:       data,
-		Pagination: newAPIPagination(newPaginationData(r, opts, totalCount)),
+		Pagination: newAPIPagination(newPaginationData(query.apiListQuery, opts, totalCount)),
 	})
 }
 

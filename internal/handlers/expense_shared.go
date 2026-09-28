@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"sort"
 	"strconv"
 	"time"
@@ -29,12 +28,11 @@ const (
 	budgetModeMonths budgetMode = "months"
 )
 
-// parseAPIBoundPair reads one [start, end) pair from the two named query
-// params. Neither present means "no bound" (the all_time case); either
+// parseAPIBoundPair reads one [start, end) pair from its two raw query
+// values. Neither present means "no bound" (the all_time case); either
 // present alone, or start on or after end, is malformed input rather than a
 // silent fallback.
-func parseAPIBoundPair(q url.Values, startKey, endKey string) (start, end int64, hasBounds bool, err error) {
-	rawStart, rawEnd := q.Get(startKey), q.Get(endKey)
+func parseAPIBoundPair(rawStart, rawEnd string) (start, end int64, hasBounds bool, err error) {
 	if rawStart == "" && rawEnd == "" {
 		return 0, 0, false, nil
 	}
@@ -53,8 +51,8 @@ func parseAPIBoundPair(q url.Values, startKey, endKey string) (start, end int64,
 // docs/spa-migration.md, "Retiring tz_offset on the API side"): the client
 // already knows its own zone, so it resolves the named range to UTC-midnight
 // epoch bounds before the fetch.
-func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
-	return parseAPIBoundPair(q, "start", "end")
+func parseAPIDateBounds(q apiBoundsQuery) (start, end int64, hasBounds bool, err error) {
+	return parseAPIBoundPair(q.Start, q.End)
 }
 
 // parseAPICreatedBounds reads the expense search's explicit created_at bounds.
@@ -65,15 +63,15 @@ func parseAPIDateBounds(q url.Values) (start, end int64, hasBounds bool, err err
 // They are resolved client-side for the reason expenseSearch documents:
 // created_at is an instant, so the day the user typed only becomes a window
 // once a zone is applied, and the client is the only party that knows it.
-func parseAPICreatedBounds(q url.Values) (start, end int64, hasBounds bool, err error) {
-	return parseAPIBoundPair(q, "created_start", "created_end")
+func parseAPICreatedBounds(q apiExpenseListQuery) (start, end int64, hasBounds bool, err error) {
+	return parseAPIBoundPair(q.CreatedStart, q.CreatedEnd)
 }
 
 // parseAPIRequiredDateBounds is parseAPIBoundPair for an endpoint with no
 // all_time case — /api/dashboard always compares two specific months, so a
 // missing bound is malformed input rather than "no filter".
-func parseAPIRequiredDateBounds(q url.Values, startKey, endKey string) (start, end int64, err error) {
-	start, end, hasBounds, err := parseAPIBoundPair(q, startKey, endKey)
+func parseAPIRequiredDateBounds(rawStart, rawEnd string) (start, end int64, err error) {
+	start, end, hasBounds, err := parseAPIBoundPair(rawStart, rawEnd)
 	if err != nil {
 		return 0, 0, err
 	}

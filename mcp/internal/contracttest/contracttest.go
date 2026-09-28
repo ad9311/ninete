@@ -8,16 +8,21 @@
 //     this module does not send is silently reset — the data-loss case.
 //   - Responses may be a subset. This module may ignore a field the server
 //     sends, but every field it reads must exist with the same JSON type.
+//   - Query keys may be a subset, checked on what the tools actually send (see
+//     UnknownQueryKeys). Every key is optional to the server, but one it does
+//     not read is ignored, and the tool gets an unfiltered answer back.
 package contracttest
 
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/ad9311/ninete-mcp/internal/api"
@@ -63,6 +68,7 @@ func Endpoints() map[string]Endpoint {
 
 // Contract is one route's entry in contract/api.json.
 type Contract struct {
+	Query    []string          `json:"query"`
 	Request  map[string]string `json:"request"`
 	Response map[string]string `json:"response"`
 }
@@ -97,6 +103,23 @@ var idSegment = regexp.MustCompile(`/\d+(/|$)`)
 // key ("GET /api/expenses/{id}").
 func Route(method, path string) string {
 	return method + " " + idSegment.ReplaceAllString(path, "/{id}$1")
+}
+
+// UnknownQueryKeys returns the keys of query that the server does not read on
+// route, sorted. The tools test runs it over every request a tool sends, so a
+// key renamed on either side fails there.
+func UnknownQueryKeys(contract Contract, query url.Values) []string {
+	var unknown []string
+
+	for key := range query {
+		if !slices.Contains(contract.Query, key) {
+			unknown = append(unknown, key)
+		}
+	}
+
+	slices.Sort(unknown)
+
+	return unknown
 }
 
 // Fields flattens a value's JSON encoding to "path": "type" pairs — the same
