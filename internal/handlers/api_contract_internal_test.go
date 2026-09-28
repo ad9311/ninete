@@ -44,6 +44,8 @@ func apiContract() map[string]struct{ request, response any } {
 		"GET /api/report-settings": {nil, apiReportSettingsResponse{}},
 		"PUT /api/report-settings": {reportSettingsRequestBody{}, nil},
 
+		"POST /api/tags/retag": {retagRequestBody{}, apiRetagResponse{}},
+
 		"GET /api/expenses":           {nil, apiExpenseListResponse{}},
 		"POST /api/expenses":          {expenseRequestBody{}, apiExpenseDetail{}},
 		"POST /api/expenses/quick":    {quickExpenseRequestBody{}, apiExpenseDetail{}},

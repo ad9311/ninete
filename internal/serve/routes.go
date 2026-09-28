@@ -68,6 +68,8 @@ func (s *Server) setUpAPIRoutes() {
 		api.Get("/report-settings", s.handlers.GetAPIReportSettings)
 		api.Put("/report-settings", s.handlers.PutAPIReportSettings)
 
+		api.Post("/tags/retag", s.handlers.PostAPITagsRetag)
+
 		// Session-only: tokenAuth keeps bearer tokens out of this group, so
 		// tokens are created and revoked from the browser alone.
 		api.Route("/tokens", func(tokens chi.Router) {

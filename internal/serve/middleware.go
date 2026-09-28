@@ -144,6 +144,7 @@ var tokenAPIPrefixes = []string{ //nolint:gochecknoglobals // static allowlist
 	apiPathPrefix + "/categories",
 	apiPathPrefix + "/dashboard",
 	apiPathPrefix + "/report-settings",
+	apiPathPrefix + "/tags",
 	apiPathPrefix + "/expenses",
 	apiPathPrefix + "/recurrent-expenses",
 }

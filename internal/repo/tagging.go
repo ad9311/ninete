@@ -304,3 +304,93 @@ func selectTagRowsQuery(taggable Taggable, targetIDs []int, userID int) (string,
 
 	return query, values
 }
+
+// tagIDPlaceholders renders one "?" per id and the matching values, for an
+// IN (...) list over tag ids. Callers bound the list (logic.RetagParams caps it
+// at 20), so it never approaches SQLite's parameter limit and needs no chunking.
+func tagIDPlaceholders(tagIDs []int) (string, []any) {
+	values := make([]any, 0, len(tagIDs))
+	for _, id := range tagIDs {
+		values = append(values, id)
+	}
+
+	return strings.TrimSuffix(strings.Repeat("?,", len(tagIDs)), ","), values
+}
+
+const countTaggedTargetsBase = `
+SELECT COUNT(*) FROM (
+  SELECT DISTINCT "taggable_type", "taggable_id"
+  FROM "taggings"
+  WHERE "tag_id" IN (%s)
+)`
+
+// CountTaggedTargets counts the distinct records carrying any of tagIDs, so a
+// record tagged with two of them counts once. The ids must already be scoped
+// to one user: taggings has no user_id of its own.
+func (q *TxQueries) CountTaggedTargets(ctx context.Context, tagIDs []int) (int, error) {
+	var c int
+	if len(tagIDs) == 0 {
+		return c, nil
+	}
+
+	placeholders, values := tagIDPlaceholders(tagIDs)
+	query := fmt.Sprintf(countTaggedTargetsBase, placeholders)
+
+	err := q.wrapQuery(query, func() error {
+		row := q.tx.QueryRowContext(ctx, query, values...)
+
+		return row.Scan(&c)
+	})
+
+	return c, err
+}
+
+const retargetTaggingsBase = `
+UPDATE OR IGNORE "taggings"
+SET "tag_id" = ?, "updated_at" = strftime('%%s','now')
+WHERE "tag_id" IN (%s)`
+
+const deleteTaggingsByTagsBase = `
+DELETE FROM "taggings" WHERE "tag_id" IN (%s)`
+
+// MoveTaggings reattaches every record tagged with any of fromIDs to toID and
+// detaches it from fromIDs, across every taggable kind at once. The tags in
+// fromIDs are left in place, now unused.
+//
+// The taggings are updated in place rather than copied, because their id and
+// created_at are load-bearing: the monthly report files an expense under the
+// grouping tag whose tagging came first (docs/monthly-report.md), so a fresh
+// row would push the moved tag to the back and could shift expenses between
+// report sections. OR IGNORE skips a row that would collide with
+// uq_taggings_tag_target — the record already carries toID, or another source
+// was moved onto it first — and the DELETE then drops what was skipped, so
+// such a record keeps the one tagging it already had.
+//
+// Every id must already be scoped to one user: taggings has no user_id, so
+// the ids are what keeps the move inside one account.
+func (q *TxQueries) MoveTaggings(ctx context.Context, fromIDs []int, toID int) error {
+	if len(fromIDs) == 0 {
+		return nil
+	}
+
+	placeholders, values := tagIDPlaceholders(fromIDs)
+
+	updateQuery := fmt.Sprintf(retargetTaggingsBase, placeholders)
+
+	err := q.wrapQuery(updateQuery, func() error {
+		_, err := q.tx.ExecContext(ctx, updateQuery, append([]any{toID}, values...)...)
+
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	deleteQuery := fmt.Sprintf(deleteTaggingsByTagsBase, placeholders)
+
+	return q.wrapQuery(deleteQuery, func() error {
+		_, err := q.tx.ExecContext(ctx, deleteQuery, values...)
+
+		return err
+	})
+}

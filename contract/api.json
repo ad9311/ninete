@@ -218,6 +218,18 @@
       "tags": "array<string>"
     }
   },
+  "POST /api/tags/retag": {
+    "request": {
+      "from": "array<string>",
+      "to": "string"
+    },
+    "response": {
+      "retagged": "integer",
+      "tag": "object",
+      "tag.id": "integer",
+      "tag.name": "string"
+    }
+  },
   "PUT /api/expenses/budgets": {
     "request": {
       "amounts": "map<integer>"

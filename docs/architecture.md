@@ -82,7 +82,7 @@ session → body cap → timeout → `tokenAuth` → `apiCSRF` → `apiAuth`.
   `401` with `WWW-Authenticate: Bearer`. It does **not** fall back to the session cookie — with a
   fallback, a junk header plus an ambient cookie would ride the CSRF exemption below.
 - **Valid token:** the path must be on `tokenAPIPrefixes` (an allowlist: `/session`,
-  `/categories`, `/dashboard`, `/report-settings`, `/expenses`, `/recurrent-expenses`) and the
+  `/categories`, `/dashboard`, `/report-settings`, `/tags`, `/expenses`, `/recurrent-expenses`) and the
   method must fit the scope — `read` allows `GET`, `write` adds `POST` and `PUT`, and **no scope
   allows `DELETE`**. Anything else answers `403`. `/api/tokens`, `/api/delete-data`,
   `/api/login` and `/api/register` are off the allowlist, so a token cannot mint tokens, wipe

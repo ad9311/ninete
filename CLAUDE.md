@@ -162,11 +162,11 @@ The SPA is served from `/` and there are no rendered pages. These are the routes
 | Static assets | `/static/*` — mounted on the root router, outside the app chain (see the invariant above) | `setUpFileServer` (`internal/serve/routes.go`), no handler file |
 
 Everything else lives under `/api/*`: `/api/login`, `/api/register`, `/api/session`,
-`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/tokens` (+ `/{id}`), `/api/delete-data` (+
+`/api/categories`, `/api/dashboard`, `/api/report-settings`, `/api/tags/retag`, `/api/tokens` (+ `/{id}`), `/api/delete-data` (+
 `/expenses`, `/recurrent-expenses`, `/expense-budgets`, `/tags`), `/api/recurrent-expenses`, and
 `/api/expenses` (+ `/quick`, `/stats`, `/budgets`) — `api.go`, `handle_api_auth.go`,
 `handle_api_session.go`, `handle_api_categories.go`, `handle_api_dashboard.go`,
-`handle_api_report_settings.go`, `handle_api_tokens.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
+`handle_api_report_settings.go`, `handle_api_tags.go`, `handle_api_tokens.go`, `handle_api_delete_data.go`, `handle_api_recurrent_expenses.go`,
 `handle_api_expenses.go`, `handle_api_quick_expense.go`, `handle_api_expense_stats.go`,
 `handle_api_expense_budgets.go`. Business logic lives in `internal/logic/logic_*.go`, one file per
 resource, shared by the API handlers above.
@@ -197,10 +197,17 @@ redirects rather than answering `401`). Three consequences worth knowing before 
 
 `GET`/`PUT /api/report-settings` is the monthly report's configuration — the tags it groups by,
 and nothing else. It carries the user's whole tag list in its `GET` response because there is no
-`/api/tags` to fetch it from: tags are created as free text on the expense forms and have never
-had a listing endpoint. The report has **no timezone anywhere**: the billed date is
+tag listing endpoint to fetch it from: tags are created as free text on the expense forms and
+have never had one. The report has **no timezone anywhere**: the billed date is
 month-precision and carries no zone, the stored `timezone` was only ever there for a scheduled
 email, and both were dropped. See `docs/monthly-report.md`.
+
+`POST /api/tags/retag` (`{"from": [...], "to": "..."}`) moves every expense and recurrent expense
+tagged with any `from` tag onto `to` in one transaction, creating `to` if needed; a rename is a
+retag to a new name. It **never deletes a tag**: the `from` tags stay, unused, for the owner to
+remove by hand. The report's grouping moves with them, and taggings are updated in place rather
+than copied, because the report files an expense by its earliest tagging. An unknown `from` name
+is a `422`, not a silent no-op.
 
 `GET`/`POST /api/tokens` and `DELETE /api/tokens/{id}` manage personal access tokens — the
 bearer credential the local MCP server uses. They are session-only: `tokenAuth` keeps tokens off

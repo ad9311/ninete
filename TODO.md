@@ -3,9 +3,14 @@
 Known issues and follow-up work that is deliberately out of scope for the change
 that surfaced it. Remove an entry once it is fixed.
 
-- **Bulk tag rename/merge endpoint.** Retagging across every expense one `PUT` at a time is
-  slow for the MCP. A `POST /api/tags/rename` (or `/merge`) would do it in one transaction.
-  Deliberately left out of the API-token change.
+- **List tags with usage counts and delete the unused ones.** `POST /api/tags/retag` leaves its
+  `from` tags in place, unused, on purpose — nothing is deleted without the owner seeing it — so
+  orphaned tags accumulate and show up in `list_tags` and the report settings page. The app needs
+  a tag page listing each tag with how many expenses and recurrent expenses carry it, and a way to
+  delete one. That means a `GET /api/tags` with counts and a session-only `DELETE /api/tags/{id}`
+  (tokens can never `DELETE`, so the MCP keeps its no-delete guarantee). Once `GET /api/tags`
+  exists, `list_tags` in `mcp/` should read it instead of `/api/report-settings`. Left out of the
+  retag change as a separate UI feature.
 - **Put query-parameter names under the API contract.** `contract/api.json` records JSON
   bodies only, so the query keys the MCP server sends (`start`/`end`, `created_start`/`created_end`,
   `this_start`…`last_end`, `archived`, `mode`, `sort_field`/`sort_order`, `page`/`per_page`,

@@ -136,6 +136,12 @@ page only saved and reloaded. Phase 2 is what reads them.
     than a name means deleting a tag removes it from the report config for
     free. There is no `position` column: assignment is by earliest tagging and
     display is by total, so no configured order is ever read.
+  - `POST /api/tags/retag` (`logic.Store.Retag`) keeps both halves of that
+    intact. It moves a selected `from` tag's `report_setting_tags` row onto
+    the `to` tag, so the report does not keep a section that can no longer
+    match anything, and it updates taggings in place rather than copying
+    them, so a moved tag keeps its tagging's `created_at` and `id` — and with
+    them the section each expense lands in.
 - `internal/repo/report_setting.go` with its columns constant, per the
   `SELECT *` invariant.
 - `internal/logic/logic_report_setting.go`. Its zone validation — rejecting
