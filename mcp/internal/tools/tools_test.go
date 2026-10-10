@@ -215,8 +215,7 @@ func TestExpenseTools(t *testing.T) {
 				require.Equal(t, "45.99", out.Amount)
 				require.Equal(t, "2026-09", out.BilledMonth)
 				require.Equal(t, "2026-09-22T02:13:20+12:00", out.CreatedAt)
-				require.NotNil(t, out.Note)
-				require.Equal(t, "weekly shop", *out.Note)
+				require.Equal(t, "weekly shop", out.Note)
 			},
 		},
 		{
@@ -240,7 +239,7 @@ func TestExpenseTools(t *testing.T) {
 				require.Equal(t, "created_at", req.query.Get("sort_field"))
 				require.Equal(t, "25", req.query.Get("per_page"))
 				require.Len(t, out.Expenses, 1)
-				require.Nil(t, out.Expenses[0].Note, "list results carry no note")
+				require.Equal(t, "weekly shop", out.Expenses[0].Note, "list results carry the note")
 			},
 		},
 		{

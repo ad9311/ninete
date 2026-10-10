@@ -6,17 +6,17 @@
   import { APIRequestError, del, get } from "../../lib/api";
   import { formatCurrency } from "../../lib/currency";
   import { BASE_PATH, navigate } from "../../router";
-  import type { ExpenseDetail } from "./types";
+  import type { Expense } from "./types";
 
   let { id }: { id: string } = $props();
 
-  let expense = $state<ExpenseDetail | null>(null);
+  let expense = $state<Expense | null>(null);
   let loadError = $state("");
 
   $effect(() => {
     let cancelled = false;
 
-    get<ExpenseDetail>(`/expenses/${id}`)
+    get<Expense>(`/expenses/${id}`)
       .then((result) => {
         if (cancelled) return;
         expense = result;

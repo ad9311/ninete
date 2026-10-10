@@ -83,14 +83,15 @@ func registerExpenseTools(server *mcp.Server, d Deps) {
 			"expense, a page at a time. Filter by billed month or by the day it was recorded, not both; a " +
 			"recorded-day range may span months (e.g. a card cycle). Sorting by date orders by billed month, " +
 			"but some older expenses store a day inside their month, so they sort after that month's others " +
-			"when ascending and before them when descending." +
+			"when ascending and before them when descending. Each result includes its note, so there is " +
+			"no need to call get_expense per row; the query matches descriptions only, not notes." +
 			userDataNote,
 		Annotations: readOnly("Search expenses"),
 	}, d.searchExpenses)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_expense",
-		Description: "Read one expense, including its note." + userDataNote,
+		Description: "Read one expense by id." + userDataNote,
 		Annotations: readOnly("Get expense"),
 	}, d.getExpense)
 
@@ -158,7 +159,7 @@ func (d Deps) searchExpenses(
 
 	out.Expenses = make([]Expense, 0, len(list.Data))
 	for _, e := range list.Data {
-		out.Expenses = append(out.Expenses, toExpense(e, d.Location, nil))
+		out.Expenses = append(out.Expenses, toExpense(e, d.Location))
 	}
 
 	out.Page = list.Pagination.CurrentPage
@@ -263,7 +264,7 @@ func (d Deps) getExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(e.ListedExpense, d.Location, &e.Note), nil
+	return nil, toExpense(e, d.Location), nil
 }
 
 func (d Deps) fetchExpense(ctx context.Context, id int) (api.Expense, error) {
@@ -312,7 +313,7 @@ func (d Deps) createExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(created.ListedExpense, d.Location, &created.Note), nil
+	return nil, toExpense(created, d.Location), nil
 }
 
 func (d Deps) quickAddExpense(
@@ -341,7 +342,7 @@ func (d Deps) quickAddExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(created.ListedExpense, d.Location, &created.Note), nil
+	return nil, toExpense(created, d.Location), nil
 }
 
 func (d Deps) updateExpense(
@@ -356,8 +357,7 @@ func (d Deps) updateExpense(
 	defer cancel()
 
 	// PUT replaces the whole expense, so the unchanged fields come from the
-	// current record. The note is only on the single-expense read, which is
-	// why this does not start from a list result.
+	// current record.
 	current, err := d.fetchExpense(ctx, in.ID)
 	if err != nil {
 		return nil, Expense{}, err
@@ -385,7 +385,7 @@ func (d Deps) updateExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(updated.ListedExpense, d.Location, &updated.Note), nil
+	return nil, toExpense(updated, d.Location), nil
 }
 
 func applyExpenseChanges(body *api.ExpenseBody, in UpdateExpenseInput) error {

@@ -62,15 +62,17 @@ func TestContractCatchesDrift(t *testing.T) {
 
 	require.NotEqual(t, server.Request, contracttest.Fields(bodyWithoutNote{}))
 
-	type listReadingNote struct {
+	// "category" is the tools' own name for what the server sends as
+	// "category_name", so a response type reading it would read nothing.
+	type listReadingCategory struct {
 		Data []struct {
-			Note string `json:"note"`
+			Category string `json:"category"`
 		} `json:"data"`
 	}
 
-	_, sent := contract["GET /api/expenses"].Response["data[].note"]
-	require.False(t, sent, "the list must not send a note")
-	require.Contains(t, contracttest.Fields(listReadingNote{}), "data[].note")
+	_, sent := contract["GET /api/expenses"].Response["data[].category"]
+	require.False(t, sent, "pick a field the server does not send for this drift example")
+	require.Contains(t, contracttest.Fields(listReadingCategory{}), "data[].category")
 
 	// A query key the server does not read — here a plural the handler never
 	// declared — is reported, while the real key passes.

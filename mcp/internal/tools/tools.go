@@ -64,15 +64,12 @@ type Expense struct {
 	CreatedAt   string `json:"created_at" jsonschema:"when the expense was recorded, RFC 3339"`
 	// Tags is never nil, so the output always matches its schema's array type.
 	Tags []string `json:"tags"`
-	// Note is only present when the expense was read on its own; list results
-	// do not carry it.
-	Note *string `json:"note,omitempty"`
+	Note string   `json:"note" jsonschema:"the owner's free-text note, empty when there is none"`
 }
 
-// toExpense presents an expense; note is nil for a list result, which does not
-// carry one.
-func toExpense(e api.ListedExpense, loc *time.Location, note *string) Expense {
-	out := Expense{
+// toExpense presents an expense.
+func toExpense(e api.Expense, loc *time.Location) Expense {
+	return Expense{
 		ID:          e.ID,
 		CategoryID:  e.CategoryID,
 		Category:    e.CategoryName,
@@ -81,10 +78,8 @@ func toExpense(e api.ListedExpense, loc *time.Location, note *string) Expense {
 		BilledMonth: units.FormatMonth(e.Date),
 		CreatedAt:   units.FormatInstant(e.CreatedAt, loc),
 		Tags:        nonNil(e.Tags),
-		Note:        note,
+		Note:        e.Note,
 	}
-
-	return out
 }
 
 func nonNil(tags []string) []string {

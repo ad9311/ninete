@@ -13,12 +13,8 @@ export interface Expense {
   date: number;
   created_at: number;
   tags: string[];
-}
-
-// The single-expense shape (GET /api/expenses/{id}, and the POST/PUT
-// responses). The note is deliberately absent from Expense: the list endpoint
-// does not send it, since it is shown only on the expense's own page.
-export interface ExpenseDetail extends Expense {
+  // Sent by the list too, for the MCP server's bulk reads, but rendered only
+  // on the expense's own page.
   note: string;
 }
 
