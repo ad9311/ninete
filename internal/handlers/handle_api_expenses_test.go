@@ -162,9 +162,7 @@ func TestAPIExpenses(t *testing.T) {
 				res, body = doJSON(t, handler, http.MethodGet, "/api/expenses", nil, cookies, "")
 				require.Equal(t, http.StatusOK, res.StatusCode)
 
-				var list struct {
-					Data []apiExpenseBody `json:"data"`
-				}
+				var list apiExpenseListBody
 				require.NoError(t, json.Unmarshal(body, &list))
 				require.Len(t, list.Data, 1)
 				require.Equal(t, "paid in cash", list.Data[0].Note)

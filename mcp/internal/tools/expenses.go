@@ -83,14 +83,15 @@ func registerExpenseTools(server *mcp.Server, d Deps) {
 			"expense, a page at a time. Filter by billed month or by the day it was recorded, not both; a " +
 			"recorded-day range may span months (e.g. a card cycle). Sorting by date orders by billed month, " +
 			"but some older expenses store a day inside their month, so they sort after that month's others " +
-			"when ascending and before them when descending." +
+			"when ascending and before them when descending. Each result includes its note, so there is " +
+			"no need to call get_expense per row; the query matches descriptions only, not notes." +
 			userDataNote,
 		Annotations: readOnly("Search expenses"),
 	}, d.searchExpenses)
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_expense",
-		Description: "Read one expense, including its note." + userDataNote,
+		Description: "Read one expense by id." + userDataNote,
 		Annotations: readOnly("Get expense"),
 	}, d.getExpense)
 

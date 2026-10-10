@@ -69,7 +69,7 @@ type Expense struct {
 
 // toExpense presents an expense.
 func toExpense(e api.Expense, loc *time.Location) Expense {
-	out := Expense{
+	return Expense{
 		ID:          e.ID,
 		CategoryID:  e.CategoryID,
 		Category:    e.CategoryName,
@@ -80,8 +80,6 @@ func toExpense(e api.Expense, loc *time.Location) Expense {
 		Tags:        nonNil(e.Tags),
 		Note:        e.Note,
 	}
-
-	return out
 }
 
 func nonNil(tags []string) []string {

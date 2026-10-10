@@ -71,7 +71,7 @@ func TestContractCatchesDrift(t *testing.T) {
 	}
 
 	_, sent := contract["GET /api/expenses"].Response["data[].category"]
-	require.False(t, sent, "the list must not send a category")
+	require.False(t, sent, "pick a field the server does not send for this drift example")
 	require.Contains(t, contracttest.Fields(listReadingCategory{}), "data[].category")
 
 	// A query key the server does not read — here a plural the handler never
