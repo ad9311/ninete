@@ -232,7 +232,7 @@ another day (it was never migrated, deliberately): month filters are unaffected,
 a whole month, but a sort on `date` puts such a row after the same month's 1st-dated rows when ascending
 and before them when descending. Read `date` as a month, never as a day.
 
-An expense carries an optional `note` (trimmed, at most 255 characters counted as runes, `''` when absent). Every expense response carries it through `apiExpense`, the list included, so the MCP server can read notes in bulk when reconciling a card statement; the SPA renders it only on the expense's own page. The JSON export includes it; the monthly report PDF, search and quick-add do not, and recurrent expenses have no note to copy.
+An expense carries an optional `note` (trimmed, at most 255 characters counted as runes, `''` when absent). Every expense response carries it through `apiExpense`, the list included, so the MCP server can read notes in bulk when reconciling a card statement; the SPA renders it only in the expense's details — its own page and the list's quick-view dialog, which share `routes/expenses/Details.svelte`. The JSON export includes it; the monthly report PDF, search and quick-add do not, and recurrent expenses have no note to copy.
 
 ## Engineering Workflow
 - **Always write in English.** Code, comments, identifiers, commit messages, PR titles and

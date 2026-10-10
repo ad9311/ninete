@@ -13,8 +13,8 @@ export interface Expense {
   date: number;
   created_at: number;
   tags: string[];
-  // Sent by the list too, for the MCP server's bulk reads, but rendered only
-  // on the expense's own page.
+  // Sent by the list too, for the MCP server's bulk reads and the list's
+  // quick-view dialog, but never rendered in the list's table.
   note: string;
 }
 

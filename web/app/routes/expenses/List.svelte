@@ -24,6 +24,7 @@
   import { localDayEnd, localDayStart } from "../../lib/dates";
   import { parsePage, parsePerPage } from "../../lib/pagination";
   import { BASE_PATH, navigate } from "../../router";
+  import DetailsDialog from "./DetailsDialog.svelte";
   import type { Expense, ExpenseListResponse, Pagination } from "./types";
 
   interface Props {
@@ -36,6 +37,10 @@
   let rows = $state<Expense[]>([]);
   let pagination = $state<Pagination | null>(null);
   let error = $state("");
+  // The row open in the quick-view dialog, and a counter the fetch effect
+  // reads so a delete from that dialog can reload the page it was made on.
+  let selected = $state<Expense | null>(null);
+  let reloadCount = $state(0);
 
   const params = $derived(new URLSearchParams(search));
   const categoryId = $derived(Number(params.get("category_id") ?? "0"));
@@ -204,6 +209,7 @@
     // (createdBounds) filter created_at and are a separate pair for that
     // reason; the API drops this one whenever they are present.
     const rangeBounds = computeDateRange(dateRangeValue);
+    void reloadCount;
 
     if (typeof createdBounds === "string") {
       rows = [];
@@ -260,6 +266,20 @@
     }
 
     return `${BASE_PATH}/expenses?${next.toString()}`;
+  }
+
+  // A plain click opens the quick view; anything the router would leave to the
+  // browser (a modifier or middle click) still follows the href to the
+  // expense's own page. preventDefault here is also what keeps router.ts's
+  // onLinkClick out of it, since it skips an already-prevented event.
+  function openDetails(event: MouseEvent, row: Expense): void {
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    event.preventDefault();
+    selected = row;
   }
 
   function sortHref(field: string): string {
@@ -555,7 +575,10 @@
         <tr>
           <td>{row.category_name}</td>
           <td>
-            <a href={`${BASE_PATH}/expenses/${row.id}`}>{row.description}</a>
+            <a
+              href={`${BASE_PATH}/expenses/${row.id}`}
+              onclick={(event) => openDetails(event, row)}>{row.description}</a
+            >
           </td>
           <td class="amount font-semibold text-fg">
             {formatCurrency(row.amount)}
@@ -595,4 +618,10 @@
   {perPage}
   hrefFor={(target) => buildHref({ page: target })}
   {onPerPageChange}
+/>
+
+<DetailsDialog
+  expense={selected}
+  onclose={() => (selected = null)}
+  ondeleted={() => reloadCount++}
 />
