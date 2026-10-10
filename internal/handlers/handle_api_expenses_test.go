@@ -10,6 +10,7 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -392,6 +393,106 @@ func TestAPIExpenses(t *testing.T) {
 				require.Equal(t, http.StatusOK, res.StatusCode)
 				require.NoError(t, json.Unmarshal(body, &budgets))
 				require.False(t, budgets.Rows[0].Budget > 0)
+			},
+		},
+		{
+			// Genuine reproduction: before the fix an unknown mode or stats
+			// sort answered 200 with the default's data, and an unknown list
+			// sort reached the client as a generic 500.
+			name: "should_reject_unknown_query_values_with_422",
+			fn: func(t *testing.T) {
+				_, cookies, _ := apiUser(t, s, "api_exp_user_11", "api_exp_user_11@example.com", "api_exp_password_11")
+
+				start, end := monthBounds(time.Unix(1755993600, 0))
+				bounds := "start=" + itoa64(start) + "&end=" + itoa64(end)
+
+				rejected := []struct {
+					url  string
+					want error
+				}{
+					{"/api/expenses/budgets?" + bounds + "&mode=quarter", handlers.ErrQueryBudgetMode},
+					{"/api/expenses/stats?sort_field=amount", handlers.ErrQueryStatsSortField},
+					{"/api/expenses/stats?sort_order=up", repo.ErrInvalidSortOrder},
+					{"/api/expenses?sort_field=price&sort_order=DESC", repo.ErrInvalidSortField},
+					{"/api/expenses?sort_field=amount&sort_order=up", repo.ErrInvalidSortOrder},
+				}
+				for _, r := range rejected {
+					res, body := doJSON(t, handler, http.MethodGet, r.url, nil, cookies, "")
+					require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode, r.url)
+
+					var apiErr struct {
+						Error string `json:"error"`
+					}
+					require.NoError(t, json.Unmarshal(body, &apiErr))
+					require.Equal(t, r.want.Error(), apiErr.Error, r.url)
+				}
+
+				accepted := []string{
+					"/api/expenses/budgets?" + bounds,
+					"/api/expenses/budgets?" + bounds + "&mode=months",
+					"/api/expenses/stats?sort_field=category&sort_order=asc",
+					"/api/expenses?sort_field=amount&sort_order=asc",
+				}
+				for _, url := range accepted {
+					res, _ := doJSON(t, handler, http.MethodGet, url, nil, cookies, "")
+					require.Equal(t, http.StatusOK, res.StatusCode, url)
+				}
+			},
+		},
+		{
+			// Genuine reproduction: the list used its default sort only when
+			// both halves were absent, so sending one half answered 422 for
+			// the half the caller never sent.
+			name: "should_default_each_missing_half_of_a_list_sort",
+			fn: func(t *testing.T) {
+				_, cookies, _ := apiUser(t, s, "api_exp_user_13", "api_exp_user_13@example.com", "api_exp_password_13")
+
+				cases := []struct {
+					url, wantField, wantOrder string
+				}{
+					{"/api/expenses?sort_field=amount", "amount", "DESC"},
+					{"/api/expenses?sort_order=ASC", "created_at", "ASC"},
+				}
+				for _, c := range cases {
+					res, body := doJSON(t, handler, http.MethodGet, c.url, nil, cookies, "")
+					require.Equal(t, http.StatusOK, res.StatusCode, c.url)
+
+					var list apiExpenseListBody
+					require.NoError(t, json.Unmarshal(body, &list))
+					require.Equal(t, c.wantField, list.Pagination.SortField, c.url)
+					require.Equal(t, c.wantOrder, list.Pagination.SortOrder, c.url)
+				}
+			},
+		},
+		{
+			// Genuine reproduction: the handler compared sort_order to "ASC"
+			// exactly, so a lowercase "asc" came back in descending order.
+			name: "should_sort_expense_stats_by_a_case_insensitive_order",
+			fn: func(t *testing.T) {
+				ownerID, cookies, _ := apiUser(t, s, "api_exp_user_12", "api_exp_user_12@example.com", "api_exp_password_12")
+				categoryA := s.CreateCategory(t, "api_exp_cat_12a")
+				categoryB := s.CreateCategory(t, "api_exp_cat_12b")
+
+				s.CreateExpense(t, ownerID, logic.ExpenseParams{
+					CategoryID: categoryA.ID, Description: "Small", Amount: 100,
+					Date: 1755993600,
+				})
+				s.CreateExpense(t, ownerID, logic.ExpenseParams{
+					CategoryID: categoryB.ID, Description: "Big", Amount: 900,
+					Date: 1755993600,
+				})
+
+				res, body := doJSON(t, handler, http.MethodGet, "/api/expenses/stats?sort_order=asc", nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
+
+				var stats struct {
+					Data []struct {
+						Total uint64 `json:"total"`
+					} `json:"data"`
+				}
+				require.NoError(t, json.Unmarshal(body, &stats))
+				require.Len(t, stats.Data, 2)
+				require.Equal(t, uint64(100), stats.Data[0].Total)
 			},
 		},
 		{

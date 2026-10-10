@@ -44,6 +44,15 @@ var (
 	// anything that is not a well-formed half-open range.
 	ErrAPIInvalidDateRange = errors.New("start and end must both be set, with start before end")
 
+	// Query-value refusals. A query key left out takes its default, but a value
+	// the handler does not know is a 422, never a silent fallback: a caller
+	// sending a value the server has since renamed — the MCP server, most of
+	// all — would otherwise get the default's answer back with nothing saying
+	// it was not the one asked for.
+	ErrQueryBudgetMode     = errors.New(`mode must be "month" or "months"`)
+	ErrQueryArchived       = errors.New(`archived must be a boolean, such as "true" or "false"`)
+	ErrQueryStatsSortField = errors.New(`sort_field must be "category" or "total"`)
+
 	// ErrReportMonth guards the monthly report's month parameter. The report
 	// period is one calendar month of the billed date, which is stored at
 	// month precision with no zone, so the month travels as "YYYY-MM" rather

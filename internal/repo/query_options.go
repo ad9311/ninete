@@ -79,10 +79,14 @@ func (q *QueryOptions) PaginationSubQuery() string {
 }
 
 func (q *QueryOptions) Validate(fields []string) error {
-	if !q.Filters.ValidFields(fields) || !q.Sorting.ValidField(fields) {
+	if !q.Filters.ValidFields(fields) {
 		availableFields := strings.Join(fields, ",")
 
-		return fmt.Errorf("%w, valid fields for filters and sorting are: %s", ErrInvalidField, availableFields)
+		return fmt.Errorf("%w, valid fields for filters are: %s", ErrInvalidField, availableFields)
+	}
+
+	if !q.Sorting.ValidField(fields) {
+		return fmt.Errorf("%w: %q", ErrInvalidSortField, q.Sorting.Field)
 	}
 
 	return nil
@@ -180,7 +184,7 @@ func (s *Sorting) Build() (string, error) {
 	}
 
 	if !s.validateSortOrder() {
-		return "", fmt.Errorf("%w, valid order are 'ASC' or 'DESC'", ErrInvalidSortOrder)
+		return "", fmt.Errorf("%w: %q", ErrInvalidSortOrder, s.Order)
 	}
 
 	sorting := fmt.Sprintf("ORDER BY \"%s\" %s", s.Field, s.Order)

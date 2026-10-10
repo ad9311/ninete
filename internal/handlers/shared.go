@@ -44,8 +44,11 @@ func userScopedQueryOpts(q apiListQuery, userID int, defaultSort repo.Sorting) r
 		Order: q.SortOrder,
 		Field: q.SortField,
 	}
-	if sorting.Field == "" && sorting.Order == "" {
-		sorting = defaultSort
+	if sorting.Field == "" {
+		sorting.Field = defaultSort.Field
+	}
+	if sorting.Order == "" {
+		sorting.Order = defaultSort.Order
 	}
 
 	page, _ := strconv.Atoi(q.Page)
