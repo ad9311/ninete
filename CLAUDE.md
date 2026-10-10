@@ -318,7 +318,9 @@ covers the shell template and the build chain from source to browser.
   `docs/spa-migration.md` §3.6 before touching anything dated.
 - **Loading feedback is already global.** `lib/pending.ts` counts in-flight `lib/api.ts`
   requests and `components/Spinner.svelte` renders `.route-progress-bar` over the viewport, so a
-  new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it.
+  new route or form needs nothing added. Only a request that bypasses `lib/api.ts` loses it, and
+  one made from inside a modal `<dialog>` renders under the dialog's top layer, so the dialog
+  must show and guard its own pending state (`routes/expenses/DetailsDialog.svelte`).
 - **The shell must open with `{{ define "layout" }}`.** `parseTemplates`
   (`internal/serve/template.go`) executes it by that name; without the define it renders empty
   and returns a 500 at request time, not at startup. This is a template *name*, unrelated to the

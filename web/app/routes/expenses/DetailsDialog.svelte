@@ -10,6 +10,10 @@
   // included. That also keeps the dialog off lib/pending.ts's spinner, which
   // would sit under the dialog's top layer and never show.
   //
+  // The delete is the one request it makes, and for the same reason it guards
+  // itself: the spinner that blocks clicks during a request renders under the
+  // top layer, so the dialog's buttons stay live while the DELETE is in flight.
+  //
   // A native <dialog> opened with showModal() gives the focus trap, Escape,
   // inert background and ::backdrop for free.
   import { Maximize2, SquarePen, X } from "lucide";
@@ -32,6 +36,7 @@
 
   let dialog = $state<HTMLDialogElement | null>(null);
   let error = $state("");
+  let deleting = $state(false);
 
   $effect(() => {
     if (!dialog) return;
@@ -50,9 +55,10 @@
   }
 
   async function deleteExpense(): Promise<void> {
-    if (!expense) return;
+    if (!expense || deleting) return;
     if (!window.confirm("Delete this expense?")) return;
 
+    deleting = true;
     try {
       await del(`/expenses/${expense.id}`);
       dialog?.close();
@@ -60,6 +66,8 @@
     } catch (err) {
       error =
         err instanceof APIRequestError ? err.message : "Something went wrong.";
+    } finally {
+      deleting = false;
     }
   }
 </script>
@@ -96,6 +104,7 @@
       <button
         type="button"
         class="btn btn-danger mt-3 justify-self-end"
+        disabled={deleting}
         onclick={deleteExpense}
       >
         Delete

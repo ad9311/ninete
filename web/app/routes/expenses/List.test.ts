@@ -41,7 +41,7 @@ vi.mock("../../lib/categories", () => ({
 const navigate = vi.fn();
 vi.mock("../../router", () => ({
   BASE_PATH: "",
-  navigate: (href: string) => navigate(href),
+  navigate: (...args: unknown[]) => navigate(...args),
 }));
 
 import { del, get } from "../../lib/api";
@@ -376,5 +376,83 @@ describe("the details dialog", () => {
     expect(vi.mocked(del)).toHaveBeenCalledWith("/expenses/42");
     expect(dialog().open).toBe(false);
     confirm.mockRestore();
+  });
+
+  it("ignores a second Delete while the first is in flight", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    let finish: () => void = () => {};
+    vi.mocked(del).mockImplementationOnce(
+      () =>
+        new Promise<undefined>((resolve) => {
+          finish = () => resolve(undefined);
+        }),
+    );
+    renderList();
+    await fireEvent.click(
+      await screen.findByRole("link", { name: "dialog_expense" }),
+    );
+    const button = screen.getByRole("button", {
+      name: "Delete",
+    }) as HTMLButtonElement;
+
+    await fireEvent.click(button);
+    expect(button.disabled).toBe(true);
+    // The handler itself refuses too, not only the disabled attribute.
+    button.disabled = false;
+    await fireEvent.click(button);
+    finish();
+
+    await vi.waitFor(() => {
+      expect(dialog().open).toBe(false);
+    });
+    expect(vi.mocked(del)).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
+  });
+
+  it("moves to the new last page when a delete empties the current one", async () => {
+    vi.mocked(get).mockResolvedValue({
+      data: [],
+      pagination: {
+        current_page: 3,
+        total_pages: 2,
+        per_page: 25,
+        total_count: 50,
+        has_prev: true,
+        has_next: false,
+        sort_field: "created_at",
+        sort_order: "DESC",
+        category_id: 0,
+      },
+    });
+    renderList("page=3");
+
+    await vi.waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/expenses?page=2", {
+        replace: true,
+      });
+    });
+  });
+
+  it("stays put on an empty first page", async () => {
+    vi.mocked(get).mockResolvedValue({
+      data: [],
+      pagination: {
+        current_page: 1,
+        total_pages: 0,
+        per_page: 25,
+        total_count: 0,
+        has_prev: false,
+        has_next: false,
+        sort_field: "created_at",
+        sort_order: "DESC",
+        category_id: 0,
+      },
+    });
+    renderList();
+
+    await vi.waitFor(() => {
+      expect(vi.mocked(get)).toHaveBeenCalled();
+    });
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

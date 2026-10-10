@@ -93,6 +93,20 @@ describe("navigate", () => {
     expect(events).toEqual(["popstate"]);
   });
 
+  it("replaces the current entry instead of pushing when asked", () => {
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+
+    navigate("/expenses?page=2", { replace: true });
+
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(replaceSpy).toHaveBeenCalledWith(
+      {},
+      "",
+      `${BASE_PATH}/expenses?page=2`,
+    );
+  });
+
   it("is a no-op when already at the target path", () => {
     // Reaches the target through navigate() itself rather than a raw
     // history.replaceState call, since that is the codepath already proven

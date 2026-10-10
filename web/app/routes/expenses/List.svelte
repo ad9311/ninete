@@ -236,6 +236,15 @@
     })
       .then((result) => {
         if (cancelled) return;
+        // A page past the end — the dialog deleted the last row of the last
+        // page, or a stale link — moves to the new last page rather than
+        // showing an empty table. Replaced, not pushed, so Back skips it.
+        const lastPage = result.pagination.total_pages;
+        if (result.data.length === 0 && lastPage >= 1 && page > lastPage) {
+          navigate(buildHref({ page: lastPage }), { replace: true });
+
+          return;
+        }
         rows = result.data;
         pagination = result.pagination;
         error = "";
