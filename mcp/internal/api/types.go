@@ -4,11 +4,9 @@ package api
 // comment). Amounts are cents, "date" is a billed month as UTC midnight of the
 // 1st, and created_at is an instant — all in epoch seconds.
 
-// ListedExpense is an expense as GET /api/expenses lists it. The list never
-// carries the note; Expense adds it for the single-expense endpoints. They are
-// two types so the contract check (docs/mcp.md) can tell that the list really
-// does not send a note, instead of this module expecting one it never gets.
-type ListedExpense struct {
+// Expense is an expense as the list and the single-expense endpoints (GET,
+// POST and PUT on /api/expenses) both send it, note included.
+type Expense struct {
 	ID           int      `json:"id"`
 	CategoryID   int      `json:"category_id"`
 	CategoryName string   `json:"category_name"`
@@ -17,13 +15,7 @@ type ListedExpense struct {
 	Date         int64    `json:"date"`
 	CreatedAt    int64    `json:"created_at"`
 	Tags         []string `json:"tags"`
-}
-
-// Expense is the single-expense view: GET, POST and PUT on /api/expenses.
-type Expense struct {
-	ListedExpense
-
-	Note string `json:"note"`
+	Note         string   `json:"note"`
 }
 
 type ExpenseBody struct {
@@ -50,8 +42,8 @@ type Pagination struct {
 }
 
 type ExpenseList struct {
-	Data       []ListedExpense `json:"data"`
-	Pagination Pagination      `json:"pagination"`
+	Data       []Expense  `json:"data"`
+	Pagination Pagination `json:"pagination"`
 }
 
 type RecurrentExpense struct {

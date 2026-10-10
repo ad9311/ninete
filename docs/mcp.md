@@ -61,8 +61,7 @@ Three tests hold it in place:
   replaces the whole record, so a field the server reads but the MCP does not send would be reset
   to empty on every update — silently. That is the drift that loses data.
 - **Responses may be a subset.** The MCP may ignore a field, but every field it reads must exist
-  with the same type. This is why the list and detail expense are two types (`ListedExpense`,
-  `Expense`): the list never sends `note`.
+  with the same type.
 
 The tools test adds two more guards, both run over every request a tool sends to the fake API:
 the route must be in `contracttest.Endpoints`, so a new call cannot bypass `TestContract`, and
@@ -164,8 +163,8 @@ sent to the API as UTC midnight of the 1st (the API stores the epoch as given), 
 
 | Tool | Scope | Notes |
 | --- | --- | --- |
-| `search_expenses` | read | Text, tag, category; billed-month range **or** created-day range, not both (the server would silently drop the first); pages of 15/25/50/100. `sort_field=date` sorts by billed month with ties in id order — an old row carrying a mid-month day sorts after its month's other rows ascending and before them descending (see `CLAUDE.md` on the billed date). A created-day range may span months, e.g. a card cycle Aug 22 – Sep 21 |
-| `get_expense` | read | Includes the note, which list results never carry |
+| `search_expenses` | read | Text, tag, category; billed-month range **or** created-day range, not both (the server would silently drop the first); pages of 15/25/50/100. `sort_field=date` sorts by billed month with ties in id order — an old row carrying a mid-month day sorts after its month's other rows ascending and before them descending (see `CLAUDE.md` on the billed date). A created-day range may span months, e.g. a card cycle Aug 22 – Sep 21. Results include each expense's note, so a statement can be reconciled without one `get_expense` per row; the text search does not match notes |
+| `get_expense` | read | One expense by id. The note is in list results too |
 | `create_expense` | write | `billed_month` defaults to the current month in `NINETE_TZ` |
 | `quick_add_expense` | write | The app's one-line quick-add. Sends `tz_offset` from `NINETE_TZ`. When the description has no remembered category, fails asking for `category_id` |
 | `update_expense` | write | Partial: reads the expense, applies only the fields given, `PUT`s the whole thing. Tags via `add_tags`/`remove_tags`, or `tags` to replace |

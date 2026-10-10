@@ -13,7 +13,10 @@ import (
 // apiExpense is the expense as the client sees it — a separate type from
 // repo.Expense so a column added there is not published by accident (§3.5 of
 // docs/spa-migration.md). Date is a calendar date (UTC midnight), CreatedAt an
-// instant — see §3.6 before touching either.
+// instant — see §3.6 before touching either. The list and the single-expense
+// endpoints share it, note included: the SPA renders the note only on the
+// expense's own page, but the MCP server reads notes in bulk to reconcile
+// card statements.
 type apiExpense struct {
 	ID           int      `json:"id"`
 	CategoryID   int      `json:"category_id"`
@@ -23,6 +26,7 @@ type apiExpense struct {
 	Date         int64    `json:"date"`
 	CreatedAt    int64    `json:"created_at"`
 	Tags         []string `json:"tags"`
+	Note         string   `json:"note"`
 }
 
 func newAPIExpense(expense repo.Expense, categoryName string, tags []string) apiExpense {
@@ -35,16 +39,8 @@ func newAPIExpense(expense repo.Expense, categoryName string, tags []string) api
 		Date:         expense.Date,
 		CreatedAt:    expense.CreatedAt,
 		Tags:         emptyIfNil(tags),
+		Note:         expense.Note,
 	}
-}
-
-// apiExpenseDetail is the single-expense view: the list shape plus the note.
-// The note is kept out of apiExpense on purpose — it is shown only on the
-// expense's own page, so the list response does not carry it at all.
-type apiExpenseDetail struct {
-	apiExpense
-
-	Note string `json:"note"`
 }
 
 type apiExpenseListResponse struct {
@@ -274,14 +270,11 @@ func (h *Handler) respondWithExpense(w http.ResponseWriter, r *http.Request, exp
 		return
 	}
 
-	h.WriteJSON(w, http.StatusOK, apiExpenseDetail{
-		apiExpense: newAPIExpense(
-			expense,
-			categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
-			logic.ExtractTagNames(tags),
-		),
-		Note: expense.Note,
-	})
+	h.WriteJSON(w, http.StatusOK, newAPIExpense(
+		expense,
+		categoryNameOrUnknown(categoryNameByID, expense.CategoryID),
+		logic.ExtractTagNames(tags),
+	))
 }
 
 func (h *Handler) DeleteAPIExpense(w http.ResponseWriter, r *http.Request) {

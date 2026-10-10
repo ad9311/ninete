@@ -10,11 +10,11 @@ vi.mock("../../lib/categories", () => ({
 }));
 
 import Form from "./Form.svelte";
-import { noteLength, type ExpenseDetail } from "./types";
+import { noteLength, type Expense } from "./types";
 
 afterEach(cleanup);
 
-const initial: ExpenseDetail = {
+const initial: Expense = {
   id: 1,
   category_id: 1,
   category_name: "Food",

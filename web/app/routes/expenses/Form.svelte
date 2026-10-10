@@ -14,12 +14,12 @@
   import {
     NOTE_MAX_LENGTH,
     noteLength,
-    type ExpenseDetail,
+    type Expense,
     type ExpenseRequestBody,
   } from "./types";
 
   interface Props {
-    initial?: ExpenseDetail;
+    initial?: Expense;
     error?: string;
     pending?: boolean;
     submitLabel: string;

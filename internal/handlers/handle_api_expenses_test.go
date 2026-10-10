@@ -134,7 +134,7 @@ func TestAPIExpenses(t *testing.T) {
 			},
 		},
 		{
-			name: "should_return_the_note_on_show_but_leave_it_out_of_the_list",
+			name: "should_return_the_note_on_show_and_in_the_list",
 			fn: func(t *testing.T) {
 				_, cookies, csrfToken := apiUser(t, s, "api_exp_note_user", "api_exp_note_user@example.com", "api_exp_note_pw")
 				category := s.CreateCategory(t, "api_exp_note_cat")
@@ -163,11 +163,11 @@ func TestAPIExpenses(t *testing.T) {
 				require.Equal(t, http.StatusOK, res.StatusCode)
 
 				var list struct {
-					Data []map[string]any `json:"data"`
+					Data []apiExpenseBody `json:"data"`
 				}
 				require.NoError(t, json.Unmarshal(body, &list))
 				require.Len(t, list.Data, 1)
-				require.NotContains(t, list.Data[0], "note")
+				require.Equal(t, "paid in cash", list.Data[0].Note)
 			},
 		},
 		{

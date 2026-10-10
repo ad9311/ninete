@@ -158,7 +158,7 @@ func (d Deps) searchExpenses(
 
 	out.Expenses = make([]Expense, 0, len(list.Data))
 	for _, e := range list.Data {
-		out.Expenses = append(out.Expenses, toExpense(e, d.Location, nil))
+		out.Expenses = append(out.Expenses, toExpense(e, d.Location))
 	}
 
 	out.Page = list.Pagination.CurrentPage
@@ -263,7 +263,7 @@ func (d Deps) getExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(e.ListedExpense, d.Location, &e.Note), nil
+	return nil, toExpense(e, d.Location), nil
 }
 
 func (d Deps) fetchExpense(ctx context.Context, id int) (api.Expense, error) {
@@ -312,7 +312,7 @@ func (d Deps) createExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(created.ListedExpense, d.Location, &created.Note), nil
+	return nil, toExpense(created, d.Location), nil
 }
 
 func (d Deps) quickAddExpense(
@@ -341,7 +341,7 @@ func (d Deps) quickAddExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(created.ListedExpense, d.Location, &created.Note), nil
+	return nil, toExpense(created, d.Location), nil
 }
 
 func (d Deps) updateExpense(
@@ -356,8 +356,7 @@ func (d Deps) updateExpense(
 	defer cancel()
 
 	// PUT replaces the whole expense, so the unchanged fields come from the
-	// current record. The note is only on the single-expense read, which is
-	// why this does not start from a list result.
+	// current record.
 	current, err := d.fetchExpense(ctx, in.ID)
 	if err != nil {
 		return nil, Expense{}, err
@@ -385,7 +384,7 @@ func (d Deps) updateExpense(
 		return nil, Expense{}, err
 	}
 
-	return nil, toExpense(updated.ListedExpense, d.Location, &updated.Note), nil
+	return nil, toExpense(updated, d.Location), nil
 }
 
 func applyExpenseChanges(body *api.ExpenseBody, in UpdateExpenseInput) error {

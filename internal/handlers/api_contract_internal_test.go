@@ -57,13 +57,13 @@ func apiContract() map[string]contractTypes {
 		"POST /api/tags/retag": {nil, retagRequestBody{}, apiRetagResponse{}},
 
 		"GET /api/expenses":         {apiExpenseListQuery{}, nil, apiExpenseListResponse{}},
-		"POST /api/expenses":        {nil, expenseRequestBody{}, apiExpenseDetail{}},
-		"POST /api/expenses/quick":  {nil, quickExpenseRequestBody{}, apiExpenseDetail{}},
+		"POST /api/expenses":        {nil, expenseRequestBody{}, apiExpense{}},
+		"POST /api/expenses/quick":  {nil, quickExpenseRequestBody{}, apiExpense{}},
 		"GET /api/expenses/stats":   {apiExpenseStatsQuery{}, nil, apiExpenseStatsResponse{}},
 		"GET /api/expenses/budgets": {apiExpenseBudgetsQuery{}, nil, apiExpenseBudgetsResponse{}},
 		"PUT /api/expenses/budgets": {nil, expenseBudgetsRequestBody{}, nil},
-		"GET /api/expenses/{id}":    {nil, nil, apiExpenseDetail{}},
-		"PUT /api/expenses/{id}":    {nil, expenseRequestBody{}, apiExpenseDetail{}},
+		"GET /api/expenses/{id}":    {nil, nil, apiExpense{}},
+		"PUT /api/expenses/{id}":    {nil, expenseRequestBody{}, apiExpense{}},
 
 		"GET /api/recurrent-expenses": {
 			apiRecurrentExpenseListQuery{}, nil, apiRecurrentExpenseListResponse{},

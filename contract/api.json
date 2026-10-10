@@ -47,6 +47,7 @@
       "data[].date": "integer",
       "data[].description": "string",
       "data[].id": "integer",
+      "data[].note": "string",
       "data[].tags": "array<string>",
       "pagination": "object",
       "pagination.category_id": "integer",
