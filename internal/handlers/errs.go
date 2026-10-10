@@ -50,7 +50,7 @@ var (
 	// all — would otherwise get the default's answer back with nothing saying
 	// it was not the one asked for.
 	ErrQueryBudgetMode     = errors.New(`mode must be "month" or "months"`)
-	ErrQueryArchived       = errors.New(`archived must be "true" or "false"`)
+	ErrQueryArchived       = errors.New(`archived must be a boolean, such as "true" or "false"`)
 	ErrQueryStatsSortField = errors.New(`sort_field must be "category" or "total"`)
 
 	// ErrReportMonth guards the monthly report's month parameter. The report

@@ -440,6 +440,31 @@ func TestAPIExpenses(t *testing.T) {
 			},
 		},
 		{
+			// Genuine reproduction: the list used its default sort only when
+			// both halves were absent, so sending one half answered 422 for
+			// the half the caller never sent.
+			name: "should_default_each_missing_half_of_a_list_sort",
+			fn: func(t *testing.T) {
+				_, cookies, _ := apiUser(t, s, "api_exp_user_13", "api_exp_user_13@example.com", "api_exp_password_13")
+
+				cases := []struct {
+					url, wantField, wantOrder string
+				}{
+					{"/api/expenses?sort_field=amount", "amount", "DESC"},
+					{"/api/expenses?sort_order=ASC", "created_at", "ASC"},
+				}
+				for _, c := range cases {
+					res, body := doJSON(t, handler, http.MethodGet, c.url, nil, cookies, "")
+					require.Equal(t, http.StatusOK, res.StatusCode, c.url)
+
+					var list apiExpenseListBody
+					require.NoError(t, json.Unmarshal(body, &list))
+					require.Equal(t, c.wantField, list.Pagination.SortField, c.url)
+					require.Equal(t, c.wantOrder, list.Pagination.SortOrder, c.url)
+				}
+			},
+		},
+		{
 			// Genuine reproduction: the handler compared sort_order to "ASC"
 			// exactly, so a lowercase "asc" came back in descending order.
 			name: "should_sort_expense_stats_by_a_case_insensitive_order",
