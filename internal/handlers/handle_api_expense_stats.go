@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/ad9311/ninete/internal/repo"
 )
@@ -27,6 +28,13 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 
 	var query apiExpenseStatsQuery
 	decodeQuery(r, &query)
+
+	sortField, sortOrder, err := statsSort(query)
+	if err != nil {
+		h.WriteJSONError(w, http.StatusUnprocessableEntity, err)
+
+		return
+	}
 
 	filters := repo.Filters{
 		FilterFields: []repo.FilterField{
@@ -62,15 +70,6 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sortField := query.SortField
-	sortOrder := query.SortOrder
-	if sortField == "" {
-		sortField = "total"
-	}
-	if sortOrder == "" {
-		sortOrder = "DESC"
-	}
-
 	rows := make([]apiExpenseStatRow, 0, len(totals))
 	for _, t := range totals {
 		rows = append(rows, apiExpenseStatRow{
@@ -97,4 +96,29 @@ func (h *Handler) GetAPIExpensesStats(w http.ResponseWriter, r *http.Request) {
 	})
 
 	h.WriteJSON(w, http.StatusOK, apiExpenseStatsResponse{Data: rows})
+}
+
+// statsSort resolves the stats view's sort, defaulting each half on its own
+// (total, DESC) and rejecting a value it does not know. The order is
+// case-insensitive, as the repo's sort builder makes it for every list.
+func statsSort(query apiExpenseStatsQuery) (field, order string, err error) {
+	field = query.SortField
+	switch field {
+	case "":
+		field = "total"
+	case "category", "total":
+	default:
+		return "", "", ErrQueryStatsSortField
+	}
+
+	order = strings.ToUpper(query.SortOrder)
+	switch order {
+	case "":
+		order = "DESC"
+	case "ASC", "DESC":
+	default:
+		return "", "", repo.ErrInvalidSortOrder
+	}
+
+	return field, order, nil
 }

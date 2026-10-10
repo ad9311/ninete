@@ -132,7 +132,7 @@ func TestFindTags(t *testing.T) {
 						Order: "ASC",
 					},
 				})
-				require.ErrorIs(t, err, repo.ErrInvalidField)
+				require.ErrorIs(t, err, repo.ErrInvalidSortField)
 			},
 		},
 	}

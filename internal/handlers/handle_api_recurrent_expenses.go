@@ -152,7 +152,15 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 	var query apiRecurrentExpenseListQuery
 	decodeQuery(r, &query)
 
-	archived, _ := strconv.ParseBool(query.Archived)
+	archived := false
+	if query.Archived != "" {
+		var err error
+		if archived, err = strconv.ParseBool(query.Archived); err != nil {
+			h.WriteJSONError(w, http.StatusUnprocessableEntity, ErrQueryArchived)
+
+			return
+		}
+	}
 
 	opts := userScopedQueryOpts(query.apiListQuery, user.ID, repo.Sorting{Field: "created_at", Order: "DESC"})
 	opts.Filters.FilterFields = append(opts.Filters.FilterFields, repo.RecurrentExpenseArchivedFilter(archived))
@@ -166,7 +174,7 @@ func (h *Handler) GetAPIRecurrentExpenses(w http.ResponseWriter, r *http.Request
 
 	recurrentExpenses, err := h.store.FindRecurrentExpenses(ctx, opts)
 	if err != nil {
-		h.WriteAPIError(w, err)
+		h.WriteAPIError(w, err, repo.ErrInvalidSortField, repo.ErrInvalidSortOrder)
 
 		return
 	}

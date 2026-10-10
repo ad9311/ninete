@@ -10,6 +10,7 @@ import (
 
 	"github.com/ad9311/ninete/internal/handlers"
 	"github.com/ad9311/ninete/internal/logic"
+	"github.com/ad9311/ninete/internal/repo"
 	"github.com/ad9311/ninete/internal/spec"
 	"github.com/stretchr/testify/require"
 )
@@ -254,6 +255,36 @@ func TestAPIRecurrentExpenses(t *testing.T) {
 				require.NoError(t, json.Unmarshal(body, &unarchived))
 				require.False(t, unarchived.Archived)
 				require.Equal(t, uint(0), unarchived.OccurrenceCount)
+			},
+		},
+		{
+			// Genuine reproduction: an unparseable archived used to list the
+			// active ones, and an unknown sort was a generic 500.
+			name: "should_reject_unknown_query_values_with_422",
+			fn: func(t *testing.T) {
+				_, cookies, _ := apiUser(t, s, "api_re_user_7", "api_re_user_7@example.com", "api_re_password_7")
+
+				rejected := []struct {
+					url  string
+					want error
+				}{
+					{"/api/recurrent-expenses?archived=yes", handlers.ErrQueryArchived},
+					{"/api/recurrent-expenses?sort_field=price&sort_order=DESC", repo.ErrInvalidSortField},
+					{"/api/recurrent-expenses?sort_field=period&sort_order=up", repo.ErrInvalidSortOrder},
+				}
+				for _, r := range rejected {
+					res, body := doJSON(t, handler, http.MethodGet, r.url, nil, cookies, "")
+					require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode, r.url)
+
+					var apiErr struct {
+						Error string `json:"error"`
+					}
+					require.NoError(t, json.Unmarshal(body, &apiErr))
+					require.Equal(t, r.want.Error(), apiErr.Error, r.url)
+				}
+
+				res, _ := doJSON(t, handler, http.MethodGet, "/api/recurrent-expenses", nil, cookies, "")
+				require.Equal(t, http.StatusOK, res.StatusCode)
 			},
 		},
 		{

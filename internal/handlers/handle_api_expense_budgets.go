@@ -86,8 +86,14 @@ func (h *Handler) GetAPIExpenseBudgets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mode := budgetMode(query.Mode)
-	if mode != budgetModeMonth && mode != budgetModeMonths {
+	switch mode {
+	case "":
 		mode = budgetModeMonth
+	case budgetModeMonth, budgetModeMonths:
+	default:
+		h.WriteJSONError(w, http.StatusUnprocessableEntity, ErrQueryBudgetMode)
+
+		return
 	}
 
 	filters := repo.Filters{

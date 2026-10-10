@@ -217,7 +217,7 @@ func TestFindExpenses(t *testing.T) {
 				_, err := s.Store.FindExpenses(ctx, repo.QueryOptions{
 					Sorting: repo.Sorting{Field: "invalid_field", Order: "ASC"},
 				})
-				require.ErrorIs(t, err, repo.ErrInvalidField)
+				require.ErrorIs(t, err, repo.ErrInvalidSortField)
 			},
 		},
 	}

@@ -102,9 +102,14 @@ The check sees only keys a tools test actually sends. When a tool gains a query 
 to that tool's "sends every key" test (`should_send_the_tag_category_and_page_filters`,
 `should_send_every_recurrent_expense_list_filter`, …), or a rename of it goes unnoticed.
 
-**Values are not covered.** The file records `mode`, not that it accepts `month` or `months`. The
-same goes for `sort_field` and `sort_order` values and the `archived` format. A server that renamed
-an accepted value would fall back to its default without the MCP knowing. `TODO.md` tracks it.
+**Values are checked at runtime, not here.** The file records `mode`, not that it accepts `month` or
+`months`. Instead, every handler rejects a value it does not know with a `422` naming the accepted
+ones, and leaving a key out is the only way to get its default: `mode`, `archived`, and both halves
+of every `sort_field`/`sort_order` pair. A server that renamed a value therefore makes the tool call
+fail with a message the agent can read, rather than answer with the default's data. The tools
+document their accepted values in each parameter's description and check them before sending, so
+an agent's own mistake never reaches the server. Keep both halves when adding a key with a fixed
+set of values: an unknown value is a `422`, never a silent fallback.
 
 ## Configuration
 

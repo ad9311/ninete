@@ -169,7 +169,7 @@ func (h *Handler) GetAPIExpenses(w http.ResponseWriter, r *http.Request) {
 
 	expenses, err := h.store.FindExpenses(ctx, opts)
 	if err != nil {
-		h.WriteAPIError(w, err)
+		h.WriteAPIError(w, err, repo.ErrInvalidSortField, repo.ErrInvalidSortOrder)
 
 		return
 	}
