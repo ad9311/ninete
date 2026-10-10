@@ -14,6 +14,7 @@ vi.mock("../../lib/api", async () => {
 
   return {
     ...actual,
+    del: vi.fn(() => Promise.resolve(undefined)),
     get: vi.fn(() =>
       Promise.resolve({
         data: [],
@@ -40,10 +41,10 @@ vi.mock("../../lib/categories", () => ({
 const navigate = vi.fn();
 vi.mock("../../router", () => ({
   BASE_PATH: "",
-  navigate: (href: string) => navigate(href),
+  navigate: (...args: unknown[]) => navigate(...args),
 }));
 
-import { get } from "../../lib/api";
+import { del, get } from "../../lib/api";
 import List from "./List.svelte";
 
 afterEach(cleanup);
@@ -264,5 +265,194 @@ describe("the created-date bounds", () => {
     expect(typeof params.created_start).toBe("number");
     expect(typeof params.created_end).toBe("number");
     expect(params.created_start).toBeLessThan(params.created_end as number);
+  });
+});
+
+// The quick-view dialog. jsdom has <dialog> but not showModal() or close(), so
+// both are stubbed with what the browser does to `open` and the close event.
+describe("the details dialog", () => {
+  const row = {
+    id: 42,
+    category_id: 1,
+    category_name: "dialog_category",
+    description: "dialog_expense",
+    amount: 1234,
+    date: 1788220800,
+    created_at: 1788300000,
+    tags: ["dialog_tag"],
+    note: "dialog_note",
+  };
+
+  beforeEach(() => {
+    HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+      this.open = true;
+    };
+    HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+      this.open = false;
+      this.dispatchEvent(new Event("close"));
+    };
+    vi.mocked(get).mockResolvedValue({
+      data: [row],
+      pagination: {
+        current_page: 1,
+        total_pages: 1,
+        per_page: 25,
+        total_count: 1,
+        has_prev: false,
+        has_next: false,
+        sort_field: "created_at",
+        sort_order: "DESC",
+        category_id: 0,
+      },
+    });
+    vi.mocked(del).mockClear();
+  });
+
+  function dialog(): HTMLDialogElement {
+    return document.querySelector("dialog") as HTMLDialogElement;
+  }
+
+  it("opens on a plain click, keeps the page link, and shows the note", async () => {
+    renderList();
+    const link = await screen.findByRole("link", { name: "dialog_expense" });
+
+    expect(link.getAttribute("href")).toBe("/expenses/42");
+    expect(await fireEvent.click(link)).toBe(false);
+    expect(dialog().open).toBe(true);
+    expect(screen.getByText("dialog_note")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "Open expense page" })
+        .getAttribute("href"),
+    ).toBe("/expenses/42");
+    expect(
+      screen.getByRole("link", { name: "Edit expense" }).getAttribute("href"),
+    ).toBe("/expenses/42/edit");
+  });
+
+  it("leaves a modifier click to the browser", async () => {
+    renderList();
+    const link = await screen.findByRole("link", { name: "dialog_expense" });
+
+    // Read whether the list prevented it, then prevent it here: otherwise jsdom
+    // tries to follow the href and logs that it cannot.
+    let prevented: boolean | undefined;
+    const listener = (event: Event) => {
+      prevented = event.defaultPrevented;
+      event.preventDefault();
+    };
+    document.addEventListener("click", listener);
+    await fireEvent.click(link, { metaKey: true });
+    document.removeEventListener("click", listener);
+
+    expect(prevented).toBe(false);
+    expect(dialog().open).toBe(false);
+  });
+
+  it("closes from its close button", async () => {
+    renderList();
+    await fireEvent.click(
+      await screen.findByRole("link", { name: "dialog_expense" }),
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(dialog().open).toBe(false);
+    expect(screen.queryByText("dialog_note")).toBeNull();
+  });
+
+  it("deletes, closes and reloads the list", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderList();
+    await fireEvent.click(
+      await screen.findByRole("link", { name: "dialog_expense" }),
+    );
+    const callsBefore = vi.mocked(get).mock.calls.length;
+
+    await fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await vi.waitFor(() => {
+      expect(vi.mocked(get).mock.calls.length).toBe(callsBefore + 1);
+    });
+    expect(vi.mocked(del)).toHaveBeenCalledWith("/expenses/42");
+    expect(dialog().open).toBe(false);
+    confirm.mockRestore();
+  });
+
+  it("ignores a second Delete while the first is in flight", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    let finish: () => void = () => {};
+    vi.mocked(del).mockImplementationOnce(
+      () =>
+        new Promise<undefined>((resolve) => {
+          finish = () => resolve(undefined);
+        }),
+    );
+    renderList();
+    await fireEvent.click(
+      await screen.findByRole("link", { name: "dialog_expense" }),
+    );
+    const button = screen.getByRole("button", {
+      name: "Delete",
+    }) as HTMLButtonElement;
+
+    await fireEvent.click(button);
+    expect(button.disabled).toBe(true);
+    // The handler itself refuses too, not only the disabled attribute.
+    button.disabled = false;
+    await fireEvent.click(button);
+    finish();
+
+    await vi.waitFor(() => {
+      expect(dialog().open).toBe(false);
+    });
+    expect(vi.mocked(del)).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
+  });
+
+  it("moves to the new last page when a delete empties the current one", async () => {
+    vi.mocked(get).mockResolvedValue({
+      data: [],
+      pagination: {
+        current_page: 3,
+        total_pages: 2,
+        per_page: 25,
+        total_count: 50,
+        has_prev: true,
+        has_next: false,
+        sort_field: "created_at",
+        sort_order: "DESC",
+        category_id: 0,
+      },
+    });
+    renderList("page=3");
+
+    await vi.waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/expenses?page=2", {
+        replace: true,
+      });
+    });
+  });
+
+  it("stays put on an empty first page", async () => {
+    vi.mocked(get).mockResolvedValue({
+      data: [],
+      pagination: {
+        current_page: 1,
+        total_pages: 0,
+        per_page: 25,
+        total_count: 0,
+        has_prev: false,
+        has_next: false,
+        sort_field: "created_at",
+        sort_order: "DESC",
+        category_id: 0,
+      },
+    });
+    renderList();
+
+    await vi.waitFor(() => {
+      expect(vi.mocked(get)).toHaveBeenCalled();
+    });
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

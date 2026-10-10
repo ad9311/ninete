@@ -138,6 +138,12 @@ Layout and naming rules: `docs/spa-migration.md` §3.9.
   their own routes, the latter sending the `mode` (`month`/`months`)
   explicitly since the API
   no longer receives the range key it used to derive that from.
+  A plain click on a list row's description opens `DetailsDialog.svelte`, a
+  native `<dialog>` quick view with Edit, Delete and a link to the full page,
+  instead of navigating; the anchor keeps its `/expenses/:id` href, so a
+  modifier click and a shared link still reach `Show.svelte`. The dialog shows
+  the row the list already holds rather than refetching it, and both it and
+  `Show.svelte` render `Details.svelte`, so the two views cannot drift.
   `routes/dashboard/` is a single `Index.svelte` — the whole resource is one
   action. There is no date picker: the range is always this month vs. last
   month, resolved client-side with two `computeDateRange` calls

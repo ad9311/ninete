@@ -149,7 +149,12 @@ export function toRoutePath(pathname: string): string {
 }
 
 /** Pushes a new history entry and notifies listeners registered with onPopState. */
-export function navigate(path: string): void {
+/** `replace` swaps the current history entry instead of pushing one, for a
+ *  correction the back button should not return to. */
+export function navigate(
+  path: string,
+  { replace = false }: { replace?: boolean } = {},
+): void {
   const full = isUnderBasePath(path) ? path : `${BASE_PATH}${path}`;
   // Compare against pathname+search, not pathname alone — full can carry a
   // query string (List.svelte's filter/page-size links), and pathname never
@@ -157,7 +162,11 @@ export function navigate(path: string): void {
   const current = `${window.location.pathname}${window.location.search}`;
   if (full === current) return;
 
-  window.history.pushState({}, "", full);
+  if (replace) {
+    window.history.replaceState({}, "", full);
+  } else {
+    window.history.pushState({}, "", full);
+  }
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
