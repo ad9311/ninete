@@ -29,11 +29,13 @@ INSERT INTO "users" ("username", "email", "password_hash")
 VALUES (?, ?, ?)
 RETURNING ` + userColumns
 
-func (q *Queries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
+// InsertUser runs in a transaction because SignUp consumes the invitation code
+// in the same one: a failed insert must leave the code usable.
+func (q *TxQueries) InsertUser(ctx context.Context, params InsertUserParams) (User, error) {
 	var u User
 
 	err := q.wrapQuery(insertUser, func() error {
-		row := q.db.QueryRowContext(
+		row := q.tx.QueryRowContext(
 			ctx,
 			insertUser,
 			params.Username,

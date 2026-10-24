@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/ad9311/ninete/internal/spec"
@@ -106,14 +107,14 @@ func TestAPIRegister(t *testing.T) {
 		{
 			name: "should_create_an_account_and_start_a_session",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "api_register_code_1")
+				code := s.CreateInvitationCode(t)
 
 				res, _ := guestJSON(t, s, http.MethodPost, "/api/register", map[string]string{
 					"username":              "apiregisteruser1",
 					"email":                 "api_register_user_1@example.com",
 					"password":              "regpass111",
 					"password_confirmation": "regpass111",
-					"invitation_code":       "api_register_code_1",
+					"invitation_code":       code,
 				})
 				require.Equal(t, http.StatusNoContent, res.StatusCode)
 
@@ -128,14 +129,14 @@ func TestAPIRegister(t *testing.T) {
 		{
 			name: "should_reject_a_password_confirmation_mismatch",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "api_register_code_2")
+				code := s.CreateInvitationCode(t)
 
 				res, body := guestJSON(t, s, http.MethodPost, "/api/register", map[string]string{
 					"username":              "apiregisteruser2",
 					"email":                 "api_register_user_2@example.com",
 					"password":              "regpass222",
 					"password_confirmation": "doesnotmatch",
-					"invitation_code":       "api_register_code_2",
+					"invitation_code":       code,
 				})
 				require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode)
 
@@ -169,14 +170,14 @@ func TestAPIRegister(t *testing.T) {
 			name: "should_reject_a_duplicate_account",
 			fn: func(t *testing.T) {
 				s.CreateAuthUser(t, "api_register_user_4", "api_register_user_4@example.com", "api_register_password_4")
-				s.CreateInvitationCode(t, "api_register_code_4")
+				code := s.CreateInvitationCode(t)
 
 				res, body := guestJSON(t, s, http.MethodPost, "/api/register", map[string]string{
 					"username":              "apiregisteruser4b",
 					"email":                 "api_register_user_4@example.com",
 					"password":              "regpass444",
 					"password_confirmation": "regpass444",
-					"invitation_code":       "api_register_code_4",
+					"invitation_code":       code,
 				})
 				require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode)
 
@@ -185,6 +186,31 @@ func TestAPIRegister(t *testing.T) {
 				}
 				require.NoError(t, json.Unmarshal(body, &errBody))
 				require.Equal(t, "an account with that username or email already exists", errBody.Error)
+			},
+		},
+		{
+			// A password of multi-byte characters can pass the max=72 rule and
+			// still be too long for bcrypt; that is the caller's fault, a 422,
+			// not the 500 an unmapped error would answer.
+			name: "should_reject_a_password_over_72_bytes",
+			fn: func(t *testing.T) {
+				code := s.CreateInvitationCode(t)
+				password := strings.Repeat("é", 40)
+
+				res, body := guestJSON(t, s, http.MethodPost, "/api/register", map[string]string{
+					"username":              "apiregisteruser5",
+					"email":                 "api_register_user_5@example.com",
+					"password":              password,
+					"password_confirmation": password,
+					"invitation_code":       code,
+				})
+				require.Equal(t, http.StatusUnprocessableEntity, res.StatusCode)
+
+				var errBody struct {
+					Error string `json:"error"`
+				}
+				require.NoError(t, json.Unmarshal(body, &errBody))
+				require.Equal(t, "password must be at most 72 bytes", errBody.Error)
 			},
 		},
 		{

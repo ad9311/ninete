@@ -528,6 +528,36 @@ func newAuthRateLimit(limitHandler http.HandlerFunc) func(http.Handler) http.Han
 	)
 }
 
+// CSP reports accepted per client per window. A browser sends one per
+// violation, so a page that keeps tripping the policy still fits; a script
+// filling the log does not.
+const (
+	cspReportLimit  = 20
+	cspReportWindow = time.Minute
+)
+
+// cspReportRateLimit throttles /csp-report, the one route that writes to the
+// log for anyone on the internet without a session or a CSRF token. It is its
+// own counter, separate from authRateLimit, which must keep exactly its two
+// callers (the CLAUDE.md invariant).
+//
+// Disabled under ENV=test for the same reason authRateLimit is; the limiter is
+// covered directly in middleware_internal_test.go.
+func (s *Server) cspReportRateLimit() func(http.Handler) http.Handler {
+	if s.app.IsTest() {
+		return func(next http.Handler) http.Handler { return next }
+	}
+
+	return newCSPReportRateLimit()
+}
+
+// newCSPReportRateLimit answers a throttled report with httprate's plain-text
+// 429. That is safe on the page chain: it never reaches a render helper, and
+// the browser sending the report ignores the response anyway.
+func newCSPReportRateLimit() func(http.Handler) http.Handler {
+	return httprate.LimitBy(cspReportLimit, cspReportWindow, keyByClientIP)
+}
+
 // keyByClientIP buckets by the connecting address, which realClientIP has
 // already replaced with the forwarded client address. httprate's own KeyByIP is
 // deprecated precisely because it cannot know whether a proxy sits in front;

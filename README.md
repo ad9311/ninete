@@ -146,7 +146,7 @@ Tasks are one-off or scheduled jobs that run outside the web process, registered
 in `cmd/task/main.go`:
 
 ```bash
-make task name=create_invitation_code   # prompts on stdin for a code
+make task name=create_invitation_code   # prints a new single-use code
 make task name=copy_due_recurrent_expenses
 ```
 

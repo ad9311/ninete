@@ -15,7 +15,7 @@ func (s *Server) setUpRoutes() {
 	s.Router.Group(func(root chi.Router) {
 		s.setUpAppMiddlewares(root)
 
-		root.Post(cspReportPath, s.handlers.PostCSPReport)
+		root.With(s.cspReportRateLimit()).Post(cspReportPath, s.handlers.PostCSPReport)
 		root.Post("/logout", s.handlers.PostLogout)
 
 		// The expense export. It answers with a file rather than a page, but

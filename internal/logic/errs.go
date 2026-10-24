@@ -6,10 +6,11 @@ var (
 	ErrWithPasswords         = errors.New("failed to save passwords")
 	ErrWrongEmailOrPassword  = errors.New("wrong email or password")
 	ErrInvalidInvitationCode = errors.New("invalid invitation code")
-	ErrInvitationCodeExists  = errors.New("invitation code already exists")
 	ErrPasswordConfirmation  = errors.New("password and password confirmation do not match")
-	ErrInvitationCodeVerify  = errors.New("failed to verify invitation code")
+	ErrPasswordTooLong       = errors.New("password must be at most 72 bytes")
 	ErrLoginLookup           = errors.New("failed to look up account")
+
+	ErrInvitationCodeGeneration = errors.New("failed to generate invitation code")
 
 	// ErrAccountExists names neither the field that collided nor the value, so
 	// a holder of a valid invitation code cannot probe which addresses are

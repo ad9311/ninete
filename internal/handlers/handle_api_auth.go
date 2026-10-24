@@ -93,6 +93,7 @@ func (h *Handler) PostAPIRegister(w http.ResponseWriter, r *http.Request) {
 
 		h.WriteAPIError(w, err,
 			logic.ErrPasswordConfirmation,
+			logic.ErrPasswordTooLong,
 			logic.ErrAccountExists,
 			logic.ErrInvalidInvitationCode,
 		)
