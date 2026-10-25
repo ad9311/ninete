@@ -41,6 +41,10 @@ be broken; this file holds the description that helps you find your way.
      automatically and carry no token.
    - Template/context setup (`setTmplData`) — this is what makes `h.tmplData(r)` available, so anything calling a render helper must sit inside this group, which is why `GetApp` is registered here rather than on the root router. Nothing registers `NotFound`/`MethodNotAllowed` on this group any more: the `/*` catch-all answers every unmatched path with the shell, and the client router shows its own "Not found". Only the `/api/*` group registers them (see below).
    - Auth gate (`AuthMiddleware`) — redirects guests from protected routes and authenticated users from guest-only routes (`/login`, `/register`), and lets `/csp-report` through unauthenticated.
+   - `POST /csp-report` also carries its own per-IP limit, `cspReportRateLimit` (20 a minute,
+     `internal/serve/middleware.go`), applied on the route itself. It is a separate counter from
+     `authRateLimit`, is a no-op under `ENV=test`, and is covered directly in
+     `internal/serve/middleware_internal_test.go`.
 5. Route-level context middleware may run for resource-specific lookups.
 6. Handler executes endpoint behavior in `internal/handlers`.
 7. Handler calls `logic.Store` methods.
