@@ -270,3 +270,60 @@ func TestAuthRateLimitIgnoresForgedHeaders(t *testing.T) {
 func portFor(i int) string {
 	return fmt.Sprintf("203.0.113.14:%d", 50000+i)
 }
+
+// The CSP report limiter is disabled under ENV=test like the auth limiter, so
+// it is exercised directly here.
+func TestCSPReportRateLimit(t *testing.T) {
+	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	post := func(t *testing.T, handler http.Handler, remoteAddr string) int {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, cspReportPath, nil)
+		req.RemoteAddr = remoteAddr
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec.Code
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			name: "should_accept_reports_up_to_the_limit",
+			fn: func(t *testing.T) {
+				handler := newCSPReportRateLimit()(ok)
+
+				for i := range cspReportLimit {
+					require.Equal(
+						t,
+						http.StatusNoContent,
+						post(t, handler, "203.0.113.30:1234"),
+						"report %d was throttled before the limit", i+1,
+					)
+				}
+			},
+		},
+		{
+			name: "should_throttle_the_report_past_the_limit",
+			fn: func(t *testing.T) {
+				handler := newCSPReportRateLimit()(ok)
+
+				for range cspReportLimit {
+					require.Equal(t, http.StatusNoContent, post(t, handler, "203.0.113.31:1234"))
+				}
+
+				require.Equal(t, http.StatusTooManyRequests, post(t, handler, "203.0.113.31:1234"))
+				require.Equal(t, http.StatusNoContent, post(t, handler, "203.0.113.32:1234"))
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}

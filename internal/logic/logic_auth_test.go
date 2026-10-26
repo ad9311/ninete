@@ -203,14 +203,14 @@ func TestSignUp(t *testing.T) {
 		{
 			name: "should_signup_user_with_valid_params",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "invite_code_1")
+				code1 := s.CreateInvitationCode(t)
 
 				user, err := s.Store.SignUp(ctx, logic.SignUpParams{
 					Username:             "newuser1",
 					Email:                "new_user_1@example.com",
 					Password:             "signup_password_1",
 					PasswordConfirmation: "signup_password_1",
-					InvitationCode:       "invite_code_1",
+					InvitationCode:       code1,
 				})
 				require.NoError(t, err)
 				require.Positive(t, user.ID)
@@ -221,14 +221,14 @@ func TestSignUp(t *testing.T) {
 		{
 			name: "should_signup_with_normalized_email_username_and_invitation_code",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "invite_code_2")
+				code2 := s.CreateInvitationCode(t)
 
 				user, err := s.Store.SignUp(ctx, logic.SignUpParams{
 					Username:             " NEWUSER2 ",
 					Email:                " NEW_USER_2@EXAMPLE.COM ",
 					Password:             "signup_password_2",
 					PasswordConfirmation: "signup_password_2",
-					InvitationCode:       " INVITE_CODE_2 ",
+					InvitationCode:       " " + strings.ToUpper(code2) + " ",
 				})
 				require.NoError(t, err)
 				require.Equal(t, "newuser2", user.Username)
@@ -277,15 +277,15 @@ func TestSignUp(t *testing.T) {
 		{
 			name: "should_fail_with_duplicate_email",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "invite_code_6")
-				s.CreateInvitationCode(t, "invite_code_7")
+				code6 := s.CreateInvitationCode(t)
+				code7 := s.CreateInvitationCode(t)
 
 				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
 					Username:             "newuser6",
 					Email:                "new_user_6@example.com",
 					Password:             "signup_password_6",
 					PasswordConfirmation: "signup_password_6",
-					InvitationCode:       "invite_code_6",
+					InvitationCode:       code6,
 				})
 				require.NoError(t, err)
 
@@ -294,7 +294,7 @@ func TestSignUp(t *testing.T) {
 					Email:                "new_user_6@example.com",
 					Password:             "signup_password_7",
 					PasswordConfirmation: "signup_password_7",
-					InvitationCode:       "invite_code_7",
+					InvitationCode:       code7,
 				})
 				// Genuine reproduction: this used to return the driver error
 				// verbatim, and the register handler renders whatever it gets,
@@ -307,15 +307,15 @@ func TestSignUp(t *testing.T) {
 		{
 			name: "should_fail_with_duplicate_username",
 			fn: func(t *testing.T) {
-				s.CreateInvitationCode(t, "invite_code_8")
-				s.CreateInvitationCode(t, "invite_code_9")
+				code8 := s.CreateInvitationCode(t)
+				code9 := s.CreateInvitationCode(t)
 
 				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
 					Username:             "newuser8",
 					Email:                "new_user_8@example.com",
 					Password:             "signup_password_8",
 					PasswordConfirmation: "signup_password_8",
-					InvitationCode:       "invite_code_8",
+					InvitationCode:       code8,
 				})
 				require.NoError(t, err)
 
@@ -324,10 +324,111 @@ func TestSignUp(t *testing.T) {
 					Email:                "new_user_9@example.com",
 					Password:             "signup_password_9",
 					PasswordConfirmation: "signup_password_9",
-					InvitationCode:       "invite_code_9",
+					InvitationCode:       code9,
 				})
 				require.ErrorIs(t, err, logic.ErrAccountExists)
 				require.NotErrorIs(t, err, logic.ErrSignUpFailed)
+			},
+		},
+		{
+			// Genuine reproduction: SignUp only checked that the code
+			// existed, so one code could open any number of accounts.
+			name: "should_consume_the_invitation_code",
+			fn: func(t *testing.T) {
+				code := s.CreateInvitationCode(t)
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser10",
+					Email:                "new_user_10@example.com",
+					Password:             "signup_password_10",
+					PasswordConfirmation: "signup_password_10",
+					InvitationCode:       code,
+				})
+				require.NoError(t, err)
+
+				_, err = s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser11",
+					Email:                "new_user_11@example.com",
+					Password:             "signup_password_11",
+					PasswordConfirmation: "signup_password_11",
+					InvitationCode:       code,
+				})
+				require.ErrorIs(t, err, logic.ErrInvalidInvitationCode)
+			},
+		},
+		{
+			name: "should_keep_the_invitation_code_when_the_account_is_not_created",
+			fn: func(t *testing.T) {
+				s.CreateAuthUser(t, "newuser12", "new_user_12@example.com", "signup_password_12")
+				code := s.CreateInvitationCode(t)
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser12b",
+					Email:                "new_user_12@example.com",
+					Password:             "signup_password_12",
+					PasswordConfirmation: "signup_password_12",
+					InvitationCode:       code,
+				})
+				require.ErrorIs(t, err, logic.ErrAccountExists)
+				require.NoError(t, s.Store.ValidateInvitationCode(ctx, code))
+			},
+		},
+		{
+			// Genuine reproduction: the limit was 20 characters, which turned
+			// away long passphrases and generated passwords.
+			name: "should_accept_a_password_of_72_bytes",
+			fn: func(t *testing.T) {
+				code := s.CreateInvitationCode(t)
+				password := strings.Repeat("p", 72)
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser13",
+					Email:                "new_user_13@example.com",
+					Password:             password,
+					PasswordConfirmation: password,
+					InvitationCode:       code,
+				})
+				require.NoError(t, err)
+
+				_, err = s.Store.Login(ctx, logic.SessionParams{
+					Email:    "new_user_13@example.com",
+					Password: password,
+				})
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "should_fail_validation_with_a_password_over_72_characters",
+			fn: func(t *testing.T) {
+				password := strings.Repeat("p", 73)
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser14",
+					Email:                "new_user_14@example.com",
+					Password:             password,
+					PasswordConfirmation: password,
+					InvitationCode:       "invite_code_14",
+				})
+				require.ErrorIs(t, err, logic.ErrValidationFailed)
+			},
+		},
+		{
+			// 40 characters pass the max=72 rule, but at 2 bytes each they
+			// exceed what bcrypt accepts.
+			name: "should_fail_with_a_password_over_72_bytes",
+			fn: func(t *testing.T) {
+				code := s.CreateInvitationCode(t)
+				password := strings.Repeat("é", 40)
+
+				_, err := s.Store.SignUp(ctx, logic.SignUpParams{
+					Username:             "newuser15",
+					Email:                "new_user_15@example.com",
+					Password:             password,
+					PasswordConfirmation: password,
+					InvitationCode:       code,
+				})
+				require.ErrorIs(t, err, logic.ErrPasswordTooLong)
+				require.NoError(t, s.Store.ValidateInvitationCode(ctx, code))
 			},
 		},
 	}

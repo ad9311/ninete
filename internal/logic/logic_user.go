@@ -43,7 +43,12 @@ func (s *Store) CreateUser(ctx context.Context, params repo.InsertUserParams) (U
 	var user repo.User
 	var safeUser User
 
-	user, err := s.queries.InsertUser(ctx, params)
+	err := s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		var err error
+		user, err = tq.InsertUser(ctx, params)
+
+		return err
+	})
 	if err != nil {
 		return safeUser, err
 	}

@@ -30,11 +30,16 @@ type SessionParams struct {
 	Password string `validate:"required"`
 }
 
+// passwordMaxBytes is bcrypt's input limit. The max=72 rule on SignUpParams
+// counts characters, so a password of multi-byte characters can pass it and
+// still be too long for bcrypt; SignUp checks the bytes as well.
+const passwordMaxBytes = 72
+
 type SignUpParams struct {
 	Username             string `validate:"required,alphanumunicode,min=3,max=20"`
 	Email                string `validate:"required,email"`
-	Password             string `validate:"required,min=8,max=20"`
-	PasswordConfirmation string `validate:"required,min=8,max=20"`
+	Password             string `validate:"required,min=8,max=72"`
+	PasswordConfirmation string `validate:"required,min=8,max=72"`
 	InvitationCode       string `validate:"required"`
 }
 
@@ -81,10 +86,17 @@ func (s *Store) SignUp(ctx context.Context, params SignUpParams) (User, error) {
 		return user, err
 	}
 
+	if len(params.Password) > passwordMaxBytes {
+		return user, ErrPasswordTooLong
+	}
+
 	if params.Password != params.PasswordConfirmation {
 		return user, ErrPasswordConfirmation
 	}
 
+	// A read-only check first, so a wrong code is rejected before paying for
+	// the password hash. The code is consumed below, in the insert's
+	// transaction.
 	if err := s.ValidateInvitationCode(ctx, params.InvitationCode); err != nil {
 		return user, err
 	}
@@ -94,12 +106,29 @@ func (s *Store) SignUp(ctx context.Context, params SignUpParams) (User, error) {
 		return user, err
 	}
 
-	user, err = s.CreateUser(ctx, repo.InsertUserParams{
-		Username:     params.Username,
-		Email:        params.Email,
-		PasswordHash: passwordHash,
+	// The code is single-use: it is deleted in the same transaction that
+	// creates the account, so a failed insert leaves it usable and two
+	// sign-ups racing on one code cannot both succeed.
+	var repoUser repo.User
+	err = s.queries.WithTx(ctx, func(tq *repo.TxQueries) error {
+		err := consumeInvitationCodeTx(ctx, tq, params.InvitationCode)
+		if err != nil {
+			return err
+		}
+
+		repoUser, err = tq.InsertUser(ctx, repo.InsertUserParams{
+			Username:     params.Username,
+			Email:        params.Email,
+			PasswordHash: passwordHash,
+		})
+
+		return err
 	})
 	if err != nil {
+		if errors.Is(err, ErrInvalidInvitationCode) {
+			return user, err
+		}
+
 		// The insert is the only step that can collide with an existing row.
 		// Everything else it can fail with is a server fault, and neither may
 		// reach the page as the driver phrased it: the constraint message names
@@ -111,6 +140,8 @@ func (s *Store) SignUp(ctx context.Context, params SignUpParams) (User, error) {
 
 		return user, fmt.Errorf("%w: %w", ErrSignUpFailed, err)
 	}
+
+	user.fromRepoUser(repoUser)
 
 	return user, nil
 }

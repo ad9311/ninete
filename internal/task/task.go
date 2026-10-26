@@ -1,10 +1,8 @@
 package task
 
 import (
-	"bufio"
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/ad9311/ninete/internal/logic"
@@ -15,24 +13,20 @@ func TestDev(*prog.App, *logic.Store) error {
 	return nil
 }
 
+// CreateInvitationCode generates one single-use invitation code and prints it.
+// The code is shown only here: the database keeps its SHA-256, so a lost code
+// cannot be recovered, only replaced by running the task again.
 func CreateInvitationCode(app *prog.App, store *logic.Store) error {
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("Invitation code: ")
-	code, err := reader.ReadString('\n')
-	if err != nil {
-		return err
-	}
-
 	ctx, cancel := newContext()
 	defer cancel()
 
-	invitationCode, err := store.CreateInvitationCode(ctx, code)
+	invitationCode, code, err := store.CreateInvitationCode(ctx)
 	if err != nil {
 		return err
 	}
 
 	app.Logger.Logf("Invitation code created successfully [id=%d]", invitationCode.ID)
+	fmt.Printf("Invitation code (single use, shown once): %s\n", code)
 
 	return nil
 }

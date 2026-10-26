@@ -27,13 +27,15 @@ func (s *Spec) CreateCategory(t *testing.T, name string) repo.Category {
 	return category
 }
 
-func (s *Spec) CreateInvitationCode(t *testing.T, rawCode string) repo.InvitationCode {
+// CreateInvitationCode generates a code and returns its plaintext, the only
+// form a sign-up can use.
+func (s *Spec) CreateInvitationCode(t *testing.T) string {
 	t.Helper()
 
-	invitationCode, err := s.Store.CreateInvitationCode(t.Context(), rawCode)
+	_, code, err := s.Store.CreateInvitationCode(t.Context())
 	require.NoError(t, err)
 
-	return invitationCode
+	return code
 }
 
 func (s *Spec) CreateAuthUser(

@@ -202,3 +202,61 @@ func TestCredentialRoutesAreRateLimited(t *testing.T) {
 		t.Run(tc.name, tc.fn)
 	}
 }
+
+func TestCSPReportRouteIsRateLimited(t *testing.T) {
+	post := func(t *testing.T, server *Server, remoteAddr string) int {
+		t.Helper()
+
+		// An empty body keeps the handler from writing a log line per report.
+		req := httptest.NewRequest(http.MethodPost, cspReportPath, nil)
+		req.RemoteAddr = remoteAddr
+		rec := httptest.NewRecorder()
+		server.Router.ServeHTTP(rec, req)
+
+		return rec.Code
+	}
+
+	cases := []struct {
+		name string
+		fn   func(*testing.T)
+	}{
+		{
+			// TestCSPReportRateLimit covers the limiter on its own; deleting
+			// `root.With(s.cspReportRateLimit())` in setUpRoutes leaves it
+			// green. This is what notices.
+			name: "should_throttle_csp_reports_past_the_limit",
+			fn: func(t *testing.T) {
+				server := newLimitedServer(t)
+
+				for i := range cspReportLimit {
+					require.Equal(
+						t, http.StatusNoContent, post(t, server, "203.0.113.60:1234"),
+						"report %d was throttled before the limit", i+1,
+					)
+				}
+
+				require.Equal(t, http.StatusTooManyRequests, post(t, server, "203.0.113.60:1234"))
+			},
+		},
+		{
+			// A separate counter from authRateLimit: exhausting the report
+			// budget must leave the credential routes untouched.
+			name: "should_not_share_a_budget_with_the_credential_routes",
+			fn: func(t *testing.T) {
+				server := newLimitedServer(t)
+
+				for range cspReportLimit + 1 {
+					post(t, server, "203.0.113.61:1234")
+				}
+
+				token, cookies := csrfFor(t, server, "/login")
+				code, _ := postAPICredentials(t, server, "/api/login", token, cookies, "203.0.113.61:1234")
+				require.NotEqual(t, http.StatusTooManyRequests, code)
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, tc.fn)
+	}
+}

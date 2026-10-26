@@ -300,7 +300,10 @@ Available tasks are registered in `cmd/task/main.go`:
   copies fewer rows than the month before is therefore expected, not a fault.
   One failing row is logged and skipped, and the task still exits 0 — check the
   count in the log line, not just the exit status.
-- `create_invitation_code` — interactive, prompts on stdin. Run by hand.
+- `create_invitation_code` — generates one single-use invitation code and prints
+  it. Run by hand. The code is shown only once (the database keeps its SHA-256)
+  and is deleted by the sign-up that uses it, so run the task again for each
+  person who needs to register.
 - `test` — a no-op hook for development. Not for production use.
 
 ## Versioning

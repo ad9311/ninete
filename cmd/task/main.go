@@ -26,7 +26,7 @@ func taskCommands() []*cmd.Command {
 	return []*cmd.Command{
 		{
 			Name:        "create_invitation_code",
-			Description: "Prompts and creates one invitation code",
+			Description: "Generates one single-use invitation code and prints it",
 			Run:         runTask(task.CreateInvitationCode),
 		},
 		{
