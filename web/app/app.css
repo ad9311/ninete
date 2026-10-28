@@ -224,6 +224,14 @@ html.theme-dark {
     line-height: 1.4;
   }
 
+  /* The UA stylesheet gives <dialog> `color: CanvasText`, which follows
+     color-scheme rather than the theme class, so without this every text
+     inside a modal that does not set its own colour renders near-black on
+     the dark surface. */
+  dialog {
+    color: inherit;
+  }
+
   h1 {
     font-size: clamp(1.25rem, 2.6vw, 1.5rem);
     letter-spacing: 0.02em;
